@@ -1,16 +1,11 @@
 using System.Linq;
 using Xi.Core.Rope;
+using static Xi.Core.Tests.RopeTestHelpers;
 
 namespace Xi.Core.Tests;
 
 public class RopeNodeTests
 {
-    private static void AssertInvariants(RopeNode node, bool enforceLeafMinimum = false)
-    {
-        var exception = Record.Exception(() => node.ValidateInvariants(enforceLeafMinimum));
-        Assert.Null(exception);
-    }
-
     [Fact]
     public void FromLeaf_ComputesMetadata()
     {

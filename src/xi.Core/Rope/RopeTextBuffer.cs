@@ -12,6 +12,8 @@ public sealed class RopeTextBuffer : ITextBuffer
 
     public int Length => _root.Length;
 
+    internal RopeNode DebugRoot => _root;
+
     public void Append(string? text)
     {
         Replace(Length, 0, text);
