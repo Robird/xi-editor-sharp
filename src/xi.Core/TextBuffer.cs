@@ -20,12 +20,7 @@ public sealed class TextBuffer : ITextBuffer
     /// <param name="text">The text to append. Null is treated as empty.</param>
     public void Append(string? text)
     {
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        _builder.Append(text);
+        Replace(Length, 0, text);
     }
 
     /// <summary>
@@ -45,6 +40,22 @@ public sealed class TextBuffer : ITextBuffer
     /// Clears all content from the buffer.
     /// </summary>
     public void Clear() => _builder.Clear();
+
+    /// <inheritdoc />
+    public void Replace(int start, int length, string? text)
+    {
+        ValidateRange(start, length, Length);
+
+        if (length > 0)
+        {
+            _builder.Remove(start, length);
+        }
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            _builder.Insert(start, text);
+        }
+    }
 
     /// <inheritdoc />
     public string Snapshot() => _builder.ToString();
@@ -74,4 +85,22 @@ public sealed class TextBuffer : ITextBuffer
     /// Returns the current content of the buffer as a string.
     /// </summary>
     public override string ToString() => Snapshot();
+
+    private static void ValidateRange(int start, int length, int totalLength)
+    {
+        if (start < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(start), start, "Start must be non-negative.");
+        }
+
+        if (length < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be non-negative.");
+        }
+
+        if (start > totalLength || start + length > totalLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Requested range exceeds buffer bounds.");
+        }
+    }
 }

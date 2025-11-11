@@ -29,6 +29,28 @@ public class TextBufferTests
     }
 
     [Fact]
+    public void Replace_InsertsTextAtGivenPosition()
+    {
+        ITextBuffer buffer = new TextBuffer();
+        buffer.Append("ac");
+
+        buffer.Replace(1, 0, "b");
+
+        Assert.Equal("abc", buffer.Snapshot());
+    }
+
+    [Fact]
+    public void Replace_DeletesSpecifiedRange()
+    {
+        ITextBuffer buffer = new TextBuffer();
+        buffer.Append("abcdef");
+
+        buffer.Replace(2, 2, null);
+
+        Assert.Equal("abef", buffer.Snapshot());
+    }
+
+    [Fact]
     public void LengthReflectsAppends()
     {
         ITextBuffer buffer = new TextBuffer();

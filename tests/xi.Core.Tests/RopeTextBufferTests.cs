@@ -66,6 +66,34 @@ public class RopeTextBufferTests
     Assert.Equal(new string('a', 3) + "middle" + "b", slice);
     }
 
+    [Fact]
+    public void Replace_InsertsTextAcrossLeaves()
+    {
+        var buffer = Create();
+        buffer.Append(new string('a', RopeNode.MaxLeafSize));
+        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+
+        var insertPosition = RopeNode.MaxLeafSize / 2;
+        buffer.Replace(insertPosition, 0, "XYZ");
+
+        var expected = new string('a', insertPosition) + "XYZ" + new string('a', RopeNode.MaxLeafSize - insertPosition) + new string('b', RopeNode.MaxLeafSize);
+        Assert.Equal(expected, buffer.Snapshot());
+    }
+
+    [Fact]
+    public void Replace_DeletesRangeAcrossLeaves()
+    {
+        var buffer = Create();
+        buffer.Append(new string('a', RopeNode.MaxLeafSize));
+        buffer.Append("middle");
+        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+
+        buffer.Replace(RopeNode.MaxLeafSize - 2, 6, null);
+
+        var expected = new string('a', RopeNode.MaxLeafSize - 2) + "le" + new string('b', RopeNode.MaxLeafSize);
+        Assert.Equal(expected, buffer.Snapshot());
+    }
+
     [Theory]
     [InlineData(-1, 1)]
     [InlineData(1, -1)]

@@ -32,6 +32,14 @@ public interface ITextBuffer
     void Clear();
 
     /// <summary>
+    /// Replaces the specified range with new text.
+    /// </summary>
+    /// <param name="start">Start position of the replacement.</param>
+    /// <param name="length">Number of UTF-16 code units to remove.</param>
+    /// <param name="text">Text to insert at the given position.</param>
+    void Replace(int start, int length, string? text);
+
+    /// <summary>
     /// Returns a string snapshot of the entire buffer contents.
     /// </summary>
     string Snapshot();

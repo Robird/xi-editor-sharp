@@ -14,14 +14,7 @@ public sealed class RopeTextBuffer : ITextBuffer
 
     public void Append(string? text)
     {
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        var builder = new TreeBuilder();
-        builder.PushString(text);
-        AppendNode(builder.Build());
+        Replace(Length, 0, text);
     }
 
     public void Append(ReadOnlySpan<char> text)
@@ -31,12 +24,30 @@ public sealed class RopeTextBuffer : ITextBuffer
             return;
         }
 
-        Append(text.ToString());
+        Replace(Length, 0, text.ToString());
     }
 
     public void Clear()
     {
         _root = RopeNode.Empty;
+    }
+
+    public void Replace(int start, int length, string? text)
+    {
+        ValidateRange(start, length, _root.Length);
+
+        var newRoot = _root;
+        if (length > 0)
+        {
+            newRoot = newRoot.Delete(start, length);
+        }
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            newRoot = newRoot.Insert(start, text);
+        }
+
+        _root = newRoot;
     }
 
     public string Snapshot() => _root.ToString();
@@ -50,16 +61,6 @@ public sealed class RopeTextBuffer : ITextBuffer
         }
 
         return _root.Slice(start, length).ToString();
-    }
-
-    private void AppendNode(RopeNode newNode)
-    {
-        if (newNode.IsEmpty)
-        {
-            return;
-        }
-
-        _root = _root.IsEmpty ? newNode : RopeNode.Concat(_root, newNode);
     }
 
     private static void ValidateRange(int start, int length, int totalLength)

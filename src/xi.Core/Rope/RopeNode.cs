@@ -152,6 +152,73 @@ public sealed class RopeNode
         return builder.ToString();
     }
 
+    public RopeNode Insert(int start, string text)
+    {
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        if (start < 0 || start > Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(start), start, "Start must be within node bounds.");
+        }
+
+        if (text.Length == 0)
+        {
+            return this;
+        }
+
+        var builder = new TreeBuilder();
+        if (start > 0)
+        {
+            builder.PushNode(Slice(0, start));
+        }
+
+        builder.PushString(text);
+
+        var suffixLength = Length - start;
+        if (suffixLength > 0)
+        {
+            builder.PushNode(Slice(start, suffixLength));
+        }
+
+        return builder.Build();
+    }
+
+    public RopeNode Delete(int start, int length)
+    {
+        if (length == 0)
+        {
+            return this;
+        }
+
+        if (start < 0 || length < 0 || start + length > Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Deletion range must be within node bounds.");
+        }
+
+        if (length == Length)
+        {
+            return Empty;
+        }
+
+        var builder = new TreeBuilder();
+        if (start > 0)
+        {
+            builder.PushNode(Slice(0, start));
+        }
+
+        var suffixStart = start + length;
+        var suffixLength = Length - suffixStart;
+        if (suffixLength > 0)
+        {
+            builder.PushNode(Slice(suffixStart, suffixLength));
+        }
+
+        return builder.Build();
+    }
+
     private static RopeNode ConcatLeftShorter(RopeNode left, RopeNode right)
     {
         var children = right.RequireChildren();
@@ -289,4 +356,5 @@ public sealed class RopeNode
             offset = 0;
         }
     }
+
 }

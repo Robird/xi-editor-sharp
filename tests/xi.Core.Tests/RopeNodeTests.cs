@@ -52,4 +52,29 @@ public class RopeNodeTests
 
         Assert.Equal("lo wo", slice.ToString());
     }
+
+    [Fact]
+    public void Insert_PreservesStructureAndContent()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("hello");
+        builder.PushString("world");
+
+        var node = builder.Build();
+        var inserted = node.Insert(5, ", ");
+
+        Assert.Equal("hello, world", inserted.ToString());
+    }
+
+    [Fact]
+    public void Delete_RemovesSpecifiedSegment()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("hello, world");
+
+        var node = builder.Build();
+        var deleted = node.Delete(5, 2);
+
+        Assert.Equal("helloworld", deleted.ToString());
+    }
 }
