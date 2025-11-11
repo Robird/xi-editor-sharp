@@ -210,6 +210,37 @@ public sealed class RopeNode
         return Concat(prefix, suffix);
     }
 
+    public RopeNode WithChildReplaced(int index, RopeNode newChild)
+    {
+        if (newChild is null)
+        {
+            throw new ArgumentNullException(nameof(newChild));
+        }
+
+        if (IsLeaf)
+        {
+            throw new InvalidOperationException("Cannot replace child on a leaf node.");
+        }
+
+        var children = RequireChildren();
+
+        if ((uint)index >= (uint)children.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), index, "Child index must be within node bounds.");
+        }
+
+        if (ReferenceEquals(children[index], newChild))
+        {
+            return this;
+        }
+
+        var clone = new RopeNode[children.Length];
+        Array.Copy(children, clone, children.Length);
+        clone[index] = newChild;
+
+        return CreateInternal(Height, clone);
+    }
+
     public (RopeNode Left, RopeNode Right) SplitAt(int index)
     {
         if (index < 0 || index > Length)

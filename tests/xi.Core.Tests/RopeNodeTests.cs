@@ -93,4 +93,30 @@ public class RopeNodeTests
 
         Assert.Equal("helloworld", deleted.ToString());
     }
+
+    [Fact]
+    public void WithChildReplaced_RecomputesAggregates()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("aaa\n");
+        builder.PushString("bbb");
+        builder.PushString("ccc");
+
+        var node = builder.Build();
+        Assert.False(node.IsLeaf);
+
+        var originalChild = node.Children[1];
+        var replacement = RopeNode.FromLeaf("xyz\n");
+
+        var updated = node.WithChildReplaced(1, replacement);
+
+        Assert.Equal("aaa\nxyz\nccc", updated.ToString());
+        Assert.Equal(
+            node.Length - originalChild.Length + replacement.Length,
+            updated.Length);
+        Assert.Equal(
+            node.Info.LineCount - originalChild.Info.LineCount + replacement.Info.LineCount,
+            updated.Info.LineCount);
+        Assert.Equal("aaa\nbbbccc", node.ToString());
+    }
 }
