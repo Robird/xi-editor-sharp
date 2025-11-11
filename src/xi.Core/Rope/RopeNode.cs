@@ -100,6 +100,38 @@ public sealed class RopeNode
         }
     }
 
+    public RopeNode Slice(int start, int length)
+    {
+        if (start < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(start), start, "Start must be non-negative.");
+        }
+
+        if (length < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be non-negative.");
+        }
+
+        if (start > Length || start + length > Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Requested slice exceeds node bounds.");
+        }
+
+        if (length == 0)
+        {
+            return Empty;
+        }
+
+        if (start == 0 && length == Length)
+        {
+            return this;
+        }
+
+        var builder = new TreeBuilder();
+        CollectSlice(this, start, length, builder);
+        return builder.Build();
+    }
+
     public override string ToString()
     {
         if (_body.Leaf is { } leaf)
@@ -212,4 +244,49 @@ public sealed class RopeNode
     }
 
     private sealed record RopeNodeBody(int Height, int Length, RopeInfo Info, string? Leaf, RopeNode[]? Children);
+
+    private static void CollectSlice(RopeNode node, int start, int length, TreeBuilder builder)
+    {
+        if (length <= 0)
+        {
+            return;
+        }
+
+        if (node.IsLeaf)
+        {
+            if (node._body.Leaf is null)
+            {
+                return;
+            }
+
+            builder.PushString(node._body.Leaf.Substring(start, length));
+            return;
+        }
+
+        if (node._body.Children is null)
+        {
+            return;
+        }
+
+        var remaining = length;
+        var offset = start;
+        foreach (var child in node._body.Children)
+        {
+            if (remaining == 0)
+            {
+                break;
+            }
+
+            if (offset >= child.Length)
+            {
+                offset -= child.Length;
+                continue;
+            }
+
+            var take = Math.Min(remaining, child.Length - offset);
+            CollectSlice(child, offset, take, builder);
+            remaining -= take;
+            offset = 0;
+        }
+    }
 }

@@ -53,6 +53,19 @@ public class RopeTextBufferTests
         Assert.Equal("cd", buffer.GetSlice(2, 2));
     }
 
+    [Fact]
+    public void GetSlice_HandlesSegmentsAcrossLeaves()
+    {
+        var buffer = Create();
+        buffer.Append(new string('a', RopeNode.MaxLeafSize));
+        buffer.Append("middle");
+        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+
+        var slice = buffer.GetSlice(RopeNode.MaxLeafSize - 3, 10);
+
+    Assert.Equal(new string('a', 3) + "middle" + "b", slice);
+    }
+
     [Theory]
     [InlineData(-1, 1)]
     [InlineData(1, -1)]

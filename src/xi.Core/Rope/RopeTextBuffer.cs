@@ -49,7 +49,7 @@ public sealed class RopeTextBuffer : ITextBuffer
             return string.Empty;
         }
 
-        return Snapshot().Substring(start, length);
+        return _root.Slice(start, length).ToString();
     }
 
     private void AppendNode(RopeNode newNode)

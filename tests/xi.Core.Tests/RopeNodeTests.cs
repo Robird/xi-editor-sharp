@@ -38,4 +38,18 @@ public class RopeNodeTests
         Assert.Equal("abc", result.ToString());
         Assert.Equal(3, result.TraverseLeaves().Count());
     }
+
+    [Fact]
+    public void Slice_SpansMultipleLeaves()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("hello");
+        builder.PushString(" world");
+        builder.PushString("!");
+
+        var node = builder.Build();
+        var slice = node.Slice(3, 5);
+
+        Assert.Equal("lo wo", slice.ToString());
+    }
 }
