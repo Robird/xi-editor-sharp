@@ -169,8 +169,13 @@ public sealed class RopeNode
             return this;
         }
 
-        if (TryInsertInSingleLeaf(start, text, out var optimized))
+        if (TryInsertInSingleLeaf(start, text, out var optimized, out var splitNodes))
         {
+            if (splitNodes is not null)
+            {
+                return BuildFromSegments(new List<RopeNode>(splitNodes));
+            }
+
             return optimized;
         }
 
@@ -252,8 +257,13 @@ public sealed class RopeNode
             return Delete(start, length);
         }
 
-        if (TryReplaceInSingleSegment(start, length, text, out var optimized))
+        if (TryReplaceInSingleSegment(start, length, text, out var optimized, out var splitNodes))
         {
+            if (splitNodes is not null)
+            {
+                return BuildFromSegments(new List<RopeNode>(splitNodes));
+            }
+
             return optimized;
         }
 
@@ -314,8 +324,10 @@ public sealed class RopeNode
         return segments;
     }
 
-    private bool TryInsertInSingleLeaf(int start, string text, out RopeNode result)
+    private bool TryInsertInSingleLeaf(int start, string text, out RopeNode result, out IReadOnlyList<RopeNode>? splitNodes)
     {
+        splitNodes = null;
+
         if (IsLeaf)
         {
             var leafText = _body.Leaf ?? string.Empty;
@@ -326,28 +338,34 @@ public sealed class RopeNode
             }
 
             var newLength = leafText.Length + text.Length;
-            if (newLength > MaxLeafSize)
-            {
-                result = Empty;
-                return false;
-            }
 
-            if (newLength == 0)
-            {
-                result = Empty;
-                return true;
-            }
-
-            var newLeaf = string.Create(newLength, (leafText, start, text), static (span, state) =>
+            var newLeafText = string.Create(newLength, (leafText, start, text), static (span, state) =>
             {
                 var (source, insertIndex, insertText) = state;
                 source.AsSpan(0, insertIndex).CopyTo(span);
                 var current = insertText.AsSpan();
                 current.CopyTo(span[insertIndex..(insertIndex + current.Length)]);
-                source.AsSpan(insertIndex).CopyTo(span[(insertIndex + current.Length)..]);
+            source.AsSpan(insertIndex).CopyTo(span[(insertIndex + current.Length)..]);
             });
 
-            result = FromLeaf(newLeaf);
+            var newLeaf = FromLeaf(newLeafText);
+
+            if (newLeaf.Length <= MaxLeafSize)
+            {
+                result = newLeaf;
+                return true;
+            }
+
+            splitNodes = newLeaf.SplitLeafByBounds();
+
+            if (splitNodes.Count == 1)
+            {
+                result = splitNodes[0];
+                splitNodes = null;
+                return true;
+            }
+
+            result = Empty;
             return true;
         }
 
@@ -371,9 +389,18 @@ public sealed class RopeNode
 
             var relativeStart = Math.Min(start - childStart, child.Length);
 
-            if (child.TryInsertInSingleLeaf(relativeStart, text, out var newChild))
+            if (child.TryInsertInSingleLeaf(relativeStart, text, out var newChild, out var childSplitNodes))
             {
-                result = WithChildReplaced(i, newChild);
+                if (childSplitNodes is not null)
+                {
+                    result = ReplaceChildWithSegments(children, i, childSplitNodes);
+                    splitNodes = null;
+                }
+                else
+                {
+                    result = WithChildReplaced(i, newChild);
+                }
+
                 return true;
             }
 
@@ -477,20 +504,16 @@ public sealed class RopeNode
         return false;
     }
 
-    private bool TryReplaceInSingleSegment(int start, int length, string text, out RopeNode result)
+    private bool TryReplaceInSingleSegment(int start, int length, string text, out RopeNode result, out IReadOnlyList<RopeNode>? splitNodes)
     {
+        splitNodes = null;
+
         if (IsLeaf)
         {
             var leafText = _body.Leaf ?? string.Empty;
             var newLength = leafText.Length - length + text.Length;
 
-            if (newLength > MaxLeafSize)
-            {
-                result = Empty;
-                return false;
-            }
-
-            var newLeaf = string.Create(newLength, (leafText, start, length, text), static (span, state) =>
+            var newLeafText = string.Create(newLength, (leafText, start, length, text), static (span, state) =>
             {
                 var (source, replaceStart, replaceLength, replacement) = state;
                 var head = source.AsSpan(0, replaceStart);
@@ -504,7 +527,24 @@ public sealed class RopeNode
                 tail.CopyTo(span.Slice(replaceStart + replacementSpan.Length));
             });
 
-            result = FromLeaf(newLeaf);
+            var newLeaf = FromLeaf(newLeafText);
+
+            if (newLeaf.Length <= MaxLeafSize)
+            {
+                result = newLeaf;
+                return true;
+            }
+
+            splitNodes = newLeaf.SplitLeafByBounds();
+
+            if (splitNodes.Count == 1)
+            {
+                result = splitNodes[0];
+                splitNodes = null;
+                return true;
+            }
+
+            result = Empty;
             return true;
         }
 
@@ -525,12 +565,21 @@ public sealed class RopeNode
             }
 
             var relativeStart = start - childStart;
-            if (child.TryReplaceInSingleSegment(relativeStart, length, text, out var newChild))
+            if (child.TryReplaceInSingleSegment(relativeStart, length, text, out var newChild, out var childSplitNodes))
             {
-                var clone = new RopeNode[children.Length];
-                Array.Copy(children, clone, children.Length);
-                clone[i] = newChild;
-                result = CloneWithChildren(clone);
+                if (childSplitNodes is not null)
+                {
+                    result = ReplaceChildWithSegments(children, i, childSplitNodes);
+                    splitNodes = null;
+                }
+                else
+                {
+                    var clone = new RopeNode[children.Length];
+                    Array.Copy(children, clone, children.Length);
+                    clone[i] = newChild;
+                    result = CloneWithChildren(clone);
+                }
+
                 return true;
             }
 
@@ -578,6 +627,43 @@ public sealed class RopeNode
         }
 
         return new RopeNode(new RopeNodeBody(Height, length, info, null, array));
+    }
+
+    private RopeNode ReplaceChildWithSegments(RopeNode[] children, int index, IReadOnlyList<RopeNode> segments)
+    {
+        if (segments is null)
+        {
+            throw new ArgumentNullException(nameof(segments));
+        }
+
+        if (segments.Count == 0)
+        {
+            throw new ArgumentException("Replacement segments must contain at least one node.", nameof(segments));
+        }
+
+        var newChildCount = children.Length - 1 + segments.Count;
+        if (newChildCount == 0)
+        {
+            return Empty;
+        }
+
+        var newChildren = new RopeNode[newChildCount];
+        if (index > 0)
+        {
+            Array.Copy(children, 0, newChildren, 0, index);
+        }
+
+        for (var s = 0; s < segments.Count; s++)
+        {
+            newChildren[index + s] = segments[s];
+        }
+
+        if (index < children.Length - 1)
+        {
+            Array.Copy(children, index + 1, newChildren, index + segments.Count, children.Length - index - 1);
+        }
+
+        return CreateInternal(Height, newChildren);
     }
 
     public RopeNode WithChildReplaced(int index, RopeNode newChild)
