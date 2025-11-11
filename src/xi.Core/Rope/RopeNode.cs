@@ -660,7 +660,7 @@ public sealed class RopeNode
     public void ValidateInvariants(bool enforceLeafMinimum = false)
     {
         var issues = new List<string>();
-        ValidateNode(this, isRoot: true, enforceLeafMinimum, issues);
+        ValidateNode(this, isRoot: true, enforceLeafMinimum, issues, "root");
 
         if (issues.Count > 0)
         {
@@ -1091,23 +1091,23 @@ public sealed class RopeNode
         return index < left.Length ? left[index] : right[index - left.Length];
     }
 
-    private static void ValidateNode(RopeNode node, bool isRoot, bool enforceLeafMinimum, List<string> issues)
+    private static void ValidateNode(RopeNode node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path)
     {
         if (node.IsLeaf)
         {
             if (node.Length != node.Info.Utf16Length)
             {
-                issues.Add($"Leaf length mismatch: length={node.Length}, utf16={node.Info.Utf16Length}");
+                issues.Add($"[{path}] Leaf length mismatch: length={node.Length}, utf16={node.Info.Utf16Length}");
             }
 
             if (node.Length > MaxLeafSize)
             {
-                issues.Add($"Leaf exceeds MaxLeafSize: {node.Length}");
+                issues.Add($"[{path}] Leaf exceeds MaxLeafSize: {node.Length}");
             }
 
             if (enforceLeafMinimum && !isRoot && node.Length > 0 && node.Length < MinLeafSize)
             {
-                issues.Add($"Leaf below MinLeafSize: {node.Length}");
+                issues.Add($"[{path}] Leaf below MinLeafSize: {node.Length}");
             }
 
             return;
@@ -1117,7 +1117,7 @@ public sealed class RopeNode
 
         if (children.Length == 0)
         {
-            issues.Add("Internal node has zero children.");
+            issues.Add($"[{path}] Internal node has zero children.");
             return;
         }
 
@@ -1128,13 +1128,14 @@ public sealed class RopeNode
         for (var i = 0; i < children.Length; i++)
         {
             var child = children[i];
+            var childPath = $"{path}/{i}";
 
             if (child.Height != expectedHeight)
             {
-                issues.Add($"Child height mismatch at index {i}: {child.Height} != {expectedHeight}");
+                issues.Add($"[{childPath}] Height mismatch: expected {expectedHeight}, actual {child.Height}");
             }
 
-            ValidateNode(child, isRoot: false, enforceLeafMinimum, issues);
+            ValidateNode(child, isRoot: false, enforceLeafMinimum, issues, childPath);
 
             totalLength = checked(totalLength + child.Length);
             aggregate = aggregate.Accumulate(child.Info);
@@ -1142,12 +1143,12 @@ public sealed class RopeNode
 
         if (totalLength != node.Length)
         {
-            issues.Add($"Length aggregate mismatch: expected {node.Length}, actual {totalLength}");
+            issues.Add($"[{path}] Length aggregate mismatch: expected {node.Length}, actual {totalLength}");
         }
 
         if (aggregate.Utf16Length != node.Info.Utf16Length || aggregate.LineCount != node.Info.LineCount)
         {
-            issues.Add("Info aggregate mismatch.");
+            issues.Add($"[{path}] Info aggregate mismatch.");
         }
     }
 

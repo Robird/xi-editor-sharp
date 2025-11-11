@@ -532,6 +532,7 @@ public class RopeNodeTests
 
         var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
         Assert.Contains("Leaf below MinLeafSize", exception.Message);
+        Assert.Contains("[root/", exception.Message);
     }
 
     [Fact]
@@ -570,5 +571,6 @@ public class RopeNodeTests
 
         var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
         Assert.Contains("Leaf below MinLeafSize", exception.Message);
+        Assert.Contains("[root/", exception.Message);
     }
 }
