@@ -23,6 +23,12 @@
 - 单元测试（`TextBufferTests`）已验证字符串与 `ReadOnlySpan<char>` 追加语义，可作为后续 Rope 行为的回归基线。
 - Rust 版核心能力集中在 `core-lib` 与 `rope` 模块；移植需优先厘清这些模块的 API 边界、数据结构与性能假设。
 - JSON-RPC/插件层可以独立于核心存在，因此核心 API 设计需保持嵌入式调用友好，同时预留事件/通知扩展点。
+- 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出了 C# 子系统映射与迁移顺序初稿（见 `docs/architecture/xi-core-structure.md`）。
+- `CoreState` 通过 `EventContext` 串联 `View`、`Editor`、配置与插件，编辑命令在 `Editor::add_delta/commit_delta` 内完成 CRDT 合并；视图更新与插件通知依赖 idle token 合批调度，需要在 .NET 中提供等价机制。
+- 已形成模块级迁移路线图（见 `docs/architecture/module-migration-plan.md`），明确各阶段任务、测试策略与风险缓解措施，为后续实施提供依据。
+- 已起草对外 API 契约（见 `docs/architecture/api-contract.md`），界定首批编辑命令、视图通知与插件交互模型，为实现阶段提供统一接口基线。
+
+（后续将随 Rope 预研、测试导入等任务推进，持续补充新的关键认知。）
 
 ## 工作节奏建议
 1. **每次进入仓库**：先阅读“当前聚焦事项”、确认阻塞与决策，必要时调整计划。
@@ -44,17 +50,14 @@
 - 梳理原始 `xi-editor-core` 架构，输出 C# 子系统划分草案。
 	- 明确核心数据结构（rope、CRDT、撤销/重做栈）的职责、API 边界、依赖关系。
 	- 评估插件/RPC 层的嵌入式 vs. 独立 Host 策略与接口形态。
+	- 当前已输出初稿：`docs/architecture/xi-core-structure.md`，后续需结合更细节的模块调研持续迭代。
 
 ## 下一步行动（高优先级 Backlog）
-1. 梳理 `xi-editor-core` 架构并输出 C# 子系统划分草案文档。
-	 - 重点对照 `reference/rust/core-lib/src` 与 `reference/rust/rope/src`，整理主要模块（缓冲区、操作管线、通知、撤销栈）。
-	 - 标注与 Rust 版差异及需要验证的性能点，形成可执行的迁移顺序。
-2. 制定模块级移植路线图文档（Detail 设计）：
-	 - 拆分 Rope、编辑引擎、视图同步、RPC 层的迁移顺序与依赖。
-	 - 明确每个模块的输入/输出契约、测试方案、性能指标。
-3. 定义 `xi.Core` 项目的公共 API 契约雏形：
-	 - 拆分命名空间布局、抽象接口与内部占位实现，明确核心类型（文本存储、编辑命令、视图通知）。
-	 - 对接现有 `TextBuffer` 占位实现，规划替换为 Rope 后的兼容策略。
+1. 继续梳理 `editor.rs`、`tabs.rs`、`plugins/` 细节，补充架构文档对配置同步、撤销栈、idle 调度策略的序列图，并提炼待移植的抽象接口需求。
+2. 开展 Rope/Delta 移植预研：总结关键数据结构、评估 .NET Span/内存池策略，形成技术备忘录。
+3. 整理可复用的 Rust 测试/trace 资产，规划在 xUnit 中的导入方式。
+4. 根据 API 契约定义，提炼核心 DTO/接口的 C# 原型（例如 `IEditorSession`, `EditorCommand`），为后续实现奠定骨架。
+	- 产出初版接口说明或伪代码，以便下一阶段直接开始编码。
 
 ## 未来候选事项（Backlog）
 - 建立对齐原版的黄金测试集（复用参考仓库 traces）。
@@ -96,8 +99,15 @@
 
 ## 已完成事项
 - 2025-11-11：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core` 类库与 `xi.Core.Tests` 测试项目，引入 `TextBuffer` 占位实现及首个 xUnit 烟囱测试，通过 `dotnet test` 验证。
+- 2025-11-11：梳理 `xi-editor-core` 架构并输出 C# 子系统划分草案初稿（`docs/architecture/xi-core-structure.md`）。
+- 2025-11-11：制定模块级移植路线图草案（`docs/architecture/module-migration-plan.md`），明确阶段任务、测试策略与风险缓解措施。
+- 2025-11-11：起草 `Xi.Core` 对外 API 契约（`docs/architecture/api-contract.md`），覆盖命令、事件、插件交互与并发约束。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
 - 2025-11-11：搭建 .NET 解决方案骨架，创建核心/测试项目，编写 `TextBuffer` 占位实现与基础测试并验证通过。
 - 2025-11-11：执行 `dotnet test`（默认配置）确认核心与测试项目编译与单元测试均通过。
+- 2025-11-11：阅读 `reference/rust/core-lib` 与 `reference/rust/rope` 关键入口文件，编写架构梳理文档初稿。
+- 2025-11-11：进一步解析 `editor.rs`、`tabs.rs`，在架构文档中补充编辑命令、插件消息与 idle 调度流程描述。
+- 2025-11-11：编写模块级迁移路线图草案，梳理阶段任务、完成判据与风险缓解策略。
+- 2025-11-11：整理命令/通知/插件交互契约并形成 `api-contract` 文档，为后续实现统一接口。
