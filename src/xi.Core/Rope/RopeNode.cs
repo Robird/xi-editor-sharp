@@ -1097,17 +1097,17 @@ public sealed class RopeNode
         {
             if (node.Length != node.Info.Utf16Length)
             {
-                issues.Add($"[{path}] Leaf length mismatch: length={node.Length}, utf16={node.Info.Utf16Length}");
+                issues.Add($"[{path}] Leaf length mismatch: length={node.Length}, utf16={node.Info.Utf16Length}, preview=\"{FormatLeafPreview(node)}\"");
             }
 
             if (node.Length > MaxLeafSize)
             {
-                issues.Add($"[{path}] Leaf exceeds MaxLeafSize: {node.Length}");
+                issues.Add($"[{path}] Leaf exceeds MaxLeafSize: {node.Length}, preview=\"{FormatLeafPreview(node)}\"");
             }
 
             if (enforceLeafMinimum && !isRoot && node.Length > 0 && node.Length < MinLeafSize)
             {
-                issues.Add($"[{path}] Leaf below MinLeafSize: {node.Length}");
+                issues.Add($"[{path}] Leaf below MinLeafSize: {node.Length}, preview=\"{FormatLeafPreview(node)}\"");
             }
 
             return;
@@ -1132,7 +1132,7 @@ public sealed class RopeNode
 
             if (child.Height != expectedHeight)
             {
-                issues.Add($"[{childPath}] Height mismatch: expected {expectedHeight}, actual {child.Height}");
+                issues.Add($"[{childPath}] Height mismatch: expected {expectedHeight}, actual {child.Height} (length={child.Length})");
             }
 
             ValidateNode(child, isRoot: false, enforceLeafMinimum, issues, childPath);
@@ -1141,15 +1141,86 @@ public sealed class RopeNode
             aggregate = aggregate.Accumulate(child.Info);
         }
 
+        var childSummary = SummarizeChildren(children);
+
         if (totalLength != node.Length)
         {
-            issues.Add($"[{path}] Length aggregate mismatch: expected {node.Length}, actual {totalLength}");
+            issues.Add($"[{path}] Length aggregate mismatch: expected {node.Length}, actual {totalLength}; child lengths {childSummary}");
         }
 
         if (aggregate.Utf16Length != node.Info.Utf16Length || aggregate.LineCount != node.Info.LineCount)
         {
-            issues.Add($"[{path}] Info aggregate mismatch.");
+            issues.Add($"[{path}] Info aggregate mismatch; child lengths {childSummary}");
         }
+    }
+
+    private static string FormatLeafPreview(RopeNode node)
+    {
+        if (!node.IsLeaf)
+        {
+            return string.Empty;
+        }
+
+        var text = node.ToString();
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
+        const int maxPreviewLength = 32;
+        var previewLength = Math.Min(maxPreviewLength, text.Length);
+        var previewSegment = text.Substring(0, previewLength);
+        var escaped = EscapePreview(previewSegment);
+        return text.Length > previewLength ? escaped + "…" : escaped;
+    }
+
+    private static string EscapePreview(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return string.Empty;
+        }
+
+        return text
+            .Replace("\\", "\\\\")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t")
+            .Replace("\"", "\\\"");
+    }
+
+    private static string SummarizeChildren(RopeNode[] children)
+    {
+        if (children.Length == 0)
+        {
+            return "[] (count=0)";
+        }
+
+        const int maxEntries = 6;
+        var builder = new StringBuilder();
+        builder.Append('[');
+
+        var displayCount = Math.Min(children.Length, maxEntries);
+        for (var i = 0; i < displayCount; i++)
+        {
+            builder.Append(children[i].Length);
+            if (i < displayCount - 1)
+            {
+                builder.Append(", ");
+            }
+        }
+
+        if (children.Length > maxEntries)
+        {
+            builder.Append(", …");
+        }
+
+        builder.Append(']');
+        builder.Append(" (count=");
+        builder.Append(children.Length);
+        builder.Append(')');
+
+        return builder.ToString();
     }
 
     private RopeNode BuildMergedNode(RopeNode[] children, int firstIndex, int secondIndex, RopeNode mergedLeaf)
