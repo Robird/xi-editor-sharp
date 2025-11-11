@@ -50,6 +50,26 @@ def _consume_comment(text: str, index: int) -> int:
     return n
 
 
+def _skip_ws_comments(text: str, index: int) -> int:
+    n = len(text)
+    i = index
+    while i < n:
+        ch = text[i]
+        next_ch = text[i + 1] if i + 1 < n else ''
+        if ch in (' ', '\t', '\n', '\r'):
+            i += 1
+            continue
+        if ch == '/' and next_ch == '/':
+            newline = text.find('\n', i + 2)
+            i = n if newline == -1 else newline + 1
+            continue
+        if ch == '/' and next_ch == '*':
+            i = _consume_comment(text, i)
+            continue
+        break
+    return i
+
+
 _FN_NAME_RE = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
 
 
@@ -77,6 +97,310 @@ def _has_closing_single_quote(text: str, index: int) -> bool:
             return True
         i += 1
     return False
+
+
+def _find_attribute_end(text: str, index: int) -> int:
+    n = len(text)
+    if not text.startswith('#[', index):
+        return index
+    i = index + 2
+    depth = 1
+    in_line_comment = False
+    in_block_comment = False
+    in_string = False
+    string_delim = ''
+    raw_hashes = 0
+
+    while i < n:
+        ch = text[i]
+        next_ch = text[i + 1] if i + 1 < n else ''
+
+        if in_line_comment:
+            if ch == '\n':
+                in_line_comment = False
+            i += 1
+            continue
+
+        if in_block_comment:
+            if ch == '*' and next_ch == '/':
+                in_block_comment = False
+                i += 2
+            else:
+                i += 1
+            continue
+
+        if in_string:
+            i = _consume_string(text, i, string_delim, raw_hashes)
+            in_string = False
+            string_delim = ''
+            raw_hashes = 0
+            continue
+
+        if ch == '/' and next_ch == '/':
+            in_line_comment = True
+            i += 2
+            continue
+        if ch == '/' and next_ch == '*':
+            in_block_comment = True
+            i += 2
+            continue
+        if ch == 'r':
+            raw = _scan_raw_string(text, i)
+            if raw is not None:
+                i, raw_hashes = raw
+                in_string = True
+                string_delim = '"'
+                continue
+        if ch in ('"', '\''):
+            in_string = True
+            string_delim = ch
+            raw_hashes = 0
+            i += 1
+            continue
+
+        if ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+
+    return n
+
+
+def _is_test_attribute(attr_text: str) -> bool:
+    body_start = attr_text.find('[')
+    body_end = attr_text.rfind(']')
+    if body_start == -1 or body_end == -1 or body_end <= body_start:
+        return False
+    inner = attr_text[body_start + 1 : body_end].strip()
+    if not inner:
+        return False
+
+    lowered = inner.lower()
+    if lowered.startswith('cfg('):
+        inside = inner[inner.find('(') + 1 : inner.rfind(')')]
+        normalized = ''.join(ch for ch in inside.lower() if not ch.isspace())
+        if normalized.startswith('not('):
+            return False
+        tokens = re.findall(r"[A-Za-z_][A-Za-z0-9_]*", normalized)
+        return any(token == 'test' for token in tokens)
+
+    if lowered.startswith('cfg_attr('):
+        args = inner[inner.find('(') + 1 : inner.rfind(')')]
+        first_arg = args.split(',', 1)[0].strip().lower()
+        if first_arg == 'test':
+            return True
+
+    if '(' in inner:
+        prefix = inner.split('(', 1)[0].strip()
+    else:
+        prefix = inner
+    suffix = prefix.split('::')[-1].strip()
+    if suffix == 'test':
+        return True
+
+    return inner.strip() == 'test'
+
+
+def _skip_block(text: str, brace_index: int) -> int:
+    n = len(text)
+    i = brace_index + 1
+    depth = 1
+    in_line_comment = False
+    in_block_comment = False
+    in_string = False
+    string_delim = ''
+    raw_hashes = 0
+
+    while i < n:
+        ch = text[i]
+        next_ch = text[i + 1] if i + 1 < n else ''
+
+        if in_line_comment:
+            if ch == '\n':
+                in_line_comment = False
+            i += 1
+            continue
+
+        if in_block_comment:
+            if ch == '*' and next_ch == '/':
+                in_block_comment = False
+                i += 2
+            else:
+                i += 1
+            continue
+
+        if in_string:
+            i = _consume_string(text, i, string_delim, raw_hashes)
+            in_string = False
+            string_delim = ''
+            raw_hashes = 0
+            continue
+
+        if ch == '/' and next_ch == '/':
+            in_line_comment = True
+            i += 2
+            continue
+        if ch == '/' and next_ch == '*':
+            in_block_comment = True
+            i += 2
+            continue
+        if ch == 'r':
+            raw = _scan_raw_string(text, i)
+            if raw is not None:
+                i, raw_hashes = raw
+                in_string = True
+                string_delim = '"'
+                continue
+        if ch in ('"', '\''):
+            in_string = True
+            string_delim = ch
+            raw_hashes = 0
+            i += 1
+            continue
+
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+
+    return n
+
+
+def _consume_item(text: str, index: int) -> int:
+    n = len(text)
+    i = index
+    in_line_comment = False
+    in_block_comment = False
+    in_string = False
+    string_delim = ''
+    raw_hashes = 0
+    paren_depth = 0
+    angle_depth = 0
+    bracket_depth = 0
+
+    while i < n:
+        ch = text[i]
+        next_ch = text[i + 1] if i + 1 < n else ''
+
+        if in_line_comment:
+            if ch == '\n':
+                in_line_comment = False
+            i += 1
+            continue
+
+        if in_block_comment:
+            if ch == '*' and next_ch == '/':
+                in_block_comment = False
+                i += 2
+            else:
+                i += 1
+            continue
+
+        if in_string:
+            i = _consume_string(text, i, string_delim, raw_hashes)
+            in_string = False
+            string_delim = ''
+            raw_hashes = 0
+            continue
+
+        if ch == '/' and next_ch == '/':
+            in_line_comment = True
+            i += 2
+            continue
+        if ch == '/' and next_ch == '*':
+            in_block_comment = True
+            i += 2
+            continue
+        if ch == 'r':
+            raw = _scan_raw_string(text, i)
+            if raw is not None:
+                i, raw_hashes = raw
+                in_string = True
+                string_delim = '"'
+                continue
+        if ch in ('"', '\''):
+            in_string = True
+            string_delim = ch
+            raw_hashes = 0
+            i += 1
+            continue
+
+        if ch == '(':
+            paren_depth += 1
+        elif ch == ')':
+            paren_depth = max(paren_depth - 1, 0)
+        elif ch == '<':
+            angle_depth += 1
+        elif ch == '>':
+            angle_depth = max(angle_depth - 1, 0)
+        elif ch == '[':
+            bracket_depth += 1
+        elif ch == ']':
+            bracket_depth = max(bracket_depth - 1, 0)
+        elif ch == '{' and paren_depth == 0 and angle_depth == 0 and bracket_depth == 0:
+            block_end = _skip_block(text, i)
+            i = _skip_ws_comments(text, block_end)
+            while i < n and text[i] == ';':
+                i += 1
+                i = _skip_ws_comments(text, i)
+            return i
+        elif ch == ';' and paren_depth == 0 and angle_depth == 0 and bracket_depth == 0:
+            return i + 1
+
+        i += 1
+
+    return n
+
+
+def _strip_test_items(text: str) -> str:
+    n = len(text)
+    i = 0
+    pieces: list[str] = []
+
+    while i < n:
+        attr_index = text.find('#[', i)
+        if attr_index == -1:
+            pieces.append(text[i:])
+            break
+
+        pieces.append(text[i:attr_index])
+        attr_end = _find_attribute_end(text, attr_index)
+        attr_text = text[attr_index:attr_end]
+
+        if _is_test_attribute(attr_text):
+            cursor = _skip_ws_comments(text, attr_end)
+            while cursor < n and text.startswith('#[', cursor):
+                next_end = _find_attribute_end(text, cursor)
+                if next_end <= cursor:
+                    break
+                cursor = _skip_ws_comments(text, next_end)
+
+            item_end = _consume_item(text, cursor)
+            if item_end <= cursor:
+                i = attr_end
+                continue
+
+            tail = item_end
+            while tail < n and text[tail] in (' ', '\t', '\r'):
+                tail += 1
+            if tail < n and text[tail] == '\n':
+                tail += 1
+            elif tail + 1 < n and text[tail:tail + 2] == '\r\n':
+                tail += 2
+
+            i = tail
+            continue
+
+        pieces.append(attr_text)
+        i = attr_end
+
+    return ''.join(pieces)
 
 
 def _find_next_function(text: str, start: int) -> _Function | None:
@@ -420,7 +744,8 @@ def main() -> None:
     entries: list[tuple[str, str]] = []
     for file_path in files:
         original = file_path.read_text(encoding='utf-8')
-        skeleton, count = _replace_bodies(original, _doc_body)
+        processed = _strip_test_items(original)
+        skeleton, count = _replace_bodies(processed, _doc_body)
         try:
             rel_path = file_path.resolve().relative_to(root)
             rel_text = rel_path.as_posix()

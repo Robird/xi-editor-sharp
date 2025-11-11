@@ -18,6 +18,7 @@
 - 已整理《Rope 移植方法论》（`docs/architecture/rope-porting-methodology.md`）与《Rope 文件级映射与类型翻译计划》（`docs/architecture/rope-port-mapping.md`），确认采用“先契约后实现”的分层移植策略，并建立 Rust→C# 文件映射与翻译范式。
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
 - `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
+- Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
 
 (小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
 
@@ -169,3 +170,5 @@
 - `ref-outline/rust/rope` 复制源码已使用脚本化方式统一替换函数体为 `todo!()` 占位，便于后续聚焦类型对齐；新增 `scripts/stub_rust_functions.py` 用于批量化处理。
 - 扩展 `scripts/stub_rust_functions.py` 支持 Markdown 导出与递归路径处理，并首次生成 `docs/reference/rust-skeleton.md` 汇总 Rope 模块骨架。
 - 修复脚本在遇到生命周期标识（如 `impl<'a>`）时误判为字符字面量的问题，现已重新批量 stub Rope 模块并刷新骨架文档，确保 Markdown 输出统一为 `...`。 
+- 进一步优化 `scripts/stub_rust_functions.py`，在文档模式下跳过测试模块/函数并剥离注释，同时保留签名以生成轻量骨架（约 2003 行）。
+- 修复 `scripts/stub_rust_functions.py` 在文档模式下处理 `#[cfg(test)]` 区块时误删主体的 bug，现已完整跳过测试模块与带 `#[test]` 标记的函数并保持周围语法结构完整。
