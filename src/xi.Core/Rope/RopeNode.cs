@@ -580,6 +580,13 @@ public sealed class RopeNode
                 }
                 else
                 {
+                    if (TryMergeLeafWithSibling(children, i, newChild, out var merged))
+                    {
+                        result = merged;
+                        splitNodes = null;
+                        return true;
+                    }
+
                     var clone = new RopeNode[children.Length];
                     Array.Copy(children, clone, children.Length);
                     clone[i] = newChild;
