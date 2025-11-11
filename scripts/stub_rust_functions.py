@@ -70,6 +70,44 @@ def _skip_ws_comments(text: str, index: int) -> int:
     return i
 
 
+def _strip_header_comments(text: str) -> str:
+    n = len(text)
+    cursor = 0
+    removed = False
+
+    while True:
+        lookahead = cursor
+        while lookahead < n and text[lookahead] in (' ', '\t', '\r', '\n'):
+            lookahead += 1
+        if lookahead >= n:
+            cursor = n
+            removed = True
+            break
+
+        if text.startswith('//', lookahead):
+            newline = text.find('\n', lookahead + 2)
+            if newline == -1:
+                cursor = n
+            else:
+                cursor = newline + 1
+            removed = True
+            continue
+
+        if text.startswith('/*', lookahead):
+            cursor = _consume_comment(text, lookahead)
+            removed = True
+            continue
+
+        break
+
+    if removed:
+        while cursor < n and text[cursor] in ('\n', '\r', ' ', '\t'):
+            cursor += 1
+        return text[cursor:]
+
+    return text
+
+
 _FN_NAME_RE = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
 
 
@@ -744,7 +782,8 @@ def main() -> None:
     entries: list[tuple[str, str]] = []
     for file_path in files:
         original = file_path.read_text(encoding='utf-8')
-        processed = _strip_test_items(original)
+        header_stripped = _strip_header_comments(original)
+        processed = _strip_test_items(header_stripped)
         skeleton, count = _replace_bodies(processed, _doc_body)
         try:
             rel_path = file_path.resolve().relative_to(root)
