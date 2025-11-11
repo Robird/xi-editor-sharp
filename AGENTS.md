@@ -43,6 +43,7 @@
 - 引入 `LeafSplitter` 统一叶片拆分逻辑，并在 `RopeNode` 增加 `EnsureWritableLeaf`、`SplitLeafByBounds`，为叶片写时复制与容量约束提供可复用 API。
 - `RopeNode.Insert` 在叶片容量允许的情况下直接执行单叶写时复制，减少整棵树重建；超出容量时回退到结构共享路径并保持叶片限制。
 - `RopeNode.Delete` 对位于同一叶片或单个子节点内的删除操作复用写时复制路径，可直接移除或调整目标叶片，避免整树重建并自动折叠空子树。
+- `RopeNode.Replace` 在单叶范围内组合删除与插入，并在容量允许时一次性写时复制；超限或跨子树时回退至拆分策略，减少双遍 Edit 成本。
 - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
 - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
 - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
@@ -163,6 +164,7 @@
 - 2025-11-11：引入 `LeafSplitter` 与 `RopeNode` 叶节点辅助 API（`EnsureWritableLeaf`、`SplitLeafByBounds`），并补充对应单元测试，支撑阶段 B 的叶片写时复制。
 - 2025-11-11：为 `RopeNode.Insert` 增加单叶写时复制快速路径，保障在叶片容量允许时避免整树重建，并补充覆盖测试。
 - 2025-11-11：为 `RopeNode.Delete` 增加单叶/单子树写时复制快速路径与子节点折叠逻辑，保持树结构共享并补补单元测试。
+ - 2025-11-11：实现 `RopeNode.Replace` 组合编辑快速路径并更新 `RopeTextBuffer.Replace`，附加单元测试覆盖单叶与溢出回退场景。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -190,3 +192,4 @@
 - 2025-11-11：实现 `LeafSplitter`、`EnsureWritableLeaf` 与 `SplitLeafByBounds`，补齐叶节点复制/拆分测试，推进阶段 B 的叶片策略。
 - 2025-11-11：重构 `RopeNode.Insert`，在叶片容量满足条件时直接写时复制单叶并更新聚合信息，超限时回退到结构共享路径。
 - 2025-11-11：扩展 `RopeNode.Delete`，支持单叶/单子节点写时复制与子节点折叠，并新增覆盖测试。
+ - 2025-11-11：实现 `RopeNode.Replace` 快速路径并将 `RopeTextBuffer.Replace` 切换为单次编辑流程，新增叶片编辑测试。

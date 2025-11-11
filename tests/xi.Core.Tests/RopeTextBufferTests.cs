@@ -94,6 +94,17 @@ public class RopeTextBufferTests
         Assert.Equal(expected, buffer.Snapshot());
     }
 
+    [Fact]
+    public void Replace_PerformsInPlaceLeafEdit()
+    {
+        var buffer = Create();
+        buffer.Append("hello brave world");
+
+        buffer.Replace(6, 5, "rope");
+
+        Assert.Equal("hello rope world", buffer.Snapshot());
+    }
+
     [Theory]
     [InlineData(-1, 1)]
     [InlineData(1, -1)]

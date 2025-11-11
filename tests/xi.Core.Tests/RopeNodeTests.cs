@@ -244,4 +244,30 @@ public class RopeNodeTests
         Assert.True(deleted.IsLeaf);
         Assert.True(deleted.TraverseLeaves().Count() == 1);
     }
+
+    [Fact]
+    public void Replace_WithinLeafUsesSingleSegment()
+    {
+        var node = RopeNode.FromLeaf("abcdef");
+
+        var replaced = node.Replace(2, 2, "XYZ");
+
+        Assert.True(replaced.IsLeaf);
+        Assert.Equal("abXYZef", replaced.ToString());
+        Assert.Equal(node.Info.LineCount, replaced.Info.LineCount);
+    }
+
+    [Fact]
+    public void Replace_LeafOverflowFallsBackToGeneralPath()
+    {
+        var initial = RopeNode.FromLeaf(new string('a', RopeNode.MaxLeafSize));
+        var replacement = new string('b', 32);
+
+        var replaced = initial.Replace(RopeNode.MaxLeafSize - 4, 2, replacement);
+
+        Assert.False(replaced.IsLeaf);
+        var expected = new string('a', RopeNode.MaxLeafSize - 4) + replacement + new string('a', 2);
+        Assert.Equal(expected, replaced.ToString());
+        Assert.All(replaced.TraverseLeaves(), leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
+    }
 }

@@ -35,19 +35,7 @@ public sealed class RopeTextBuffer : ITextBuffer
     public void Replace(int start, int length, string? text)
     {
         ValidateRange(start, length, _root.Length);
-
-        var newRoot = _root;
-        if (length > 0)
-        {
-            newRoot = newRoot.Delete(start, length);
-        }
-
-        if (!string.IsNullOrEmpty(text))
-        {
-            newRoot = newRoot.Insert(start, text);
-        }
-
-        _root = newRoot;
+        _root = _root.Replace(start, length, text);
     }
 
     public string Snapshot() => _root.ToString();

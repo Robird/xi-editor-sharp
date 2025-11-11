@@ -220,6 +220,47 @@ public sealed class RopeNode
         return Concat(prefix, suffix);
     }
 
+    public RopeNode Replace(int start, int length, string? text)
+    {
+        if (text is null)
+        {
+            text = string.Empty;
+        }
+
+        if (length < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length must be non-negative.");
+        }
+
+        if (start < 0 || start > Length || start + length > Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(start), start, "Replacement range must be within node bounds.");
+        }
+
+        if (length == 0 && text.Length == 0)
+        {
+            return this;
+        }
+
+        if (length == 0)
+        {
+            return Insert(start, text);
+        }
+
+        if (text.Length == 0)
+        {
+            return Delete(start, length);
+        }
+
+        if (TryReplaceInSingleSegment(start, length, text, out var optimized))
+        {
+            return optimized;
+        }
+
+        var afterDelete = Delete(start, length);
+        return afterDelete.Insert(start, text);
+    }
+
     public RopeNode EnsureWritableLeaf()
     {
         if (!IsLeaf)
@@ -422,6 +463,70 @@ public sealed class RopeNode
                     return true;
                 }
 
+                var clone = new RopeNode[children.Length];
+                Array.Copy(children, clone, children.Length);
+                clone[i] = newChild;
+                result = CloneWithChildren(clone);
+                return true;
+            }
+
+            break;
+        }
+
+        result = Empty;
+        return false;
+    }
+
+    private bool TryReplaceInSingleSegment(int start, int length, string text, out RopeNode result)
+    {
+        if (IsLeaf)
+        {
+            var leafText = _body.Leaf ?? string.Empty;
+            var newLength = leafText.Length - length + text.Length;
+
+            if (newLength > MaxLeafSize)
+            {
+                result = Empty;
+                return false;
+            }
+
+            var newLeaf = string.Create(newLength, (leafText, start, length, text), static (span, state) =>
+            {
+                var (source, replaceStart, replaceLength, replacement) = state;
+                var head = source.AsSpan(0, replaceStart);
+                head.CopyTo(span);
+
+                var replacementSpan = replacement.AsSpan();
+                var replacementSlice = span.Slice(replaceStart, replacementSpan.Length);
+                replacementSpan.CopyTo(replacementSlice);
+
+                var tail = source.AsSpan(replaceStart + replaceLength);
+                tail.CopyTo(span.Slice(replaceStart + replacementSpan.Length));
+            });
+
+            result = FromLeaf(newLeaf);
+            return true;
+        }
+
+        var children = RequireChildren();
+        var offset = 0;
+        for (var i = 0; i < children.Length; i++)
+        {
+            var child = children[i];
+            var childStart = offset;
+            var childEnd = childStart + child.Length;
+            var rangeEnd = start + length;
+
+            var withinChild = start >= childStart && rangeEnd <= childEnd;
+            if (!withinChild)
+            {
+                offset = childEnd;
+                continue;
+            }
+
+            var relativeStart = start - childStart;
+            if (child.TryReplaceInSingleSegment(relativeStart, length, text, out var newChild))
+            {
                 var clone = new RopeNode[children.Length];
                 Array.Copy(children, clone, children.Length);
                 clone[i] = newChild;
