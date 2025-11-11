@@ -490,6 +490,12 @@ public sealed class RopeNode
                     return true;
                 }
 
+                if (TryMergeLeafWithSibling(children, i, newChild, out var mergedResult))
+                {
+                    result = mergedResult;
+                    return true;
+                }
+
                 var clone = new RopeNode[children.Length];
                 Array.Copy(children, clone, children.Length);
                 clone[i] = newChild;
@@ -826,6 +832,84 @@ public sealed class RopeNode
         }
 
         throw new InvalidOperationException("Operation requires an internal node with children.");
+    }
+
+    private bool TryMergeLeafWithSibling(RopeNode[] children, int index, RopeNode replacement, out RopeNode result)
+    {
+        result = Empty;
+
+        if (!replacement.IsLeaf || replacement.Length >= MinLeafSize || children.Length == 1)
+        {
+            return false;
+        }
+
+        if (index > 0)
+        {
+            var left = children[index - 1];
+            if (left.IsLeaf && left.Length + replacement.Length <= MaxLeafSize)
+            {
+                var mergedLeaf = MergeLeaves(left, replacement);
+                result = BuildMergedNode(children, index - 1, index, mergedLeaf);
+                return true;
+            }
+        }
+
+        if (index < children.Length - 1)
+        {
+            var right = children[index + 1];
+            if (right.IsLeaf && replacement.Length + right.Length <= MaxLeafSize)
+            {
+                var mergedLeaf = MergeLeaves(replacement, right);
+                result = BuildMergedNode(children, index, index + 1, mergedLeaf);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private RopeNode BuildMergedNode(RopeNode[] children, int firstIndex, int secondIndex, RopeNode mergedLeaf)
+    {
+        var newChildren = new RopeNode[children.Length - 1];
+        var dest = 0;
+
+        for (var src = 0; src < children.Length; src++)
+        {
+            if (src == firstIndex)
+            {
+                newChildren[dest++] = mergedLeaf;
+                continue;
+            }
+
+            if (src == secondIndex)
+            {
+                continue;
+            }
+
+            newChildren[dest++] = children[src];
+        }
+
+        return newChildren.Length == 1 ? newChildren[0] : CreateInternal(Height, newChildren);
+    }
+
+    private static RopeNode MergeLeaves(RopeNode first, RopeNode second)
+    {
+        if (!first.IsLeaf || !second.IsLeaf)
+        {
+            throw new InvalidOperationException("MergeLeaves requires leaf inputs.");
+        }
+
+        var leftText = first.ToString();
+        var rightText = second.ToString();
+        var mergedText = string.Create(leftText.Length + rightText.Length, (leftText, rightText), static (span, state) =>
+        {
+            var (left, right) = state;
+            var leftSpan = left.AsSpan();
+            leftSpan.CopyTo(span);
+            right.AsSpan().CopyTo(span[leftSpan.Length..]);
+        });
+
+        return FromLeaf(mergedText);
     }
 
     private static RopeNode CreateInternal(int height, IReadOnlyList<RopeNode> children)

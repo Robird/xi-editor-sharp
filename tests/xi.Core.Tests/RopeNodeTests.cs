@@ -306,4 +306,41 @@ public class RopeNodeTests
         Assert.All(leaves, leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
         Assert.EndsWith(new string('b', RopeNode.MaxLeafSize), modified.ToString());
     }
+
+    [Fact]
+    public void Delete_ShrinkingLeafMergesWithSibling()
+    {
+        var initialFirst = RopeNode.MinLeafSize + 200;
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', initialFirst));
+        builder.PushString(new string('b', RopeNode.MinLeafSize));
+
+        var node = builder.Build();
+        var deleted = node.Delete(0, initialFirst - 100);
+
+        var leaves = deleted.TraverseLeaves().ToArray();
+
+        Assert.Single(leaves);
+        Assert.True(deleted.IsLeaf);
+        Assert.Equal(100 + RopeNode.MinLeafSize, deleted.Length);
+        Assert.Equal(new string('a', 100) + new string('b', RopeNode.MinLeafSize), deleted.ToString());
+    }
+
+    [Fact]
+    public void Delete_ShrinkingLeafDoesNotMergeWhenExceedingMax()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+        var deleted = node.Delete(0, RopeNode.MaxLeafSize - 74);
+
+        var leaves = deleted.TraverseLeaves().ToArray();
+
+        Assert.Equal(2, leaves.Length);
+        Assert.Equal(74, leaves[0].Length);
+        Assert.Equal(RopeNode.MaxLeafSize, leaves[1].Length);
+        Assert.Equal(new string('a', 74) + new string('b', RopeNode.MaxLeafSize), deleted.ToString());
+    }
 }
