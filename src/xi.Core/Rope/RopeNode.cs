@@ -127,9 +127,9 @@ public sealed class RopeNode
             return this;
         }
 
-        var builder = new TreeBuilder();
-        CollectSlice(this, start, length, builder);
-        return builder.Build();
+        var (_, remainder) = SplitAt(start);
+        var (middle, _) = remainder.SplitAt(length);
+        return middle;
     }
 
     public override string ToString()
@@ -169,20 +169,11 @@ public sealed class RopeNode
             return this;
         }
 
+        var (prefix, suffix) = SplitAt(start);
         var builder = new TreeBuilder();
-        if (start > 0)
-        {
-            builder.PushNode(Slice(0, start));
-        }
-
+        builder.PushNode(prefix);
         builder.PushString(text);
-
-        var suffixLength = Length - start;
-        if (suffixLength > 0)
-        {
-            builder.PushNode(Slice(start, suffixLength));
-        }
-
+        builder.PushNode(suffix);
         return builder.Build();
     }
 
@@ -203,20 +194,88 @@ public sealed class RopeNode
             return Empty;
         }
 
-        var builder = new TreeBuilder();
-        if (start > 0)
+        var (prefix, remainder) = SplitAt(start);
+        var (_, suffix) = remainder.SplitAt(length);
+
+        if (prefix.IsEmpty)
         {
-            builder.PushNode(Slice(0, start));
+            return suffix;
         }
 
-        var suffixStart = start + length;
-        var suffixLength = Length - suffixStart;
-        if (suffixLength > 0)
+        if (suffix.IsEmpty)
         {
-            builder.PushNode(Slice(suffixStart, suffixLength));
+            return prefix;
         }
 
-        return builder.Build();
+        return Concat(prefix, suffix);
+    }
+
+    public (RopeNode Left, RopeNode Right) SplitAt(int index)
+    {
+        if (index < 0 || index > Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index), index, "Split index must be within node bounds.");
+        }
+
+        if (index == 0)
+        {
+            return (Empty, this);
+        }
+
+        if (index == Length)
+        {
+            return (this, Empty);
+        }
+
+        if (IsLeaf)
+        {
+            if (_body.Leaf is null)
+            {
+                return (Empty, Empty);
+            }
+
+            var leftText = _body.Leaf[..index];
+            var rightText = _body.Leaf[index..];
+            return (FromLeaf(leftText), FromLeaf(rightText));
+        }
+
+        var children = RequireChildren();
+        var leftSegments = new List<RopeNode>();
+        var rightSegments = new List<RopeNode>();
+        var remaining = index;
+
+        foreach (var child in children)
+        {
+            if (remaining == 0)
+            {
+                rightSegments.Add(child);
+                continue;
+            }
+
+            if (remaining >= child.Length)
+            {
+                leftSegments.Add(child);
+                remaining -= child.Length;
+                continue;
+            }
+
+            var (childLeft, childRight) = child.SplitAt(remaining);
+            if (!childLeft.IsEmpty)
+            {
+                leftSegments.Add(childLeft);
+            }
+
+            if (!childRight.IsEmpty)
+            {
+                rightSegments.Add(childRight);
+            }
+
+            remaining = 0;
+        }
+
+        var leftNode = BuildFromSegments(leftSegments);
+        var rightNode = BuildFromSegments(rightSegments);
+        return (leftNode, rightNode);
     }
 
     private static RopeNode ConcatLeftShorter(RopeNode left, RopeNode right)
@@ -312,49 +371,25 @@ public sealed class RopeNode
 
     private sealed record RopeNodeBody(int Height, int Length, RopeInfo Info, string? Leaf, RopeNode[]? Children);
 
-    private static void CollectSlice(RopeNode node, int start, int length, TreeBuilder builder)
+    private static RopeNode BuildFromSegments(List<RopeNode> segments)
     {
-        if (length <= 0)
+        if (segments.Count == 0)
         {
-            return;
+            return Empty;
         }
 
-        if (node.IsLeaf)
+        if (segments.Count == 1)
         {
-            if (node._body.Leaf is null)
-            {
-                return;
-            }
-
-            builder.PushString(node._body.Leaf.Substring(start, length));
-            return;
+            return segments[0];
         }
 
-        if (node._body.Children is null)
+        var builder = new TreeBuilder();
+        foreach (var segment in segments)
         {
-            return;
+            builder.PushNode(segment);
         }
 
-        var remaining = length;
-        var offset = start;
-        foreach (var child in node._body.Children)
-        {
-            if (remaining == 0)
-            {
-                break;
-            }
-
-            if (offset >= child.Length)
-            {
-                offset -= child.Length;
-                continue;
-            }
-
-            var take = Math.Min(remaining, child.Length - offset);
-            CollectSlice(child, offset, take, builder);
-            remaining -= take;
-            offset = 0;
-        }
+        return builder.Build();
     }
 
 }

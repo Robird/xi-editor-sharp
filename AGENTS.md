@@ -32,7 +32,15 @@
 - 已引入 `ITextBuffer` 接口并对占位实现和测试完成适配，为 Rope 替换提供统一契约与校验基线。
 - `RopeInfo` 与 Metric 抽象（Base/Lines/Utf16）已落地并具备测试支撑，为 Rope 节点实现提供依赖类型。
 - `RopeNode`/`TreeBuilder` 已与 `RopeTextBuffer` 接轨，支持跨叶切片与编辑；但节点聚合信息仍需针对写时复制与再平衡优化，避免长文本编辑频繁重建整棵树。
-- 最新一次 `dotnet test` 运行覆盖 34 项 Rope/TextBuffer 测试全部通过，为性能优化与 Delta 原型验证提供回归基线。
+- `RopeNode` 新增 `SplitAt`，`Slice`/`Insert`/`Delete` 已改写为走写时拆分+拼接路径，显著减少重复构建带来的性能浪费，为后续 COW/再平衡铺路。
+- 最新一次 `dotnet test` 运行覆盖 35 项 Rope/TextBuffer 测试全部通过，为性能优化与 Delta 原型验证提供回归基线。
+ - `SplitAt` 语义：`SplitAt(index)` 将 rope 在树的路径内拆分为左右两个节点（Left, Right），保留未修改的子树引用，实现结构共享；该操作对 Leaf/内部节点均递归有效，并保持 `RopeInfo` 聚合信息正确。
+ - `TreeBuilder` 的 `PushString` 使用 `MaxLeafSize` 切片策略（并避免在 UTF-16 surrogate 边界拆分），保证叶节点大小在目标范围附近（当前为 `MaxLeafSize`），但尚未实现最小叶片合并策略或内部节点重平衡。
+ - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
+ - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
+ - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
+
+(小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
 
 （后续将随 Rope 优化、Delta 迁移及测试导入推进，持续补充新的关键认知。）
 
@@ -56,12 +64,31 @@
 - **Rope 结构优化**：为现有编辑流程引入节点写时复制与聚合信息增量更新，补齐叶片大小约束与再平衡策略，确保 Replace/Insert/Delete 在长文本场景维持 O(log n) 复杂度。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
+- **写时复制（COW）与再平衡设计**：把 `SplitAt` 的结构共享能力作为基础，在节点级别实现写时复制（复用未修改 node 引用），在插入/删除后对树进行局部重平衡：
+  - 叶片分裂/合并策略（Min/Max leaf size）
+  - 内部节点 child count 上/下界与分裂/合并
+  - 在 `Concat`/`CreateInternal` 处埋点做再平衡/合并触发
+  - 测试覆盖长文档场景和大量顺序编辑
 
 ## 下一步行动（高优先级 Backlog）
-1. 拓展 `RopeTextBuffer`：实现节点写时复制、叶片容量约束与再平衡策略，减少编辑操作的整树重建，并补充大文本/跨叶边界测试。
-2. 拓展 Delta/Subset：落地 C# 原型并验证简单插入/删除与 `factor()`、`summary()` 等关键流程。
-3. 深入梳理 `editor.rs`、`tabs.rs`、`plugins/`，在架构文档中补充撤销栈、配置同步、idle 调度序列图，提炼对核心 API 的附加需求。
-4. 整理可复用的 Rust 测试/trace 资产，规划导入 xUnit 的策略，为后续功能验证做准备。
+1. 节点写时复制（Copy-On-Write, COW）：
+  - 设计契约：输入（现有 rope 根，不变的 child 引用）、输出（新 rope 根），保证对未修改子树使用引用复用。
+  - API 附加/实现：实现 `RopeNode.CloneWithModifiedChildren` 或等价方法，尽量复用 `RopeNodeBody`。
+  - 成功标准：对常见插入/删除/替换操作，新分配的内存应显著低于 naive 复制整树的行为（通过基准验证）。
+2. 叶片与内部节点容量与再平衡：
+  - 叶片：实现 `MinLeafSize`/`MaxLeafSize` 边界，插入导致超长时按规则分裂；删除导致过短时合并/向邻居借用。
+  - 内部节点：定义 child-count 上限（可与叶片数/树高度相关），超限时分裂或向兄弟借用，确保树高度保持对数级别。
+  - 成功标准：对 1M 字符级别的大文件，单次插入或删除的延迟应 <50ms（目标）并且内存占用可接受。先验目标可为提交级别的基准（见第 5 步）。
+3. Rebalance / Concat 循环优化：在 `Concat`、`AppendNode`、`CreateInternal` 中添加再平衡逻辑，避免连续链式合并导致退化树，保持高度局部平衡。
+4. Delta/Subset 的原型：
+  - 设计小型 `Delta` 对象，暴露 `factor()`（拆分插入/删除）、`apply()`、`summary()`（用于撤销/同步）以及坐标重映射工具。
+  - 成功标准：实现最小端到端案例（两个 deltas 的 transform 与 apply）并写入单元测试。
+5. 性能基准与压力测试：
+  - 增加基准项目或最小哈希测试（使用 `BenchmarkDotNet` 或自定义 harness），覆盖随机/顺序/集中插入、删除场景；测量时间/内存/GC。
+  - 成功标准：记录基线（当前实现）、实现 COW+rebalancing 后至少 5x 到位的内存/时间优势（初始目标，根据结果迭代）。
+6. 内存策略：评估 `string` vs `char[]` + ArrayPool、`ReadOnlyMemory<char>`，并在 `RopeNode.FromLeaf` 或 `TreeBuilder` 中提供可切换实现以评估效果。
+7. 测试资产导入与对照：导入 Rust 的 traces/测试序列，建立黄金 test 用例并验证 C# 与 Rust 行为一致性（在边界/Surrogate/UTF-16 映射、行计数上尤其重要）。
+8. 文档与 API 契约：补全 `docs/architecture` 中的 Rebalance、COW、Delta 设计文档，纳入 versioning 与对外 API 的行为说明。
 
 ## 未来候选事项（Backlog）
 - 建立对齐原版的黄金测试集（复用参考仓库 traces）。
@@ -101,6 +128,9 @@
 - Rope/CRDT 在 .NET 中的内存布局差异可能导致 GC 压力，需要及早验证。
 - JSON-RPC 性能与兼容性尚未验证，可能需要探索二进制协议替代方案。
 - 原版依赖的增量渲染/前端协议在 C# 生态中的宿主适配尚未明确。
+- 写时复制（COW）实现细节：如何在不引入复杂并发/锁问题的前提下复用节点（通过不可变结构与引用复用），以及是否需要引用计数或弱引用池来管理共享节点生命周期。
+- GC/内存压力：目前叶片是 `string`，内存复制风险在大文本与频繁编辑中更明显；需要设计并比较 `char[]+ArrayPool` 与 `string` 实现的折中。
+- 再平衡算法的工程复杂性：与 Rust 的细节对齐需要时间，优先以正确、可测且渐进优化的方式实现功能而不是追求一次性完美。
 
 ## 已完成事项
 - 2025-11-11：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core` 类库与 `xi.Core.Tests` 测试项目，引入 `TextBuffer` 占位实现及首个 xUnit 烟囱测试。
@@ -114,7 +144,9 @@
 - 2025-11-11：实现 `RopeTextBuffer` 最小可用版并补充单元测试，验证接口契约与基础操作。
 - 2025-11-11：增强 `RopeNode` 切片与 `RopeTextBuffer.GetSlice`，新增跨叶验证测试确保树遍历正确。
 - 2025-11-11：扩展 `RopeNode`/`RopeTextBuffer` 支持插入、删除与通用替换，统一文本缓冲契约并覆盖跨叶编辑测试。
-- 2025-11-11：`dotnet test`（34 项 Rope/TextBuffer 相关测试）确认最新 Rope 编辑实现保持通过，为后续优化提供回归基线。
+- 2025-11-11：引入 `RopeNode.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，通过结构共享减少整树重建；新增跨节点拆分测试验证行为。
+- 2025-11-11：`dotnet test`（35 项 Rope/TextBuffer 相关测试）确认最新 Rope 编辑实现保持通过，为后续优化提供回归基线。
+ - 2025-11-11：更新 `AGENTS.md` 文档，记录 `SplitAt` 行为、结构共享改造与下一步计划（COW/再平衡/Delta/benchmarks）。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -131,3 +163,6 @@
 - 2025-11-11：实现 `RopeTextBuffer` 并通过接口级单元测试，奠定以 Rope 替换占位实现的基础。
 - 2025-11-11：扩展 `RopeNode`/`RopeTextBuffer` 替换与插入/删除操作，完善 `ITextBuffer` 契约并新增跨叶编辑测试。
 - 2025-11-11：执行 `dotnet test`（34 项 Rope/TextBuffer 测试）确认最新 Rope 编辑实现保持通过。
+- 2025-11-11：实现 `RopeNode.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，让编辑操作复用写时拆分路径以减少冗余构建。
+- 2025-11-11：执行 `dotnet test`（35 项 Rope/TextBuffer 测试）确认最新实现保持通过。
+ - 2025-11-11：更新 `AGENTS.md` 并补充 Next Steps，保持测试基线与文档一致。

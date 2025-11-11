@@ -54,6 +54,22 @@ public class RopeNodeTests
     }
 
     [Fact]
+    public void SplitAt_SplitsAcrossInternalNodes()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("hello");
+        builder.PushString(" ");
+        builder.PushString("world");
+
+        var node = builder.Build();
+        var (left, right) = node.SplitAt(6);
+
+        Assert.Equal("hello ", left.ToString());
+        Assert.Equal("world", right.ToString());
+        Assert.Equal(node.Length, left.Length + right.Length);
+    }
+
+    [Fact]
     public void Insert_PreservesStructureAndContent()
     {
         var builder = new TreeBuilder();
