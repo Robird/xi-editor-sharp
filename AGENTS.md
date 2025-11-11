@@ -170,6 +170,7 @@
 - `ref-outline/rust/rope` 复制源码已使用脚本化方式统一替换函数体为 `todo!()` 占位，便于后续聚焦类型对齐；新增 `scripts/stub_rust_functions.py` 用于批量化处理。
 - 扩展 `scripts/stub_rust_functions.py` 支持 Markdown 导出与递归路径处理，并首次生成 `docs/reference/rust-skeleton.md` 汇总 Rope 模块骨架。
 - 修复脚本在遇到生命周期标识（如 `impl<'a>`）时误判为字符字面量的问题，现已重新批量 stub Rope 模块并刷新骨架文档，确保 Markdown 输出统一为 `...`。 
+- 调整 Markdown 骨架中函数体展示为紧凑 `{...}` 风格，大幅缩短文档行数并保持可读性。
 - 进一步优化 `scripts/stub_rust_functions.py`，在文档模式下跳过测试模块/函数并剥离注释，同时保留签名以生成轻量骨架（约 2003 行）。
 - 修复 `scripts/stub_rust_functions.py` 在文档模式下处理 `#[cfg(test)]` 区块时误删主体的 bug，现已完整跳过测试模块与带 `#[test]` 标记的函数并保持周围语法结构完整。
 - `scripts/stub_rust_functions.py` 新增文件头注释预处理，可在导出 Markdown 骨架时自动移除许可证等连续注释行，便于聚焦核心结构。

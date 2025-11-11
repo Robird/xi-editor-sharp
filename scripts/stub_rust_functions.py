@@ -715,7 +715,7 @@ def _todo_body(indent: str, body_indent: str, fn_name: str) -> str:
 
 
 def _doc_body(indent: str, body_indent: str, _fn_name: str) -> str:
-    return f"\n{body_indent}...\n{indent}"
+    return "..."
 
 
 def _gather_files(paths: Iterable[Path]) -> list[Path]:
