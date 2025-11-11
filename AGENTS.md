@@ -27,6 +27,7 @@
 - 核心 API 设计需保持嵌入式调用友好，同时为 JSON-RPC/插件层预留事件与通知扩展点。
 - 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出 C# 子系统映射与迁移顺序初稿（`docs/architecture/xi-core-structure.md`）。
 - 已建立模块级迁移路线图（`docs/architecture/module-migration-plan.md`）与对外 API 契约（`docs/architecture/api-contract.md`），作为持续实施基线。
+- 新增《Xi.Editor 迁移目标与路线图》文档（`docs/architecture/xi-port-goals-roadmap.md`），明确面向 LLM Agent 的目标功能与阶段里程碑。
 - `docs/architecture/rope-delta-notes.md` 汇总 Rope/Delta 迁移要点，为后续设计与编码提供结构化指导。
 - 已引入 `ITextBuffer` 接口并对占位实现和测试完成适配，为 Rope 替换提供统一契约与校验基线。
 - `RopeInfo` 与 Metric 抽象（Base/Lines/Utf16）已落地并具备测试支撑，为 Rope 节点实现提供依赖类型。
