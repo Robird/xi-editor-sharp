@@ -45,6 +45,7 @@
 - `RopeNode.Delete` 对位于同一叶片或单个子节点内的删除操作复用写时复制路径，可直接移除或调整目标叶片，避免整树重建并自动折叠空子树。
 - `RopeNode.Replace` 在单叶范围内组合删除与插入，并在容量允许时一次性写时复制；超限或跨子树时回退至拆分策略，减少双遍 Edit 成本。
 - 单叶编辑触发超长时会通过 `LeafSplitter` 动态拆分为多个叶片，并在父节点内局部替换，避免重建整棵树，为阶段 B 的叶片容量控制提供落地基础。
+- 新增叶片溢出拆分测试验证 Insert/Replace 在根节点与内部节点场景下生成合规叶片并保持兄弟节点内容稳定，为后续容量约束策略提供回归保障。
 - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
 - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
 - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
@@ -144,55 +145,40 @@
 - 再平衡算法的工程复杂性：与 Rust 的细节对齐需要时间，优先以正确、可测且渐进优化的方式实现功能而不是追求一次性完美。
 
 ## 已完成事项
-- 2025-11-11：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core` 类库与 `xi.Core.Tests` 测试项目，引入 `TextBuffer` 占位实现及首个 xUnit 烟囱测试。
-- 2025-11-11：梳理 `xi-editor-core` 架构并输出 C# 子系统划分草案初稿（`docs/architecture/xi-core-structure.md`）。
-- 2025-11-11：制定模块级迁移路线图草案（`docs/architecture/module-migration-plan.md`），明确阶段任务、测试策略与风险缓解措施。
-- 2025-11-11：起草 `Xi.Core` 对外 API 契约（`docs/architecture/api-contract.md`），覆盖命令、事件、插件交互与并发约束。
-- 2025-11-11：整理 Rope/Delta 迁移要点并形成备忘录（`docs/architecture/rope-delta-notes.md`）。
-- 2025-11-11：引入 `ITextBuffer` 接口并更新 `TextBuffer` 实现与测试基线，为 Rope 替换打通契约。
-- 2025-11-11：补齐 `RopeInfo` 与 Metric 基础类型及首批单元测试，为 Rope 节点实现提供依赖。
-- 2025-11-11：实现 `RopeNode` 与 `TreeBuilder` 骨架及配套测试，支持多叶节点拼接与叶片拆分策略。
-- 2025-11-11：实现 `RopeTextBuffer` 最小可用版并补充单元测试，验证接口契约与基础操作。
-- 2025-11-11：增强 `RopeNode` 切片与 `RopeTextBuffer.GetSlice`，新增跨叶验证测试确保树遍历正确。
-- 2025-11-11：扩展 `RopeNode`/`RopeTextBuffer` 支持插入、删除与通用替换，统一文本缓冲契约并覆盖跨叶编辑测试。
-- 2025-11-11：引入 `RopeNode.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，通过结构共享减少整树重建；新增跨节点拆分测试验证行为。
-- 2025-11-11：`dotnet test`（35 项 Rope/TextBuffer 相关测试）确认最新 Rope 编辑实现保持通过，为后续优化提供回归基线。
-- 2025-11-11：更新 `AGENTS.md` 文档，记录 `SplitAt` 行为、结构共享改造与下一步计划（COW/再平衡/Delta/benchmarks）。
-- 2025-11-11：撰写《Rope 写时复制与再平衡实施方案草案》（`docs/architecture/rope-cow-rebalance-plan.md`），明确阶段拆解、API 调整与测试/基准计划。
-- 2025-11-11：在 `RopeNode` 引入 `WithChildReplaced` 帮助方法及单元测试，为写时复制与再平衡实现提供节点局部更新能力。
-- 2025-11-11：实现 `RopeNode.CloneWithChildren` 及对应测试，支持内部节点批量替换并保持聚合信息一致。
-- 2025-11-11：更新 `TreeBuilder` 换行优先拆分策略并补充跨叶/代理对测试，为阶段 B 的叶片容量约束奠定基础。
-- 2025-11-11：引入 `LeafSplitter` 与 `RopeNode` 叶节点辅助 API（`EnsureWritableLeaf`、`SplitLeafByBounds`），并补充对应单元测试，支撑阶段 B 的叶片写时复制。
-- 2025-11-11：为 `RopeNode.Insert` 增加单叶写时复制快速路径，保障在叶片容量允许时避免整树重建，并补充覆盖测试。
-- 2025-11-11：为 `RopeNode.Delete` 增加单叶/单子树写时复制快速路径与子节点折叠逻辑，保持树结构共享并补补单元测试。
-- 2025-11-11：实现 `RopeNode.Replace` 组合编辑快速路径并更新 `RopeTextBuffer.Replace`，附加单元测试覆盖单叶与溢出回退场景。
-- 2025-11-11：在 Insert/Replace 快速路径中接入 `LeafSplitter`，超出叶片容量时就地拆分并局部替换子节点，减少 TreeBuilder 回退范围。
+- **工程骨架与测试基线（2025-11-11）**：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core`/`xi.Core.Tests` 并通过首轮 `dotnet test` 验证基础编译与测试链路。
+- **架构规划资产（2025-11-11）**：产出 `docs/architecture/xi-core-structure.md`、`module-migration-plan.md` 与 `api-contract.md`，梳理迁移路线、API 契约和阶段目标；同步撰写《Xi.Editor 迁移目标与路线图》确定阶段里程碑。
+- **Rope/Delta 研究成果（2025-11-11）**：整理 `reference/rust` 资料并形成 `rope-delta-notes.md`，明确 Rope/Delta 迁移要点与后续实施参考。
+- **Rope 基础实现（2025-11-11）**：引入 `ITextBuffer` 契约、`RopeInfo` 与 Metric 体系，完成 `RopeNode`、`TreeBuilder` 与 `RopeTextBuffer` 最小可用实现及配套测试，支持切片、插入、删除、替换等核心操作。
+- **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
+- **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》，更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 
 ## 工作日志
-- 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
-- 2025-11-11：搭建 .NET 解决方案骨架，创建核心/测试项目，编写 `TextBuffer` 占位实现与基础测试并验证通过。
-- 2025-11-11：执行 `dotnet test`（默认配置）确认核心与测试项目编译与单元测试通过。
-- 2025-11-11：阅读 `reference/rust/core-lib` 与 `reference/rust/rope` 关键入口文件，编写架构梳理文档初稿。
-- 2025-11-11：解析 `editor.rs`、`tabs.rs` 并在架构文档中补充编辑命令、插件消息与 idle 调度流程描述。
-- 2025-11-11：编写模块级迁移路线图草案，梳理阶段任务、完成判据与风险策略。
-- 2025-11-11：整理命令/通知/插件交互契约并形成 `api-contract` 文档。
-- 2025-11-11：调研 `reference/rust/rope` 与 `rope_science` 文档，沉淀 Rope/Delta 迁移要点并成文。
-- 2025-11-11：实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
-- 2025-11-11：实现 `RopeInfo`、Metric 抽象与对应测试，建立 Rope 迁移所需的基础类型。
-- 2025-11-11：实现 `RopeNode`/`TreeBuilder` 初版与单元测试，验证叶节点拼接、长文本拆分及遍历正确性。
-- 2025-11-11：实现 `RopeTextBuffer` 并通过接口级单元测试，奠定以 Rope 替换占位实现的基础。
-- 2025-11-11：扩展 `RopeNode`/`RopeTextBuffer` 替换与插入/删除操作，完善 `ITextBuffer` 契约并新增跨叶编辑测试。
-- 2025-11-11：执行 `dotnet test`（34 项 Rope/TextBuffer 测试）确认最新 Rope 编辑实现保持通过。
-- 2025-11-11：实现 `RopeNode.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，让编辑操作复用写时拆分路径以减少冗余构建。
-- 2025-11-11：执行 `dotnet test`（35 项 Rope/TextBuffer 测试）确认最新实现保持通过。
-- 2025-11-11：更新 `AGENTS.md` 并补充 Next Steps，保持测试基线与文档一致。
-- 2025-11-11：设定本次会话阶段目标：产出 Rope 写时复制（COW）与再平衡实施方案草案，并列出对应的代码与测试拆解步骤。
-- 2025-11-11：撰写并提交《Rope 写时复制与再平衡实施方案草案》，梳理阶段拆解与关键 API 变更。
-- 2025-11-11：实现 `RopeNode.WithChildReplaced` 及对应单元测试，启动阶段 A（节点局部更新能力）的编码工作。
-- 2025-11-11：实现 `RopeNode.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。
-- 2025-11-11：强化 `TreeBuilder` 切片策略，优先在换行处分段并保持 UTF-16 代理对完整，新增相关单元测试。
-- 2025-11-11：实现 `LeafSplitter`、`EnsureWritableLeaf` 与 `SplitLeafByBounds`，补齐叶节点复制/拆分测试，推进阶段 B 的叶片策略。
-- 2025-11-11：重构 `RopeNode.Insert`，在叶片容量满足条件时直接写时复制单叶并更新聚合信息，超限时回退到结构共享路径。
-- 2025-11-11：扩展 `RopeNode.Delete`，支持单叶/单子节点写时复制与子节点折叠，并新增覆盖测试。
-- 2025-11-11：实现 `RopeNode.Replace` 快速路径并将 `RopeTextBuffer.Replace` 切换为单次编辑流程，新增叶片编辑测试。
-- 2025-11-11：为 Insert/Replace 添加叶片拆分回退，局部替换父节点子数组并验证单元测试通过。
+### 2025-11-11
+- 初始化跨会话文档框架，整理目标与初步计划。
+- 搭建 .NET 解决方案骨架，创建核心/测试项目，编写 `TextBuffer` 占位实现与基础测试并验证通过。
+- 执行 `dotnet test`（默认配置）确认核心与测试项目编译与单元测试通过。
+- 阅读 `reference/rust/core-lib` 与 `reference/rust/rope` 关键入口文件，编写架构梳理文档初稿。
+- 解析 `editor.rs`、`tabs.rs` 并在架构文档中补充编辑命令、插件消息与 idle 调度流程描述。
+- 编写模块级迁移路线图草案，梳理阶段任务、完成判据与风险策略。
+- 整理命令/通知/插件交互契约并形成 `api-contract` 文档。
+- 调研 `reference/rust/rope` 与 `rope_science` 文档，沉淀 Rope/Delta 迁移要点并成文。
+- 实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
+- 实现 `RopeInfo`、Metric 抽象与对应测试，建立 Rope 迁移所需的基础类型。
+- 实现 `RopeNode`/`TreeBuilder` 初版与单元测试，验证叶节点拼接、长文本拆分及遍历正确性。
+- 实现 `RopeTextBuffer` 并通过接口级单元测试，奠定以 Rope 替换占位实现的基础。
+- 扩展 `RopeNode`/`RopeTextBuffer` 替换与插入/删除操作，完善 `ITextBuffer` 契约并新增跨叶编辑测试。
+- 执行 `dotnet test`（34 项 Rope/TextBuffer 测试）确认最新 Rope 编辑实现保持通过。
+- 实现 `RopeNode.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，让编辑操作复用写时拆分路径以减少冗余构建。
+- 执行 `dotnet test`（35 项 Rope/TextBuffer 测试）确认最新实现保持通过。
+- 更新 `AGENTS.md` 并补充 Next Steps，保持测试基线与文档一致。
+- 设定本次会话阶段目标：产出 Rope 写时复制（COW）与再平衡实施方案草案，并列出对应的代码与测试拆解步骤。
+- 撰写并提交《Rope 写时复制与再平衡实施方案草案》，梳理阶段拆解与关键 API 变更。
+- 实现 `RopeNode.WithChildReplaced` 及对应单元测试，启动阶段 A（节点局部更新能力）的编码工作。
+- 实现 `RopeNode.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。
+- 强化 `TreeBuilder` 切片策略，优先在换行处分段并保持 UTF-16 代理对完整，新增相关单元测试。
+- 实现 `LeafSplitter`、`EnsureWritableLeaf` 与 `SplitLeafByBounds`，补齐叶节点复制/拆分测试，推进阶段 B 的叶片策略。
+- 重构 `RopeNode.Insert`，在叶片容量满足条件时直接写时复制单叶并更新聚合信息，超限时回退到结构共享路径。
+- 扩展 `RopeNode.Delete`，支持单叶/单子节点写时复制与子节点折叠，并新增覆盖测试。
+- 实现 `RopeNode.Replace` 快速路径并将 `RopeTextBuffer.Replace` 切换为单次编辑流程，新增叶片编辑测试。
+- 为 Insert/Replace 添加叶片拆分回退，局部替换父节点子数组并验证单元测试通过。
+- 新增叶片溢出拆分回归测试，确保局部拆分策略在根节点与内部节点场景下表现稳定。

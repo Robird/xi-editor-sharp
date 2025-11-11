@@ -270,4 +270,40 @@ public class RopeNodeTests
         Assert.Equal(expected, replaced.ToString());
         Assert.All(replaced.TraverseLeaves(), leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
     }
+
+    [Fact]
+    public void Insert_LeafOverflowSplitsIntoMultipleSegments()
+    {
+        var baseText = new string('a', RopeNode.MaxLeafSize - 2);
+        var insertText = "hello world";
+        var insertIndex = RopeNode.MaxLeafSize / 3;
+
+        var node = RopeNode.FromLeaf(baseText);
+        var inserted = node.Insert(insertIndex, insertText);
+
+        var leaves = inserted.TraverseLeaves().ToArray();
+
+        Assert.Equal(baseText[..insertIndex] + insertText + baseText[insertIndex..], inserted.ToString());
+        Assert.True(leaves.Length >= 2);
+        Assert.All(leaves, leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
+    }
+
+    [Fact]
+    public void Insert_SplitWithinInternalNodeKeepsSiblingContent()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize - 10));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+
+        var insertText = new string('x', 32);
+        var modified = node.Insert(20, insertText);
+
+        var leaves = modified.TraverseLeaves().ToArray();
+
+        Assert.True(leaves.Length >= 3);
+        Assert.All(leaves, leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
+        Assert.EndsWith(new string('b', RopeNode.MaxLeafSize), modified.ToString());
+    }
 }
