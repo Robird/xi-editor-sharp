@@ -19,7 +19,7 @@
 - 阻塞项：无。
 
 ## 当前关键认知
-- 目前的 C# 骨架提供 `TextBuffer` 占位实现，使用 `StringBuilder` 仅支持线性追加，需以 Rope 结构替换并确保既有测试可复用。
+- 目前工程同时保留 `StringBuilder` 版 `TextBuffer` 与新建的 `RopeTextBuffer`；后者已复用 `ITextBuffer` 契约完成基本替代，但仍依赖整串快照执行切片，后续需实现树内遍历以兑现性能优势。
 - Rust Rope 基于泛型 B-树（`Node<NodeInfo>`），叶节点大小受 `MIN_LEAF=511`/`MAX_LEAF=1024` 控制，内部节点聚合 `lines`、`utf16_size`，为多指标遍历与增量更新提供 O(log n) 性能。
 - Metric 体系（Base/Lines/Utf16）通过单接口实现多坐标系转换，`prev/next` 等操作需跨叶处理断裂；C# 版本需提供等效接口避免重复扫描。
 - Delta/Subset 组合支撑插入、删除与并发协作：`factor()` 拆分插入与删除，`transform_expand`/`synthesize` 负责坐标重映射，是撤销、插件同步的基础能力。
@@ -31,6 +31,7 @@
 - 已引入 `ITextBuffer` 接口并调整占位实现与测试，为 Rope 替换提供统一契约与校验基线。
 - 初步落地 `RopeInfo` 与 Metric 抽象（Base/Lines/Utf16），为后续 Rope 节点实现提供依赖类型与测试支撑。
 - 已实现最小 `RopeNode` 与 `TreeBuilder` 骨架，支持多叶节点拼接与基本平衡策略，为 Rope 替换铺路。
+- 新增基于 Rope 的 `RopeTextBuffer` 实现，复用既有接口并通过单元测试验证追加、切片与清空语义。
 
 （后续将随 Rope 预研、测试导入等任务推进，持续补充新的关键认知。）
 
@@ -62,9 +63,10 @@
 	- `ITextBuffer` 初版已落地，后续任务可围绕 Rope/Metric 实现展开。
 	- Metric 抽象与首批实现已就绪，可在此基础上构建 `RopeNode` 与 `TreeBuilder`。
 - `RopeNode`/`TreeBuilder` 最小实现完成，下一步需要将其接入 `ITextBuffer` 并扩展编辑操作。
+- `RopeTextBuffer` 已提供最小可用实现；需继续扩展编辑/切片 API，减少对整串快照的依赖并增强性能，同时规划与现有 API/测试的切换策略。
 
 ## 下一步行动（高优先级 Backlog）
-1. 实现 Rope 驱动的 `ITextBuffer` 替代实现，利用 `RopeNode`/`TreeBuilder` 支撑基本插入与清空操作，并复用现有测试验证。
+1. 拓展 `RopeTextBuffer` 功能：实现基于 Rope 的原生切片/编辑操作，移除对整串快照的依赖，并引入针对边界条件的测试。
 2. 拓展 Delta/Subset 相关类型的 C# 原型，验证简单插入/删除与 `factor()`、`summary()` 等关键流程。
 3. 继续梳理 `editor.rs`、`tabs.rs`、`plugins/`，补充架构文档中对撤销栈、配置同步、idle 调度的序列图，并提炼对核心 API 的额外需求。
 4. 整理可复用的 Rust 测试/trace 资产，规划在 xUnit 中的导入策略，为后续功能验证做准备。
@@ -117,6 +119,7 @@
 - 2025-11-11：引入 `ITextBuffer` 接口，更新 `TextBuffer` 实现与测试基线，为 Rope 替换打通契约。
 - 2025-11-11：补齐 `RopeInfo` 与 Metric 基础类型及首批单元测试，为 Rope 节点实现提供依赖与验证。
 - 2025-11-11：实现 `RopeNode` 与 `TreeBuilder` 骨架及配套测试，支持多叶节点拼接与叶片拆分策略。
+- 2025-11-11：实现 `RopeTextBuffer` 最小可用版并补充单元测试，验证接口契约与基础操作。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -130,3 +133,4 @@
 - 2025-11-11：实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
 - 2025-11-11：实现 `RopeInfo`、Metric 抽象与对应测试，建立 Rope 迁移所需的基础类型。
 - 2025-11-11：实现 `RopeNode`/`TreeBuilder` 初版与单元测试，验证叶节点拼接、长文本拆分及遍历正确性。
+- 2025-11-11：实现 `RopeTextBuffer` 并通过接口级单元测试，奠定以 Rope 替换占位实现的基础。
