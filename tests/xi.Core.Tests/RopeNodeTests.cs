@@ -533,6 +533,7 @@ public class RopeNodeTests
         var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
         Assert.Contains("Leaf below MinLeafSize", exception.Message);
         Assert.Contains("[root/", exception.Message);
+        Assert.Contains("preview=\"", exception.Message);
     }
 
     [Fact]
@@ -572,5 +573,40 @@ public class RopeNodeTests
         var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
         Assert.Contains("Leaf below MinLeafSize", exception.Message);
         Assert.Contains("[root/", exception.Message);
+        Assert.Contains("preview=\"", exception.Message);
+    }
+
+    [Fact]
+    public void CollectInvariantIssues_ReturnsLeafPreviewAndPath()
+    {
+        var builder = new TreeBuilder();
+        for (var i = 0; i < 4; i++)
+        {
+            builder.PushString(new string((char)('a' + i), RopeNode.MaxLeafSize));
+        }
+
+        var node = builder.Build();
+        node = node.Delete(RopeNode.MaxLeafSize + 64, RopeNode.MaxLeafSize + 200);
+
+        var issues = node.CollectInvariantIssues(enforceLeafMinimum: true);
+
+        Assert.NotEmpty(issues);
+        var issue = Assert.Single(issues);
+        Assert.Contains("Leaf below MinLeafSize", issue);
+        Assert.Contains("[root/", issue);
+        Assert.Contains("preview=\"", issue);
+    }
+
+    [Fact]
+    public void CollectInvariantIssues_ReturnsEmptyWhenNodeIsValid()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+        var issues = node.CollectInvariantIssues(enforceLeafMinimum: true);
+
+        Assert.Empty(issues);
     }
 }

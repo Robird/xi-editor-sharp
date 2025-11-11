@@ -657,10 +657,16 @@ public sealed class RopeNode
         return new RopeNode(new RopeNodeBody(Height, length, info, null, array));
     }
 
-    public void ValidateInvariants(bool enforceLeafMinimum = false)
+    public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false)
     {
         var issues = new List<string>();
         ValidateNode(this, isRoot: true, enforceLeafMinimum, issues, "root");
+        return issues.Count == 0 ? Array.Empty<string>() : issues;
+    }
+
+    public void ValidateInvariants(bool enforceLeafMinimum = false)
+    {
+        var issues = CollectInvariantIssues(enforceLeafMinimum);
 
         if (issues.Count > 0)
         {
