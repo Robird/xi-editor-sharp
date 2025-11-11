@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Xi.Core.Rope;
 using static Xi.Core.Tests.RopeTestHelpers;
@@ -509,5 +510,65 @@ public class RopeNodeTests
         node = node.Replace(node.Length - 120, 60, new string('y', 75));
 
         AssertInvariants(node);
+    }
+
+    [Fact]
+    public void Delete_AcrossMultipleLevelsMaintainsLeafConstraints()
+    {
+        var builder = new TreeBuilder();
+        for (var i = 0; i < 6; i++)
+        {
+            builder.PushString(new string((char)('a' + i), RopeNode.MaxLeafSize));
+        }
+
+        var node = builder.Build();
+        Assert.True(node.Height >= 2);
+
+        node = node.Delete(RopeNode.MaxLeafSize + 128, RopeNode.MaxLeafSize + 400);
+
+        var leaves = node.TraverseLeaves().ToArray();
+        Assert.NotEmpty(leaves);
+        Assert.Contains(leaves, leaf => leaf.Length < RopeNode.MinLeafSize);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
+        Assert.Contains("Leaf below MinLeafSize", exception.Message);
+    }
+
+    [Fact]
+    public void Replace_AcrossMultipleLevelsRespectsSurrogateBoundaries()
+    {
+        var builder = new TreeBuilder();
+        var emoji = char.ConvertFromUtf32(0x1F9D1);
+
+        for (var i = 0; i < 5; i++)
+        {
+            var prefix = new string((char)('a' + i), RopeNode.MaxLeafSize - 8);
+            var suffix = new string((char)('f' + i), 12);
+            builder.PushString(prefix + emoji + suffix);
+        }
+
+        var node = builder.Build();
+        Assert.True(node.Height >= 2);
+
+        var replacement = new string('z', RopeNode.MinLeafSize + 64) + emoji;
+        var start = RopeNode.MaxLeafSize - 32;
+        var length = RopeNode.MaxLeafSize + 96;
+
+        node = node.Replace(start, length, replacement);
+
+        var leaves = node.TraverseLeaves().Select(l => l.ToString()).ToArray();
+        Assert.NotEmpty(leaves);
+
+        for (var i = 0; i < leaves.Length - 1; i++)
+        {
+            var left = leaves[i];
+            var right = leaves[i + 1];
+            Assert.False(char.IsHighSurrogate(left[^1]) && char.IsLowSurrogate(right[0]));
+        }
+
+        Assert.Contains(replacement, node.ToString());
+
+        var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
+        Assert.Contains("Leaf below MinLeafSize", exception.Message);
     }
 }
