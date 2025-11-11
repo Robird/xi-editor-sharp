@@ -210,6 +210,59 @@ public sealed class RopeNode
         return Concat(prefix, suffix);
     }
 
+    public RopeNode EnsureWritableLeaf()
+    {
+        if (!IsLeaf)
+        {
+            throw new InvalidOperationException("EnsureWritableLeaf can only be called on leaf nodes.");
+        }
+
+        if (_body.Leaf is null)
+        {
+            return Empty;
+        }
+
+        var source = _body.Leaf;
+        if (source.Length == 0)
+        {
+            return Empty;
+        }
+
+        var cloneText = string.Create(source.Length, source, static (span, s) => s.AsSpan().CopyTo(span));
+        if (ReferenceEquals(source, cloneText))
+        {
+            return this;
+        }
+
+        return new RopeNode(new RopeNodeBody(0, cloneText.Length, _body.Info, cloneText, null));
+    }
+
+    public IReadOnlyList<RopeNode> SplitLeafByBounds()
+    {
+        if (!IsLeaf)
+        {
+            throw new InvalidOperationException("SplitLeafByBounds can only be called on leaf nodes.");
+        }
+
+        if (_body.Leaf is null)
+        {
+            return Array.Empty<RopeNode>();
+        }
+
+        if (_body.Leaf.Length <= MaxLeafSize)
+        {
+            return new[] { this };
+        }
+
+        var segments = new List<RopeNode>();
+        foreach (var segment in LeafSplitter.Split(_body.Leaf))
+        {
+            segments.Add(FromLeaf(segment));
+        }
+
+        return segments;
+    }
+
     public RopeNode CloneWithChildren(IReadOnlyList<RopeNode> newChildren)
     {
         if (newChildren is null)

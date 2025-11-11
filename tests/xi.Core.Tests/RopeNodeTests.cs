@@ -150,4 +150,45 @@ public class RopeNodeTests
 
         Assert.Throws<InvalidOperationException>(() => leaf.CloneWithChildren(new[] { leaf }));
     }
+
+    [Fact]
+    public void EnsureWritableLeaf_ReturnsNewLeafInstance()
+    {
+        var leaf = RopeNode.FromLeaf("hello");
+        var cloned = leaf.EnsureWritableLeaf();
+
+        Assert.Equal("hello", cloned.ToString());
+        Assert.NotSame(leaf, cloned);
+        Assert.Equal(leaf.Info.LineCount, cloned.Info.LineCount);
+    }
+
+    [Fact]
+    public void SplitLeafByBounds_RespectsMaxSizeAndNewlinePreference()
+    {
+        var longText = new string('x', RopeNode.MaxLeafSize - 8) + "\n" + new string('y', RopeNode.MaxLeafSize + 20);
+        var leaf = RopeNode.FromLeaf(longText);
+
+        var segments = leaf.SplitLeafByBounds();
+
+    Assert.True(segments.Count >= 2);
+    Assert.EndsWith("\n", segments[0].ToString());
+        Assert.All(segments, segment => Assert.True(segment.Length <= RopeNode.MaxLeafSize));
+    }
+
+    [Fact]
+    public void SplitLeafByBounds_AvoidsBreakingSurrogatePairs()
+    {
+        var emoji = char.ConvertFromUtf32(0x1F603);
+        var text = new string('a', RopeNode.MaxLeafSize - 1) + emoji + new string('b', RopeNode.MaxLeafSize);
+        var leaf = RopeNode.FromLeaf(text);
+
+        var segments = leaf.SplitLeafByBounds();
+
+        for (var i = 0; i < segments.Count - 1; i++)
+        {
+            var left = segments[i].ToString();
+            var right = segments[i + 1].ToString();
+            Assert.False(char.IsHighSurrogate(left[^1]) && char.IsLowSurrogate(right[0]));
+        }
+    }
 }
