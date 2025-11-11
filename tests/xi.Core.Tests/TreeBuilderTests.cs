@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Xi.Core.Rope;
 
@@ -43,5 +44,44 @@ public class TreeBuilderTests
         var rope = builder.Build();
 
         Assert.True(rope.IsEmpty);
+    }
+
+    [Fact]
+    public void SplitPrefersNewlineNearBoundary()
+    {
+        var builder = new TreeBuilder();
+        var segment = new string('a', RopeNode.MaxLeafSize - 10) + "\n" + new string('b', RopeNode.MaxLeafSize);
+
+        builder.PushString(segment);
+
+        var leaves = builder.Build().TraverseLeaves().Select(n => n.ToString()).ToArray();
+
+        Assert.True(leaves.Length >= 2);
+        Assert.EndsWith("\n", leaves[0]);
+        Assert.True(leaves[0].Length <= RopeNode.MaxLeafSize);
+    }
+
+    [Fact]
+    public void SplitAvoidsBreakingSurrogatePairs()
+    {
+        var builder = new TreeBuilder();
+        var emoji = char.ConvertFromUtf32(0x1F600);
+        var text = new string('x', RopeNode.MaxLeafSize - 1) + emoji + new string('y', RopeNode.MaxLeafSize);
+
+        builder.PushString(text);
+
+        var leaves = builder.Build().TraverseLeaves().Select(n => n.ToString()).ToArray();
+
+        Assert.All(leaves, leaf => Assert.NotEmpty(leaf));
+
+        for (var i = 0; i < leaves.Length - 1; i++)
+        {
+            var left = leaves[i];
+            var right = leaves[i + 1];
+            var leftLast = left[^1];
+            var rightFirst = right[0];
+
+            Assert.False(char.IsHighSurrogate(leftLast) && char.IsLowSurrogate(rightFirst));
+        }
     }
 }

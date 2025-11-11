@@ -39,6 +39,7 @@
  - `RopeNode` 新增 `CloneWithChildren` 支撑批量子节点替换与聚合信息重建，为结构共享下的多子节点编辑奠定基础。
  - `SplitAt` 语义：`SplitAt(index)` 将 rope 在树的路径内拆分为左右两个节点（Left, Right），保留未修改的子树引用，实现结构共享；该操作对 Leaf/内部节点均递归有效，并保持 `RopeInfo` 聚合信息正确。
  - `TreeBuilder` 的 `PushString` 使用 `MaxLeafSize` 切片策略（并避免在 UTF-16 surrogate 边界拆分），保证叶节点大小在目标范围附近（当前为 `MaxLeafSize`），但尚未实现最小叶片合并策略或内部节点重平衡。
+ - `TreeBuilder` 拆分长文本时新增换行优先策略，并保留 UTF-16 代理对完整性，为阶段 B 的叶片分裂/合并逻辑提供基础能力。
  - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
  - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
  - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
@@ -155,6 +156,7 @@
  - 2025-11-11：撰写《Rope 写时复制与再平衡实施方案草案》（`docs/architecture/rope-cow-rebalance-plan.md`），明确阶段拆解、API 调整与测试/基准计划。
  - 2025-11-11：在 `RopeNode` 引入 `WithChildReplaced` 帮助方法及单元测试，为写时复制与再平衡实现提供节点局部更新能力。
  - 2025-11-11：实现 `RopeNode.CloneWithChildren` 及对应测试，支持内部节点批量替换并保持聚合信息一致。
+ - 2025-11-11：更新 `TreeBuilder` 换行优先拆分策略并补充跨叶/代理对测试，为阶段 B 的叶片容量约束奠定基础。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -178,3 +180,4 @@
  - 2025-11-11：撰写并提交《Rope 写时复制与再平衡实施方案草案》，梳理阶段拆解与关键 API 变更。
  - 2025-11-11：实现 `RopeNode.WithChildReplaced` 及对应单元测试，启动阶段 A（节点局部更新能力）的编码工作。
  - 2025-11-11：实现 `RopeNode.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。
+ - 2025-11-11：强化 `TreeBuilder` 切片策略，优先在换行处分段并保持 UTF-16 代理对完整，新增相关单元测试。

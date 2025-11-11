@@ -10,6 +10,7 @@ namespace Xi.Core.Rope;
 public sealed class TreeBuilder
 {
     private readonly List<RopeNode> _pending = new();
+    private const int NewlinePreferenceWindow = 64;
 
     public void PushString(string? text)
     {
@@ -97,25 +98,54 @@ public sealed class TreeBuilder
         {
             var remaining = length - offset;
             var chunkLength = Math.Min(max, remaining);
-            if (chunkLength == 0)
+
+            if (remaining <= max)
             {
+                yield return text.Substring(offset, remaining);
+                yield break;
+            }
+
+            var preferred = FindPreferredSplit(text, offset, chunkLength);
+            if (preferred <= 0)
+            {
+                preferred = Math.Min(remaining, max);
+            }
+
+            yield return text.Substring(offset, preferred);
+            offset += preferred;
+        }
+    }
+
+    private static int FindPreferredSplit(string text, int offset, int initialLength)
+    {
+        var length = text.Length;
+        var candidate = initialLength;
+
+        // Prefer newline close to the target split.
+        var searchEnd = offset + candidate - 1;
+        var windowStart = Math.Max(offset, searchEnd - (NewlinePreferenceWindow - 1));
+        for (var index = searchEnd; index >= windowStart; index--)
+        {
+            if (text[index] == '\n')
+            {
+                candidate = index - offset + 1;
                 break;
             }
-
-            if (offset + chunkLength < length &&
-                char.IsHighSurrogate(text[offset + chunkLength - 1]) &&
-                char.IsLowSurrogate(text[offset + chunkLength]))
-            {
-                chunkLength--;
-            }
-
-            if (chunkLength <= 0)
-            {
-                chunkLength = Math.Min(remaining, 2);
-            }
-
-            yield return text.Substring(offset, chunkLength);
-            offset += chunkLength;
         }
+
+        // Ensure we do not split surrogate pairs in half.
+        if (offset + candidate < length && candidate > 0 &&
+            char.IsHighSurrogate(text[offset + candidate - 1]) &&
+            char.IsLowSurrogate(text[offset + candidate]))
+        {
+            candidate--;
+        }
+
+        if (candidate <= 0)
+        {
+            return Math.Min(initialLength, length - offset);
+        }
+
+        return candidate;
     }
 }
