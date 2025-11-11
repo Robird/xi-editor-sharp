@@ -173,7 +173,7 @@ public sealed class RopeNode
         {
             if (splitNodes is not null)
             {
-                return BuildFromSegments(new List<RopeNode>(splitNodes));
+                return BuildFromSegments(new List<RopeNode>(splitNodes)).NormalizeLeafMinimum();
             }
 
             return optimized;
@@ -184,7 +184,7 @@ public sealed class RopeNode
         builder.PushNode(prefix);
         builder.PushString(text);
         builder.PushNode(suffix);
-        return builder.Build();
+        return builder.Build().NormalizeLeafMinimum();
     }
 
     public RopeNode Delete(int start, int length)
@@ -212,17 +212,22 @@ public sealed class RopeNode
         var (prefix, remainder) = SplitAt(start);
         var (_, suffix) = remainder.SplitAt(length);
 
+        RopeNode result;
+
         if (prefix.IsEmpty)
         {
-            return suffix;
+            result = suffix;
         }
-
-        if (suffix.IsEmpty)
+        else if (suffix.IsEmpty)
         {
-            return prefix;
+            result = prefix;
+        }
+        else
+        {
+            result = Concat(prefix, suffix);
         }
 
-        return Concat(prefix, suffix);
+        return result.NormalizeLeafMinimum();
     }
 
     public RopeNode Replace(int start, int length, string? text)
@@ -261,14 +266,14 @@ public sealed class RopeNode
         {
             if (splitNodes is not null)
             {
-                return BuildFromSegments(new List<RopeNode>(splitNodes));
+                return BuildFromSegments(new List<RopeNode>(splitNodes)).NormalizeLeafMinimum();
             }
 
             return optimized;
         }
 
         var afterDelete = Delete(start, length);
-        return afterDelete.Insert(start, text);
+        return afterDelete.Insert(start, text).NormalizeLeafMinimum();
     }
 
     public RopeNode EnsureWritableLeaf()
@@ -672,6 +677,172 @@ public sealed class RopeNode
         {
             throw new InvalidOperationException(string.Join(Environment.NewLine, issues));
         }
+    }
+
+    public RopeNode NormalizeLeafMinimum()
+    {
+        var current = this;
+
+        for (var iteration = 0; iteration < 16; iteration++)
+        {
+            var issues = current.CollectInvariantIssues(true);
+            if (issues.Count == 0)
+            {
+                return current;
+            }
+
+            string? targetIssue = null;
+            foreach (var issue in issues)
+            {
+                if (issue.Contains("Leaf below MinLeafSize", StringComparison.Ordinal))
+                {
+                    targetIssue = issue;
+                    break;
+                }
+            }
+
+            if (targetIssue is null)
+            {
+                return current;
+            }
+
+            if (!TryParseInvariantPath(targetIssue, out var path))
+            {
+                return current;
+            }
+
+            if (!current.TryResolveLeafUnderflow(path, out var updated))
+            {
+                return current;
+            }
+
+            current = updated;
+        }
+
+        return current;
+    }
+
+    private static bool TryParseInvariantPath(string issue, out int[] indices)
+    {
+        indices = Array.Empty<int>();
+
+        if (string.IsNullOrEmpty(issue))
+        {
+            return false;
+        }
+
+        var start = issue.IndexOf("[root/", StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return false;
+        }
+
+        var end = issue.IndexOf(']', start);
+        if (end < 0)
+        {
+            return false;
+        }
+
+        var pathText = issue.Substring(start + 1, end - start - 1);
+        var parts = pathText.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length <= 1)
+        {
+            return false;
+        }
+
+        var result = new int[parts.Length - 1];
+        for (var i = 1; i < parts.Length; i++)
+        {
+            if (!int.TryParse(parts[i], out result[i - 1]))
+            {
+                return false;
+            }
+        }
+
+        indices = result;
+        return true;
+    }
+
+    private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out RopeNode updated)
+    {
+        updated = this;
+
+        if (path.Length == 0)
+        {
+            return false;
+        }
+
+        var nodes = new RopeNode[path.Length + 1];
+        var indices = new int[path.Length];
+        nodes[0] = this;
+
+        var current = this;
+        for (var depth = 0; depth < path.Length; depth++)
+        {
+            if (current.IsLeaf)
+            {
+                return false;
+            }
+
+            var children = current.RequireChildren();
+            var index = path[depth];
+            if ((uint)index >= (uint)children.Length)
+            {
+                return false;
+            }
+
+            current = children[index];
+            nodes[depth + 1] = current;
+            indices[depth] = index;
+        }
+
+        var leaf = nodes[path.Length];
+        if (!leaf.IsLeaf || leaf.Length >= MinLeafSize)
+        {
+            return false;
+        }
+
+        var parentDepth = path.Length - 1;
+        if (parentDepth < 0)
+        {
+            return false;
+        }
+
+        var parent = nodes[parentDepth];
+        var parentChildren = parent.RequireChildren();
+        var targetIndex = indices[parentDepth];
+        RopeNode newParent;
+
+        if (parent.TryMergeLeafWithSibling(parentChildren, targetIndex, leaf, out var merged))
+        {
+            newParent = merged;
+        }
+        else if (parent.TryRebalanceLeafWithSibling(parentChildren, targetIndex, leaf, out var rebalanced))
+        {
+            newParent = rebalanced;
+        }
+        else
+        {
+            return false;
+        }
+
+        var subtree = newParent;
+
+        for (var depth = parentDepth - 1; depth >= 0; depth--)
+        {
+            var ancestor = nodes[depth];
+            var ancestorChildren = ancestor.RequireChildren();
+            var list = new List<RopeNode>(ancestorChildren.Length);
+            for (var i = 0; i < ancestorChildren.Length; i++)
+            {
+                list.Add(i == indices[depth] ? subtree : ancestorChildren[i]);
+            }
+
+            subtree = BuildFromSegments(list);
+        }
+
+        updated = subtree;
+        return true;
     }
 
     private RopeNode ReplaceChildWithSegments(RopeNode[] children, int index, IReadOnlyList<RopeNode> segments)

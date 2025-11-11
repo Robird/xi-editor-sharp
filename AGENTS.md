@@ -19,7 +19,7 @@
 - 阻塞项：无。
 
 ## 当前关键认知
-- 目前工程同时保留 `StringBuilder` 版 `TextBuffer` 与基于 Rope 的 `RopeTextBuffer`；后者已实现写时复制路径，优先在单叶之内完成插入/删除/替换，并在叶片超限或过小时时通过拆分、合并与兄弟借用保持 `[MinLeafSize, MaxLeafSize]` 约束，只有跨子树的大范围编辑才回退到 `TreeBuilder` 重建。
+- 目前工程同时保留 `StringBuilder` 版 `TextBuffer` 与基于 Rope 的 `RopeTextBuffer`；后者已实现写时复制路径，编辑后会调用 `NormalizeLeafMinimum()` 通过局部合并/借用与必要的重建保持叶片容量落在 `[MinLeafSize, MaxLeafSize]`，跨子树的大范围编辑同样能维持约束而无需整棵树重建。
 - Rust Rope 采用泛型 B-树（`Node<NodeInfo>`），叶节点大小受 `MIN_LEAF=511` / `MAX_LEAF=1024` 限制，内部节点聚合 `lines`、`utf16_size` 等指标，为多坐标系遍历和增量更新提供 O(log n) 行为。
 - Metric 体系（Base/Lines/Utf16）通过统一接口支持不同坐标转换；`prev/next` 等操作需跨叶处理断裂，C# 版本必须提供等效能力以避免重复扫描。
 - Delta/Subset 组合支撑插入、删除与并发协作：`factor()` 拆分插入/删除，`transform_expand`/`synthesize` 完成坐标重映射，是撤销与插件同步的基础能力。
@@ -27,10 +27,11 @@
 - 核心 API 设计需保持嵌入式调用友好，同时为 JSON-RPC/插件层预留事件与通知扩展点。
 - 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出 C# 子系统映射与迁移顺序初稿（`docs/architecture/xi-core-structure.md`），并配套 `docs/architecture/module-migration-plan.md`、`docs/architecture/api-contract.md`、`docs/architecture/xi-port-goals-roadmap.md` 与 `docs/architecture/rope-delta-notes.md` 等文档作为实施基线。
 - `TreeBuilder` 与 `LeafSplitter` 负责将长文本切分为符合 `MaxLeafSize` 的片段，优先选择换行与代理对友好的边界，为阶段 B 的叶片拆分/合并逻辑提供支撑，但仍缺乏最小叶片合并与内部节点再平衡的自动化约束。
-- `RopeNode` 已提供 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`EnsureWritableLeaf`、`SplitLeafByBounds` 等结构共享 API，并结合叶片合并、借用与再分配逻辑保持局部编辑的平衡性；内部节点仍依赖简单聚合，后续需要阶段 C/D 的再平衡与增量刷新。
+- `RopeNode` 已提供 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`EnsureWritableLeaf`、`SplitLeafByBounds`、`NormalizeLeafMinimum()` 等结构共享/调节 API；局部编辑完成后会自动修复欠载叶片并保持 `[MinLeafSize, MaxLeafSize]` 约束，内部节点仍依赖简单聚合，后续需要阶段 C/D 的再平衡与增量刷新。
+- 阶段 B（叶片容量与诊断）已收官，当前重点转向阶段 C：需要定义内部节点借用/合并/分裂策略，并评估 `Concat`、`TreeBuilder` 等入口生成失衡树时的调节方案，为保持树高稳定和聚合信息正确性做准备。
 - `RopeNode.ValidateInvariants` 可在测试中校验高度、聚合信息与叶片容量，并支持可选的最小叶片严格检查；`RopeTestHelpers.AssertInvariants` 已在单元测试中默认启用该校验。
 - `RopeTextBuffer` 通过 `InternalsVisibleTo` 暴露 `DebugRoot`，测试层借此在缓冲区级别断言结构不变量，混合编辑序列覆盖默认开启。
-- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 62 项 Rope/TextBuffer 测试全部通过，为后续 COW 阶段收尾与 Delta 原型验证提供回归基线。
+- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 66 项 Rope/TextBuffer 测试全部通过，新增跨层欠载与 surrogate 场景的诊断回归；在 `NormalizeLeafMinimum()` 引入后所有编辑路径均保持叶片容量约束，为后续 COW 阶段收尾与 Delta 原型验证提供回归基线。
 
 (小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
 
@@ -53,8 +54,8 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **Rope COW 阶段推进**：按《rope-cow-rebalance-plan》阶段 A/B 落实节点局部更新与叶片写时复制策略，确保结构共享在插入/删除中正确生效。
-- **再平衡策略筹备**：为阶段 C/D 收集内部节点借用/合并案例与现有 `Concat`/`TreeBuilder` 行为，明确需要调整的入口点与聚合信息更新流程。
+- **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
+- **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
 
@@ -62,34 +63,28 @@
 1. **阶段 A：节点所有权与引用复用**
   - 在现有 `WithChildReplaced` 基础上落地 `RopeNode` 的引用状态检查与调试断言，梳理共享子树的生命周期。
   - 继续扩展 `CloneWithModifiedChildren`/`EnsureWritableLeaf` 在删除、替换流程中的应用，确保所有常见编辑操作都能绕开整树重建。
-2. **阶段 B 诊断增强（2025-11-11）**
-  - 新增跨多层删除与 surrogate 边界替换测试，验证 `ValidateInvariants(true)` 能暴露叶片欠载并保持代理对完整性，为后续借用/合并策略提供复现样本。
-    - `ValidateInvariants` 诊断输出增加节点路径上下文，配合测试可快速定位欠载叶片与失衡子树。
-  - 诊断消息补充叶片内容预览与子节点长度摘要，便于在复杂编辑后迅速识别问题范围。
-    - 提供 `CollectInvariantIssues` API 以采集不变量输出而不抛异常，便于在测试与调试中记录诊断信息。
+2. **阶段 B：叶片容量与诊断收官（2025-11-11）**
+  - 新增跨多层删除与 surrogate 边界替换测试，验证 `NormalizeLeafMinimum()` 能在编辑后自动修复欠载叶片并保持代理对完整性；`ValidateInvariants(true)` 现用于确认所有编辑路径维持 `[MinLeafSize, MaxLeafSize]` 约束。
+    - `ValidateInvariants` 诊断输出增加节点路径上下文、叶片预览与子节点长度摘要，结合 `CollectInvariantIssues` 可在测试与调试中快速定位问题并输出详细日志。
 
 ## 下一步行动（高优先级 Backlog）
-1. **阶段 B 收尾：叶片容量与诊断加强**
-  - 用 `ValidateInvariants` 的诊断输出来定位跨多层节点的最小叶片违规案例，并补齐借用/合并路径。
-  - 整理跨层/代理边界测试暴露的欠载样本，形成阶段 C 的回归清单与调试脚本。
-  - 收集性能采样数据，对比单叶快路径与回退到 `TreeBuilder` 的开销差异，为阶段 C 优化提供基线。
-2. **阶段 C 启动：内部节点再平衡设计与实现**
+1. **阶段 C 启动：内部节点再平衡设计与实现**
   - 梳理 `Concat`、`CreateInternal`、`TreeBuilder` 产生的高度失衡案例，定义借用/合并/分裂的触发条件与算法草案。
   - 在 RopeNode 层实现最小可用的内部节点 re-balance 操作，并配套顺序/随机大文本编辑测试验证树高与聚合信息正确性。
   - 评估并规划沿父链的最小聚合刷新策略，为后续增量更新打基础。
-3. **阶段 D 准备：聚合信息增量更新**
+2. **阶段 D 准备：聚合信息增量更新**
   - 设计 `RefreshInfoUpwards` 或等效机制，确保局部编辑后无需整棵树重算聚合。
   - 针对 Base/Lines/Utf16 三种 Metric 增加断言与差分测试，锁定潜在的聚合偏差。
-4. **测试与诊断扩展**
+3. **测试与诊断扩展**
   - 引入属性测试或随机编辑序列（可考虑 FsCheck）覆盖更多组合场景，并将不变量断言纳入测试基线。
   - 继续扩展诊断输出（现已包含路径上下文、叶片预览与子节点长度摘要），后续评估记录更精细的片段快照以缩短定位时间。
-5. **性能与基准体系搭建**
+4. **性能与基准体系搭建**
   - 搭建 `BenchmarkDotNet` 基准，覆盖顺序插入、跨叶替换、大范围删除等典型场景。
   - 建立阶段性性能回归表，记录 COW/再平衡前后的延迟与内存占用，指导后续优化。
-6. **Delta/Subset 原型推进**
+5. **Delta/Subset 原型推进**
   - 按 `rope-delta-notes` 路线实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、`apply()`，与 Rope 缓冲区对接。
   - 构建端到端单元测试，验证 Delta 的应用结果与 Rope 文本状态保持一致。
-7. **文档与风险跟踪**
+6. **文档与风险跟踪**
   - 随阶段推进更新 `rope-cow-rebalance-plan.md`、`module-migration-plan.md` 与风险日志，记录参数调整与新假设。
   - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
 
@@ -179,6 +174,7 @@
 - 执行 `dotnet test`（60 项 Rope/TextBuffer 测试）确认删除/替换合并与借用逻辑与现有功能兼容。
 - 执行 `dotnet test`（61 项 Rope/TextBuffer 测试）确认新增不变量校验与单元测试通过。
 - RopeNode 单元测试新增 `AssertInvariants` 帮助方法，在核心编辑路径自动验证结构不变量，以提高回归侦测能力。
+- `RopeTestHelpers.AssertInvariants` 现基于 `CollectInvariantIssues` 输出详细诊断信息，失败时直接在断言消息中呈现路径与预览，便于定位问题。
 - `RopeTextBuffer` 测试更新为默认断言不变量，并新增混合编辑序列回归用例；当前 `dotnet test` 总数提升至 62 项。
 - 将 `RopeTextBuffer` 暴露的 `DebugRoot` 纳入测试，并新增混合编辑序列回归用例，默认断言不变量。
 - `RopeTextBuffer` 测试引入默认不变量校验与混合编辑序列回归，验证缓冲区层的写时复制行为。

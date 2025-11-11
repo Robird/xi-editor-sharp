@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using Xi.Core.Rope;
 using static Xi.Core.Tests.RopeTestHelpers;
 
@@ -526,14 +527,7 @@ public class RopeNodeTests
 
         node = node.Delete(RopeNode.MaxLeafSize + 128, RopeNode.MaxLeafSize + 400);
 
-        var leaves = node.TraverseLeaves().ToArray();
-        Assert.NotEmpty(leaves);
-        Assert.Contains(leaves, leaf => leaf.Length < RopeNode.MinLeafSize);
-
-        var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
-        Assert.Contains("Leaf below MinLeafSize", exception.Message);
-        Assert.Contains("[root/", exception.Message);
-        Assert.Contains("preview=\"", exception.Message);
+        AssertInvariants(node, enforceLeafMinimum: true);
     }
 
     [Fact]
@@ -569,32 +563,28 @@ public class RopeNodeTests
         }
 
         Assert.Contains(replacement, node.ToString());
-
-        var exception = Assert.Throws<InvalidOperationException>(() => node.ValidateInvariants(enforceLeafMinimum: true));
-        Assert.Contains("Leaf below MinLeafSize", exception.Message);
-        Assert.Contains("[root/", exception.Message);
-        Assert.Contains("preview=\"", exception.Message);
+        AssertInvariants(node, enforceLeafMinimum: true);
     }
 
     [Fact]
     public void CollectInvariantIssues_ReturnsLeafPreviewAndPath()
     {
-        var builder = new TreeBuilder();
-        for (var i = 0; i < 4; i++)
-        {
-            builder.PushString(new string((char)('a' + i), RopeNode.MaxLeafSize));
-        }
+        var smallLeft = RopeNode.FromLeaf(new string('a', RopeNode.MinLeafSize - 120));
+        var smallRight = RopeNode.FromLeaf(new string('b', RopeNode.MinLeafSize - 80));
 
-        var node = builder.Build();
-        node = node.Delete(RopeNode.MaxLeafSize + 64, RopeNode.MaxLeafSize + 200);
+        var createInternal = typeof(RopeNode).GetMethod("CreateInternal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(createInternal);
 
+        var node = (RopeNode)createInternal!.Invoke(null, new object[] { 1, new[] { smallLeft, smallRight } })!;
         var issues = node.CollectInvariantIssues(enforceLeafMinimum: true);
 
         Assert.NotEmpty(issues);
-        var issue = Assert.Single(issues);
-        Assert.Contains("Leaf below MinLeafSize", issue);
-        Assert.Contains("[root/", issue);
-        Assert.Contains("preview=\"", issue);
+        Assert.All(issues, entry =>
+        {
+            Assert.Contains("Leaf below MinLeafSize", entry);
+            Assert.Contains("[root/", entry);
+            Assert.Contains("preview=\"", entry);
+        });
     }
 
     [Fact]
@@ -605,7 +595,8 @@ public class RopeNodeTests
         builder.PushString(new string('b', RopeNode.MaxLeafSize));
 
         var node = builder.Build();
-        var issues = node.CollectInvariantIssues(enforceLeafMinimum: true);
+        var normalized = node.NormalizeLeafMinimum();
+        var issues = normalized.CollectInvariantIssues(enforceLeafMinimum: true);
 
         Assert.Empty(issues);
     }
