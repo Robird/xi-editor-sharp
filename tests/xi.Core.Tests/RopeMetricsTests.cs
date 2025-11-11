@@ -11,7 +11,7 @@ public class RopeMetricsTests
         var text = "line1\nline2\U0001F600"; // includes surrogate pair
         var info = RopeInfo.FromLeaf(text.AsSpan());
 
-    Assert.Equal(1, info.LineCount); // single newline separator
+        Assert.Equal(1, info.LineCount); // single newline separator
         Assert.Equal(text.EnumerateRunes().Sum(r => r.Utf16SequenceLength), info.Utf16Length);
     }
 
@@ -21,25 +21,23 @@ public class RopeMetricsTests
     [InlineData("abc", 3, true)]
     public void BaseMetricRecognisesSimpleBoundaries(string text, int offset, bool expected)
     {
-        var span = text.AsSpan();
-        Assert.Equal(expected, BaseMetric.Instance.IsBoundary(span, offset));
+    Assert.Equal(expected, BaseMetric.Instance.IsBoundary(text, offset));
     }
 
     [Fact]
     public void BaseMetricSkipsInsideSurrogate()
     {
-        var text = "\U0001F600"; // 😀 -> surrogate pair
-        var span = text.AsSpan();
-        Assert.False(BaseMetric.Instance.IsBoundary(span, 1));
+    var text = "\U0001F600"; // 😀 -> surrogate pair
+    Assert.False(BaseMetric.Instance.IsBoundary(text, 1));
     }
 
     [Fact]
     public void LinesMetricConvertsBetweenUnits()
     {
-        var span = "a\nb\nc".AsSpan();
+        var text = "a\nb\nc";
         var metric = LinesMetric.Instance;
 
-    Assert.Equal(4, metric.ToBaseUnits(span, 2));
-        Assert.Equal(2, metric.FromBaseUnits(span, 4));
+        Assert.Equal(4, metric.ToBaseUnits(text, 2));
+        Assert.Equal(2, metric.FromBaseUnits(text, 4));
     }
 }

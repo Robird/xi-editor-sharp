@@ -1,6 +1,10 @@
 ## 跨会话记忆文档
 本文档(`./AGENTS.md`)会伴随每个 user 消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。
 
+## 已知的工具问题
+- 需要要删除请用改名替代，因为环境会拦截删除文件操作。
+- 不要使用'insert_edit_into_file'工具，经常产生难以补救的错误结果。
+
 ## 项目概览
 
 ## 当前关键认知
@@ -19,6 +23,8 @@
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
 - `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
 - Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
+- 引入 `src/xi.Core/Rope/Interval.cs` 以及 `TreeContracts.cs` 中的 `ILeafOperations`、`ITreeNodeInfo`、`ITreeMetric` 等接口，完成 rope/tree 模块的核心契约映射；`RopeInfo` 与三种 Metric 已对齐新接口，`IMetric` 成为 `ITreeMetric<string, RopeInfo>` 的特化别名，并新增 `NodeCursor` 骨架为后续游标实现预留结构。
+- 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 (小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
 
@@ -29,6 +35,9 @@
 2. **执行任务**：按优先级推进，并实时更新“当前聚焦”“技术笔记”“风险”。
 3. **任务完成**：将成果移动至“已完成事项”，在“工作日志”记录关键行动，检视下一步。
 4. **质量门禁**：所有代码改动前后需跑通构建/测试，并记录结果。
+
+### 协作与工具心得
+- 充分利用 IDE/GUI 工具加速批量操作（如重命名、导航、格式化等），必要时可直接请人类协作者协助执行；相比 RL 阶段的“独立作业”要求，当前环境鼓励主动寻求外部工具/伙伴配合以提升效率。
 
 ## 里程碑路线图
 - M0：架构梳理与迁移策略文档（进行中）。
@@ -41,6 +50,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
+- **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
@@ -75,6 +85,9 @@
 6. **文档与风险跟踪**
   - 随阶段推进更新 `rope-cow-rebalance-plan.md`、`module-migration-plan.md` 与风险日志，记录参数调整与新假设。
   - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
+7. **文档外部记忆与计划维护**
+  - 定期同步 `docs/skeleton/xi.Core.Rope.cs` 与 Rust skeleton 的差异标注，形成最新的对照清单。
+  - 在 `AGENTS.md` 与架构文档中记录阶段目标、开放问题与请求协作的事项，避免上下文压缩造成的信息丢失。
 
 ## 未来候选事项（Backlog）
 - 导入参考仓库中的黄金编辑 trace，构建跨语言对照测试套件。
@@ -174,3 +187,4 @@
 - 进一步优化 `scripts/stub_rust_functions.py`，在文档模式下跳过测试模块/函数并剥离注释，同时保留签名以生成轻量骨架（约 2003 行）。
 - 修复 `scripts/stub_rust_functions.py` 在文档模式下处理 `#[cfg(test)]` 区块时误删主体的 bug，现已完整跳过测试模块与带 `#[test]` 标记的函数并保持周围语法结构完整。
 - `scripts/stub_rust_functions.py` 新增文件头注释预处理，可在导出 Markdown 骨架时自动移除许可证等连续注释行，便于聚焦核心结构。
+- 将 `docs/skeleton/xi.Core.Rope.cs` 转换为注释化骨架，保留类型与方法签名并添加功能摘要，供 C# 端快速 Birdview 查阅。

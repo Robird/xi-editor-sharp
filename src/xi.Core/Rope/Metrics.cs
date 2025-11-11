@@ -18,14 +18,14 @@ public sealed class BaseMetric : IMetric
 
     public int Measure(RopeInfo info, int nodeLength) => nodeLength;
 
-    public int ToBaseUnits(ReadOnlySpan<char> leaf, int measuredUnits)
+    public int ToBaseUnits(string leaf, int measuredUnits)
     {
         if ((uint)measuredUnits > (uint)leaf.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(measuredUnits));
         }
 
-        if (!Utf16BoundaryHelper.IsBoundary(leaf, measuredUnits))
+        if (!Utf16BoundaryHelper.IsBoundary(leaf.AsSpan(), measuredUnits))
         {
             throw new ArgumentException("Offset does not align to a UTF-16 boundary.", nameof(measuredUnits));
         }
@@ -33,14 +33,14 @@ public sealed class BaseMetric : IMetric
         return measuredUnits;
     }
 
-    public int FromBaseUnits(ReadOnlySpan<char> leaf, int baseUnits)
+    public int FromBaseUnits(string leaf, int baseUnits)
     {
         if ((uint)baseUnits > (uint)leaf.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(baseUnits));
         }
 
-        if (!Utf16BoundaryHelper.IsBoundary(leaf, baseUnits))
+        if (!Utf16BoundaryHelper.IsBoundary(leaf.AsSpan(), baseUnits))
         {
             throw new ArgumentException("Offset does not align to a UTF-16 boundary.", nameof(baseUnits));
         }
@@ -48,11 +48,11 @@ public sealed class BaseMetric : IMetric
         return baseUnits;
     }
 
-    public bool IsBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.IsBoundary(leaf, offset);
+    public bool IsBoundary(string leaf, int offset) => Utf16BoundaryHelper.IsBoundary(leaf.AsSpan(), offset);
 
-    public int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.GetPreviousBoundary(leaf, offset);
+    public int? GetPreviousBoundary(string leaf, int offset) => Utf16BoundaryHelper.GetPreviousBoundary(leaf.AsSpan(), offset);
 
-    public int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.GetNextBoundary(leaf, offset);
+    public int? GetNextBoundary(string leaf, int offset) => Utf16BoundaryHelper.GetNextBoundary(leaf.AsSpan(), offset);
 }
 
 /// <summary>
@@ -70,7 +70,7 @@ public sealed class LinesMetric : IMetric
 
     public int Measure(RopeInfo info, int nodeLength) => info.LineCount;
 
-    public int ToBaseUnits(ReadOnlySpan<char> leaf, int measuredUnits)
+    public int ToBaseUnits(string leaf, int measuredUnits)
     {
         if (measuredUnits < 0)
         {
@@ -81,7 +81,7 @@ public sealed class LinesMetric : IMetric
         var found = 0;
         while (offset < leaf.Length && found < measuredUnits)
         {
-            var index = leaf[offset..].IndexOf('\n');
+            var index = leaf.AsSpan(offset).IndexOf('\n');
             if (index < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(measuredUnits), measuredUnits, "Measured units exceed available lines.");
@@ -94,14 +94,14 @@ public sealed class LinesMetric : IMetric
         return offset;
     }
 
-    public int FromBaseUnits(ReadOnlySpan<char> leaf, int baseUnits)
+    public int FromBaseUnits(string leaf, int baseUnits)
     {
         if ((uint)baseUnits > (uint)leaf.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(baseUnits));
         }
 
-        var span = leaf[..baseUnits];
+        var span = leaf.AsSpan(0, baseUnits);
         var count = 0;
         foreach (var ch in span)
         {
@@ -114,7 +114,7 @@ public sealed class LinesMetric : IMetric
         return count;
     }
 
-    public bool IsBoundary(ReadOnlySpan<char> leaf, int offset)
+    public bool IsBoundary(string leaf, int offset)
     {
         if (offset <= 0 || offset > leaf.Length)
         {
@@ -124,7 +124,7 @@ public sealed class LinesMetric : IMetric
         return leaf[offset - 1] == '\n';
     }
 
-    public int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset)
+    public int? GetPreviousBoundary(string leaf, int offset)
     {
         if (offset <= 0)
         {
@@ -142,7 +142,7 @@ public sealed class LinesMetric : IMetric
         return null;
     }
 
-    public int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset)
+    public int? GetNextBoundary(string leaf, int offset)
     {
         if (offset >= leaf.Length)
         {
@@ -176,7 +176,7 @@ public sealed class Utf16Metric : IMetric
 
     public int Measure(RopeInfo info, int nodeLength) => info.Utf16Length;
 
-    public int ToBaseUnits(ReadOnlySpan<char> leaf, int measuredUnits)
+    public int ToBaseUnits(string leaf, int measuredUnits)
     {
         if (measuredUnits < 0)
         {
@@ -204,7 +204,7 @@ public sealed class Utf16Metric : IMetric
         return utf16Units;
     }
 
-    public int FromBaseUnits(ReadOnlySpan<char> leaf, int baseUnits)
+    public int FromBaseUnits(string leaf, int baseUnits)
     {
         if (baseUnits < 0 || baseUnits > leaf.Length)
         {
@@ -214,11 +214,11 @@ public sealed class Utf16Metric : IMetric
         return baseUnits;
     }
 
-    public bool IsBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.IsBoundary(leaf, offset);
+    public bool IsBoundary(string leaf, int offset) => Utf16BoundaryHelper.IsBoundary(leaf.AsSpan(), offset);
 
-    public int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.GetPreviousBoundary(leaf, offset);
+    public int? GetPreviousBoundary(string leaf, int offset) => Utf16BoundaryHelper.GetPreviousBoundary(leaf.AsSpan(), offset);
 
-    public int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset) => Utf16BoundaryHelper.GetNextBoundary(leaf, offset);
+    public int? GetNextBoundary(string leaf, int offset) => Utf16BoundaryHelper.GetNextBoundary(leaf.AsSpan(), offset);
 }
 
 internal static class Utf16BoundaryHelper

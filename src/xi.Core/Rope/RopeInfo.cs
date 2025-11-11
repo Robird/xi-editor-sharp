@@ -1,12 +1,13 @@
 using System;
 using System.Runtime.CompilerServices;
+using Xi.Core.Rope.Tree;
 
 namespace Xi.Core.Rope;
 
 /// <summary>
 /// Aggregated metadata stored on each rope node. Mirrors the information gathered in xi-editor's RopeInfo.
 /// </summary>
-public readonly struct RopeInfo
+public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric>
 {
     public int LineCount { get; }
     public int Utf16Length { get; }
@@ -32,11 +33,40 @@ public readonly struct RopeInfo
     }
 
     /// <summary>
+    /// Calculates info for a leaf represented as a string.
+    /// </summary>
+    public static RopeInfo FromLeaf(string leaf)
+    {
+        if (leaf is null)
+        {
+            throw new ArgumentNullException(nameof(leaf));
+        }
+
+        return FromLeaf(leaf.AsSpan());
+    }
+
+    /// <summary>
     /// Returns the aggregate info from two child nodes.
     /// </summary>
-    public RopeInfo Accumulate(in RopeInfo other)
+    public RopeInfo Accumulate(RopeInfo other)
     {
         return new RopeInfo(LineCount + other.LineCount, Utf16Length + other.Utf16Length);
+    }
+
+    /// <inheritdoc />
+    public Interval IntervalForPrefix(int prefixLength)
+    {
+        if (prefixLength < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(prefixLength), prefixLength, "Prefix length must be non-negative.");
+        }
+
+        if (prefixLength > Utf16Length)
+        {
+            prefixLength = Utf16Length;
+        }
+
+        return new Interval(0, prefixLength);
     }
 
     /// <summary>
@@ -73,4 +103,10 @@ public readonly struct RopeInfo
             return baseLength + Utf16Length;
         }
     }
+
+    /// <inheritdoc />
+    static BaseMetric IDefaultMetricProvider<RopeInfo, string, BaseMetric>.DefaultMetric => BaseMetric.Instance;
+
+    /// <inheritdoc />
+    static RopeInfo ITreeNodeInfo<RopeInfo, string>.FromLeaf(string leaf) => FromLeaf(leaf);
 }
