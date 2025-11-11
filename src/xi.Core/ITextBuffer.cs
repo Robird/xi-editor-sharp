@@ -1,0 +1,45 @@
+using System;
+
+namespace Xi.Core;
+
+/// <summary>
+/// Contract for mutable text buffers used by the xi editor core.
+/// Provides common operations needed by both the current placeholder implementation
+/// and the forthcoming rope-based replacement.
+/// </summary>
+public interface ITextBuffer
+{
+    /// <summary>
+    /// Gets the number of UTF-16 code units contained in the buffer.
+    /// </summary>
+    int Length { get; }
+
+    /// <summary>
+    /// Appends the specified text to the buffer.
+    /// </summary>
+    /// <param name="text">The text to append. Null is treated as empty.</param>
+    void Append(string? text);
+
+    /// <summary>
+    /// Appends characters from the provided span.
+    /// </summary>
+    /// <param name="text">The span to append.</param>
+    void Append(ReadOnlySpan<char> text);
+
+    /// <summary>
+    /// Removes all content from the buffer.
+    /// </summary>
+    void Clear();
+
+    /// <summary>
+    /// Returns a string snapshot of the entire buffer contents.
+    /// </summary>
+    string Snapshot();
+
+    /// <summary>
+    /// Returns a string slice of the buffer starting at <paramref name="start"/> with the given <paramref name="length"/>.
+    /// </summary>
+    /// <param name="start">Start offset within the buffer.</param>
+    /// <param name="length">Number of UTF-16 code units to copy.</param>
+    string GetSlice(int start, int length);
+}

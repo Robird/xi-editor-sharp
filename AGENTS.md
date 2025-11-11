@@ -19,14 +19,16 @@
 - 阻塞项：无。
 
 ## 当前关键认知
-- 目前的 C# 骨架提供 `TextBuffer` 占位实现，使用 `StringBuilder` 仅支持线性追加，未来将被 Rope 结构替换。
-- 单元测试（`TextBufferTests`）已验证字符串与 `ReadOnlySpan<char>` 追加语义，可作为后续 Rope 行为的回归基线。
-- Rust 版核心能力集中在 `core-lib` 与 `rope` 模块；移植需优先厘清这些模块的 API 边界、数据结构与性能假设。
+- 目前的 C# 骨架提供 `TextBuffer` 占位实现，使用 `StringBuilder` 仅支持线性追加，需以 Rope 结构替换并确保既有测试可复用。
+- Rust Rope 基于泛型 B-树（`Node<NodeInfo>`），叶节点大小受 `MIN_LEAF=511`/`MAX_LEAF=1024` 控制，内部节点聚合 `lines`、`utf16_size`，为多指标遍历与增量更新提供 O(log n) 性能。
+- Metric 体系（Base/Lines/Utf16）通过单接口实现多坐标系转换，`prev/next` 等操作需跨叶处理断裂；C# 版本需提供等效接口避免重复扫描。
+- Delta/Subset 组合支撑插入、删除与并发协作：`factor()` 拆分插入与删除，`transform_expand`/`synthesize` 负责坐标重映射，是撤销、插件同步的基础能力。
+- C# 迁移须提供写时复制的节点管理（自定义引用计数或复制策略），并评估 `string` vs `char[]`/`ArrayPool<char>` 等叶节点承载方案以控制 GC 压力。
 - JSON-RPC/插件层可以独立于核心存在，因此核心 API 设计需保持嵌入式调用友好，同时预留事件/通知扩展点。
-- 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出了 C# 子系统映射与迁移顺序初稿（见 `docs/architecture/xi-core-structure.md`）。
-- `CoreState` 通过 `EventContext` 串联 `View`、`Editor`、配置与插件，编辑命令在 `Editor::add_delta/commit_delta` 内完成 CRDT 合并；视图更新与插件通知依赖 idle token 合批调度，需要在 .NET 中提供等价机制。
-- 已形成模块级迁移路线图（见 `docs/architecture/module-migration-plan.md`），明确各阶段任务、测试策略与风险缓解措施，为后续实施提供依据。
-- 已起草对外 API 契约（见 `docs/architecture/api-contract.md`），界定首批编辑命令、视图通知与插件交互模型，为实现阶段提供统一接口基线。
+- 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出 C# 子系统映射与迁移顺序初稿（见 `docs/architecture/xi-core-structure.md`）。
+- 已形成模块级迁移路线图（`docs/architecture/module-migration-plan.md`）与对外 API 契约（`docs/architecture/api-contract.md`），作为持续实施的基线。
+- `docs/architecture/rope-delta-notes.md` 汇总 Rope/Delta 迁移要点，为接下来设计与编码提供结构化指导。
+- 已引入 `ITextBuffer` 接口并调整占位实现与测试，为 Rope 替换提供统一契约与校验基线。
 
 （后续将随 Rope 预研、测试导入等任务推进，持续补充新的关键认知。）
 
@@ -51,13 +53,17 @@
 	- 明确核心数据结构（rope、CRDT、撤销/重做栈）的职责、API 边界、依赖关系。
 	- 评估插件/RPC 层的嵌入式 vs. 独立 Host 策略与接口形态。
 	- 当前已输出初稿：`docs/architecture/xi-core-structure.md`，后续需结合更细节的模块调研持续迭代。
+- Rope/Delta 迁移预研已完成初版总结（`docs/architecture/rope-delta-notes.md`）；现阶段聚焦将结论转化为代码骨架与测试基线。
+	- 设计 `ITextBuffer`/Metric 等抽象，准备替换现有 `TextBuffer` 实现。
+	- 明确 Rope 节点与写时复制机制的 C# 实现路径。
+	- 籍由抽象整合，为后续 Delta/Subset 移植奠定基础。
+	- `ITextBuffer` 初版已落地，后续任务可围绕 Rope/Metric 实现展开。
 
 ## 下一步行动（高优先级 Backlog）
-1. 继续梳理 `editor.rs`、`tabs.rs`、`plugins/` 细节，补充架构文档对配置同步、撤销栈、idle 调度策略的序列图，并提炼待移植的抽象接口需求。
-2. 开展 Rope/Delta 移植预研：总结关键数据结构、评估 .NET Span/内存池策略，形成技术备忘录。
-3. 整理可复用的 Rust 测试/trace 资产，规划在 xUnit 中的导入方式。
-4. 根据 API 契约定义，提炼核心 DTO/接口的 C# 原型（例如 `IEditorSession`, `EditorCommand`），为后续实现奠定骨架。
-	- 产出初版接口说明或伪代码，以便下一阶段直接开始编码。
+1. 实现最小 Rope 骨架：`RopeInfo`、`RopeNode`、`TreeBuilder` 基础操作，确保可替代 `TextBuffer` 并通过现有测试。
+2. 拓展 Delta/Subset 相关类型的 C# 原型，验证简单插入/删除与 `factor()`、`summary()` 等关键流程。
+3. 继续梳理 `editor.rs`、`tabs.rs`、`plugins/`，补充架构文档中对撤销栈、配置同步、idle 调度的序列图，并提炼对核心 API 的额外需求。
+4. 整理可复用的 Rust 测试/trace 资产，规划在 xUnit 中的导入策略，为后续功能验证做准备。
 
 ## 未来候选事项（Backlog）
 - 建立对齐原版的黄金测试集（复用参考仓库 traces）。
@@ -80,7 +86,8 @@
 
 ## 技术笔记（随任务更新）
 ### 数据结构
-- TODO：提炼 Rope 节点布局、平衡策略、分裂/合并逻辑。
+- Rope 采用 B-树节点 + 写时复制，叶节点倾向 1KB 左右大小；C# 实现需维护 `lines`、`utf16_size` 聚合信息以支撑多 Metric。
+- 叶节点候选：短期持续使用 `string`，中长期评估 `char[]/ArrayPool<char>` 搭配 `ReadOnlyMemory<char>` 的池化方案。
 - 临时实现：`TextBuffer` 使用 `StringBuilder` 作为占位，便于快速落地测试；后续需以 Rope 替换并保持 API 向后兼容。
 
 ### 并发模型
@@ -102,6 +109,8 @@
 - 2025-11-11：梳理 `xi-editor-core` 架构并输出 C# 子系统划分草案初稿（`docs/architecture/xi-core-structure.md`）。
 - 2025-11-11：制定模块级移植路线图草案（`docs/architecture/module-migration-plan.md`），明确阶段任务、测试策略与风险缓解措施。
 - 2025-11-11：起草 `Xi.Core` 对外 API 契约（`docs/architecture/api-contract.md`），覆盖命令、事件、插件交互与并发约束。
+- 2025-11-11：整理 Rope/Delta 迁移要点并形成备忘录（`docs/architecture/rope-delta-notes.md`），总结数据结构映射与落地计划。
+- 2025-11-11：引入 `ITextBuffer` 接口，更新 `TextBuffer` 实现与测试基线，为 Rope 替换打通契约。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -111,3 +120,5 @@
 - 2025-11-11：进一步解析 `editor.rs`、`tabs.rs`，在架构文档中补充编辑命令、插件消息与 idle 调度流程描述。
 - 2025-11-11：编写模块级迁移路线图草案，梳理阶段任务、完成判据与风险缓解策略。
 - 2025-11-11：整理命令/通知/插件交互契约并形成 `api-contract` 文档，为后续实现统一接口。
+- 2025-11-11：调研 `reference/rust/rope` 与 `rope_science` 文档，沉淀 Rope/Delta 迁移要点并落地备忘文档。
+- 2025-11-11：实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
