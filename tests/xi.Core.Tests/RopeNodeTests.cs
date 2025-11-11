@@ -191,4 +191,30 @@ public class RopeNodeTests
             Assert.False(char.IsHighSurrogate(left[^1]) && char.IsLowSurrogate(right[0]));
         }
     }
+
+    [Fact]
+    public void Insert_WithinLeafUsesLeafOptimization()
+    {
+        var initial = new string('x', RopeNode.MaxLeafSize - 10);
+        var node = RopeNode.FromLeaf(initial);
+
+        var inserted = node.Insert(5, "hello");
+
+        Assert.True(inserted.IsLeaf);
+        Assert.Equal(initial.Insert(5, "hello"), inserted.ToString());
+        Assert.Equal(node.Info.LineCount, inserted.Info.LineCount);
+    }
+
+    [Fact]
+    public void Insert_LeafOverflowFallsBackToTreeBuilder()
+    {
+        var initial = new string('x', RopeNode.MaxLeafSize - 1);
+        var node = RopeNode.FromLeaf(initial);
+
+        var inserted = node.Insert(initial.Length, new string('y', 16));
+
+        Assert.False(inserted.IsLeaf);
+        Assert.Equal(initial + new string('y', 16), inserted.ToString());
+        Assert.True(inserted.TraverseLeaves().All(leaf => leaf.Length <= RopeNode.MaxLeafSize));
+    }
 }

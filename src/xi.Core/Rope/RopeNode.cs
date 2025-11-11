@@ -169,6 +169,11 @@ public sealed class RopeNode
             return this;
         }
 
+        if (TryInsertInSingleLeaf(start, text, out var optimized))
+        {
+            return optimized;
+        }
+
         var (prefix, suffix) = SplitAt(start);
         var builder = new TreeBuilder();
         builder.PushNode(prefix);
@@ -261,6 +266,82 @@ public sealed class RopeNode
         }
 
         return segments;
+    }
+
+    private bool TryInsertInSingleLeaf(int start, string text, out RopeNode result)
+    {
+        if (IsLeaf)
+        {
+            var leafText = _body.Leaf ?? string.Empty;
+
+            if (start < 0 || start > leafText.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start));
+            }
+
+            var newLength = leafText.Length + text.Length;
+            if (newLength > MaxLeafSize)
+            {
+                result = Empty;
+                return false;
+            }
+
+            if (newLength == 0)
+            {
+                result = Empty;
+                return true;
+            }
+
+            var newLeaf = string.Create(newLength, (leafText, start, text), static (span, state) =>
+            {
+                var (source, insertIndex, insertText) = state;
+                source.AsSpan(0, insertIndex).CopyTo(span);
+                var current = insertText.AsSpan();
+                current.CopyTo(span[insertIndex..(insertIndex + current.Length)]);
+                source.AsSpan(insertIndex).CopyTo(span[(insertIndex + current.Length)..]);
+            });
+
+            result = FromLeaf(newLeaf);
+            return true;
+        }
+
+        var children = RequireChildren();
+        var offset = 0;
+
+        for (var i = 0; i < children.Length; i++)
+        {
+            var child = children[i];
+            var childStart = offset;
+            var childEnd = offset + child.Length;
+
+            var isLastChild = i == children.Length - 1;
+            var belongsToChild = start < childEnd || (isLastChild && start == childEnd);
+
+            if (!belongsToChild)
+            {
+                offset = childEnd;
+                continue;
+            }
+
+            var relativeStart = Math.Min(start - childStart, child.Length);
+
+            if (child.TryInsertInSingleLeaf(relativeStart, text, out var newChild))
+            {
+                result = WithChildReplaced(i, newChild);
+                return true;
+            }
+
+            if (relativeStart == child.Length && !isLastChild)
+            {
+                offset = childEnd;
+                continue;
+            }
+
+            break;
+        }
+
+        result = Empty;
+        return false;
     }
 
     public RopeNode CloneWithChildren(IReadOnlyList<RopeNode> newChildren)

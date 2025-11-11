@@ -41,6 +41,7 @@
  - `TreeBuilder` 的 `PushString` 使用 `MaxLeafSize` 切片策略（并避免在 UTF-16 surrogate 边界拆分），保证叶节点大小在目标范围附近（当前为 `MaxLeafSize`），但尚未实现最小叶片合并策略或内部节点重平衡。
  - `TreeBuilder` 拆分长文本时新增换行优先策略，并保留 UTF-16 代理对完整性，为阶段 B 的叶片分裂/合并逻辑提供基础能力。
  - 引入 `LeafSplitter` 统一叶片拆分逻辑，并在 `RopeNode` 增加 `EnsureWritableLeaf`、`SplitLeafByBounds`，为叶片写时复制与容量约束提供可复用 API。
+- `RopeNode.Insert` 在叶片容量允许的情况下直接执行单叶写时复制，减少整棵树重建；超出容量时回退到结构共享路径并保持叶片限制。
  - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
  - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
  - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
@@ -74,10 +75,10 @@
 ## 下一步行动（高优先级 Backlog）
 1. **阶段 A：节点所有权与引用复用**
   - 在现有 `WithChildReplaced` 基础上落地 `RopeNode` 的引用状态检查与调试断言，梳理共享子树的生命周期。
-  - 完成 `CloneWithModifiedChildren`/`EnsureWritableLeaf` 等辅助 API，并为常规插入/删除路径接入。
+  - 继续扩展 `CloneWithModifiedChildren`/`EnsureWritableLeaf` 在删除、替换流程中的应用，确保所有常见编辑操作都能绕开整树重建。
 2. **阶段 B：叶节点写时复制与容量约束**
-  - 实现叶片分裂/合并流程（遵循 `MIN_LEAF`/`MAX_LEAF` 约束），配套 UTF-16 代理对安全切分策略。
-  - 编写跨叶编辑测试，验证结构共享下的长度、行计数、UTF-16 指标。
+  - 实现叶片分裂/合并流程（遵循 `MIN_LEAF`/`MAX_LEAF` 约束），并在插入/删除/替换导致超限时自动拆分，保持父节点结构共享。
+  - 编写跨叶编辑测试和 surrogate 对齐测试，验证结构共享下的长度、行计数、UTF-16 指标。
 3. **阶段 C：内部节点再平衡**
   - 设计并实现借用/合并/分裂操作，在 `Concat`、`CreateInternal`、`TreeBuilder` 中挂接。
   - 构造顺序/随机大规模编辑测试，确保树高度保持在对数级。
@@ -159,6 +160,7 @@
  - 2025-11-11：实现 `RopeNode.CloneWithChildren` 及对应测试，支持内部节点批量替换并保持聚合信息一致。
  - 2025-11-11：更新 `TreeBuilder` 换行优先拆分策略并补充跨叶/代理对测试，为阶段 B 的叶片容量约束奠定基础。
  - 2025-11-11：引入 `LeafSplitter` 与 `RopeNode` 叶节点辅助 API（`EnsureWritableLeaf`、`SplitLeafByBounds`），并补充对应单元测试，支撑阶段 B 的叶片写时复制。
+ - 2025-11-11：为 `RopeNode.Insert` 增加单叶写时复制快速路径，保障在叶片容量允许时避免整树重建，并补充覆盖测试。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -184,3 +186,4 @@
  - 2025-11-11：实现 `RopeNode.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。
  - 2025-11-11：强化 `TreeBuilder` 切片策略，优先在换行处分段并保持 UTF-16 代理对完整，新增相关单元测试。
  - 2025-11-11：实现 `LeafSplitter`、`EnsureWritableLeaf` 与 `SplitLeafByBounds`，补齐叶节点复制/拆分测试，推进阶段 B 的叶片策略。
+ - 2025-11-11：重构 `RopeNode.Insert`，在叶片容量满足条件时直接写时复制单叶并更新聚合信息，超限时回退到结构共享路径。
