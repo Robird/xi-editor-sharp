@@ -2,25 +2,8 @@
 本文档(`./AGENTS.md`)会伴随每个 user 消息注入上下文，是跨会话的外部记忆。完成一个任务、制定或调整计划时务必更新本文件，避免记忆偏差。
 
 ## 项目概览
-- **愿景**：将 `xi-editor-core` 的核心能力移植为高性能、可嵌入的 C#/.NET 9 组件，同时保持与原版的增量文本处理特性和插件生态兼容。
-- **范围**：核心文本引擎、Rope/CRDT 数据结构、撤销/重做、通知/视图同步、可选的 JSON-RPC/插件宿主。
-- **技术栈约束**：.NET 9、C# 12、xUnit；优先依赖 BCL/主流 NuGet 生态，必要时引入 Span/Memory、Pipelines 等高性能 API。
-- **依赖资源**：原仓库 `reference/rust`、`reference/docs`、Rust 测试用例与文档、现有插件示例。
-- **成功标准（初稿）**：
-  1. 核心编辑操作（插入/删除/批量应用 diff）与视图更新语义对齐 Rust 版本。
-  2. 百万字符规模文本编辑保持可接受延迟（常规操作目标 <50ms）。
-  3. 提供清晰的公共 API、示例与测试，支持嵌入式调用与可选 RPC 模式。
-  4. 具备端到端集成测试、性能基准与完善文档。
-
-## 当前状态（持续补充）
-- 阶段：调研 + 工程骨架搭建。
-- 代码：已创建 `Xi.Editor.sln`，包含 `xi.Core` 类库与 `xi.Core.Tests` xUnit 项目，内置占位 `TextBuffer` 与首个烟囱测试。
-- 资产：`reference/` 中保留原始 Rust 源码、文档与插件示例，待持续对照拆解。
-- 阻塞项：无。
 
 ## 当前关键认知
-- 目前工程同时保留 `StringBuilder` 版 `TextBuffer` 与基于 Rope 的 `Rope`；后者已实现写时复制路径，编辑后会调用 `NormalizeLeafMinimum()` 通过局部合并/借用与必要的重建保持叶片容量落在 `[MinLeafSize, MaxLeafSize]`，跨子树的大范围编辑同样能维持约束而无需整棵树重建。
-- Rust Rope 采用泛型 B-树（`Node<NodeInfo>`），叶节点大小受 `MIN_LEAF=511` / `MAX_LEAF=1024` 限制，内部节点聚合 `lines`、`utf16_size` 等指标，为多坐标系遍历和增量更新提供 O(log n) 行为。
 - Metric 体系（Base/Lines/Utf16）通过统一接口支持不同坐标转换；`prev/next` 等操作需跨叶处理断裂，C# 版本必须提供等效能力以避免重复扫描。
 - Delta/Subset 组合支撑插入、删除与并发协作：`factor()` 拆分插入/删除，`transform_expand`/`synthesize` 完成坐标重映射，是撤销与插件同步的基础能力。
 - C# 迁移需实现写时复制的节点管理（引用计数或复制策略），并评估 `string`、`char[]`、`ArrayPool<char>` 等叶节点承载方式以控制 GC 压力。
@@ -33,6 +16,8 @@
 - `Rope` 通过 `InternalsVisibleTo` 暴露 `DebugRoot`，测试层借此在缓冲区级别断言结构不变量，混合编辑序列覆盖默认开启。
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 66 项 Rope/TextBuffer 测试全部通过，新增跨层欠载与 surrogate 场景的诊断回归；在 `NormalizeLeafMinimum()` 引入后所有编辑路径均保持叶片容量约束，为后续 COW 阶段收尾与 Delta 原型验证提供回归基线。
 - 已整理《Rope 移植方法论》（`docs/architecture/rope-porting-methodology.md`）与《Rope 文件级映射与类型翻译计划》（`docs/architecture/rope-port-mapping.md`），确认采用“先契约后实现”的分层移植策略，并建立 Rust→C# 文件映射与翻译范式。
+- 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
+- `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
 
 (小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
 
@@ -179,3 +164,7 @@
 - `Rope` 测试更新为默认断言不变量，并新增混合编辑序列回归用例；当前 `dotnet test` 总数提升至 62 项。
 - 将 `Rope` 暴露的 `DebugRoot` 纳入测试，并新增混合编辑序列回归用例，默认断言不变量。
 - `Rope` 测试引入默认不变量校验与混合编辑序列回归，验证缓冲区层的写时复制行为。
+
+### 2025-11-12
+- `ref-outline/rust/rope` 复制源码已使用脚本化方式统一替换函数体为 `todo!()` 占位，便于后续聚焦类型对齐；新增 `scripts/stub_rust_functions.py` 用于批量化处理。
+- 扩展 `scripts/stub_rust_functions.py` 支持 Markdown 导出与递归路径处理，并首次生成 `docs/reference/rust-skeleton.md` 汇总 Rope 模块骨架。
