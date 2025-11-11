@@ -1,11 +1,11 @@
-using Xi.Core.Rope;
+using Xi.Core.Rope.Tree;
 using Xunit;
 
 namespace Xi.Core.Tests;
 
 public static class RopeTestHelpers
 {
-    public static void AssertInvariants(RopeNode node, bool enforceLeafMinimum = false)
+    public static void AssertInvariants(Node node, bool enforceLeafMinimum = false)
     {
         var issues = node.CollectInvariantIssues(enforceLeafMinimum);
 
@@ -18,5 +18,5 @@ public static class RopeTestHelpers
         Assert.True(issues.Count == 0, $"Invariant violations detected:{Environment.NewLine}{message}");
     }
 
-    public static RopeNode GetRoot(RopeTextBuffer buffer) => buffer.DebugRoot;
+    public static Node GetRoot(Rope.Rope buffer) => buffer.DebugRoot;
 }

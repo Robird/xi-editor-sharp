@@ -1,6 +1,6 @@
 # Rope 写时复制与再平衡实施方案草案
 
-> 目的：在当前 `RopeNode`/`RopeTextBuffer` 已具备的结构共享能力基础上，定义写时复制（COW）与再平衡策略的落地路径，指导后续编码、测试与性能验证。
+> 目的：在当前 `Node`/`Rope` 已具备的结构共享能力基础上，定义写时复制（COW）与再平衡策略的落地路径，指导后续编码、测试与性能验证。
 
 ## 1. 背景与现状
 - `SplitAt`、`Slice`、`Insert`、`Delete` 已重写为走结构共享路径，但仍会在编辑过程中重建大量中间节点。
@@ -36,7 +36,7 @@
 
 | 阶段 | 子任务 | 关键交付物 | 依赖 | 验收标准 |
 | --- | --- | --- | --- | --- |
-| A | **节点所有权与引用管理** | `RopeNodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 |
+| A | **节点所有权与引用管理** | `NodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 |
 | B | **叶节点策略** | `EnsureWritableLeaf`、`SplitLeaf`, `MergeLeaf` 实现 | 阶段 A | 叶节点长度在编辑后保持约束，同步更新 `RopeInfo`，通过跨叶编辑测试。 |
 | C | **内部节点再平衡** | `RebalanceAfterEdit` 框架、借用/合并逻辑 | 阶段 B | 顺序插入/删除 10^5 字符后树高度上限保持在 `ceil(log_{MIN_CHILDREN}(n)) + 1`。 |
 | D | **聚合信息增量更新** | 上行更新函数 `RefreshInfoUpwards` | 阶段 C | 编辑操作仅重新计算沿途节点的 `RopeInfo`，测试验证行/UTF-16 计数无回归。 |
@@ -46,21 +46,21 @@
 ## 5. 关键 API 变更草案
 | 类/方法 | 新增/调整 | 说明 |
 | --- | --- | --- |
-| `RopeNode` | `WithChildReplaced(int index, RopeNode newChild)` | 在 COW 路径中创建共享节点的新实例。 |
-| `RopeNode` | `EnsureWritableLeaf()` | 当叶节点引用计数 > 1 时复制 leaf 内容。 |
-| `RopeNode` | `SplitLeaf(int splitIndex)` | 按不变式分裂叶节点，返回 `(left, right)`。 |
-| `RopeNode` | `BorrowFromLeft/Right(...)` | 从兄弟节点借用子节点，更新 `RopeInfo`。 |
-| `RopeTextBuffer` | `EditCore(...)` | 拆分为调整叶节点、更新父链、触发再平衡三个步骤。 |
+| `Node` | `WithChildReplaced(int index, Node newChild)` | 在 COW 路径中创建共享节点的新实例。 |
+| `Node` | `EnsureWritableLeaf()` | 当叶节点引用计数 > 1 时复制 leaf 内容。 |
+| `Node` | `SplitLeaf(int splitIndex)` | 按不变式分裂叶节点，返回 `(left, right)`。 |
+| `Node` | `BorrowFromLeft/Right(...)` | 从兄弟节点借用子节点，更新 `RopeInfo`。 |
+| `Rope` | `EditCore(...)` | 拆分为调整叶节点、更新父链、触发再平衡三个步骤。 |
 | `TreeBuilder` | `BuildBalanced(IEnumerable<string> chunks)` | 构建满足新不变式的初始树，用于文件加载与测试准备。 |
 
 ## 6. 测试计划
 1. **单元测试**
-   - `RopeNodeTests`
+      - `NodeTests`
      - `InsertMaintainsLeafConstraints`
      - `DeleteTriggersLeafMerge`
      - `BalanceRestoresHeight`
      - `CowPreservesSharedSubtrees`
-   - `RopeTextBufferTests`
+  - `RopeTests`
      - 顺序插入 / 顺序删除 / 随机编辑验证长度与行计数。
      - 与 `StringBuilder` 基线比对，确保结果一致。
 2. **属性测试（可选，FsCheck）**
@@ -88,4 +88,4 @@
 - 性能基线完成后，形成独立报告或补充到 `docs/architecture/rope-performance.md`（待建）。
 
 ---
-> 下一动作：按照阶段 A 启动写时复制辅助 API 的编码，先在 `RopeNode` 引入必要的引用管理骨架并补充最小测试。
+> 下一动作：按照阶段 A 启动写时复制辅助 API 的编码，先在 `Node`引入必要的引用管理骨架并补充最小测试。

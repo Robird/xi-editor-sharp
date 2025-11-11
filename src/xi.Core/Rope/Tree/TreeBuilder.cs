@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xi.Core.Rope;
+namespace Xi.Core.Rope.Tree;
 
 /// <summary>
 /// Incremental builder that assembles rope nodes from strings and spans, mirroring the xi-editor TreeBuilder.
@@ -9,7 +9,7 @@ namespace Xi.Core.Rope;
 /// </summary>
 public sealed class TreeBuilder
 {
-    private readonly List<RopeNode> _pending = new();
+    private readonly List<Node> _pending = new();
     public void PushString(string? text)
     {
         if (string.IsNullOrEmpty(text))
@@ -19,7 +19,7 @@ public sealed class TreeBuilder
 
         foreach (var segment in SplitIntoLeaves(text))
         {
-            AppendNode(RopeNode.FromLeaf(segment));
+            AppendNode(Node.FromLeaf(segment));
         }
     }
 
@@ -33,7 +33,7 @@ public sealed class TreeBuilder
         PushString(new string(span));
     }
 
-    public void PushNode(RopeNode node)
+    public void PushNode(Node node)
     {
         if (node is null)
         {
@@ -48,17 +48,17 @@ public sealed class TreeBuilder
         AppendNode(node);
     }
 
-    public RopeNode Build()
+    public Node Build()
     {
         if (_pending.Count == 0)
         {
-            return RopeNode.Empty;
+            return Node.Empty;
         }
 
         var result = _pending[0];
         for (var i = 1; i < _pending.Count; i++)
         {
-            result = RopeNode.Concat(result, _pending[i]);
+            result = Node.Concat(result, _pending[i]);
         }
 
         return result;
@@ -66,7 +66,7 @@ public sealed class TreeBuilder
 
     public void Reset() => _pending.Clear();
 
-    private void AppendNode(RopeNode node)
+    private void AppendNode(Node node)
     {
         var current = node;
         for (var index = _pending.Count - 1; index >= 0; index--)
@@ -74,7 +74,7 @@ public sealed class TreeBuilder
             var candidate = _pending[index];
             if (candidate.Height == current.Height)
             {
-                current = RopeNode.Concat(candidate, current);
+                current = Node.Concat(candidate, current);
                 _pending.RemoveAt(index);
             }
             else

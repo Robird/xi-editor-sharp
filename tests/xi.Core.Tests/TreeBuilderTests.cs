@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Xi.Core.Rope;
+using Xi.Core.Rope.Tree;
 
 namespace Xi.Core.Tests;
 
@@ -24,7 +24,7 @@ public class TreeBuilderTests
     public void BuildSplitsLongInputIntoMultipleLeaves()
     {
         var builder = new TreeBuilder();
-        var longText = new string('a', RopeNode.MaxLeafSize * 2 + 100);
+        var longText = new string('a', Node.MaxLeafSize * 2 + 100);
         builder.PushString(longText);
 
         var rope = builder.Build();
@@ -50,7 +50,7 @@ public class TreeBuilderTests
     public void SplitPrefersNewlineNearBoundary()
     {
         var builder = new TreeBuilder();
-        var segment = new string('a', RopeNode.MaxLeafSize - 10) + "\n" + new string('b', RopeNode.MaxLeafSize);
+        var segment = new string('a', Node.MaxLeafSize - 10) + "\n" + new string('b', Node.MaxLeafSize);
 
         builder.PushString(segment);
 
@@ -58,7 +58,7 @@ public class TreeBuilderTests
 
         Assert.True(leaves.Length >= 2);
         Assert.EndsWith("\n", leaves[0]);
-        Assert.True(leaves[0].Length <= RopeNode.MaxLeafSize);
+        Assert.True(leaves[0].Length <= Node.MaxLeafSize);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class TreeBuilderTests
     {
         var builder = new TreeBuilder();
         var emoji = char.ConvertFromUtf32(0x1F600);
-        var text = new string('x', RopeNode.MaxLeafSize - 1) + emoji + new string('y', RopeNode.MaxLeafSize);
+        var text = new string('x', Node.MaxLeafSize - 1) + emoji + new string('y', Node.MaxLeafSize);
 
         builder.PushString(text);
 

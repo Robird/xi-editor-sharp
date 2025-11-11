@@ -1,17 +1,17 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Xi.Core.Rope;
+using Xi.Core.Rope.Tree;
 using static Xi.Core.Tests.RopeTestHelpers;
 
 namespace Xi.Core.Tests;
 
-public class RopeNodeTests
+public class NodeTests
 {
     [Fact]
     public void FromLeaf_ComputesMetadata()
     {
-        var node = RopeNode.FromLeaf("hello\nworld");
+        var node = Node.FromLeaf("hello\nworld");
 
         Assert.True(node.IsLeaf);
         Assert.Equal(11, node.Length);
@@ -23,10 +23,10 @@ public class RopeNodeTests
     [Fact]
     public void Concat_AggregatesInfoAndText()
     {
-        var left = RopeNode.FromLeaf("hello");
-        var right = RopeNode.FromLeaf("世界");
+        var left = Node.FromLeaf("hello");
+        var right = Node.FromLeaf("世界");
 
-        var combined = RopeNode.Concat(left, right);
+        var combined = Node.Concat(left, right);
 
         Assert.False(combined.IsLeaf);
         Assert.Equal(left.Length + right.Length, combined.Length);
@@ -38,7 +38,7 @@ public class RopeNodeTests
     [Fact]
     public void Concat_MultipleLeavesPreservesOrder()
     {
-        var result = RopeNode.Concat(RopeNode.Concat(RopeNode.FromLeaf("a"), RopeNode.FromLeaf("b")), RopeNode.FromLeaf("c"));
+        var result = Node.Concat(Node.Concat(Node.FromLeaf("a"), Node.FromLeaf("b")), Node.FromLeaf("c"));
 
         Assert.Equal("abc", result.ToString());
         Assert.Equal(3, result.TraverseLeaves().Count());
@@ -117,7 +117,7 @@ public class RopeNodeTests
         Assert.False(node.IsLeaf);
 
         var originalChild = node.Children[1];
-        var replacement = RopeNode.FromLeaf("xyz\n");
+        var replacement = Node.FromLeaf("xyz\n");
 
         var updated = node.WithChildReplaced(1, replacement);
 
@@ -142,7 +142,7 @@ public class RopeNodeTests
 
         var node = builder.Build();
         var children = node.Children.ToArray();
-        var replacement = RopeNode.FromLeaf("MID");
+        var replacement = Node.FromLeaf("MID");
         children[1] = replacement;
 
         var cloned = node.CloneWithChildren(children);
@@ -159,7 +159,7 @@ public class RopeNodeTests
     [Fact]
     public void CloneWithChildren_ThrowsOnLeafNode()
     {
-        var leaf = RopeNode.FromLeaf("abc");
+        var leaf = Node.FromLeaf("abc");
 
         Assert.Throws<InvalidOperationException>(() => leaf.CloneWithChildren(new[] { leaf }));
     }
@@ -167,7 +167,7 @@ public class RopeNodeTests
     [Fact]
     public void EnsureWritableLeaf_ReturnsNewLeafInstance()
     {
-        var leaf = RopeNode.FromLeaf("hello");
+        var leaf = Node.FromLeaf("hello");
         var cloned = leaf.EnsureWritableLeaf();
 
         Assert.Equal("hello", cloned.ToString());
@@ -179,14 +179,14 @@ public class RopeNodeTests
     [Fact]
     public void SplitLeafByBounds_RespectsMaxSizeAndNewlinePreference()
     {
-        var longText = new string('x', RopeNode.MaxLeafSize - 8) + "\n" + new string('y', RopeNode.MaxLeafSize + 20);
-        var leaf = RopeNode.FromLeaf(longText);
+        var longText = new string('x', Node.MaxLeafSize - 8) + "\n" + new string('y', Node.MaxLeafSize + 20);
+        var leaf = Node.FromLeaf(longText);
 
         var segments = leaf.SplitLeafByBounds();
 
     Assert.True(segments.Count >= 2);
     Assert.EndsWith("\n", segments[0].ToString());
-        Assert.All(segments, segment => Assert.True(segment.Length <= RopeNode.MaxLeafSize));
+        Assert.All(segments, segment => Assert.True(segment.Length <= Node.MaxLeafSize));
     Assert.All(segments, segment => AssertInvariants(segment));
     }
 
@@ -194,8 +194,8 @@ public class RopeNodeTests
     public void SplitLeafByBounds_AvoidsBreakingSurrogatePairs()
     {
         var emoji = char.ConvertFromUtf32(0x1F603);
-        var text = new string('a', RopeNode.MaxLeafSize - 1) + emoji + new string('b', RopeNode.MaxLeafSize);
-        var leaf = RopeNode.FromLeaf(text);
+        var text = new string('a', Node.MaxLeafSize - 1) + emoji + new string('b', Node.MaxLeafSize);
+        var leaf = Node.FromLeaf(text);
 
         var segments = leaf.SplitLeafByBounds();
 
@@ -211,8 +211,8 @@ public class RopeNodeTests
     [Fact]
     public void Insert_WithinLeafUsesLeafOptimization()
     {
-        var initial = new string('x', RopeNode.MaxLeafSize - 10);
-        var node = RopeNode.FromLeaf(initial);
+        var initial = new string('x', Node.MaxLeafSize - 10);
+        var node = Node.FromLeaf(initial);
 
         var inserted = node.Insert(5, "hello");
 
@@ -225,21 +225,21 @@ public class RopeNodeTests
     [Fact]
     public void Insert_LeafOverflowFallsBackToTreeBuilder()
     {
-        var initial = new string('x', RopeNode.MaxLeafSize - 1);
-        var node = RopeNode.FromLeaf(initial);
+        var initial = new string('x', Node.MaxLeafSize - 1);
+        var node = Node.FromLeaf(initial);
 
         var inserted = node.Insert(initial.Length, new string('y', 16));
 
         Assert.False(inserted.IsLeaf);
         Assert.Equal(initial + new string('y', 16), inserted.ToString());
-        Assert.True(inserted.TraverseLeaves().All(leaf => leaf.Length <= RopeNode.MaxLeafSize));
+        Assert.True(inserted.TraverseLeaves().All(leaf => leaf.Length <= Node.MaxLeafSize));
         AssertInvariants(inserted);
     }
 
     [Fact]
     public void Delete_WithinLeafUsesLeafOptimization()
     {
-        var node = RopeNode.FromLeaf("abcdefghij");
+        var node = Node.FromLeaf("abcdefghij");
 
         var deleted = node.Delete(3, 4);
 
@@ -268,7 +268,7 @@ public class RopeNodeTests
     [Fact]
     public void Replace_WithinLeafUsesSingleSegment()
     {
-        var node = RopeNode.FromLeaf("abcdef");
+        var node = Node.FromLeaf("abcdef");
 
         var replaced = node.Replace(2, 2, "XYZ");
 
@@ -281,33 +281,33 @@ public class RopeNodeTests
     [Fact]
     public void Replace_LeafOverflowFallsBackToGeneralPath()
     {
-        var initial = RopeNode.FromLeaf(new string('a', RopeNode.MaxLeafSize));
+        var initial = Node.FromLeaf(new string('a', Node.MaxLeafSize));
         var replacement = new string('b', 32);
 
-        var replaced = initial.Replace(RopeNode.MaxLeafSize - 4, 2, replacement);
+        var replaced = initial.Replace(Node.MaxLeafSize - 4, 2, replacement);
 
         Assert.False(replaced.IsLeaf);
-        var expected = new string('a', RopeNode.MaxLeafSize - 4) + replacement + new string('a', 2);
+        var expected = new string('a', Node.MaxLeafSize - 4) + replacement + new string('a', 2);
         Assert.Equal(expected, replaced.ToString());
-        Assert.All(replaced.TraverseLeaves(), leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
+        Assert.All(replaced.TraverseLeaves(), leaf => Assert.True(leaf.Length <= Node.MaxLeafSize));
         AssertInvariants(replaced);
     }
 
     [Fact]
     public void Insert_LeafOverflowSplitsIntoMultipleSegments()
     {
-        var baseText = new string('a', RopeNode.MaxLeafSize - 2);
+        var baseText = new string('a', Node.MaxLeafSize - 2);
         var insertText = "hello world";
-        var insertIndex = RopeNode.MaxLeafSize / 3;
+        var insertIndex = Node.MaxLeafSize / 3;
 
-        var node = RopeNode.FromLeaf(baseText);
+        var node = Node.FromLeaf(baseText);
         var inserted = node.Insert(insertIndex, insertText);
 
         var leaves = inserted.TraverseLeaves().ToArray();
 
         Assert.Equal(baseText[..insertIndex] + insertText + baseText[insertIndex..], inserted.ToString());
         Assert.True(leaves.Length >= 2);
-        Assert.All(leaves, leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
+        Assert.All(leaves, leaf => Assert.True(leaf.Length <= Node.MaxLeafSize));
         AssertInvariants(inserted);
     }
 
@@ -315,8 +315,8 @@ public class RopeNodeTests
     public void Insert_SplitWithinInternalNodeKeepsSiblingContent()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize - 10));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize - 10));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
 
@@ -326,18 +326,18 @@ public class RopeNodeTests
         var leaves = modified.TraverseLeaves().ToArray();
 
         Assert.True(leaves.Length >= 3);
-        Assert.All(leaves, leaf => Assert.True(leaf.Length <= RopeNode.MaxLeafSize));
-        Assert.EndsWith(new string('b', RopeNode.MaxLeafSize), modified.ToString());
+        Assert.All(leaves, leaf => Assert.True(leaf.Length <= Node.MaxLeafSize));
+        Assert.EndsWith(new string('b', Node.MaxLeafSize), modified.ToString());
         AssertInvariants(modified);
     }
 
     [Fact]
     public void Delete_ShrinkingLeafMergesWithSibling()
     {
-        var initialFirst = RopeNode.MinLeafSize + 200;
+        var initialFirst = Node.MinLeafSize + 200;
         var builder = new TreeBuilder();
         builder.PushString(new string('a', initialFirst));
-        builder.PushString(new string('b', RopeNode.MinLeafSize));
+        builder.PushString(new string('b', Node.MinLeafSize));
 
         var node = builder.Build();
         var deleted = node.Delete(0, initialFirst - 100);
@@ -346,8 +346,8 @@ public class RopeNodeTests
 
         Assert.Single(leaves);
         Assert.True(deleted.IsLeaf);
-        Assert.Equal(100 + RopeNode.MinLeafSize, deleted.Length);
-        Assert.Equal(new string('a', 100) + new string('b', RopeNode.MinLeafSize), deleted.ToString());
+        Assert.Equal(100 + Node.MinLeafSize, deleted.Length);
+        Assert.Equal(new string('a', 100) + new string('b', Node.MinLeafSize), deleted.ToString());
         AssertInvariants(deleted);
     }
 
@@ -355,26 +355,26 @@ public class RopeNodeTests
     public void Delete_ShrinkingLeafDoesNotMergeWhenExceedingMax()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
-        var deleted = node.Delete(0, RopeNode.MaxLeafSize - 74);
+        var deleted = node.Delete(0, Node.MaxLeafSize - 74);
 
         var leaves = deleted.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
-        Assert.Equal(new string('a', 74) + new string('b', RopeNode.MaxLeafSize), deleted.ToString());
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
+        Assert.Equal(new string('a', 74) + new string('b', Node.MaxLeafSize), deleted.ToString());
     }
 
     [Fact]
     public void Replace_ShrinkingLeafMergesWithSibling()
     {
-        var firstLength = RopeNode.MinLeafSize + 200;
+        var firstLength = Node.MinLeafSize + 200;
         var builder = new TreeBuilder();
         builder.PushString(new string('a', firstLength));
-        builder.PushString(new string('b', RopeNode.MinLeafSize));
+        builder.PushString(new string('b', Node.MinLeafSize));
 
         var node = builder.Build();
         var replaced = node.Replace(0, firstLength - 71, new string('x', 10));
@@ -383,7 +383,7 @@ public class RopeNodeTests
 
         Assert.Single(leaves);
         Assert.True(replaced.IsLeaf);
-        var expected = new string('x', 10) + new string('a', 71) + new string('b', RopeNode.MinLeafSize);
+        var expected = new string('x', 10) + new string('a', 71) + new string('b', Node.MinLeafSize);
         Assert.Equal(expected, replaced.ToString());
         AssertInvariants(replaced);
     }
@@ -392,17 +392,17 @@ public class RopeNodeTests
     public void Replace_ShrinkingLeafDoesNotMergeWhenExceedingMax()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
-        var replaced = node.Replace(0, RopeNode.MaxLeafSize - 400, new string('x', 10));
+        var replaced = node.Replace(0, Node.MaxLeafSize - 400, new string('x', 10));
 
         var leaves = replaced.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
-        var expected = new string('x', 10) + new string('a', 400) + new string('b', RopeNode.MaxLeafSize);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
+        var expected = new string('x', 10) + new string('a', 400) + new string('b', Node.MaxLeafSize);
         Assert.Equal(expected, replaced.ToString());
     }
 
@@ -410,18 +410,18 @@ public class RopeNodeTests
     public void Delete_ShrinkingLeafBorrowsFromLeftSibling()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
-        var deleted = node.Delete(RopeNode.MaxLeafSize, RopeNode.MaxLeafSize - 50);
+        var deleted = node.Delete(Node.MaxLeafSize, Node.MaxLeafSize - 50);
 
         var leaves = deleted.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
-        Assert.Equal(RopeNode.MaxLeafSize + 50, leaves.Sum(l => l.Length));
-        Assert.Equal(new string('a', RopeNode.MaxLeafSize) + new string('b', 50), deleted.ToString());
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
+        Assert.Equal(Node.MaxLeafSize + 50, leaves.Sum(l => l.Length));
+        Assert.Equal(new string('a', Node.MaxLeafSize) + new string('b', 50), deleted.ToString());
         AssertInvariants(deleted, enforceLeafMinimum: true);
     }
 
@@ -429,18 +429,18 @@ public class RopeNodeTests
     public void Delete_ShrinkingLeafBorrowsFromRightSibling()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
-        var deleted = node.Delete(50, RopeNode.MaxLeafSize - 50);
+        var deleted = node.Delete(50, Node.MaxLeafSize - 50);
 
         var leaves = deleted.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
-        Assert.Equal(RopeNode.MaxLeafSize + 50, leaves.Sum(l => l.Length));
-        Assert.Equal(new string('a', 50) + new string('b', RopeNode.MaxLeafSize), deleted.ToString());
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
+        Assert.Equal(Node.MaxLeafSize + 50, leaves.Sum(l => l.Length));
+        Assert.Equal(new string('a', 50) + new string('b', Node.MaxLeafSize), deleted.ToString());
         AssertInvariants(deleted, enforceLeafMinimum: true);
     }
 
@@ -448,18 +448,18 @@ public class RopeNodeTests
     public void Replace_ShrinkingLeafBorrowsFromSibling()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
-        var replaced = node.Replace(RopeNode.MaxLeafSize, RopeNode.MaxLeafSize - 60, new string('x', 20));
+        var replaced = node.Replace(Node.MaxLeafSize, Node.MaxLeafSize - 60, new string('x', 20));
 
         var leaves = replaced.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
-        Assert.Equal(RopeNode.MaxLeafSize + 80, leaves.Sum(l => l.Length));
-        var expected = new string('a', RopeNode.MaxLeafSize) + new string('x', 20) + new string('b', 60);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
+        Assert.Equal(Node.MaxLeafSize + 80, leaves.Sum(l => l.Length));
+        var expected = new string('a', Node.MaxLeafSize) + new string('x', 20) + new string('b', 60);
         Assert.Equal(expected, replaced.ToString());
         AssertInvariants(replaced, enforceLeafMinimum: true);
     }
@@ -468,10 +468,10 @@ public class RopeNodeTests
     public void Rebalance_PreservesSurrogatePairs()
     {
         var emoji = char.ConvertFromUtf32(0x1F603);
-        var leftText = new string('a', RopeNode.MaxLeafSize - 3) + emoji;
-        var rightText = emoji + new string('b', RopeNode.MaxLeafSize - 3);
+        var leftText = new string('a', Node.MaxLeafSize - 3) + emoji;
+        var rightText = emoji + new string('b', Node.MaxLeafSize - 3);
 
-        var node = RopeNode.Concat(RopeNode.FromLeaf(leftText), RopeNode.FromLeaf(rightText));
+        var node = Node.Concat(Node.FromLeaf(leftText), Node.FromLeaf(rightText));
 
         var removalLength = rightText.Length - 80;
         var deleted = node.Delete(leftText.Length, removalLength);
@@ -479,7 +479,7 @@ public class RopeNodeTests
         var leaves = deleted.TraverseLeaves().Select(l => l.ToString()).ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, Node.MinLeafSize, Node.MaxLeafSize));
 
         var left = leaves[0];
         var right = leaves[1];
@@ -495,17 +495,17 @@ public class RopeNodeTests
     public void ValidateInvariants_PassesAfterMixedEdits()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
-        builder.PushString(new string('c', RopeNode.MaxLeafSize - 50));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
+        builder.PushString(new string('c', Node.MaxLeafSize - 50));
 
         var node = builder.Build();
         AssertInvariants(node);
 
-    node = node.Insert(RopeNode.MaxLeafSize / 2, new string('x', 200));
+    node = node.Insert(Node.MaxLeafSize / 2, new string('x', 200));
         AssertInvariants(node);
 
-    node = node.Delete(RopeNode.MaxLeafSize - 100, 300);
+    node = node.Delete(Node.MaxLeafSize - 100, 300);
         AssertInvariants(node);
 
         node = node.Replace(node.Length - 120, 60, new string('y', 75));
@@ -519,13 +519,13 @@ public class RopeNodeTests
         var builder = new TreeBuilder();
         for (var i = 0; i < 6; i++)
         {
-            builder.PushString(new string((char)('a' + i), RopeNode.MaxLeafSize));
+            builder.PushString(new string((char)('a' + i), Node.MaxLeafSize));
         }
 
         var node = builder.Build();
         Assert.True(node.Height >= 2);
 
-        node = node.Delete(RopeNode.MaxLeafSize + 128, RopeNode.MaxLeafSize + 400);
+        node = node.Delete(Node.MaxLeafSize + 128, Node.MaxLeafSize + 400);
 
         AssertInvariants(node, enforceLeafMinimum: true);
     }
@@ -538,7 +538,7 @@ public class RopeNodeTests
 
         for (var i = 0; i < 5; i++)
         {
-            var prefix = new string((char)('a' + i), RopeNode.MaxLeafSize - 8);
+            var prefix = new string((char)('a' + i), Node.MaxLeafSize - 8);
             var suffix = new string((char)('f' + i), 12);
             builder.PushString(prefix + emoji + suffix);
         }
@@ -546,9 +546,9 @@ public class RopeNodeTests
         var node = builder.Build();
         Assert.True(node.Height >= 2);
 
-        var replacement = new string('z', RopeNode.MinLeafSize + 64) + emoji;
-        var start = RopeNode.MaxLeafSize - 32;
-        var length = RopeNode.MaxLeafSize + 96;
+        var replacement = new string('z', Node.MinLeafSize + 64) + emoji;
+        var start = Node.MaxLeafSize - 32;
+        var length = Node.MaxLeafSize + 96;
 
         node = node.Replace(start, length, replacement);
 
@@ -569,13 +569,13 @@ public class RopeNodeTests
     [Fact]
     public void CollectInvariantIssues_ReturnsLeafPreviewAndPath()
     {
-        var smallLeft = RopeNode.FromLeaf(new string('a', RopeNode.MinLeafSize - 120));
-        var smallRight = RopeNode.FromLeaf(new string('b', RopeNode.MinLeafSize - 80));
+        var smallLeft = Node.FromLeaf(new string('a', Node.MinLeafSize - 120));
+        var smallRight = Node.FromLeaf(new string('b', Node.MinLeafSize - 80));
 
-        var createInternal = typeof(RopeNode).GetMethod("CreateInternal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var createInternal = typeof(Node).GetMethod("CreateInternal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         Assert.NotNull(createInternal);
 
-        var node = (RopeNode)createInternal!.Invoke(null, new object[] { 1, new[] { smallLeft, smallRight } })!;
+        var node = (Node)createInternal!.Invoke(null, new object[] { 1, new[] { smallLeft, smallRight } })!;
         var issues = node.CollectInvariantIssues(enforceLeafMinimum: true);
 
         Assert.NotEmpty(issues);
@@ -591,8 +591,8 @@ public class RopeNodeTests
     public void CollectInvariantIssues_ReturnsEmptyWhenNodeIsValid()
     {
         var builder = new TreeBuilder();
-        builder.PushString(new string('a', RopeNode.MaxLeafSize));
-        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+        builder.PushString(new string('a', Node.MaxLeafSize));
+        builder.PushString(new string('b', Node.MaxLeafSize));
 
         var node = builder.Build();
         var normalized = node.NormalizeLeafMinimum();

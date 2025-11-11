@@ -49,7 +49,7 @@
 | 里程碑 | 目标快照 | 关键交付 | 验证方式 |
 | ------ | -------- | -------- | -------- |
 | **M0 完成** | 架构梳理、计划对齐 | `AGENTS.md`、结构/模块计划、本文档 | 文档评审 |
-| **M1 进行中** | .NET 骨架 + Rope 最小实现 | `xi.Core` 项目、RopeTextBuffer、基础测试 | `dotnet test` 基线 |
+| **M1 进行中** | .NET 骨架 + Rope 最小实现 | `xi.Core` 项目、`Rope`、基础测试 | `dotnet test` 基线 |
 | **M2** | Rope/Delta 完整语义 | Rope 节点写时复制、Delta/Subset、FsCheck 属性测试、基准脚手架 | 单元+属性测试、Benchmark |
 | **M3** | 编辑命令流水线 | Selection/Movement/Undo 管线、命令 API、golden trace 导入 | 集成测试、回归报告 |
 | **M4** | 视图与增量通知 | LineCache/ViewDiff、Viewport、折叠/软换行处理 | 视图 diff 测试、模拟前端 |

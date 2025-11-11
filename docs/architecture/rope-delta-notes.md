@@ -48,7 +48,7 @@
 ## 3. C# 迁移设计要点
 
 ### 3.1 类型映射建议
-- `RopeNode`（类/struct）：对应 Rust `Node`，内部持有 `RopeNodeBody`（高度、长度、`RopeInfo`、叶或子节点集合）。
+- `Node`（类/struct）：对应 Rust `Node`，内部持有 `NodeBody`（高度、长度、`RopeInfo`、叶或子节点集合）。
 - `RopeInfo`（readonly struct）：
   - `int LineCount`
   - `int Utf16Length`
@@ -56,11 +56,13 @@
 - 叶子候选：
   - 初期使用不可变 `string`（与 Rust `String` 对齐），写时复制时替换整片字符串。
   - 中期考虑 `char[]` + `ArraySegment<char>` 或 `ReadOnlyMemory<char>` 承载，以便 span 化访问和池化。
-- `IRopeMetric<TMetric>` 接口：等价于 Rust `Metric` trait，约束测量、边界判断及前后游标操作。
+- `IMetric` 接口：等价于 Rust `Metric` trait，约束测量、边界判断及前后游标操作（C# 的 `IMetric` 为非泛型接口，接收 `RopeInfo`）。
 - `TreeBuilder`、`RopeCursor` 等单独类型维持与 Rust 相同责任划分。
 
+***REMOVED_DUPLICATE***
+
 ### 3.2 内存与并发策略
-- 使用 `ReferenceCounted<RopeNodeBody>`（可基于 `System.Threading.Interlocked` + 自定义 COW）模拟 ARC 行为。
+- 使用 `ReferenceCounted<NodeBody>`（可基于 `System.Threading.Interlocked` + 自定义 COW）模拟 ARC 行为。
 - 叶子扩容/分裂流程：
   1. 检查写入者是否唯一持有节点；
   2. 若共享则复制叶片；
@@ -77,7 +79,7 @@
 
 ### 3.4 Delta 与 Subset
 - `RopeDelta` 类封装：
-  - `List<DeltaElement>`，元素为 `Copy(int start, int end)` 或 `Insert(RopeNode)`。
+  - `List<DeltaElement>`，元素为 `Copy(int start, int end)` 或 `Insert(Node)`。
   - `int BaseLength`。
 - `DeltaBuilder` 提供 Fluent API（`Replace`, `Delete`, `Build`），与 Rust 语义保持一致。
 - `Subset` 使用压缩区间表（`List<(int start, int end, int count)>`）实现 `transform_expand` 等操作。
@@ -97,7 +99,7 @@
    - 引入 `ITextBuffer` 与 Metric/Delta 基础类型的接口定义。
    - 将现有测试改造为接口基准测试（插入、删除、Span 读取）。
 2. **最小 Rope 骨架**：
-   - 实现 `RopeInfo`、`RopeNode`、`TreeBuilder` 基础操作（构建、拼接、子串）。
+  - 实现 `RopeInfo`、`Node`、`TreeBuilder` 基础操作（构建、拼接、子串）。
    - 替换 `TextBuffer` 底层为单叶 Rope，确保单元测试通过。
 3. **增量操作**：
    - 移植 `Edit`, `Cursor`, `Metric` 系列方法，补充针对空文档、跨叶边界、UTF-16 代理对等边界测试。

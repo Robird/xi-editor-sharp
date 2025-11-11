@@ -5,7 +5,7 @@ namespace Xi.Core.Rope;
 /// <summary>
 /// Metric interface allowing traversal and measurement of rope nodes in different coordinate systems.
 /// </summary>
-public interface IRopeMetric
+public interface IMetric
 {
     /// <summary>
     /// Measures the given node metadata and returns the size in this metric's unit.

@@ -1,14 +1,14 @@
 using System;
-using Xi.Core.Rope;
+using Xi.Core.Rope.Tree;
 using static Xi.Core.Tests.RopeTestHelpers;
 
 namespace Xi.Core.Tests;
 
-public class RopeTextBufferTests
+public class RopeTests
 {
-    private static RopeTextBuffer Create() => new RopeTextBuffer();
+    private static Rope.Rope Create() => new Rope.Rope();
 
-    private static void AssertBufferInvariants(RopeTextBuffer buffer, bool enforceLeafMinimum = false)
+    private static void AssertBufferInvariants(Rope.Rope buffer, bool enforceLeafMinimum = false)
     {
         AssertInvariants(GetRoot(buffer), enforceLeafMinimum);
     }
@@ -66,11 +66,11 @@ public class RopeTextBufferTests
     public void GetSlice_HandlesSegmentsAcrossLeaves()
     {
         var buffer = Create();
-        buffer.Append(new string('a', RopeNode.MaxLeafSize));
+        buffer.Append(new string('a', Node.MaxLeafSize));
         buffer.Append("middle");
-        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+        buffer.Append(new string('b', Node.MaxLeafSize));
 
-        var slice = buffer.GetSlice(RopeNode.MaxLeafSize - 3, 10);
+        var slice = buffer.GetSlice(Node.MaxLeafSize - 3, 10);
 
         Assert.Equal(new string('a', 3) + "middle" + "b", slice);
     AssertBufferInvariants(buffer);
@@ -80,13 +80,13 @@ public class RopeTextBufferTests
     public void Replace_InsertsTextAcrossLeaves()
     {
         var buffer = Create();
-        buffer.Append(new string('a', RopeNode.MaxLeafSize));
-        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+        buffer.Append(new string('a', Node.MaxLeafSize));
+        buffer.Append(new string('b', Node.MaxLeafSize));
 
-        var insertPosition = RopeNode.MaxLeafSize / 2;
+        var insertPosition = Node.MaxLeafSize / 2;
         buffer.Replace(insertPosition, 0, "XYZ");
 
-        var expected = new string('a', insertPosition) + "XYZ" + new string('a', RopeNode.MaxLeafSize - insertPosition) + new string('b', RopeNode.MaxLeafSize);
+        var expected = new string('a', insertPosition) + "XYZ" + new string('a', Node.MaxLeafSize - insertPosition) + new string('b', Node.MaxLeafSize);
         Assert.Equal(expected, buffer.Snapshot());
     AssertBufferInvariants(buffer);
     }
@@ -95,13 +95,13 @@ public class RopeTextBufferTests
     public void Replace_DeletesRangeAcrossLeaves()
     {
         var buffer = Create();
-        buffer.Append(new string('a', RopeNode.MaxLeafSize));
+        buffer.Append(new string('a', Node.MaxLeafSize));
         buffer.Append("middle");
-        buffer.Append(new string('b', RopeNode.MaxLeafSize));
+        buffer.Append(new string('b', Node.MaxLeafSize));
 
-        buffer.Replace(RopeNode.MaxLeafSize - 2, 6, null);
+        buffer.Replace(Node.MaxLeafSize - 2, 6, null);
 
-        var expected = new string('a', RopeNode.MaxLeafSize - 2) + "le" + new string('b', RopeNode.MaxLeafSize);
+        var expected = new string('a', Node.MaxLeafSize - 2) + "le" + new string('b', Node.MaxLeafSize);
         Assert.Equal(expected, buffer.Snapshot());
     AssertBufferInvariants(buffer);
     }
@@ -122,16 +122,16 @@ public class RopeTextBufferTests
     public void SequenceOfEdits_MaintainsInvariants()
     {
         var buffer = Create();
-        buffer.Append(new string('a', RopeNode.MaxLeafSize));
-        buffer.Append(new string('b', RopeNode.MaxLeafSize));
-        buffer.Append(new string('c', RopeNode.MaxLeafSize));
+        buffer.Append(new string('a', Node.MaxLeafSize));
+        buffer.Append(new string('b', Node.MaxLeafSize));
+        buffer.Append(new string('c', Node.MaxLeafSize));
 
     AssertBufferInvariants(buffer);
 
-        buffer.Replace(RopeNode.MaxLeafSize - 10, 20, new string('x', 40));
+        buffer.Replace(Node.MaxLeafSize - 10, 20, new string('x', 40));
     AssertBufferInvariants(buffer);
 
-        buffer.Replace(RopeNode.MaxLeafSize + 100, 150, new string('y', 30));
+        buffer.Replace(Node.MaxLeafSize + 100, 150, new string('y', 30));
     AssertBufferInvariants(buffer);
 
         buffer.Replace(50, 25, "hello world");
@@ -143,7 +143,7 @@ public class RopeTextBufferTests
     var snapshot = buffer.Snapshot();
     Assert.Contains("hello world", snapshot);
     Assert.Contains("zzzz", snapshot);
-    Assert.True(snapshot.Length > RopeNode.MaxLeafSize * 2);
+    Assert.True(snapshot.Length > Node.MaxLeafSize * 2);
     }
 
     [Theory]

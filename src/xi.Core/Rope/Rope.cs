@@ -1,18 +1,19 @@
 using System;
+using Xi.Core.Rope.Tree;
 
 namespace Xi.Core.Rope;
 
 /// <summary>
-/// Rope-backed implementation of <see cref="ITextBuffer"/> built on top of <see cref="RopeNode"/>.
+/// Rope-backed implementation of <see cref="ITextBuffer"/> built on top of <see cref="Node"/>.
 /// Provides the same surface semantics as the placeholder buffer while preparing for advanced rope features.
 /// </summary>
-public sealed class RopeTextBuffer : ITextBuffer
+public sealed class Rope : ITextBuffer
 {
-    private RopeNode _root = RopeNode.Empty;
+    private Node _root = Node.Empty;
 
     public int Length => _root.Length;
 
-    internal RopeNode DebugRoot => _root;
+    internal Node DebugRoot => _root;
 
     public void Append(string? text)
     {
@@ -31,7 +32,7 @@ public sealed class RopeTextBuffer : ITextBuffer
 
     public void Clear()
     {
-        _root = RopeNode.Empty;
+        _root = Node.Empty;
     }
 
     public void Replace(int start, int length, string? text)

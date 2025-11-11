@@ -2,25 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Xi.Core.Rope;
+namespace Xi.Core.Rope.Tree;
 
 /// <summary>
 /// Immutable rope node that mirrors the xi-editor rope tree structure.
 /// Supports leaf and internal nodes, providing aggregation metadata for higher-level operations.
 /// </summary>
-public sealed class RopeNode
+public sealed class Node
 {
     public const int MinLeafSize = 511;
     public const int MaxLeafSize = 1024;
 
-    private readonly RopeNodeBody _body;
+    private readonly NodeBody _body;
 
-    private RopeNode(RopeNodeBody body)
+    private Node(NodeBody body)
     {
         _body = body;
     }
 
-    public static RopeNode Empty { get; } = new RopeNode(new RopeNodeBody(0, 0, RopeInfo.Identity, string.Empty, null));
+    public static Node Empty { get; } = new Node(new NodeBody(0, 0, RopeInfo.Identity, string.Empty, null));
 
     public int Height => _body.Height;
 
@@ -34,11 +34,11 @@ public sealed class RopeNode
 
     public int ChildCount => _body.Children?.Length ?? 0;
 
-    public IReadOnlyList<RopeNode> Children => _body.Children ?? Array.Empty<RopeNode>();
+    public IReadOnlyList<Node> Children => _body.Children ?? Array.Empty<Node>();
 
     public ReadOnlySpan<char> LeafSpan => _body.Leaf is null ? ReadOnlySpan<char>.Empty : _body.Leaf.AsSpan();
 
-    public static RopeNode FromLeaf(string? text)
+    public static Node FromLeaf(string? text)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -47,10 +47,10 @@ public sealed class RopeNode
 
         var span = text.AsSpan();
         var info = RopeInfo.FromLeaf(span);
-        return new RopeNode(new RopeNodeBody(0, span.Length, info, text, null));
+        return new Node(new NodeBody(0, span.Length, info, text, null));
     }
 
-    public static RopeNode Concat(RopeNode left, RopeNode right)
+    public static Node Concat(Node left, Node right)
     {
         if (left is null) throw new ArgumentNullException(nameof(left));
         if (right is null) throw new ArgumentNullException(nameof(right));
@@ -78,7 +78,7 @@ public sealed class RopeNode
         return ConcatRightShorter(left, right);
     }
 
-    public IEnumerable<RopeNode> TraverseLeaves()
+    public IEnumerable<Node> TraverseLeaves()
     {
         if (IsLeaf)
         {
@@ -100,7 +100,7 @@ public sealed class RopeNode
         }
     }
 
-    public RopeNode Slice(int start, int length)
+    public Node Slice(int start, int length)
     {
         if (start < 0)
         {
@@ -152,7 +152,7 @@ public sealed class RopeNode
         return builder.ToString();
     }
 
-    public RopeNode Insert(int start, string text)
+    public Node Insert(int start, string text)
     {
         if (text is null)
         {
@@ -173,7 +173,7 @@ public sealed class RopeNode
         {
             if (splitNodes is not null)
             {
-                return BuildFromSegments(new List<RopeNode>(splitNodes)).NormalizeLeafMinimum();
+                return BuildFromSegments(new List<Node>(splitNodes)).NormalizeLeafMinimum();
             }
 
             return optimized;
@@ -187,7 +187,7 @@ public sealed class RopeNode
         return builder.Build().NormalizeLeafMinimum();
     }
 
-    public RopeNode Delete(int start, int length)
+    public Node Delete(int start, int length)
     {
         if (length == 0)
         {
@@ -212,7 +212,7 @@ public sealed class RopeNode
         var (prefix, remainder) = SplitAt(start);
         var (_, suffix) = remainder.SplitAt(length);
 
-        RopeNode result;
+        Node result;
 
         if (prefix.IsEmpty)
         {
@@ -230,7 +230,7 @@ public sealed class RopeNode
         return result.NormalizeLeafMinimum();
     }
 
-    public RopeNode Replace(int start, int length, string? text)
+    public Node Replace(int start, int length, string? text)
     {
         if (text is null)
         {
@@ -266,7 +266,7 @@ public sealed class RopeNode
         {
             if (splitNodes is not null)
             {
-                return BuildFromSegments(new List<RopeNode>(splitNodes)).NormalizeLeafMinimum();
+                return BuildFromSegments(new List<Node>(splitNodes)).NormalizeLeafMinimum();
             }
 
             return optimized;
@@ -276,7 +276,7 @@ public sealed class RopeNode
         return afterDelete.Insert(start, text).NormalizeLeafMinimum();
     }
 
-    public RopeNode EnsureWritableLeaf()
+    public Node EnsureWritableLeaf()
     {
         if (!IsLeaf)
         {
@@ -300,10 +300,10 @@ public sealed class RopeNode
             return this;
         }
 
-        return new RopeNode(new RopeNodeBody(0, cloneText.Length, _body.Info, cloneText, null));
+        return new Node(new NodeBody(0, cloneText.Length, _body.Info, cloneText, null));
     }
 
-    public IReadOnlyList<RopeNode> SplitLeafByBounds()
+    public IReadOnlyList<Node> SplitLeafByBounds()
     {
         if (!IsLeaf)
         {
@@ -312,7 +312,7 @@ public sealed class RopeNode
 
         if (_body.Leaf is null)
         {
-            return Array.Empty<RopeNode>();
+            return Array.Empty<Node>();
         }
 
         if (_body.Leaf.Length <= MaxLeafSize)
@@ -320,7 +320,7 @@ public sealed class RopeNode
             return new[] { this };
         }
 
-        var segments = new List<RopeNode>();
+        var segments = new List<Node>();
         foreach (var segment in LeafSplitter.Split(_body.Leaf))
         {
             segments.Add(FromLeaf(segment));
@@ -329,7 +329,7 @@ public sealed class RopeNode
         return segments;
     }
 
-    private bool TryInsertInSingleLeaf(int start, string text, out RopeNode result, out IReadOnlyList<RopeNode>? splitNodes)
+    private bool TryInsertInSingleLeaf(int start, string text, out Node result, out IReadOnlyList<Node>? splitNodes)
     {
         splitNodes = null;
 
@@ -422,7 +422,7 @@ public sealed class RopeNode
         return false;
     }
 
-    private bool TryDeleteInSingleSegment(int start, int length, out RopeNode result)
+    private bool TryDeleteInSingleSegment(int start, int length, out Node result)
     {
         if (IsLeaf)
         {
@@ -481,7 +481,7 @@ public sealed class RopeNode
                     }
 
                     var newChildrenCount = children.Length - 1;
-                    var newChildren = new RopeNode[newChildrenCount];
+                    var newChildren = new Node[newChildrenCount];
                     if (i > 0)
                     {
                         Array.Copy(children, 0, newChildren, 0, i);
@@ -508,7 +508,7 @@ public sealed class RopeNode
                     return true;
                 }
 
-                var clone = new RopeNode[children.Length];
+                var clone = new Node[children.Length];
                 Array.Copy(children, clone, children.Length);
                 clone[i] = newChild;
                 result = CloneWithChildren(clone);
@@ -522,7 +522,7 @@ public sealed class RopeNode
         return false;
     }
 
-    private bool TryReplaceInSingleSegment(int start, int length, string text, out RopeNode result, out IReadOnlyList<RopeNode>? splitNodes)
+    private bool TryReplaceInSingleSegment(int start, int length, string text, out Node result, out IReadOnlyList<Node>? splitNodes)
     {
         splitNodes = null;
 
@@ -607,7 +607,7 @@ public sealed class RopeNode
                         return true;
                     }
 
-                    var clone = new RopeNode[children.Length];
+                    var clone = new Node[children.Length];
                     Array.Copy(children, clone, children.Length);
                     clone[i] = newChild;
                     result = CloneWithChildren(clone);
@@ -623,7 +623,7 @@ public sealed class RopeNode
         return false;
     }
 
-    public RopeNode CloneWithChildren(IReadOnlyList<RopeNode> newChildren)
+    public Node CloneWithChildren(IReadOnlyList<Node> newChildren)
     {
         if (newChildren is null)
         {
@@ -643,7 +643,7 @@ public sealed class RopeNode
         var expectedChildHeight = Height - 1;
         var length = 0;
         var info = RopeInfo.Identity;
-        var array = new RopeNode[newChildren.Count];
+        var array = new Node[newChildren.Count];
 
         for (var i = 0; i < newChildren.Count; i++)
         {
@@ -659,7 +659,7 @@ public sealed class RopeNode
             array[i] = child;
         }
 
-        return new RopeNode(new RopeNodeBody(Height, length, info, null, array));
+        return new Node(new NodeBody(Height, length, info, null, array));
     }
 
     public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false)
@@ -679,7 +679,7 @@ public sealed class RopeNode
         }
     }
 
-    public RopeNode NormalizeLeafMinimum()
+    public Node NormalizeLeafMinimum()
     {
         var current = this;
 
@@ -763,7 +763,7 @@ public sealed class RopeNode
         return true;
     }
 
-    private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out RopeNode updated)
+    private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out Node updated)
     {
         updated = this;
 
@@ -772,7 +772,7 @@ public sealed class RopeNode
             return false;
         }
 
-        var nodes = new RopeNode[path.Length + 1];
+        var nodes = new Node[path.Length + 1];
         var indices = new int[path.Length];
         nodes[0] = this;
 
@@ -811,7 +811,7 @@ public sealed class RopeNode
         var parent = nodes[parentDepth];
         var parentChildren = parent.RequireChildren();
         var targetIndex = indices[parentDepth];
-        RopeNode newParent;
+        Node newParent;
 
         if (parent.TryMergeLeafWithSibling(parentChildren, targetIndex, leaf, out var merged))
         {
@@ -832,7 +832,7 @@ public sealed class RopeNode
         {
             var ancestor = nodes[depth];
             var ancestorChildren = ancestor.RequireChildren();
-            var list = new List<RopeNode>(ancestorChildren.Length);
+            var list = new List<Node>(ancestorChildren.Length);
             for (var i = 0; i < ancestorChildren.Length; i++)
             {
                 list.Add(i == indices[depth] ? subtree : ancestorChildren[i]);
@@ -845,7 +845,7 @@ public sealed class RopeNode
         return true;
     }
 
-    private RopeNode ReplaceChildWithSegments(RopeNode[] children, int index, IReadOnlyList<RopeNode> segments)
+    private Node ReplaceChildWithSegments(Node[] children, int index, IReadOnlyList<Node> segments)
     {
         if (segments is null)
         {
@@ -863,7 +863,7 @@ public sealed class RopeNode
             return Empty;
         }
 
-        var newChildren = new RopeNode[newChildCount];
+        var newChildren = new Node[newChildCount];
         if (index > 0)
         {
             Array.Copy(children, 0, newChildren, 0, index);
@@ -882,7 +882,7 @@ public sealed class RopeNode
         return CreateInternal(Height, newChildren);
     }
 
-    public RopeNode WithChildReplaced(int index, RopeNode newChild)
+    public Node WithChildReplaced(int index, Node newChild)
     {
         if (newChild is null)
         {
@@ -906,14 +906,14 @@ public sealed class RopeNode
             return this;
         }
 
-        var clone = new RopeNode[children.Length];
+        var clone = new Node[children.Length];
         Array.Copy(children, clone, children.Length);
         clone[index] = newChild;
 
         return CloneWithChildren(clone);
     }
 
-    public (RopeNode Left, RopeNode Right) SplitAt(int index)
+    public (Node Left, Node Right) SplitAt(int index)
     {
         if (index < 0 || index > Length)
         {
@@ -943,8 +943,8 @@ public sealed class RopeNode
         }
 
         var children = RequireChildren();
-        var leftSegments = new List<RopeNode>();
-        var rightSegments = new List<RopeNode>();
+        var leftSegments = new List<Node>();
+        var rightSegments = new List<Node>();
         var remaining = index;
 
         foreach (var child in children)
@@ -981,7 +981,7 @@ public sealed class RopeNode
         return (leftNode, rightNode);
     }
 
-    private static RopeNode ConcatLeftShorter(RopeNode left, RopeNode right)
+    private static Node ConcatLeftShorter(Node left, Node right)
     {
         var children = right.RequireChildren();
         var firstChild = children[0];
@@ -989,7 +989,7 @@ public sealed class RopeNode
 
         if (merged.Height == right.Height - 1)
         {
-            var newChildren = new RopeNode[children.Length];
+            var newChildren = new Node[children.Length];
             newChildren[0] = merged;
             Array.Copy(children, 1, newChildren, 1, children.Length - 1);
             return CreateInternal(right.Height, newChildren);
@@ -998,7 +998,7 @@ public sealed class RopeNode
         if (merged.Height == right.Height)
         {
             var mergedChildren = merged.RequireChildren();
-            var combined = new RopeNode[mergedChildren.Length + children.Length - 1];
+            var combined = new Node[mergedChildren.Length + children.Length - 1];
             Array.Copy(mergedChildren, 0, combined, 0, mergedChildren.Length);
             Array.Copy(children, 1, combined, mergedChildren.Length, children.Length - 1);
             return CreateInternal(right.Height, combined);
@@ -1007,7 +1007,7 @@ public sealed class RopeNode
         throw new InvalidOperationException("Unexpected height relationship during rope concatenation.");
     }
 
-    private static RopeNode ConcatRightShorter(RopeNode left, RopeNode right)
+    private static Node ConcatRightShorter(Node left, Node right)
     {
         var children = left.RequireChildren();
         var lastIndex = children.Length - 1;
@@ -1016,7 +1016,7 @@ public sealed class RopeNode
 
         if (merged.Height == left.Height - 1)
         {
-            var newChildren = new RopeNode[children.Length];
+            var newChildren = new Node[children.Length];
             Array.Copy(children, 0, newChildren, 0, lastIndex);
             newChildren[lastIndex] = merged;
             return CreateInternal(left.Height, newChildren);
@@ -1025,7 +1025,7 @@ public sealed class RopeNode
         if (merged.Height == left.Height)
         {
             var mergedChildren = merged.RequireChildren();
-            var combined = new RopeNode[children.Length + mergedChildren.Length - 1];
+            var combined = new Node[children.Length + mergedChildren.Length - 1];
             Array.Copy(children, 0, combined, 0, lastIndex);
             Array.Copy(mergedChildren, 0, combined, lastIndex, mergedChildren.Length);
             return CreateInternal(left.Height, combined);
@@ -1034,7 +1034,7 @@ public sealed class RopeNode
         throw new InvalidOperationException("Unexpected height relationship during rope concatenation.");
     }
 
-    private RopeNode[] RequireChildren()
+    private Node[] RequireChildren()
     {
         if (_body.Children is { Length: > 0 } children)
         {
@@ -1044,7 +1044,7 @@ public sealed class RopeNode
         throw new InvalidOperationException("Operation requires an internal node with children.");
     }
 
-    private bool TryMergeLeafWithSibling(RopeNode[] children, int index, RopeNode replacement, out RopeNode result)
+    private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result)
     {
         result = Empty;
 
@@ -1078,7 +1078,7 @@ public sealed class RopeNode
         return false;
     }
 
-    private bool TryRebalanceLeafWithSibling(RopeNode[] children, int index, RopeNode replacement, out RopeNode result)
+    private bool TryRebalanceLeafWithSibling(Node[] children, int index, Node replacement, out Node result)
     {
         result = Empty;
 
@@ -1100,7 +1100,7 @@ public sealed class RopeNode
         return false;
     }
 
-    private bool TryRebalancePair(RopeNode[] children, int firstIndex, int secondIndex, RopeNode first, RopeNode second, out RopeNode result)
+    private bool TryRebalancePair(Node[] children, int firstIndex, int secondIndex, Node first, Node second, out Node result)
     {
         result = Empty;
 
@@ -1120,7 +1120,7 @@ public sealed class RopeNode
             return false;
         }
 
-        var newChildren = new RopeNode[children.Length];
+        var newChildren = new Node[children.Length];
         Array.Copy(children, newChildren, children.Length);
         newChildren[firstIndex] = newFirst;
         newChildren[secondIndex] = newSecond;
@@ -1129,7 +1129,7 @@ public sealed class RopeNode
         return true;
     }
 
-    private static bool TryComputeBalancedLeafSplit(RopeNode first, RopeNode second, out RopeNode newFirst, out RopeNode newSecond)
+    private static bool TryComputeBalancedLeafSplit(Node first, Node second, out Node newFirst, out Node newSecond)
     {
         var firstText = first.ToString();
         var secondText = second.ToString();
@@ -1268,7 +1268,7 @@ public sealed class RopeNode
         return index < left.Length ? left[index] : right[index - left.Length];
     }
 
-    private static void ValidateNode(RopeNode node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path)
+    private static void ValidateNode(Node node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path)
     {
         if (node.IsLeaf)
         {
@@ -1331,7 +1331,7 @@ public sealed class RopeNode
         }
     }
 
-    private static string FormatLeafPreview(RopeNode node)
+    private static string FormatLeafPreview(Node node)
     {
         if (!node.IsLeaf)
         {
@@ -1366,7 +1366,7 @@ public sealed class RopeNode
             .Replace("\"", "\\\"");
     }
 
-    private static string SummarizeChildren(RopeNode[] children)
+    private static string SummarizeChildren(Node[] children)
     {
         if (children.Length == 0)
         {
@@ -1400,9 +1400,9 @@ public sealed class RopeNode
         return builder.ToString();
     }
 
-    private RopeNode BuildMergedNode(RopeNode[] children, int firstIndex, int secondIndex, RopeNode mergedLeaf)
+    private Node BuildMergedNode(Node[] children, int firstIndex, int secondIndex, Node mergedLeaf)
     {
-        var newChildren = new RopeNode[children.Length - 1];
+        var newChildren = new Node[children.Length - 1];
         var dest = 0;
 
         for (var src = 0; src < children.Length; src++)
@@ -1424,7 +1424,7 @@ public sealed class RopeNode
         return newChildren.Length == 1 ? newChildren[0] : CreateInternal(Height, newChildren);
     }
 
-    private static RopeNode MergeLeaves(RopeNode first, RopeNode second)
+    private static Node MergeLeaves(Node first, Node second)
     {
         if (!first.IsLeaf || !second.IsLeaf)
         {
@@ -1444,7 +1444,7 @@ public sealed class RopeNode
         return FromLeaf(mergedText);
     }
 
-    private static RopeNode CreateInternal(int height, IReadOnlyList<RopeNode> children)
+    private static Node CreateInternal(int height, IReadOnlyList<Node> children)
     {
         if (children.Count == 0)
         {
@@ -1454,7 +1454,7 @@ public sealed class RopeNode
         var expectedChildHeight = height - 1;
         var length = 0;
         var info = RopeInfo.Identity;
-        var array = new RopeNode[children.Count];
+        var array = new Node[children.Count];
 
         for (var i = 0; i < children.Count; i++)
         {
@@ -1469,12 +1469,12 @@ public sealed class RopeNode
             info = info.Accumulate(child.Info);
         }
 
-        return new RopeNode(new RopeNodeBody(height, length, info, null, array));
+        return new Node(new NodeBody(height, length, info, null, array));
     }
 
-    private sealed record RopeNodeBody(int Height, int Length, RopeInfo Info, string? Leaf, RopeNode[]? Children);
+    private sealed record NodeBody(int Height, int Length, RopeInfo Info, string? Leaf, Node[]? Children);
 
-    private static RopeNode BuildFromSegments(List<RopeNode> segments)
+    private static Node BuildFromSegments(List<Node> segments)
     {
         if (segments.Count == 0)
         {

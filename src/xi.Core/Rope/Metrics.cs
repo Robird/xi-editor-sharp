@@ -6,7 +6,7 @@ namespace Xi.Core.Rope;
 /// <summary>
 /// Base metric that counts UTF-16 code units; effectively the default coordinate system.
 /// </summary>
-public sealed class BaseMetric : IRopeMetric
+public sealed class BaseMetric : IMetric
 {
     public static BaseMetric Instance { get; } = new();
 
@@ -58,7 +58,7 @@ public sealed class BaseMetric : IRopeMetric
 /// <summary>
 /// Metric counting the number of newline characters encountered.
 /// </summary>
-public sealed class LinesMetric : IRopeMetric
+public sealed class LinesMetric : IMetric
 {
     public static LinesMetric Instance { get; } = new();
 
@@ -164,7 +164,7 @@ public sealed class LinesMetric : IRopeMetric
 /// <summary>
 /// Metric counting UTF-16 code units; primarily used for aligning with front-end APIs.
 /// </summary>
-public sealed class Utf16Metric : IRopeMetric
+public sealed class Utf16Metric : IMetric
 {
     public static Utf16Metric Instance { get; } = new();
 

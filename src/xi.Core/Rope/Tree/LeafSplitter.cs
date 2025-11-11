@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Xi.Core.Rope;
+namespace Xi.Core.Rope.Tree;
 
 internal static class LeafSplitter
 {
@@ -14,7 +14,7 @@ internal static class LeafSplitter
             yield break;
         }
 
-        var max = RopeNode.MaxLeafSize;
+        var max = Node.MaxLeafSize;
         var offset = 0;
         var length = text.Length;
 
