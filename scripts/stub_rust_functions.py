@@ -109,6 +109,9 @@ def _strip_header_comments(text: str) -> str:
 
 
 _FN_NAME_RE = re.compile(r"\bfn\s+([A-Za-z0-9_]+)")
+_CHAR_LITERAL_RE = re.compile(
+    r"'(?:\\(?:[\\'\"nrt0]|x[0-9A-Fa-f]{2}|u\{[0-9A-Fa-f_]{1,6}\})|[^\\'])'"
+)
 
 
 @dataclass
@@ -120,21 +123,8 @@ class _Function:
 
 
 def _has_closing_single_quote(text: str, index: int) -> bool:
-    i = index + 1
-    n = len(text)
-    escaped = False
-    while i < n:
-        ch = text[i]
-        if ch == '\n':
-            return False
-        if escaped:
-            escaped = False
-        elif ch == '\\':
-            escaped = True
-        elif ch == '\'':
-            return True
-        i += 1
-    return False
+    match = _CHAR_LITERAL_RE.match(text, index)
+    return match is not None
 
 
 def _find_attribute_end(text: str, index: int) -> int:
