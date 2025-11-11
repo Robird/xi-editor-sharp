@@ -119,4 +119,35 @@ public class RopeNodeTests
             updated.Info.LineCount);
         Assert.Equal("aaa\nbbbccc", node.ToString());
     }
+
+    [Fact]
+    public void CloneWithChildren_AllowsBulkReplacement()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("left");
+        builder.PushString("middle");
+        builder.PushString("right");
+
+        var node = builder.Build();
+        var children = node.Children.ToArray();
+        var replacement = RopeNode.FromLeaf("MID");
+        children[1] = replacement;
+
+        var cloned = node.CloneWithChildren(children);
+
+        Assert.Equal("leftMIDright", cloned.ToString());
+        Assert.Equal(
+            node.Info.LineCount - node.Children[1].Info.LineCount + replacement.Info.LineCount,
+            cloned.Info.LineCount);
+        Assert.Equal(node.Length - node.Children[1].Length + replacement.Length, cloned.Length);
+        Assert.Equal("leftmiddleright", node.ToString());
+    }
+
+    [Fact]
+    public void CloneWithChildren_ThrowsOnLeafNode()
+    {
+        var leaf = RopeNode.FromLeaf("abc");
+
+        Assert.Throws<InvalidOperationException>(() => leaf.CloneWithChildren(new[] { leaf }));
+    }
 }

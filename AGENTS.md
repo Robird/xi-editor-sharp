@@ -36,6 +36,7 @@
 - 最新一次 `dotnet test` 运行覆盖 35 项 Rope/TextBuffer 测试全部通过，为性能优化与 Delta 原型验证提供回归基线。
  - 发布《Rope 写时复制与再平衡实施方案草案》（`docs/architecture/rope-cow-rebalance-plan.md`），确立叶片/内部节点约束、阶段拆解（A~F）与测试、基准计划，作为后续 Rope 优化的执行蓝图。
  - `RopeNode` 新增 `WithChildReplaced` 帮助方法，并通过单元测试验证聚合信息正确刷新，为阶段 A（节点局部更新与引用复用）提供基础能力。
+ - `RopeNode` 新增 `CloneWithChildren` 支撑批量子节点替换与聚合信息重建，为结构共享下的多子节点编辑奠定基础。
  - `SplitAt` 语义：`SplitAt(index)` 将 rope 在树的路径内拆分为左右两个节点（Left, Right），保留未修改的子树引用，实现结构共享；该操作对 Leaf/内部节点均递归有效，并保持 `RopeInfo` 聚合信息正确。
  - `TreeBuilder` 的 `PushString` 使用 `MaxLeafSize` 切片策略（并避免在 UTF-16 surrogate 边界拆分），保证叶节点大小在目标范围附近（当前为 `MaxLeafSize`），但尚未实现最小叶片合并策略或内部节点重平衡。
  - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
@@ -153,6 +154,7 @@
  - 2025-11-11：更新 `AGENTS.md` 文档，记录 `SplitAt` 行为、结构共享改造与下一步计划（COW/再平衡/Delta/benchmarks）。
  - 2025-11-11：撰写《Rope 写时复制与再平衡实施方案草案》（`docs/architecture/rope-cow-rebalance-plan.md`），明确阶段拆解、API 调整与测试/基准计划。
  - 2025-11-11：在 `RopeNode` 引入 `WithChildReplaced` 帮助方法及单元测试，为写时复制与再平衡实现提供节点局部更新能力。
+ - 2025-11-11：实现 `RopeNode.CloneWithChildren` 及对应测试，支持内部节点批量替换并保持聚合信息一致。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -175,3 +177,4 @@
  - 2025-11-11：设定本次会话阶段目标：产出 Rope 写时复制（COW）与再平衡实施方案草案，并列出对应的代码与测试拆解步骤。
  - 2025-11-11：撰写并提交《Rope 写时复制与再平衡实施方案草案》，梳理阶段拆解与关键 API 变更。
  - 2025-11-11：实现 `RopeNode.WithChildReplaced` 及对应单元测试，启动阶段 A（节点局部更新能力）的编码工作。
+ - 2025-11-11：实现 `RopeNode.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。

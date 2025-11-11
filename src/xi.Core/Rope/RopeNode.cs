@@ -210,6 +210,45 @@ public sealed class RopeNode
         return Concat(prefix, suffix);
     }
 
+    public RopeNode CloneWithChildren(IReadOnlyList<RopeNode> newChildren)
+    {
+        if (newChildren is null)
+        {
+            throw new ArgumentNullException(nameof(newChildren));
+        }
+
+        if (IsLeaf)
+        {
+            throw new InvalidOperationException("Cannot clone children for a leaf node.");
+        }
+
+        if (newChildren.Count == 0)
+        {
+            throw new ArgumentException("Internal node must have at least one child.", nameof(newChildren));
+        }
+
+        var expectedChildHeight = Height - 1;
+        var length = 0;
+        var info = RopeInfo.Identity;
+        var array = new RopeNode[newChildren.Count];
+
+        for (var i = 0; i < newChildren.Count; i++)
+        {
+            var child = newChildren[i] ?? throw new ArgumentNullException(nameof(newChildren), "Child node cannot be null.");
+
+            if (child.Height != expectedChildHeight)
+            {
+                throw new InvalidOperationException($"Child at index {i} has height {child.Height}, expected {expectedChildHeight}.");
+            }
+
+            length = checked(length + child.Length);
+            info = info.Accumulate(child.Info);
+            array[i] = child;
+        }
+
+        return new RopeNode(new RopeNodeBody(Height, length, info, null, array));
+    }
+
     public RopeNode WithChildReplaced(int index, RopeNode newChild)
     {
         if (newChild is null)
@@ -238,7 +277,7 @@ public sealed class RopeNode
         Array.Copy(children, clone, children.Length);
         clone[index] = newChild;
 
-        return CreateInternal(Height, clone);
+        return CloneWithChildren(clone);
     }
 
     public (RopeNode Left, RopeNode Right) SplitAt(int index)
