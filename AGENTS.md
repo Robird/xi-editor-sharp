@@ -30,6 +30,7 @@
 - `docs/architecture/rope-delta-notes.md` 汇总 Rope/Delta 迁移要点，为接下来设计与编码提供结构化指导。
 - 已引入 `ITextBuffer` 接口并调整占位实现与测试，为 Rope 替换提供统一契约与校验基线。
 - 初步落地 `RopeInfo` 与 Metric 抽象（Base/Lines/Utf16），为后续 Rope 节点实现提供依赖类型与测试支撑。
+- 已实现最小 `RopeNode` 与 `TreeBuilder` 骨架，支持多叶节点拼接与基本平衡策略，为 Rope 替换铺路。
 
 （后续将随 Rope 预研、测试导入等任务推进，持续补充新的关键认知。）
 
@@ -60,9 +61,10 @@
 	- 籍由抽象整合，为后续 Delta/Subset 移植奠定基础。
 	- `ITextBuffer` 初版已落地，后续任务可围绕 Rope/Metric 实现展开。
 	- Metric 抽象与首批实现已就绪，可在此基础上构建 `RopeNode` 与 `TreeBuilder`。
+- `RopeNode`/`TreeBuilder` 最小实现完成，下一步需要将其接入 `ITextBuffer` 并扩展编辑操作。
 
 ## 下一步行动（高优先级 Backlog）
-1. 实现最小 Rope 骨架：引入 `RopeNode`、`TreeBuilder` 基础操作，打通 `ITextBuffer` 替换路径并通过现有测试。
+1. 实现 Rope 驱动的 `ITextBuffer` 替代实现，利用 `RopeNode`/`TreeBuilder` 支撑基本插入与清空操作，并复用现有测试验证。
 2. 拓展 Delta/Subset 相关类型的 C# 原型，验证简单插入/删除与 `factor()`、`summary()` 等关键流程。
 3. 继续梳理 `editor.rs`、`tabs.rs`、`plugins/`，补充架构文档中对撤销栈、配置同步、idle 调度的序列图，并提炼对核心 API 的额外需求。
 4. 整理可复用的 Rust 测试/trace 资产，规划在 xUnit 中的导入策略，为后续功能验证做准备。
@@ -114,6 +116,7 @@
 - 2025-11-11：整理 Rope/Delta 迁移要点并形成备忘录（`docs/architecture/rope-delta-notes.md`），总结数据结构映射与落地计划。
 - 2025-11-11：引入 `ITextBuffer` 接口，更新 `TextBuffer` 实现与测试基线，为 Rope 替换打通契约。
 - 2025-11-11：补齐 `RopeInfo` 与 Metric 基础类型及首批单元测试，为 Rope 节点实现提供依赖与验证。
+- 2025-11-11：实现 `RopeNode` 与 `TreeBuilder` 骨架及配套测试，支持多叶节点拼接与叶片拆分策略。
 
 ## 工作日志
 - 2025-11-11：初始化跨会话文档框架，整理目标与初步计划。
@@ -126,3 +129,4 @@
 - 2025-11-11：调研 `reference/rust/rope` 与 `rope_science` 文档，沉淀 Rope/Delta 迁移要点并落地备忘文档。
 - 2025-11-11：实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
 - 2025-11-11：实现 `RopeInfo`、Metric 抽象与对应测试，建立 Rope 迁移所需的基础类型。
+- 2025-11-11：实现 `RopeNode`/`TreeBuilder` 初版与单元测试，验证叶节点拼接、长文本拆分及遍历正确性。
