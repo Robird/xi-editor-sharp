@@ -657,6 +657,17 @@ public sealed class RopeNode
         return new RopeNode(new RopeNodeBody(Height, length, info, null, array));
     }
 
+    public void ValidateInvariants(bool enforceLeafMinimum = false)
+    {
+        var issues = new List<string>();
+        ValidateNode(this, isRoot: true, enforceLeafMinimum, issues);
+
+        if (issues.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, issues));
+        }
+    }
+
     private RopeNode ReplaceChildWithSegments(RopeNode[] children, int index, IReadOnlyList<RopeNode> segments)
     {
         if (segments is null)
@@ -1078,6 +1089,66 @@ public sealed class RopeNode
     private static char GetCombinedChar(string left, string right, int index)
     {
         return index < left.Length ? left[index] : right[index - left.Length];
+    }
+
+    private static void ValidateNode(RopeNode node, bool isRoot, bool enforceLeafMinimum, List<string> issues)
+    {
+        if (node.IsLeaf)
+        {
+            if (node.Length != node.Info.Utf16Length)
+            {
+                issues.Add($"Leaf length mismatch: length={node.Length}, utf16={node.Info.Utf16Length}");
+            }
+
+            if (node.Length > MaxLeafSize)
+            {
+                issues.Add($"Leaf exceeds MaxLeafSize: {node.Length}");
+            }
+
+            if (enforceLeafMinimum && !isRoot && node.Length > 0 && node.Length < MinLeafSize)
+            {
+                issues.Add($"Leaf below MinLeafSize: {node.Length}");
+            }
+
+            return;
+        }
+
+        var children = node.RequireChildren();
+
+        if (children.Length == 0)
+        {
+            issues.Add("Internal node has zero children.");
+            return;
+        }
+
+        var expectedHeight = node.Height - 1;
+        var totalLength = 0;
+        var aggregate = RopeInfo.Identity;
+
+        for (var i = 0; i < children.Length; i++)
+        {
+            var child = children[i];
+
+            if (child.Height != expectedHeight)
+            {
+                issues.Add($"Child height mismatch at index {i}: {child.Height} != {expectedHeight}");
+            }
+
+            ValidateNode(child, isRoot: false, enforceLeafMinimum, issues);
+
+            totalLength = checked(totalLength + child.Length);
+            aggregate = aggregate.Accumulate(child.Info);
+        }
+
+        if (totalLength != node.Length)
+        {
+            issues.Add($"Length aggregate mismatch: expected {node.Length}, actual {totalLength}");
+        }
+
+        if (aggregate.Utf16Length != node.Info.Utf16Length || aggregate.LineCount != node.Info.LineCount)
+        {
+            issues.Add("Info aggregate mismatch.");
+        }
     }
 
     private RopeNode BuildMergedNode(RopeNode[] children, int firstIndex, int secondIndex, RopeNode mergedLeaf)

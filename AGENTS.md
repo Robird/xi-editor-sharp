@@ -49,6 +49,7 @@
 - Delete 场景下当叶片缩小到 `MinLeafSize` 以下时，`RopeNode` 会尝试与左右兄弟合并以保持叶片容量，并通过新增单元测试覆盖该行为。
 - Replace 场景下若叶片在本地替换后低于 `MinLeafSize`，将优先与兄弟合并（仅在不超出 `MaxLeafSize` 时），配套新增测试验证合并与不合并分支。
 - 当合并受 `MaxLeafSize` 限制时，`RopeNode` 会与兄弟节点重新分配字符，保持双方叶片长度介于 `[MinLeafSize, MaxLeafSize]`，同时通过换行优先与 surrogate 友好边界避免拆分错位，并新增对应回归测试。
+- `RopeNode` 新增 `ValidateInvariants` 方法，可在测试中验证聚合信息、叶片容量和高度一致性；支持可选的最小叶片约束检查，便于在不同阶段选择严格程度。
 - 内部节点聚合（`CreateInternal`）仍采用简单的 Child-Height/Length 聚合逻辑，`Concat`/`AppendNode` 等函数依赖高度匹配与局部合并行为，但不会主动执行 B-tree 风格的分裂/合并或再平衡，需要补充以确保长期健康的高度约束与最坏情形下的 O(log n) 行为。
 - 叶片当前以 `string` 存储，这实现简单但在大文本或频繁修改下可能产生大量 GC/内存复制，长期目标是评估并迁移到 `char[]`/`ArrayPool<char>` 或 `ReadOnlyMemory<char>` 以减少分配压力并支持零拷贝切片。
 - `RopeInfo`/Metric 体系（`Base/Lines/Utf16`）已实现并用于聚合 `Line`/`Utf16Length` 等指标；这些指标是 `prev/next`、多坐标系遍历和增量通知的基础，必须在任何写时复制或再平衡流程中保持一致性。
@@ -87,6 +88,7 @@
   - 实现叶片分裂/合并流程（遵循 `MIN_LEAF`/`MAX_LEAF` 约束），并在插入/删除/替换导致超限时自动拆分，保持父节点结构共享。
   - 编写跨叶编辑测试和 surrogate 对齐测试，验证结构共享下的长度、行计数、UTF-16 指标。
   - 扩展已落地的删除/替换场景合并与借用逻辑，覆盖跨父节点引用与多子节点分布，确保各层均能维持叶片容量。
+  - 借助 `ValidateInvariants` 输出的诊断结果，锁定仍存在的最小叶片约束欠缺场景（例如跨层节点、特殊构建路径）。
 3. **阶段 C：内部节点再平衡**
   - 设计并实现借用/合并/分裂操作，在 `Concat`、`CreateInternal`、`TreeBuilder` 中挂接。
   - 构造顺序/随机大规模编辑测试，确保树高度保持在对数级。
@@ -189,4 +191,7 @@
 - 实现删除后叶片合并，以维持 `MinLeafSize` 约束，并补充相应单元测试验证合并与不合并分支。
 - 实现替换后叶片合并，并新增对应的合并/非合并单元测试覆盖。
 - 引入叶片借用（重新分配）逻辑，确保无法合并时仍可满足容量约束，并新增删除/替换/代理对齐测试。
+- 新增 `ValidateInvariants` API 与复合编辑测试，用于校验 Rope 树高度、聚合信息与叶片容量的一致性。
 - 执行 `dotnet test`（60 项 Rope/TextBuffer 测试）确认删除/替换合并与借用逻辑与现有功能兼容。
+- 执行 `dotnet test`（61 项 Rope/TextBuffer 测试）确认新增不变量校验与单元测试通过。
+- RopeNode 单元测试新增 `AssertInvariants` 帮助方法，在核心编辑路径自动验证结构不变量，以提高回归侦测能力。
