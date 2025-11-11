@@ -217,4 +217,31 @@ public class RopeNodeTests
         Assert.Equal(initial + new string('y', 16), inserted.ToString());
         Assert.True(inserted.TraverseLeaves().All(leaf => leaf.Length <= RopeNode.MaxLeafSize));
     }
+
+    [Fact]
+    public void Delete_WithinLeafUsesLeafOptimization()
+    {
+        var node = RopeNode.FromLeaf("abcdefghij");
+
+        var deleted = node.Delete(3, 4);
+
+        Assert.True(deleted.IsLeaf);
+    Assert.Equal("abchij", deleted.ToString());
+        Assert.Equal(node.Info.LineCount, deleted.Info.LineCount);
+    }
+
+    [Fact]
+    public void Delete_RemovesEntireLeafFromInternalNode()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString("hello");
+        builder.PushString("world");
+
+        var node = builder.Build();
+        var deleted = node.Delete(5, 5);
+
+        Assert.Equal("hello", deleted.ToString());
+        Assert.True(deleted.IsLeaf);
+        Assert.True(deleted.TraverseLeaves().Count() == 1);
+    }
 }

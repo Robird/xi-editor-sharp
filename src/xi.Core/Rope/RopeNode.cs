@@ -199,6 +199,11 @@ public sealed class RopeNode
             return Empty;
         }
 
+        if (TryDeleteInSingleSegment(start, length, out var optimized))
+        {
+            return optimized;
+        }
+
         var (prefix, remainder) = SplitAt(start);
         var (_, suffix) = remainder.SplitAt(length);
 
@@ -335,6 +340,93 @@ public sealed class RopeNode
             {
                 offset = childEnd;
                 continue;
+            }
+
+            break;
+        }
+
+        result = Empty;
+        return false;
+    }
+
+    private bool TryDeleteInSingleSegment(int start, int length, out RopeNode result)
+    {
+        if (IsLeaf)
+        {
+            var leafText = _body.Leaf ?? string.Empty;
+            var newLength = leafText.Length - length;
+
+            if (newLength < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length));
+            }
+
+            if (newLength == 0)
+            {
+                result = Empty;
+                return true;
+            }
+
+            var newLeaf = string.Create(newLength, (leafText, start, length), static (span, state) =>
+            {
+                var (source, removeStart, removeLength) = state;
+                var head = source.AsSpan(0, removeStart);
+                head.CopyTo(span);
+                var tail = source.AsSpan(removeStart + removeLength);
+                tail.CopyTo(span[head.Length..]);
+            });
+
+            result = FromLeaf(newLeaf);
+            return true;
+        }
+
+        var children = RequireChildren();
+        var offset = 0;
+
+        for (var i = 0; i < children.Length; i++)
+        {
+            var child = children[i];
+            var childStart = offset;
+            var childEnd = offset + child.Length;
+
+            var coversRange = start >= childStart && start + length <= childEnd;
+            if (!coversRange)
+            {
+                offset = childEnd;
+                continue;
+            }
+
+            var relativeStart = start - childStart;
+            if (child.TryDeleteInSingleSegment(relativeStart, length, out var newChild))
+            {
+                if (newChild.IsEmpty)
+                {
+                    if (children.Length == 1)
+                    {
+                        result = Empty;
+                        return true;
+                    }
+
+                    var newChildrenCount = children.Length - 1;
+                    var newChildren = new RopeNode[newChildrenCount];
+                    if (i > 0)
+                    {
+                        Array.Copy(children, 0, newChildren, 0, i);
+                    }
+                    if (i < children.Length - 1)
+                    {
+                        Array.Copy(children, i + 1, newChildren, i, children.Length - i - 1);
+                    }
+
+                    result = newChildrenCount == 1 ? newChildren[0] : CloneWithChildren(newChildren);
+                    return true;
+                }
+
+                var clone = new RopeNode[children.Length];
+                Array.Copy(children, clone, children.Length);
+                clone[i] = newChild;
+                result = CloneWithChildren(clone);
+                return true;
             }
 
             break;
