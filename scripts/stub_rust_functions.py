@@ -61,6 +61,24 @@ class _Function:
     fn_name: str
 
 
+def _has_closing_single_quote(text: str, index: int) -> bool:
+    i = index + 1
+    n = len(text)
+    escaped = False
+    while i < n:
+        ch = text[i]
+        if ch == '\n':
+            return False
+        if escaped:
+            escaped = False
+        elif ch == '\\':
+            escaped = True
+        elif ch == '\'':
+            return True
+        i += 1
+    return False
+
+
 def _find_next_function(text: str, start: int) -> _Function | None:
     n = len(text)
     i = start
@@ -109,7 +127,7 @@ def _find_next_function(text: str, start: int) -> _Function | None:
             raw_hashes = 0
             i += 1
             continue
-        if ch == '\'':
+        if ch == '\'' and _has_closing_single_quote(text, i):
             in_string = True
             string_delim = '\''
             raw_hashes = 0
@@ -188,7 +206,7 @@ def _parse_function(text: str, fn_index: int) -> _Function | None:
             raw_hashes = 0
             j += 1
             continue
-        if ch == '\'':
+        if ch == '\'' and _has_closing_single_quote(text, j):
             in_string = True
             string_delim = '\''
             raw_hashes = 0
@@ -273,7 +291,7 @@ def _parse_function(text: str, fn_index: int) -> _Function | None:
             raw_hashes = 0
             body_cursor += 1
             continue
-        if ch == '\'':
+        if ch == '\'' and _has_closing_single_quote(text, body_cursor):
             in_string = True
             string_delim = '\''
             raw_hashes = 0
@@ -301,7 +319,7 @@ def _parse_function(text: str, fn_index: int) -> _Function | None:
     return None
 
 
-def _replace_bodies(text: str, builder: Callable[[str, str, str], str]) -> str:
+def _replace_bodies(text: str, builder: Callable[[str, str, str], str]) -> tuple[str, int]:
     functions: list[_Function] = []
     search_index = 0
     while True:
@@ -312,7 +330,7 @@ def _replace_bodies(text: str, builder: Callable[[str, str, str], str]) -> str:
         search_index = fn_info.body_end + 1
 
     if not functions:
-        return text
+        return text, 0
 
     new_text = text
     for fn_info in reversed(functions):
@@ -332,7 +350,7 @@ def _replace_bodies(text: str, builder: Callable[[str, str, str], str]) -> str:
 
         new_text = new_text[: body_start + 1] + stub_body + new_text[body_end:]
 
-    return new_text
+    return new_text, len(functions)
 
 
 def _todo_body(indent: str, body_indent: str, fn_name: str) -> str:
@@ -373,8 +391,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Stub Rust function bodies or export skeleton markdown.')
     parser.add_argument('paths', nargs='+', type=Path, help='Rust source files or directories to process')
     parser.add_argument('--mode', choices=['stub', 'doc'], default='doc', help='Whether to write stubs back to files or emit markdown (default: doc).')
+    parser.add_argument('--verbose', action='store_true', help='Print summary information about processed files.')
     parser.add_argument('--output', type=Path, default=Path('docs/reference/rust-skeleton.md'), help='Markdown output path (doc mode only).')
-    parser.add_argument('--root', type=Path, default='.', help='Base directory for relative paths in markdown (defaults to current working directory).')
+    parser.add_argument('--root', type=Path, default=None, help='Base directory for relative paths in markdown (defaults to current working directory).')
     parser.add_argument('--truncate-output', action='store_true', help='Truncate the output file before appending (doc mode only).')
     args = parser.parse_args()
 
@@ -386,9 +405,11 @@ def main() -> None:
     if args.mode == 'stub':
         for file_path in files:
             original = file_path.read_text(encoding='utf-8')
-            transformed = _replace_bodies(original, _todo_body)
-            if transformed != original:
+            transformed, count = _replace_bodies(original, _todo_body)
+            if count > 0 and transformed != original:
                 file_path.write_text(transformed, encoding='utf-8')
+            if args.verbose:
+                print(f"[stub] {file_path}: {count} functions")
         return
 
     root = (args.root or Path.cwd()).resolve()
@@ -399,13 +420,15 @@ def main() -> None:
     entries: list[tuple[str, str]] = []
     for file_path in files:
         original = file_path.read_text(encoding='utf-8')
-        skeleton = _replace_bodies(original, _doc_body)
+        skeleton, count = _replace_bodies(original, _doc_body)
         try:
             rel_path = file_path.resolve().relative_to(root)
             rel_text = rel_path.as_posix()
         except ValueError:
             rel_text = file_path.resolve().as_posix()
         entries.append((rel_text, skeleton))
+        if args.verbose:
+            print(f"[doc] {file_path}: {count} functions")
 
     _write_markdown(args.output, entries)
 

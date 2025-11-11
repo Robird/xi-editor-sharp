@@ -168,3 +168,4 @@
 ### 2025-11-12
 - `ref-outline/rust/rope` 复制源码已使用脚本化方式统一替换函数体为 `todo!()` 占位，便于后续聚焦类型对齐；新增 `scripts/stub_rust_functions.py` 用于批量化处理。
 - 扩展 `scripts/stub_rust_functions.py` 支持 Markdown 导出与递归路径处理，并首次生成 `docs/reference/rust-skeleton.md` 汇总 Rope 模块骨架。
+- 修复脚本在遇到生命周期标识（如 `impl<'a>`）时误判为字符字面量的问题，现已重新批量 stub Rope 模块并刷新骨架文档，确保 Markdown 输出统一为 `...`。 
