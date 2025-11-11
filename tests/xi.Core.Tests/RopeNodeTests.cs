@@ -339,8 +339,7 @@ public class RopeNodeTests
         var leaves = deleted.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.Equal(74, leaves[0].Length);
-        Assert.Equal(RopeNode.MaxLeafSize, leaves[1].Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
         Assert.Equal(new string('a', 74) + new string('b', RopeNode.MaxLeafSize), deleted.ToString());
     }
 
@@ -376,9 +375,89 @@ public class RopeNodeTests
         var leaves = replaced.TraverseLeaves().ToArray();
 
         Assert.Equal(2, leaves.Length);
-        Assert.Equal(410, leaves[0].Length);
-        Assert.Equal(RopeNode.MaxLeafSize, leaves[1].Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
         var expected = new string('x', 10) + new string('a', 400) + new string('b', RopeNode.MaxLeafSize);
         Assert.Equal(expected, replaced.ToString());
+    }
+
+    [Fact]
+    public void Delete_ShrinkingLeafBorrowsFromLeftSibling()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+        var deleted = node.Delete(RopeNode.MaxLeafSize, RopeNode.MaxLeafSize - 50);
+
+        var leaves = deleted.TraverseLeaves().ToArray();
+
+        Assert.Equal(2, leaves.Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
+        Assert.Equal(RopeNode.MaxLeafSize + 50, leaves.Sum(l => l.Length));
+        Assert.Equal(new string('a', RopeNode.MaxLeafSize) + new string('b', 50), deleted.ToString());
+    }
+
+    [Fact]
+    public void Delete_ShrinkingLeafBorrowsFromRightSibling()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+        var deleted = node.Delete(50, RopeNode.MaxLeafSize - 50);
+
+        var leaves = deleted.TraverseLeaves().ToArray();
+
+        Assert.Equal(2, leaves.Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
+        Assert.Equal(RopeNode.MaxLeafSize + 50, leaves.Sum(l => l.Length));
+        Assert.Equal(new string('a', 50) + new string('b', RopeNode.MaxLeafSize), deleted.ToString());
+    }
+
+    [Fact]
+    public void Replace_ShrinkingLeafBorrowsFromSibling()
+    {
+        var builder = new TreeBuilder();
+        builder.PushString(new string('a', RopeNode.MaxLeafSize));
+        builder.PushString(new string('b', RopeNode.MaxLeafSize));
+
+        var node = builder.Build();
+        var replaced = node.Replace(RopeNode.MaxLeafSize, RopeNode.MaxLeafSize - 60, new string('x', 20));
+
+        var leaves = replaced.TraverseLeaves().ToArray();
+
+        Assert.Equal(2, leaves.Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
+        Assert.Equal(RopeNode.MaxLeafSize + 80, leaves.Sum(l => l.Length));
+        var expected = new string('a', RopeNode.MaxLeafSize) + new string('x', 20) + new string('b', 60);
+        Assert.Equal(expected, replaced.ToString());
+    }
+
+    [Fact]
+    public void Rebalance_PreservesSurrogatePairs()
+    {
+        var emoji = char.ConvertFromUtf32(0x1F603);
+        var leftText = new string('a', RopeNode.MaxLeafSize - 3) + emoji;
+        var rightText = emoji + new string('b', RopeNode.MaxLeafSize - 3);
+
+        var node = RopeNode.Concat(RopeNode.FromLeaf(leftText), RopeNode.FromLeaf(rightText));
+
+        var removalLength = rightText.Length - 80;
+        var deleted = node.Delete(leftText.Length, removalLength);
+
+        var leaves = deleted.TraverseLeaves().Select(l => l.ToString()).ToArray();
+
+        Assert.Equal(2, leaves.Length);
+        Assert.All(leaves, leaf => Assert.InRange(leaf.Length, RopeNode.MinLeafSize, RopeNode.MaxLeafSize));
+
+        var left = leaves[0];
+        var right = leaves[1];
+        Assert.False(char.IsHighSurrogate(left[^1]) && char.IsLowSurrogate(right[0]));
+
+        var expectedTail = rightText[^80..];
+        var expected = leftText + expectedTail;
+        Assert.Equal(expected, deleted.ToString());
     }
 }

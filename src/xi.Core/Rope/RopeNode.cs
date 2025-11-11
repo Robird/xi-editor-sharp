@@ -496,6 +496,13 @@ public sealed class RopeNode
                     return true;
                 }
 
+                if (newChild.IsLeaf && newChild.Length < MinLeafSize &&
+                    TryRebalanceLeafWithSibling(children, i, newChild, out var rebalancedResult))
+                {
+                    result = rebalancedResult;
+                    return true;
+                }
+
                 var clone = new RopeNode[children.Length];
                 Array.Copy(children, clone, children.Length);
                 clone[i] = newChild;
@@ -583,6 +590,14 @@ public sealed class RopeNode
                     if (TryMergeLeafWithSibling(children, i, newChild, out var merged))
                     {
                         result = merged;
+                        splitNodes = null;
+                        return true;
+                    }
+
+                    if (newChild.IsLeaf && newChild.Length < MinLeafSize &&
+                        TryRebalanceLeafWithSibling(children, i, newChild, out var rebalanced))
+                    {
+                        result = rebalanced;
                         splitNodes = null;
                         return true;
                     }
@@ -873,6 +888,196 @@ public sealed class RopeNode
         }
 
         return false;
+    }
+
+    private bool TryRebalanceLeafWithSibling(RopeNode[] children, int index, RopeNode replacement, out RopeNode result)
+    {
+        result = Empty;
+
+        if (!replacement.IsLeaf || replacement.Length >= MinLeafSize || children.Length <= 1)
+        {
+            return false;
+        }
+
+        if (index > 0 && TryRebalancePair(children, index - 1, index, children[index - 1], replacement, out result))
+        {
+            return true;
+        }
+
+        if (index < children.Length - 1 && TryRebalancePair(children, index, index + 1, replacement, children[index + 1], out result))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryRebalancePair(RopeNode[] children, int firstIndex, int secondIndex, RopeNode first, RopeNode second, out RopeNode result)
+    {
+        result = Empty;
+
+        if (!first.IsLeaf || !second.IsLeaf)
+        {
+            return false;
+        }
+
+        var combinedLength = first.Length + second.Length;
+        if (combinedLength <= MaxLeafSize)
+        {
+            return false;
+        }
+
+        if (!TryComputeBalancedLeafSplit(first, second, out var newFirst, out var newSecond))
+        {
+            return false;
+        }
+
+        var newChildren = new RopeNode[children.Length];
+        Array.Copy(children, newChildren, children.Length);
+        newChildren[firstIndex] = newFirst;
+        newChildren[secondIndex] = newSecond;
+
+        result = CloneWithChildren(newChildren);
+        return true;
+    }
+
+    private static bool TryComputeBalancedLeafSplit(RopeNode first, RopeNode second, out RopeNode newFirst, out RopeNode newSecond)
+    {
+        var firstText = first.ToString();
+        var secondText = second.ToString();
+        var totalLength = firstText.Length + secondText.Length;
+
+        var minSplit = Math.Max(MinLeafSize, totalLength - MaxLeafSize);
+        var maxSplit = Math.Min(MaxLeafSize, totalLength - MinLeafSize);
+
+        if (minSplit > maxSplit)
+        {
+            newFirst = first;
+            newSecond = second;
+            return false;
+        }
+
+        var candidate = Math.Clamp(totalLength / 2, minSplit, maxSplit);
+        candidate = PreferNewlineBoundary(firstText, secondText, candidate, minSplit, maxSplit);
+
+        if (!TryEnsureSurrogateBoundary(firstText, secondText, ref candidate, minSplit, maxSplit))
+        {
+            newFirst = first;
+            newSecond = second;
+            return false;
+        }
+
+        var leftSegment = CreateCombinedSegment(firstText, secondText, 0, candidate);
+        var rightSegment = CreateCombinedSegment(firstText, secondText, candidate, totalLength - candidate);
+
+        if (leftSegment.Length < MinLeafSize || rightSegment.Length < MinLeafSize)
+        {
+            newFirst = first;
+            newSecond = second;
+            return false;
+        }
+
+        newFirst = FromLeaf(leftSegment);
+        newSecond = FromLeaf(rightSegment);
+        return true;
+    }
+
+    private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit)
+    {
+        var window = LeafSplitter.NewlinePreferenceWindow;
+        var lowerBound = Math.Max(minSplit, candidate - window);
+
+        for (var split = candidate; split >= lowerBound; split--)
+        {
+            if (split == 0)
+            {
+                break;
+            }
+
+            if (GetCombinedChar(left, right, split - 1) == '\n')
+            {
+                return split;
+            }
+        }
+
+        return candidate;
+    }
+
+    private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit)
+    {
+        var total = left.Length + right.Length;
+
+        if (!IsSafeBoundary(left, right, splitIndex))
+        {
+            if (splitIndex + 1 <= maxSplit && IsSafeBoundary(left, right, splitIndex + 1))
+            {
+                splitIndex += 1;
+            }
+            else if (splitIndex - 1 >= minSplit && IsSafeBoundary(left, right, splitIndex - 1))
+            {
+                splitIndex -= 1;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        if (splitIndex <= 0 || splitIndex >= total)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsSafeBoundary(string left, string right, int index)
+    {
+        if (index <= 0)
+        {
+            return true;
+        }
+
+        var total = left.Length + right.Length;
+        if (index >= total)
+        {
+            return true;
+        }
+
+        var prev = GetCombinedChar(left, right, index - 1);
+        var next = GetCombinedChar(left, right, index);
+        return !(char.IsHighSurrogate(prev) && char.IsLowSurrogate(next));
+    }
+
+    private static string CreateCombinedSegment(string left, string right, int start, int length)
+    {
+        return string.Create(length, (left, right, start), static (span, state) =>
+        {
+            var (first, second, offset) = state;
+            var remaining = span.Length;
+            var writeIndex = 0;
+            var currentOffset = offset;
+
+            if (currentOffset < first.Length)
+            {
+                var take = Math.Min(first.Length - currentOffset, remaining);
+                first.AsSpan(currentOffset, take).CopyTo(span);
+                writeIndex += take;
+                currentOffset += take;
+                remaining -= take;
+            }
+
+            if (remaining > 0)
+            {
+                var secondOffset = currentOffset - first.Length;
+                second.AsSpan(secondOffset, remaining).CopyTo(span[writeIndex..]);
+            }
+        });
+    }
+
+    private static char GetCombinedChar(string left, string right, int index)
+    {
+        return index < left.Length ? left[index] : right[index - left.Length];
     }
 
     private RopeNode BuildMergedNode(RopeNode[] children, int firstIndex, int secondIndex, RopeNode mergedLeaf)
