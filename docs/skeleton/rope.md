@@ -1,4 +1,4 @@
-## ref-outline/rust/rope/src/breaks.rs
+## reference/rust/rope/src/breaks.rs
 
 ```rust
 use crate::interval::Interval;
@@ -119,7 +119,7 @@ impl BreakBuilder {
 }
 ```
 
-## ref-outline/rust/rope/src/compare.rs
+## reference/rust/rope/src/compare.rs
 
 ```rust
 use crate::rope::{BaseMetric, Rope, RopeInfo};
@@ -289,7 +289,7 @@ impl<'a> RopeScanner<'a> {
 }
 ```
 
-## ref-outline/rust/rope/src/delta.rs
+## reference/rust/rope/src/delta.rs
 
 ```rust
 use crate::interval::{Interval, IntervalBounds};
@@ -554,7 +554,7 @@ impl<'a, N: NodeInfo> Iterator for DeletionsIter<'a, N> {
 }
 ```
 
-## ref-outline/rust/rope/src/diff.rs
+## reference/rust/rope/src/diff.rs
 
 ```rust
 use std::borrow::Cow;
@@ -641,7 +641,7 @@ impl DiffBuilder {
 fn make_line_hashes(base: &Rope, min_size: usize) -> HashMap<Cow<str>, usize> {...}
 ```
 
-## ref-outline/rust/rope/src/engine.rs
+## reference/rust/rope/src/engine.rs
 
 ```rust
 use std::borrow::Cow;
@@ -1001,7 +1001,7 @@ impl std::fmt::Debug for Error {
 impl std::error::Error for Error {}
 ```
 
-## ref-outline/rust/rope/src/find.rs
+## reference/rust/rope/src/find.rs
 
 ```rust
 use std::cmp::min;
@@ -1141,7 +1141,7 @@ pub fn is_multiline_regex(regex: &str) -> bool {...}
 fn scan_lowercase(probe: char, s: &str) -> Option<usize> {...}
 ```
 
-## ref-outline/rust/rope/src/interval.rs
+## reference/rust/rope/src/interval.rs
 
 ```rust
 use std::cmp::{max, min};
@@ -1268,7 +1268,7 @@ impl IntervalBounds for RangeFull {
 }
 ```
 
-## ref-outline/rust/rope/src/lib.rs
+## reference/rust/rope/src/lib.rs
 
 ```rust
 #![allow(
@@ -1311,7 +1311,7 @@ pub use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
 pub use crate::tree::{Cursor, Metric};
 ```
 
-## ref-outline/rust/rope/src/multiset.rs
+## reference/rust/rope/src/multiset.rs
 
 ```rust
 use std::cmp;
@@ -1554,7 +1554,7 @@ impl<'a> Mapper<'a> {
 }
 ```
 
-## ref-outline/rust/rope/src/rope.rs
+## reference/rust/rope/src/rope.rs
 
 ```rust
 #![allow(clippy::needless_return)]
@@ -1951,7 +1951,7 @@ impl<'a> Iterator for Lines<'a> {
 }
 ```
 
-## ref-outline/rust/rope/src/serde_impls.rs
+## reference/rust/rope/src/serde_impls.rs
 
 ```rust
 use std::fmt;
@@ -2012,7 +2012,7 @@ impl<'de> Deserialize<'de> for Delta<RopeInfo> {
 }
 ```
 
-## ref-outline/rust/rope/src/spans.rs
+## reference/rust/rope/src/spans.rs
 
 ```rust
 use std::fmt;
@@ -2152,7 +2152,7 @@ impl<'a, T: Clone> Iterator for SpanIter<'a, T> {
 }
 ```
 
-## ref-outline/rust/rope/src/test_helpers.rs
+## reference/rust/rope/src/test_helpers.rs
 
 ```rust
 use crate::delta::{self, Delta};
@@ -2182,7 +2182,7 @@ pub fn debug_subsets(subsets: &[Subset]) {...}
 pub fn parse_delta(s: &str) -> Delta<RopeInfo> {...}
 ```
 
-## ref-outline/rust/rope/src/tree.rs
+## reference/rust/rope/src/tree.rs
 
 ```rust
 use std::cmp::{min, Ordering};

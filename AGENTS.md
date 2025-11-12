@@ -17,6 +17,7 @@
 - `Node` 已提供 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`EnsureWritableLeaf`、`SplitLeafByBounds`、`NormalizeLeafMinimum()` 等结构共享/调节 API；局部编辑完成后会自动修复欠载叶片并保持 `[MinLeafSize, MaxLeafSize]` 约束，内部节点仍依赖简单聚合，后续需要阶段 C/D 的再平衡与增量刷新。
 - 阶段 B（叶片容量与诊断）已收官，当前重点转向阶段 C：需要定义内部节点借用/合并/分裂策略，并评估 `Concat`、`TreeBuilder` 等入口生成失衡树时的调节方案，为保持树高稳定和聚合信息正确性做准备。
 - 已评估结构体 Helper 静态多态方案（见 `docs/architecture/static-polymorphism-assessment.md`），确认可支撑 `Node<TInfo, TLeaf, TLeafOps>` 泛型化，但需留意默认初始化、共享状态与资源注入限制。
+- `Node` 泛型化改造已完成依赖盘点（`docs/architecture/node-generic-refactor-plan.md`），确认落点集中于 `Tree/Node.cs`、`TreeBuilder.cs`、`LeafSplitter.cs`、`Rope.cs` 及测试集，主要风险在叶操作接口扩展与常量迁移。
 - `Node.ValidateInvariants` 可在测试中校验高度、聚合信息与叶片容量，并支持可选的最小叶片严格检查；`RopeTestHelpers.AssertInvariants` 已在单元测试中默认启用该校验。
 - `Rope` 通过 `InternalsVisibleTo` 暴露 `DebugRoot`，测试层借此在缓冲区级别断言结构不变量，混合编辑序列覆盖默认开启。
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 66 项 Rope/TextBuffer 测试全部通过，新增跨层欠载与 surrogate 场景的诊断回归；在 `NormalizeLeafMinimum()` 引入后所有编辑路径均保持叶片容量约束，为后续 COW 阶段收尾与 Delta 原型验证提供回归基线。
@@ -189,3 +190,5 @@
 - 修复 `scripts/stub_rust_functions.py` 在文档模式下处理 `#[cfg(test)]` 区块时误删主体的 bug，现已完整跳过测试模块与带 `#[test]` 标记的函数并保持周围语法结构完整。
 - `scripts/stub_rust_functions.py` 新增文件头注释预处理，可在导出 Markdown 骨架时自动移除许可证等连续注释行，便于聚焦核心结构。
 - 将 `docs/skeleton/xi.Core.Rope.cs` 转换为注释化骨架，保留类型与方法签名并添加功能摘要，供 C# 端快速 Birdview 查阅。
+- 梳理原版 `Node<N>` 的使用场景并更新 `docs/architecture/node-generic-refactor-plan.md`，以 tree/rope/delta/serde 等模块分类指导 C# 泛型化落地。
+- 回顾并强化 `docs/architecture/node-generic-refactor-plan.md`，补充接口能力映射、迁移节奏与风险缓释建议，为泛型 Node 实施提供更细致的执行清单。
