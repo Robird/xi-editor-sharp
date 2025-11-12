@@ -25,6 +25,8 @@
 | M5 | 插件/宿主接口 | `Xi.Core.Plugins`、JSON-RPC Host、示例插件 | M4 |
 | M6 | 性能 & 观察性 & 文档 | Benchmark、Telemetry、使用指南 | M5 |
 
+> 2025-11-13 注：Rust 工作区已精简为 `xi-core`、`xi-core-lib`、`xi-plugin-lib`、`xi-rope`、`xi-rpc`、`xi-trace`、`xi-unicode` 七个核心 crate；`experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 已删除。
+
 ---
 
 ## 2. 模块任务拆解
