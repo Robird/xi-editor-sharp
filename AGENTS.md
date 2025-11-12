@@ -55,11 +55,11 @@
     - `ValidateInvariants` 诊断输出增加节点路径上下文、叶片预览与子节点长度摘要，结合 `CollectInvariantIssues` 可在测试与调试中快速定位问题并输出详细日志。
 
 ## 下一步行动（高优先级 Backlog）
-1. **Rust 基线瘦身（后 MSRV）**
-  - 清理各 crate 中的 Criterion 基准与 `[[bench]]` 声明，移除不再需要的 dev-deps，更新 `run_all_checks` 脚本与文档说明。
-    - 梳理 legacy/ 停靠 crate 的使用文档与映射清单，明确仍需保留的示例/测试资源。
-    - 逐步为 `xi-plugin-lib` 等仍引用 `xi-trace` 的 crate 添加可选特性或 shim，确保核心子集可在无 trace 依赖下编译。
-    - 解决现存 lint/warning（`PluginLoadError` 未读字段、增量 hard-link 提示），评估是否需要提交补丁或在 docs 中注明。
+1. **Rust 基线瘦身后续（后 MSRV）**
+  - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，后续聚焦 residual warning 清理与 trace shim 全覆盖。
+  - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
+  - 逐步为 `xi-plugin-lib` 等仍引用 `xi-trace` 的 crate 添加可选特性或 shim，确保核心子集可在无 trace 依赖下编译。
+  - 解决现存 lint/warning（`PluginLoadError` 未读字段、增量 hard-link 提示），评估是否需要提交补丁或在 docs 中注明。
 2. **叶操作抽象巩固**
   - 已将叶片合并与再平衡所需的字符串处理迁移至 `StringLeafOperations`，并让其实现静态抽象 `ILeafOperations<string>` 接口；继续盘点剩余 string 特化（诊断、快照等），并规划泛型 Helper 最终接口。
   - 盘点 `Node` 中仍直接操作 `string` 的调用点，映射到未来 `ILeafOperations` 所需的接口能力，并同步更新 `node-generic-refactor-plan.md`。
@@ -210,3 +210,4 @@
 - 将 `experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 删除，`rust/Cargo.toml` 仅保留核心 crate 并移除了 `[patch.onig]`；`cargo check --workspace` 现仅剩硬链接与 `PluginLoadError` dead code 告警。
 - 为 `xi-core-lib` 新增 `trace` 可选特性：`xi-trace` 依赖默认启用但可关闭，trace API 统一经 `crate::trace` shim 输出并在禁用时回退为 no-op；`cargo check -p xi-core-lib` 验证通过。
 - 将 `xi-plugin-lib`、`xi-rpc` 接入 `crate::trace` shim 并默认开启可禁用的 `trace` 特性，`rpc/src/parse.rs` 现复用 shim 的 `trace_block`；`cargo check -p xi-rpc` 验证通过，仅保留既有警告。
+- 更新 `xi-editor-ph7/README.md`、`docs/architecture/rust-workspace-slimming.md`、`module-migration-plan.md` 以及 `rust/run_all_checks`，同步记录瘦身后的核心工作区与运行指引。
