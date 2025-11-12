@@ -209,3 +209,4 @@
 - 将 `experimental/lang`、`core-lib`、`rope`、`trace`、`unicode` 的 `benches/` 目录已删除，并用 `cargo check -p xi-rope`、`cargo check -p xi-core-lib` 验证删除后构建稳定。
 - 将 `experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 删除，`rust/Cargo.toml` 仅保留核心 crate 并移除了 `[patch.onig]`；`cargo check --workspace` 现仅剩硬链接与 `PluginLoadError` dead code 告警。
 - 为 `xi-core-lib` 新增 `trace` 可选特性：`xi-trace` 依赖默认启用但可关闭，trace API 统一经 `crate::trace` shim 输出并在禁用时回退为 no-op；`cargo check -p xi-core-lib` 验证通过。
+- 将 `xi-plugin-lib`、`xi-rpc` 接入 `crate::trace` shim 并默认开启可禁用的 `trace` 特性，`rpc/src/parse.rs` 现复用 shim 的 `trace_block`；`cargo check -p xi-rpc` 验证通过，仅保留既有警告。
