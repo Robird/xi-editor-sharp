@@ -38,7 +38,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code 与硬链接告警已清零（新增 `.cargo/config.toml` 禁用增量编译），接下来关注 trace shim 覆盖与 `serde_test` future incompat 评估。
+- **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
@@ -56,7 +56,7 @@
 
 ## 下一步行动（高优先级 Backlog）
 1. **Rust 基线瘦身后续（后 MSRV）**
-  - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖、`serde_test` future incompat 处理与 `.cargo/config` 配置的后续影响监测。
+  - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
   - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
   - 逐步为 `xi-plugin-lib` 等仍引用 `xi-trace` 的 crate 添加可选特性或 shim，确保核心子集可在无 trace 依赖下编译。
 2. **叶操作抽象巩固**
@@ -205,6 +205,7 @@
 ### 2025-11-13
 - Rust 工作区 `rust-version` 已统一至 1.75，`cargo test --workspace` 全量运行通过但仍存在若干警告；开始筹划移除 Criterion 基准与多余 crate，以便为 C# 移植阶段清理依赖面。
 - 清理 `PluginLoadError` dead code 警告并为 `.cargo/config.toml` 关闭增量编译，`cargo check --workspace` 现已 0 warning；记录变更以便未来评估构建时间影响。
+- 将 `serde_test` 升级至 1.0.177，future incompat 报告消失；`cargo test -p xi-rope` 验证通过。
 - 捕获 `cargo check/test --workspace` 基线日志至 `xi-editor-ph7/rust/logs/20251113-*`，并整理《rust-workspace-slimming.md》记录警告现状。
 - 将 `experimental/lang`、`core-lib`、`rope`、`trace`、`unicode` 的 `benches/` 目录已删除，并用 `cargo check -p xi-rope`、`cargo check -p xi-core-lib` 验证删除后构建稳定。
 - 将 `experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 删除，`rust/Cargo.toml` 仅保留核心 crate 并移除了 `[patch.onig]`；`cargo check --workspace` 现仅剩硬链接与 `PluginLoadError` dead code 告警。

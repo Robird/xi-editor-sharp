@@ -33,12 +33,12 @@
 - `tabs::save_trace` 等入口提供禁用态警告，方便在 C# 端尚未接入 tracing 时维持编译通过。
 - Next：评估 `xi-plugin-lib`、`xi-core` 等仍直接引用 `xi-trace` 的路径，复用 shim 以支持进一步裁剪。
 
-Next: 推广 trace shim 覆盖并清理 residual warnings (`serde_test` future incompat).
+Next: 推广 trace shim 覆盖并关注 `.cargo/config` 禁用增量后的构建时长。
 
 ## Warning Cleanup (2025-11-13)
 - `PluginLoadError` 实现 `Display`/`Error`，日志输出改用字符串描述，编译器不再提示未读字段。
 - 新增 `rust/.cargo/config.toml`，设置 `build.incremental = false` 以规避 Windows 环境下的硬链接告警（并记录后续需关注的构建时长影响）。
-- `cargo check --workspace` 现无警告；后续需要单独追踪 `serde_test` future incompat 报告对应的升级方案。
+- `serde_test` 升级至 1.0.177，future incompat 报告消失；`cargo test -p xi-rope` 验证 Rope 序列化回归测试正常。
 
 ## Documentation & Script Updates (2025-11-13)
 - `xi-editor-ph7/README.md` 更新为注明最小 workspace 与 MSRV 1.75，提示已移除插件/示例工程且性能基准需改用 upstream。
