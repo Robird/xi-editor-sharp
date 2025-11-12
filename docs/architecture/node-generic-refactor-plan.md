@@ -82,11 +82,11 @@
 5. **过渡阶段的二义性**：重构过程中测试与业务同时存在旧、新 Node；建议采用别名或 `partial class` 手段，保证在一次合并中完成 API 切换，避免调用点混淆。
 
 ## 5. 建议的迭代路线
-1. **接口准备**：扩展 `ILeafOperations`、`ITreeNodeInfo`，并实现 `StringLeafOperations`；补充单元测试覆盖 Helper 行为。
+1. **接口准备**：扩展 `ILeafOperations`、`ITreeNodeInfo`，并实现 `StringLeafOperations`；补充单元测试覆盖 Helper 行为。（2025-11-12 已完成：`ILeafOperations` 转换为 static abstract 契约，`StringLeafOperations` 以结构体形态实现并新增 81 项测试基线）
   - 明确静态抽象成员（`MinLeafSize/MaxLeafSize`, `Create`, `Empty`）与实例方法职责；
   - 为 `StringLeafOperations` 提供零拷贝实现（复用 `string.Create`, `ReadOnlySpan<char>`）；
   - 在 `RopeInfo`、`LinesMetric` 等结构上增加针对新接口的回归测试。
-2. **引入泛型 Node 内核**：在不移除旧 `Node` 的情况下新增 `Node<TInfo,TLeaf,TLeafOps>` 或 `NodeCore`；
+2. **引入泛型 Node 内核**：在不移除旧 `Node` 的情况下新增 `Node<TInfo,TLeaf,TLeafOps>` 或 `NodeCore`；（2025-11-12 首版骨架已落地于 `Tree/Node.Generic.cs`，提供叶节点/内部节点构造与遍历，并通过 `GenericNodeSmokeTests` 验证基本聚合能力）
   - 通过 `partial`/包装类保留现有 `Node` API，底层调用泛型实现；
   - 为写时复制路径 (`EnsureWritableLeaf`、`SplitLeafByBounds`) 衔接新接口，锁定性能回退风险。
 3. **迁移构建器与拆分器**：

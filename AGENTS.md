@@ -6,8 +6,8 @@
 - 不要使用'insert_edit_into_file'工具，经常产生难以补救的错误结果。
 
 ## 项目概览
-- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 78 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`，确保 Leaf Helper 抽象的回归基线稳定。
-- `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 78 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
+- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 81 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations` 及泛型 Node 验证，确保 Leaf Helper 抽象的回归基线稳定。
+- `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 81 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
 - `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
 - Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
@@ -94,7 +94,7 @@
 - 评估协同编辑/CRDT 功能的技术路线，明确所需的 Delta/Subset 扩展与一致性测试。
 
 ## 摘要Agent提示
-- 下次执行摘要时请突出：`StringLeafOperations` 已抽离叶片编辑/合并/再平衡逻辑，并配套 78 项测试基线，为泛型 `Node` 铺设叶操作 Helper。
+- 下次执行摘要时请突出：`StringLeafOperations` 已抽离叶片编辑/合并/再平衡逻辑，并配套 81 项测试基线，为泛型 `Node` 铺设叶操作 Helper；泛型节点骨架已建立并通过基础单元测试。
 - 概述紧邻的短期计划（叶操作抽象巩固、泛型 Node 内核试验、阶段 C 再平衡设计），以便快速恢复上下文。
 - 若摘要篇幅受限，优先保留关键认知列表中新添加的 Helper 与测试信息，其次是“下一步行动”前两项的执行要点。
 
@@ -193,4 +193,5 @@
 - 梳理原版 `Node<N>` 的使用场景并更新 `docs/architecture/node-generic-refactor-plan.md`，以 tree/rope/delta/serde 等模块分类指导 C# 泛型化落地。
 - 回顾并强化 `docs/architecture/node-generic-refactor-plan.md`，补充接口能力映射、迁移节奏与风险缓释建议，为泛型 Node 实施提供更细致的执行清单。
 - 提取字符串叶片操作至 `StringLeafOperations`，并调整 `Node` 及 `LeafSplitter` 复用公共 Helper，同时补充单元测试验证插入/删除/替换等基础行为。
-- 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 78 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。
+- 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 81 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。
+- 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架，实现叶节点/内部节点构造与遍历能力，并补充 `GenericNodeSmokeTests` 验证长度与聚合信息；现有字符串特化实现未受影响，可作为后续迁移的对照基准。
