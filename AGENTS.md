@@ -204,3 +204,5 @@
 
 ### 2025-11-13
 - Rust 工作区 `rust-version` 已统一至 1.75，`cargo test --workspace` 全量运行通过但仍存在若干警告；开始筹划移除 Criterion 基准与多余 crate，以便为 C# 移植阶段清理依赖面。
+- 捕获 `cargo check/test --workspace` 基线日志至 `xi-editor-ph7/rust/logs/20251113-*`，并整理《rust-workspace-slimming.md》记录警告现状。
+- 将 `experimental/lang`、`core-lib`、`rope`、`trace`、`unicode` 的 `benches/` 目录改名为 `benches.parked/`，并用 `cargo check -p xi-rope`、`cargo check -p xi-core-lib` 验证改名后构建稳定。
