@@ -28,4 +28,9 @@
 - 移除未再使用的 `[patch.onig]` 覆盖；`cargo check --workspace` 现无该 warning，仍剩增量硬链接与 `PluginLoadError` dead code 告警。
 - Next：整理 legacy crate 中的 bench/dev-deps 说明，并在迁移文档中挂接 legacy 对应关系。
 
-Next: remove Criterion/dev-deps from parked crates, retire the unused `[patch.onig]`, and capture the trimmed crate list in the migration plan.
+## Trace Feature Shim
+- `xi-core-lib` 增设 `trace` 可选特性并默认启用；依赖于 `xi-trace` 的 API 均改由 `crate::trace` 模块输出，在禁用特性时回退为 no-op stub。
+- `tabs::save_trace` 等入口提供禁用态警告，方便在 C# 端尚未接入 tracing 时维持编译通过。
+- Next：评估 `xi-plugin-lib`、`xi-core` 等仍直接引用 `xi-trace` 的路径，复用 shim 以支持进一步裁剪。
+
+Next: 继续完善 legacy 目录说明，推广 trace shim 覆盖并清理 residual warnings（`PluginLoadError`、hard-link fallback）。

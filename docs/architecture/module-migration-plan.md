@@ -101,6 +101,7 @@
 - **子任务**：
   - 选取日志框架（`Microsoft.Extensions.Logging`?）并接入关键路径。
   - 设计可配置的 idle 调度器、任务队列。
+  - 将 Rust 端 `xi-trace` 依赖抽象为可选 shim，便于 C# 侧以 no-op 或替代实现落地。
   - 集成性能计数与 tracing（可选 EventSource）。
 - **测试**：
   - 负载场景下的调度稳定性测试。
