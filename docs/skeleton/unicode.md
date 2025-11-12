@@ -1,4 +1,4 @@
-## ref-outline/rust/unicode/src/emoji.rs
+## xi-editor-ph7/rust/unicode/src/emoji.rs
 
 ```rust
 #[rustfmt::skip]
@@ -8,7 +8,7 @@ pub const EMOJI_TABLE: [char; 1250] = [...];
 pub const EMOJI_MODIFIER_BASE_TABLE: [char; 106] = [...];
 ```
 
-## ref-outline/rust/unicode/src/lib.rs
+## xi-editor-ph7/rust/unicode/src/lib.rs
 
 ```rust
 #![no_std]
@@ -132,7 +132,7 @@ impl EmojiExt for char {
 pub fn is_keycap_base(c: char) -> bool {...}
 ```
 
-## ref-outline/rust/unicode/src/tables.rs
+## xi-editor-ph7/rust/unicode/src/tables.rs
 
 ```rust
 #[rustfmt::skip]

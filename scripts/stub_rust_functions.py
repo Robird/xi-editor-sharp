@@ -744,8 +744,8 @@ def main() -> None:
     parser.add_argument('paths', nargs='+', type=Path, help='Rust source files or directories to process')
     parser.add_argument('--mode', choices=['stub', 'doc'], default='doc', help='Whether to write stubs back to files or emit markdown (default: doc).')
     parser.add_argument('--verbose', action='store_true', help='Print summary information about processed files.')
-    parser.add_argument('--output', type=Path, default=Path('docs/reference/rust-skeleton.md'), help='Markdown output path (doc mode only).')
-    parser.add_argument('--root', type=Path, default=None, help='Base directory for relative paths in markdown (defaults to current working directory).')
+    parser.add_argument('--output', type=Path, default=Path('docs/skeleton/rust-skeleton.md'), help='Markdown output path (doc mode only).')
+    parser.add_argument('--root', type=Path, default=Path('.'), help='Base directory for relative paths in markdown (defaults to current working directory).')
     parser.add_argument('--truncate-output', action='store_true', help='Truncate the output file before appending (doc mode only).')
     args = parser.parse_args()
 

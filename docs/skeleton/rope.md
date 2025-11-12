@@ -1,4 +1,14 @@
-## reference/rust/rope/src/breaks.rs
+## xi-editor-ph7/rust/rope/examples/ropetoy.rs
+
+```rust
+extern crate xi_rope;
+
+use xi_rope::Rope;
+
+fn main() {...}
+```
+
+## xi-editor-ph7/rust/rope/src/breaks.rs
 
 ```rust
 use crate::interval::Interval;
@@ -119,7 +129,7 @@ impl BreakBuilder {
 }
 ```
 
-## reference/rust/rope/src/compare.rs
+## xi-editor-ph7/rust/rope/src/compare.rs
 
 ```rust
 use crate::rope::{BaseMetric, Rope, RopeInfo};
@@ -289,7 +299,7 @@ impl<'a> RopeScanner<'a> {
 }
 ```
 
-## reference/rust/rope/src/delta.rs
+## xi-editor-ph7/rust/rope/src/delta.rs
 
 ```rust
 use crate::interval::{Interval, IntervalBounds};
@@ -416,10 +426,10 @@ impl<N: NodeInfo> Delta<N> {
     pub fn inserts_len(&self) -> usize {...}
 
     /// Iterates over all the inserts of the delta.
-    pub fn iter_inserts(&self) -> InsertsIter<N> {...}
+    pub fn iter_inserts(&self) -> InsertsIter<'_, N> {...}
 
     /// Iterates over all the deletions of the delta.
-    pub fn iter_deletions(&self) -> DeletionsIter<N> {...}
+    pub fn iter_deletions(&self) -> DeletionsIter<'_, N> {...}
 }
 
 impl<N: NodeInfo> fmt::Debug for Delta<N>
@@ -467,10 +477,9 @@ impl<N: NodeInfo> Deref for InsertDelta<N> {
     fn deref(&self) -> &Delta<N> {...}
 }
 
+// TODO: this doesn't need the new strings, so it should either be based on a new structure
 /// A mapping from coordinates in the source sequence to coordinates in the sequence after
 /// the delta is applied.
-
-// TODO: this doesn't need the new strings, so it should either be based on a new structure
 // like Delta but missing the strings, or perhaps the two subsets it's synthesized from.
 pub struct Transformer<'a, N: NodeInfo + 'a> {
     delta: &'a Delta<N>,
@@ -480,10 +489,9 @@ impl<'a, N: NodeInfo + 'a> Transformer<'a, N> {
     /// Create a new transformer from a delta.
     pub fn new(delta: &'a Delta<N>) -> Self {...}
 
+    // TODO: implement a cursor so we're not scanning from the beginning every time.
     /// Transform a single coordinate. The `after` parameter indicates whether it
     /// it should land before or after an inserted region.
-
-    // TODO: implement a cursor so we're not scanning from the beginning every time.
     pub fn transform(&mut self, ix: usize, after: bool) -> usize {...}
 
     /// Determine whether a given interval is untouched by the transformation.
@@ -554,7 +562,7 @@ impl<'a, N: NodeInfo> Iterator for DeletionsIter<'a, N> {
 }
 ```
 
-## reference/rust/rope/src/diff.rs
+## xi-editor-ph7/rust/rope/src/diff.rs
 
 ```rust
 use std::borrow::Cow;
@@ -638,10 +646,10 @@ impl DiffBuilder {
 
 /// Creates a map of lines to offsets, ignoring trailing whitespace, and only for those lines
 /// where line.len() >= min_size. Offsets refer to the first non-whitespace byte in the line.
-fn make_line_hashes(base: &Rope, min_size: usize) -> HashMap<Cow<str>, usize> {...}
+fn make_line_hashes(base: &Rope, min_size: usize) -> HashMap<Cow<'_, str>, usize> {...}
 ```
 
-## reference/rust/rope/src/engine.rs
+## xi-editor-ph7/rust/rope/src/engine.rs
 
 ```rust
 use std::borrow::Cow;
@@ -655,7 +663,9 @@ use crate::rope::{Rope, RopeInfo};
 
 /// Represents the current state of a document and all of its history
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 pub struct Engine {
     /// The session ID used to create new `RevId`s for edits made on this device
     #[cfg_attr(feature = "serde", serde(default = "default_session", skip_serializing))]
@@ -692,7 +702,9 @@ pub struct Engine {
 // The advantage of using a session ID over random numbers is that it can be
 // easily delta-compressed later.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 pub struct RevId {
     // 96 bits has a 10^(-12) chance of collision with 400 million sessions and 10^(-6) with 100 billion.
     // `session1==session2==0` is reserved for initialization which is the same on all sessions.
@@ -706,7 +718,9 @@ pub struct RevId {
 }
 
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 struct Revision {
     /// This uniquely represents the identity of this revision and it stays
     /// the same even if it is rebased or merged between devices.
@@ -745,7 +759,9 @@ struct FullPriority {
 use self::Contents::*;
 
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 enum Contents {
     Edit {
         /// Used to order concurrent inserts, for example auto-indentation
@@ -805,17 +821,17 @@ impl Engine {
     // TODO: does Cow really help much here? It certainly won't after making Subsets a rope.
     /// Find what the `deletes_from_union` field in Engine would have been at the time
     /// of a certain `rev_index`. In other words, the deletes from the union string at that time.
-    fn deletes_from_union_for_index(&self, rev_index: usize) -> Cow<Subset> {...}
+    fn deletes_from_union_for_index(&self, rev_index: usize) -> Cow<'_, Subset> {...}
 
     /// Garbage collection means undo can sometimes need to replay the very first
     /// revision, and so needs a way to get the deletion set before then.
-    fn deletes_from_union_before_index(&self, rev_index: usize, invert_undos: bool) -> Cow<Subset> {...}
+    fn deletes_from_union_before_index(&self, rev_index: usize, invert_undos: bool) -> Cow<'_, Subset> {...}
 
     /// Get the contents of the document at a given revision number
     fn rev_content_for_index(&self, rev_index: usize) -> Rope {...}
 
     /// Get the Subset to delete from the current union string in order to obtain a revision's content
-    fn deletes_from_cur_union_for_index(&self, rev_index: usize) -> Cow<Subset> {...}
+    fn deletes_from_cur_union_for_index(&self, rev_index: usize) -> Cow<'_, Subset> {...}
 
     /// Returns the largest undo group ID used so far
     pub fn max_undo_group_id(&self) -> usize {...}
@@ -1001,7 +1017,7 @@ impl std::fmt::Debug for Error {
 impl std::error::Error for Error {}
 ```
 
-## reference/rust/rope/src/find.rs
+## xi-editor-ph7/rust/rope/src/find.rs
 
 ```rust
 use std::cmp::min;
@@ -1141,7 +1157,7 @@ pub fn is_multiline_regex(regex: &str) -> bool {...}
 fn scan_lowercase(probe: char, s: &str) -> Option<usize> {...}
 ```
 
-## reference/rust/rope/src/interval.rs
+## xi-editor-ph7/rust/rope/src/interval.rs
 
 ```rust
 use std::cmp::{max, min};
@@ -1268,7 +1284,7 @@ impl IntervalBounds for RangeFull {
 }
 ```
 
-## reference/rust/rope/src/lib.rs
+## xi-editor-ph7/rust/rope/src/lib.rs
 
 ```rust
 #![allow(
@@ -1311,7 +1327,7 @@ pub use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
 pub use crate::tree::{Cursor, Metric};
 ```
 
-## reference/rust/rope/src/multiset.rs
+## xi-editor-ph7/rust/rope/src/multiset.rs
 
 ```rust
 use std::cmp;
@@ -1323,7 +1339,9 @@ use std::fmt;
 use std::slice;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 struct Segment {
     len: usize,
     count: usize,
@@ -1336,7 +1354,9 @@ struct Segment {
 ///
 /// Internally, this is stored as a list of "segments" with a length and a count.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg(feature = "serde")]
+#[allow(clippy::non_local_definitions)]
+#[derive(Serialize, Deserialize)]
 pub struct Subset {
     /// Invariant, maintained by `SubsetBuilder`: all `Segment`s have non-zero
     /// length, and no `Segment` has the same count as the one before it.
@@ -1455,11 +1475,11 @@ impl Subset {
 
     /// Return an iterator over the ranges with a count matching the `matcher`.
     /// These will often be easier to work with than raw segments.
-    pub fn range_iter(&self, matcher: CountMatcher) -> RangeIter {...}
+    pub fn range_iter(&self, matcher: CountMatcher) -> RangeIter<'_> {...}
 
     /// Convenience alias for `self.range_iter(CountMatcher::Zero)`.
     /// Semantically iterates the ranges of the complement of this `Subset`.
-    pub fn complement_iter(&self) -> RangeIter {...}
+    pub fn complement_iter(&self) -> RangeIter<'_> {...}
 
     /// Return an iterator over `ZipSegment`s where each `ZipSegment` contains
     /// the count for both self and other in that range. The two `Subset`s
@@ -1474,7 +1494,7 @@ impl Subset {
 
     /// Return a `Mapper` that can be use to map coordinates in the document to coordinates
     /// in this `Subset`, but only in non-decreasing order for performance reasons.
-    pub fn mapper(&self, matcher: CountMatcher) -> Mapper {...}
+    pub fn mapper(&self, matcher: CountMatcher) -> Mapper<'_> {...}
 }
 
 impl fmt::Debug for Subset {
@@ -1554,7 +1574,7 @@ impl<'a> Mapper<'a> {
 }
 ```
 
-## reference/rust/rope/src/rope.rs
+## xi-editor-ph7/rust/rope/src/rope.rs
 
 ```rust
 #![allow(clippy::needless_return)]
@@ -1701,6 +1721,7 @@ impl Metric<RopeInfo> for BaseMetric {
 pub fn len_utf8_from_first_byte(b: u8) -> usize {...}
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub struct LinesMetric(usize); // number of lines
 
 /// Measured unit is newline amount.
@@ -1723,6 +1744,7 @@ impl Metric<RopeInfo> for LinesMetric {
 }
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub struct Utf16CodeUnitsMetric(usize);
 
 impl Metric<RopeInfo> for Utf16CodeUnitsMetric {
@@ -1833,14 +1855,14 @@ impl Rope {
     ///
     /// Time complexity: technically O(n log n), but the constant factor is so
     /// tiny it is effectively O(n). This iterator does not allocate.
-    pub fn iter_chunks<T: IntervalBounds>(&self, range: T) -> ChunkIter {...}
+    pub fn iter_chunks<T: IntervalBounds>(&self, range: T) -> ChunkIter<'_> {...}
 
     /// An iterator over the raw lines. The lines, except the last, include the
     /// terminating newline.
     ///
     /// The return type is a `Cow<str>`, and in most cases the lines are slices
     /// borrowed from the rope.
-    pub fn lines_raw<T: IntervalBounds>(&self, range: T) -> LinesRaw {...}
+    pub fn lines_raw<T: IntervalBounds>(&self, range: T) -> LinesRaw<'_> {...}
 
     /// An iterator over the lines of a rope.
     ///
@@ -1852,12 +1874,12 @@ impl Rope {
     /// from the rope.
     ///
     /// The semantics are intended to match `str::lines()`.
-    pub fn lines<T: IntervalBounds>(&self, range: T) -> Lines {...}
+    pub fn lines<T: IntervalBounds>(&self, range: T) -> Lines<'_> {...}
 
     // callers should be encouraged to use cursor instead
     pub fn byte_at(&self, offset: usize) -> u8 {...}
 
-    pub fn slice_to_cow<T: IntervalBounds>(&self, range: T) -> Cow<str> {...}
+    pub fn slice_to_cow<T: IntervalBounds>(&self, range: T) -> Cow<'_, str> {...}
 }
 
 // should make this generic, but most leaf types aren't going to be sliceable
@@ -1890,7 +1912,7 @@ impl From<Rope> for String {
     fn from(r: Rope) -> String {...}
 }
 
-impl<'a> From<&'a Rope> for String {
+impl From<&Rope> for String {
     fn from(r: &Rope) -> String {...}
 }
 
@@ -1951,7 +1973,7 @@ impl<'a> Iterator for Lines<'a> {
 }
 ```
 
-## reference/rust/rope/src/serde_impls.rs
+## xi-editor-ph7/rust/rope/src/serde_impls.rs
 
 ```rust
 use std::fmt;
@@ -1962,6 +1984,35 @@ use serde::ser::{Serialize, SerializeStruct, SerializeTupleVariant, Serializer};
 
 use crate::tree::Node;
 use crate::{Delta, DeltaElement, Rope, RopeInfo};
+
+// Interim serializable types used for (de)serializing `Delta<RopeInfo>`.
+// These are defined at module-level so derive macros generate impls at the
+// correct (non-nested) scope; this avoids `non_local_definitions` lint
+// failures when serde attributes are used inside function bodies.
+#[cfg(feature = "serde")]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[allow(clippy::non_local_definitions)]
+enum RopeDeltaElement_ {
+    Copy(usize, usize),
+    Insert(Node<RopeInfo>),
+}
+
+#[cfg(feature = "serde")]
+#[derive(Serialize, Deserialize)]
+#[allow(clippy::non_local_definitions)]
+struct RopeDelta_ {
+    els: Vec<RopeDeltaElement_>,
+    base_len: usize,
+}
+
+impl From<RopeDeltaElement_> for DeltaElement<RopeInfo> {
+    fn from(elem: RopeDeltaElement_) -> DeltaElement<RopeInfo> {...}
+}
+
+impl From<RopeDelta_> for Delta<RopeInfo> {
+    fn from(mut delta: RopeDelta_) -> Delta<RopeInfo> {...}
+}
 
 impl Serialize for Rope {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -2012,7 +2063,7 @@ impl<'de> Deserialize<'de> for Delta<RopeInfo> {
 }
 ```
 
-## reference/rust/rope/src/spans.rs
+## xi-editor-ph7/rust/rope/src/spans.rs
 
 ```rust
 use std::fmt;
@@ -2095,12 +2146,11 @@ pub struct SpanIter<'a, T: 'a + Clone> {
 }
 
 impl<T: Clone> Spans<T> {
-    /// Perform operational transformation on a spans object intended to be edited into
-    /// a sequence at the given offset.
-
     // Note: this implementation is not efficient for very large Spans objects, as it
     // traverses all spans linearly. A more sophisticated approach would be to traverse
     // the tree, and only delve into subtrees that are transformed.
+    /// Perform operational transformation on a spans object intended to be edited into
+    /// a sequence at the given offset.
     pub fn transform<N: NodeInfo>(
         &self,
         base_start: usize,
@@ -2128,7 +2178,7 @@ impl<T: Clone> Spans<T> {
 
     // possible future: an iterator that takes an interval, so results are the same as
     // taking a subseq on the spans object. Would require specialized Cursor.
-    pub fn iter(&self) -> SpanIter<T> {...}
+    pub fn iter(&self) -> SpanIter<'_, T> {...}
 
     /// Applies a generic delta to `self`, inserting empty spans for any
     /// added regions.
@@ -2152,7 +2202,7 @@ impl<'a, T: Clone> Iterator for SpanIter<'a, T> {
 }
 ```
 
-## reference/rust/rope/src/test_helpers.rs
+## xi-editor-ph7/rust/rope/src/test_helpers.rs
 
 ```rust
 use crate::delta::{self, Delta};
@@ -2182,7 +2232,7 @@ pub fn debug_subsets(subsets: &[Subset]) {...}
 pub fn parse_delta(s: &str) -> Delta<RopeInfo> {...}
 ```
 
-## reference/rust/rope/src/tree.rs
+## xi-editor-ph7/rust/rope/src/tree.rs
 
 ```rust
 use std::cmp::{min, Ordering};

@@ -1,4 +1,4 @@
-## ref-outline/rust/core-lib/src/annotations.rs
+## xi-editor-ph7/rust/core-lib/src/annotations.rs
 
 ```rust
 use serde::de::{Deserialize, Deserializer};
@@ -119,7 +119,7 @@ impl AnnotationStore {
 }
 ```
 
-## ref-outline/rust/core-lib/src/backspace.rs
+## xi-editor-ph7/rust/core-lib/src/backspace.rs
 
 ```rust
 use xi_rope::{Cursor, Rope};
@@ -133,7 +133,7 @@ use xi_unicode::*;
 pub fn offset_for_delete_backwards(region: &SelRegion, text: &Rope, config: &BufferItems) -> usize {...}
 ```
 
-## ref-outline/rust/core-lib/src/client.rs
+## xi-editor-ph7/rust/core-lib/src/client.rs
 
 ```rust
 use std::time::Instant;
@@ -256,7 +256,7 @@ enum OpType {
 }
 ```
 
-## ref-outline/rust/core-lib/src/config.rs
+## xi-editor-ph7/rust/core-lib/src/config.rs
 
 ```rust
 use std::collections::HashMap;
@@ -620,7 +620,7 @@ pub(crate) fn table_from_toml_str(s: &str) -> Result<Table, toml::de::Error> {..
 fn from_toml_value(value: toml::Value) -> Value {...}
 ```
 
-## ref-outline/rust/core-lib/src/core.rs
+## xi-editor-ph7/rust/core-lib/src/core.rs
 
 ```rust
 use std::io;
@@ -665,7 +665,7 @@ impl XiCore {
     /// # Panics
     ///
     /// Panics if core has not yet received the `client_started` message.
-    pub fn inner(&self) -> MutexGuard<CoreState> {...}
+    pub fn inner(&self) -> MutexGuard<'_, CoreState> {...}
 
     /// Returns a new reference to the core state, if core is running.
     fn weak_self(&self) -> Option<WeakXiCore> {...}
@@ -720,7 +720,7 @@ impl Handler for WeakXiCore {
 }
 ```
 
-## ref-outline/rust/core-lib/src/edit_ops.rs
+## xi-editor-ph7/rust/core-lib/src/edit_ops.rs
 
 ```rust
 use std::borrow::Cow;
@@ -849,7 +849,7 @@ fn get_tab_text(config: &BufferItems, tab_size: Option<usize>) -> &'static str {
 fn n_spaces(n: usize) -> &'static str {...}
 ```
 
-## ref-outline/rust/core-lib/src/edit_types.rs
+## xi-editor-ph7/rust/core-lib/src/edit_types.rs
 
 ```rust
 use crate::movement::Movement;
@@ -951,7 +951,7 @@ impl From<EditNotification> for EventDomain {
 }
 ```
 
-## ref-outline/rust/core-lib/src/editor.rs
+## xi-editor-ph7/rust/core-lib/src/editor.rs
 
 ```rust
 use std::borrow::{Borrow, Cow};
@@ -965,7 +965,7 @@ use xi_rope::engine::{Engine, RevId, RevToken};
 use xi_rope::rope::count_newlines;
 use xi_rope::spans::SpansBuilder;
 use xi_rope::{DeltaBuilder, Interval, LinesMetric, Rope, RopeDelta, Transformer};
-use xi_trace::{trace_block, trace_payload};
+use crate::trace::{trace_block, trace_payload};
 
 use crate::annotations::{AnnotationType, Annotations};
 use crate::config::BufferItems;
@@ -1203,7 +1203,7 @@ impl Editor {
         rev: RevToken,
     ) {...}
 
-    pub(crate) fn get_rev(&self, rev: RevToken) -> Option<Cow<Rope>> {...}
+    pub(crate) fn get_rev(&self, rev: RevToken) -> Option<Cow<'_, Rope>> {...}
 
     pub fn plugin_get_data(
         &self,
@@ -1245,7 +1245,7 @@ fn last_selection_region(regions: &[SelRegion]) -> Option<&SelRegion> {...}
 fn count_lines(s: &str) -> usize {...}
 ```
 
-## ref-outline/rust/core-lib/src/event_context.rs
+## xi-editor-ph7/rust/core-lib/src/event_context.rs
 
 ```rust
 use std::cell::RefCell;
@@ -1258,7 +1258,7 @@ use serde_json::{self, Value};
 
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta};
 use xi_rpc::{Error as RpcError, RemoteError};
-use xi_trace::trace_block;
+use crate::trace::trace_block;
 
 use crate::plugins::rpc::{
     ClientPluginInfo, Hover, PluginBufferInfo, PluginNotification, PluginRequest, PluginUpdate,
@@ -1436,7 +1436,7 @@ impl<'a> EventContext<'a> {
 }
 ```
 
-## ref-outline/rust/core-lib/src/file.rs
+## xi-editor-ph7/rust/core-lib/src/file.rs
 
 ```rust
 use std::collections::HashMap;
@@ -1563,11 +1563,10 @@ impl fmt::Display for FileError {
 }
 ```
 
-## ref-outline/rust/core-lib/src/find.rs
+## xi-editor-ph7/rust/core-lib/src/find.rs
 
 ```rust
 use std::cmp::{max, min};
-use std::iter;
 
 use crate::annotations::{AnnotationRange, AnnotationSlice, AnnotationType, ToAnnotation};
 use crate::line_offset::LineOffset;
@@ -1685,7 +1684,7 @@ impl ToAnnotation for Find {
 }
 ```
 
-## ref-outline/rust/core-lib/src/fuchsia/ledger.rs
+## xi-editor-ph7/rust/core-lib/src/fuchsia/ledger.rs
 
 ```rust
 use apps_ledger_services_public::*;
@@ -1718,7 +1717,7 @@ pub fn value_result(res: (Status, Option<Vmo>)) -> Result<Option<Vec<u8>>, Value
 pub fn gen_page_id(input_data: &[u8]) -> [u8; 16] {...}
 ```
 
-## ref-outline/rust/core-lib/src/fuchsia/mod.rs
+## xi-editor-ph7/rust/core-lib/src/fuchsia/mod.rs
 
 ```rust
 pub mod ledger;
@@ -1730,7 +1729,7 @@ use magenta::{Status, Vmo};
 pub fn read_entire_vmo(vmo: &Vmo) -> Result<Vec<u8>, Status> {...}
 ```
 
-## ref-outline/rust/core-lib/src/fuchsia/sync.rs
+## xi-editor-ph7/rust/core-lib/src/fuchsia/sync.rs
 
 ```rust
 use std::io::Write;
@@ -1889,7 +1888,7 @@ impl ConflictResolver_Stub for ConflictResolverServer {
 impl_fidl_stub!(ConflictResolverServer: ConflictResolver_Stub);
 ```
 
-## ref-outline/rust/core-lib/src/index_set.rs
+## xi-editor-ph7/rust/core-lib/src/index_set.rs
 
 ```rust
 use std::cmp::{max, min, Ordering};
@@ -1915,7 +1914,7 @@ impl IndexSet {
     pub fn delete_range(&mut self, start: usize, end: usize) {...}
 
     /// Return an iterator that yields start..end minus the coverage in this set.
-    pub fn minus_one_range(&self, start: usize, end: usize) -> MinusIter {...}
+    pub fn minus_one_range(&self, start: usize, end: usize) -> MinusIter<'_> {...}
 
     /// Computes a new set based on applying a delta to the old set. Collapsed regions are removed
     /// and contiguous regions are combined.
@@ -1941,7 +1940,7 @@ impl<'a> DoubleEndedIterator for MinusIter<'a> {
 }
 ```
 
-## ref-outline/rust/core-lib/src/layers.rs
+## xi-editor-ph7/rust/core-lib/src/layers.rs
 
 ```rust
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -1950,7 +1949,7 @@ use syntect::parsing::Scope;
 
 use xi_rope::spans::{Spans, SpansBuilder};
 use xi_rope::{Interval, RopeDelta};
-use xi_trace::trace_block;
+use crate::trace::trace_block;
 
 use crate::plugins::PluginPid;
 use crate::styles::{Style, ThemeStyleMap};
@@ -2042,7 +2041,7 @@ impl ScopeLayer {
 }
 ```
 
-## ref-outline/rust/core-lib/src/lib.rs
+## xi-editor-ph7/rust/core-lib/src/lib.rs
 
 ```rust
 #![allow(
@@ -2079,6 +2078,7 @@ extern crate toml;
 
 extern crate xi_rope;
 extern crate xi_rpc;
+#[cfg(feature = "trace")]
 extern crate xi_trace;
 extern crate xi_unicode;
 
@@ -2121,6 +2121,7 @@ pub mod selection;
 pub mod styles;
 pub mod syntax;
 pub mod tabs;
+pub mod trace;
 pub mod view;
 #[cfg(feature = "notify")]
 pub mod watcher;
@@ -2144,7 +2145,7 @@ pub use crate::tabs::test_helpers;
 pub use crate::tabs::{BufferId, BufferIdentifier, ViewId};
 ```
 
-## ref-outline/rust/core-lib/src/line_cache_shadow.rs
+## xi-editor-ph7/rust/core-lib/src/line_cache_shadow.rs
 
 ```rust
 use std::cmp::{max, min};
@@ -2271,7 +2272,7 @@ impl fmt::Debug for Span {
 }
 ```
 
-## ref-outline/rust/core-lib/src/line_ending.rs
+## xi-editor-ph7/rust/core-lib/src/line_ending.rs
 
 ```rust
 extern crate xi_rope;
@@ -2299,7 +2300,7 @@ impl LineEnding {
 }
 ```
 
-## ref-outline/rust/core-lib/src/line_offset.rs
+## xi-editor-ph7/rust/core-lib/src/line_offset.rs
 
 ```rust
 #![allow(clippy::range_plus_one)]
@@ -2359,7 +2360,7 @@ impl LineOffset for Lines {
 }
 ```
 
-## ref-outline/rust/core-lib/src/linewrap.rs
+## xi-editor-ph7/rust/core-lib/src/linewrap.rs
 
 ```rust
 use std::cmp::Ordering;
@@ -2368,7 +2369,7 @@ use std::ops::Range;
 use xi_rope::breaks::{BreakBuilder, Breaks, BreaksInfo, BreaksMetric};
 use xi_rope::spans::Spans;
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta, RopeInfo};
-use xi_trace::trace_block;
+use crate::trace::trace_block;
 use xi_unicode::LineBreakLeafIter;
 
 use crate::client::Client;
@@ -2377,8 +2378,10 @@ use crate::width_cache::{CodepointMono, Token, WidthCache, WidthMeasure};
 
 /// The visual width of the buffer for the purpose of word wrapping.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Default)]
 pub(crate) enum WrapWidth {
     /// No wrapping in effect.
+    #[default]
     None,
 
     /// Width in bytes (utf-8 code units).
@@ -2390,9 +2393,6 @@ pub(crate) enum WrapWidth {
     Width(f64),
 }
 
-impl Default for WrapWidth {
-    fn default() -> Self {...}
-}
 
 impl WrapWidth {
     fn differs_in_kind(self, other: WrapWidth) -> bool {...}
@@ -2639,7 +2639,7 @@ impl<'a> MergedBreaks<'a> {
 fn merged_line_of_offset(text: &Rope, soft: &Breaks, offset: usize) -> usize {...}
 ```
 
-## ref-outline/rust/core-lib/src/movement.rs
+## xi-editor-ph7/rust/core-lib/src/movement.rs
 
 ```rust
 use std::cmp::max;
@@ -2763,10 +2763,12 @@ pub fn selection_movement(
 ) -> Selection {...}
 ```
 
-## ref-outline/rust/core-lib/src/plugins/catalog.rs
+## xi-editor-ph7/rust/core-lib/src/plugins/catalog.rs
 
 ```rust
 use std::collections::HashMap;
+use std::error::Error as StdError;
+use std::fmt;
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -2830,9 +2832,17 @@ impl From<io::Error> for PluginLoadError {
 impl From<toml::de::Error> for PluginLoadError {
     fn from(err: toml::de::Error) -> PluginLoadError {...}
 }
+
+impl fmt::Display for PluginLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {...}
+}
+
+impl StdError for PluginLoadError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {...}
+}
 ```
 
-## ref-outline/rust/core-lib/src/plugins/manifest.rs
+## xi-editor-ph7/rust/core-lib/src/plugins/manifest.rs
 
 ```rust
 use std::path::PathBuf;
@@ -2884,10 +2894,12 @@ pub enum PluginActivation {
 /// Describes the scope of events a plugin receives.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum PluginScope {
     /// The plugin receives events from multiple buffers.
     Global,
     /// The plugin receives events for a single buffer.
+    #[default]
     BufferLocal,
     /// The plugin is launched in response to a command, and receives no
     /// further updates.
@@ -3003,13 +3015,9 @@ impl PluginDescription {
     /// Returns `true` if this plugin is globally scoped, else `false`.
     pub fn is_global(&self) -> bool {...}
 }
-
-impl Default for PluginScope {
-    fn default() -> Self {...}
-}
 ```
 
-## ref-outline/rust/core-lib/src/plugins/mod.rs
+## xi-editor-ph7/rust/core-lib/src/plugins/mod.rs
 
 ```rust
 mod catalog;
@@ -3102,7 +3110,7 @@ pub(crate) fn start_plugin_process(
 ) {...}
 ```
 
-## ref-outline/rust/core-lib/src/plugins/rpc.rs
+## xi-editor-ph7/rust/core-lib/src/plugins/rpc.rs
 
 ```rust
 use std::borrow::Borrow;
@@ -3394,12 +3402,12 @@ impl TextUnit {
 }
 ```
 
-## ref-outline/rust/core-lib/src/recorder.rs
+## xi-editor-ph7/rust/core-lib/src/recorder.rs
 
 ```rust
 use std::collections::HashMap;
 
-use xi_trace::trace_block;
+use crate::trace::trace_block;
 
 use crate::edit_types::{BufferEvent, EventDomain};
 
@@ -3475,7 +3483,7 @@ impl Recording {
 // R = Redo
 ```
 
-## ref-outline/rust/core-lib/src/rpc.rs
+## xi-editor-ph7/rust/core-lib/src/rpc.rs
 
 ```rust
 use std::path::PathBuf;
@@ -3807,16 +3815,15 @@ pub struct Position {
 /// operations).
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum SelectionModifier {
     None,
+    #[default]
     Set,
     Add,
     AddRemovingCurrent,
 }
 
-impl Default for SelectionModifier {
-    fn default() -> SelectionModifier {...}
-}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -4047,7 +4054,7 @@ impl<'de> Deserialize<'de> for LineRange {
 }
 ```
 
-## ref-outline/rust/core-lib/src/selection.rs
+## xi-editor-ph7/rust/core-lib/src/selection.rs
 
 ```rust
 use std::cmp::{max, min};
@@ -4163,10 +4170,12 @@ impl Deref for Selection {
 /// We say "cursor" here rather than "caret" because (depending on presentation)
 /// the front-end may draw a cursor even when the region is not a caret.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Default)]
 pub enum Affinity {
     /// The cursor should be displayed downstream of the line break. For
     /// example, if the buffer is "abcd", and the cursor is on a line break
     /// after "ab", it should be displayed on the second line before "cd".
+    #[default]
     Downstream,
     /// The cursor should be displayed upstream of the line break. For
     /// example, if the buffer is "abcd", and the cursor is on a line break
@@ -4174,9 +4183,6 @@ pub enum Affinity {
     Upstream,
 }
 
-impl Default for Affinity {
-    fn default() -> Affinity {...}
-}
 
 /// A type representing a single contiguous region of a selection. We use the
 /// term "caret" (sometimes also "cursor", more loosely) to refer to a selection
@@ -4254,7 +4260,7 @@ impl fmt::Display for SelRegion {
 }
 ```
 
-## ref-outline/rust/core-lib/src/styles.rs
+## xi-editor-ph7/rust/core-lib/src/styles.rs
 
 ```rust
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -4365,7 +4371,7 @@ impl ThemeStyleMap {
 
     pub fn get_default_style(&self) -> &Style {...}
 
-    pub fn get_highlighter(&self) -> Highlighter {...}
+    pub fn get_highlighter(&self) -> Highlighter<'_> {...}
 
     pub fn get_theme_name(&self) -> &str {...}
 
@@ -4428,7 +4434,7 @@ impl fmt::Debug for Style {
 }
 ```
 
-## ref-outline/rust/core-lib/src/syntax.rs
+## xi-editor-ph7/rust/core-lib/src/syntax.rs
 
 ```rust
 use std::borrow::Borrow;
@@ -4498,7 +4504,7 @@ impl<'a> From<&'a str> for LanguageId {
 // for testing
 ```
 
-## ref-outline/rust/core-lib/src/tabs.rs
+## xi-editor-ph7/rust/core-lib/src/tabs.rs
 
 ```rust
 use std::cell::{Cell, RefCell};
@@ -4515,7 +4521,7 @@ use serde_json::Value;
 
 use xi_rope::Rope;
 use xi_rpc::{self, ReadError, RemoteError, RpcCtx, RpcPeer};
-use xi_trace::{self, trace_block};
+use crate::trace::trace_block;
 
 use crate::client::Client;
 use crate::config::{self, ConfigDomain, ConfigDomainExternal, ConfigManager, Table};
@@ -4640,11 +4646,11 @@ impl CoreState {
     /// holds references to the `Editor` and `View` backing this `ViewId`,
     /// as well as to sibling views, plugins, and other state necessary
     /// for handling most events.
-    pub(crate) fn make_context(&self, view_id: ViewId) -> Option<EventContext> {...}
+    pub(crate) fn make_context(&self, view_id: ViewId) -> Option<EventContext<'_>> {...}
 
     /// Produces an iterator over all event contexts, with each view appearing
     /// exactly once.
-    fn iter_groups<'a>(&'a self) -> Iter<'a, Box<dyn Iterator<Item = &ViewId> + 'a>> {...}
+    fn iter_groups<'a>(&'a self) -> Iter<'a, Box<dyn Iterator<Item = &'a ViewId> + 'a>> {...}
 
     pub(crate) fn client_notification(&mut self, cmd: CoreNotification) {...}
 
@@ -4733,7 +4739,14 @@ impl CoreState {
 
     fn toggle_tracing(&self, enabled: bool) {...}
 
+    #[cfg(feature = "trace")]
     fn save_trace<P>(&self, path: P, frontend_samples: Value)
+    where
+        P: AsRef<Path>,
+    {...}
+
+    #[cfg(not(feature = "trace"))]
+    fn save_trace<P>(&self, _path: P, _frontend_samples: Value)
     where
         P: AsRef<Path>,
     {...}
@@ -4846,7 +4859,85 @@ impl BufferId {
 }
 ```
 
-## ref-outline/rust/core-lib/src/view.rs
+## xi-editor-ph7/rust/core-lib/src/trace.rs
+
+```rust
+#[cfg(feature = "trace")]
+pub use xi_trace::{
+    chrome_trace_dump,
+    disable_tracing,
+    enable_tracing,
+    is_enabled,
+    samples_cloned_unsorted,
+    trace_block,
+    trace_payload,
+    Sample,
+    SampleGuard,
+};
+
+#[cfg(not(feature = "trace"))]
+mod shim {
+    use serde_json::Value;
+    use std::io::Write;
+    use std::marker::PhantomData;
+
+    #[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct Sample;
+
+    #[derive(Debug, Default)]
+    pub struct SampleGuard<'a>(PhantomData<&'a ()>);
+
+    impl<'a> Drop for SampleGuard<'a> {
+        fn drop(&mut self) {...}
+    }
+
+    pub fn trace_block<'a, S, C>(_name: S, _categories: C) -> SampleGuard<'a> {...}
+
+    pub fn trace_payload<S, C, P>(_name: S, _categories: C, _payload: P) {...}
+
+    pub fn enable_tracing() {...}
+
+    pub fn disable_tracing() {...}
+
+    pub fn is_enabled() -> bool {...}
+
+    pub fn samples_cloned_unsorted() -> Vec<Sample> {...}
+
+    pub mod chrome_trace_dump {
+        use super::Sample;
+        use serde_json::Value;
+        use std::io::Write;
+
+        #[derive(Clone, Debug)]
+        pub struct Error;
+
+        pub fn decode(_samples: Value) -> Result<Vec<Sample>, Error> {...}
+
+        pub fn serialize<W>(_samples: &Vec<Sample>, _output: W) -> Result<(), Error>
+        where
+            W: Write,
+        {...}
+    }
+
+    pub use chrome_trace_dump;
+    pub use SampleGuard;
+}
+
+#[cfg(not(feature = "trace"))]
+pub use shim::{
+    chrome_trace_dump,
+    disable_tracing,
+    enable_tracing,
+    is_enabled,
+    samples_cloned_unsorted,
+    trace_block,
+    trace_payload,
+    Sample,
+    SampleGuard,
+};
+```
+
+## xi-editor-ph7/rust/core-lib/src/view.rs
 
 ```rust
 use std::cell::RefCell;
@@ -4873,7 +4964,7 @@ use crate::width_cache::WidthCache;
 use crate::word_boundaries::WordCursor;
 use xi_rope::spans::Spans;
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta};
-use xi_trace::trace_block;
+use crate::trace::trace_block;
 
 type StyleMap = RefCell<ThemeStyleMap>;
 
@@ -5275,7 +5366,7 @@ impl LineOffset for View {
 fn clamp(x: usize, min: usize, max: usize) -> usize {...}
 ```
 
-## ref-outline/rust/core-lib/src/watcher.rs
+## xi-editor-ph7/rust/core-lib/src/watcher.rs
 
 ```rust
 use crossbeam_channel::unbounded;
@@ -5388,7 +5479,7 @@ impl fmt::Debug for Watchee {
 fn mode_from_bool(is_recursive: bool) -> RecursiveMode {...}
 ```
 
-## ref-outline/rust/core-lib/src/whitespace.rs
+## xi-editor-ph7/rust/core-lib/src/whitespace.rs
 
 ```rust
 extern crate xi_rope;
@@ -5426,7 +5517,7 @@ fn extract_count(spaces: BTreeMap<usize, usize>) -> usize {...}
 fn gcd(a: usize, b: usize) -> usize {...}
 ```
 
-## ref-outline/rust/core-lib/src/width_cache.rs
+## xi-editor-ph7/rust/core-lib/src/width_cache.rs
 
 ```rust
 use std::borrow::Cow;
@@ -5508,7 +5599,7 @@ impl WidthCache {
     pub fn resolve(&self, tok: Token) -> Width {...}
 
     /// Create a new batch of requests.
-    pub fn batch_req(self: &mut WidthCache) -> WidthBatchReq {...}
+    pub fn batch_req(self: &mut WidthCache) -> WidthBatchReq<'_> {...}
 }
 
 impl<'a> WidthBatchReq<'a> {
@@ -5524,7 +5615,7 @@ impl<'a> WidthBatchReq<'a> {
 }
 ```
 
-## ref-outline/rust/core-lib/src/word_boundaries.rs
+## xi-editor-ph7/rust/core-lib/src/word_boundaries.rs
 
 ```rust
 use xi_rope::{Cursor, Rope, RopeInfo};
@@ -5576,5 +5667,100 @@ enum WordProperty {
 }
 
 fn get_word_property(codepoint: char) -> WordProperty {...}
+```
+
+## xi-editor-ph7/rust/core-lib/tests/rpc.rs
+
+```rust
+#[macro_use]
+extern crate serde_json;
+
+extern crate xi_core_lib;
+extern crate xi_rpc;
+
+use std::io;
+
+use xi_core_lib::test_helpers;
+use xi_core_lib::XiCore;
+use xi_rpc::test_utils::{make_reader, test_channel};
+use xi_rpc::{ReadError, RpcLoop};
+
+const MOVEMENT_RPCS: &str = r#"{"method":"edit","params":{"view_id":"view-id-1","method":"move_up","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_down","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_up_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_down_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_left","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_backward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_right","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_forward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_left_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_right_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_word_left","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_word_right","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_word_left_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_word_right_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_beginning_of_paragraph","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_end_of_paragraph","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_left_end_of_line","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_left_end_of_line_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_right_end_of_line","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_right_end_of_line_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_beginning_of_document","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_beginning_of_document_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_end_of_document","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"move_to_end_of_document_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"scroll_page_up","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"scroll_page_down","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"page_up_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"page_down_and_modify_selection","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"select_all","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"add_selection_above","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"add_selection_below","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"collapse_selections","params":[]}}"#;
+
+const TEXT_EDIT_RPCS: &str = r#"{"method":"edit","params":{"view_id":"view-id-1","method":"insert","params":{"chars":"a"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"delete_backward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"delete_forward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"delete_word_forward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"delete_word_backward","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"delete_to_end_of_paragraph","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"insert_newline","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"insert_tab","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"yank","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"undo","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"redo","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"transpose","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"uppercase","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"lowercase","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"indent","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"outdent","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"duplicate_line","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"replace_next","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"replace_all","params":[]}}
+{"id":2,"method":"edit","params":{"view_id":"view-id-1","method":"cut","params":[]}}"#;
+
+const OTHER_EDIT_RPCS: &str = r#"{"method":"edit","params":{"view_id":"view-id-1","method":"scroll","params":[0,1]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"goto_line","params":{"line":1}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"request_lines","params":[0,1]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"drag","params":[17,15,0]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "toggle_sel"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "point_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "range_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "line_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "word_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "multi_line_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"gesture","params":{"line": 1, "col": 2, "ty": "multi_word_select"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"find","params":{"case_sensitive":false,"chars":"m"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"multi_find","params":{"queries": [{"case_sensitive":false,"chars":"m"}]}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"find_next","params":{"wrap_around":true}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"find_previous","params":{"wrap_around":true}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"find_all","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"highlight_find","params":{"visible":true}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"selection_for_find","params":{"case_sensitive":true}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"replace","params":{"chars":"a"}}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"selection_for_replace","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"debug_rewrap","params":[]}}
+{"method":"edit","params":{"view_id":"view-id-1","method":"debug_print_spans","params":[]}}
+{"id":3,"method":"edit","params":{"view_id":"view-id-1","method":"copy","params":[]}}"#;
 ```
 

@@ -1,4 +1,42 @@
-## ref-outline/rust/rpc/src/error.rs
+## xi-editor-ph7/rust/rpc/examples/try_chan.rs
+
+```rust
+extern crate xi_rpc;
+
+use std::sync::mpsc;
+use std::thread;
+
+/*
+use xi_rpc::chan::Chan;
+
+pub fn test_chan() {
+    let n_iter = 1000000;
+    let chan1 = Chan::new();
+    let chan1s = chan1.clone();
+    let chan2 = Chan::new();
+    let chan2s = chan2.clone();
+    let thread1 = thread::spawn(move|| {
+        for _ in 0..n_iter {
+            chan2s.try_send(chan1.recv());
+        }
+    });
+    let thread2 = thread::spawn(move|| {
+        for _ in 0..n_iter {
+            chan1s.try_send(42);
+            let _ = chan2.recv();
+        }
+    });
+    let _ = thread1.join();
+    let _ = thread2.join();
+}
+*/
+
+pub fn test_mpsc() {...}
+
+pub fn main() {...}
+```
+
+## xi-editor-ph7/rust/rpc/src/error.rs
 
 ```rust
 use std::fmt;
@@ -158,7 +196,7 @@ impl Serialize for RemoteError {
 }
 ```
 
-## ref-outline/rust/rpc/src/lib.rs
+## xi-editor-ph7/rust/rpc/src/lib.rs
 
 ```rust
 #![allow(clippy::boxed_local, clippy::or_fun_call)]
@@ -169,6 +207,7 @@ extern crate serde_json;
 extern crate serde_derive;
 extern crate crossbeam_utils;
 extern crate serde;
+#[cfg(feature = "trace")]
 extern crate xi_trace;
 
 #[macro_use]
@@ -176,6 +215,7 @@ extern crate log;
 
 mod error;
 mod parse;
+pub mod trace;
 
 pub mod test_utils;
 
@@ -191,7 +231,7 @@ use std::time::{Duration, Instant};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use xi_trace::{trace, trace_block, trace_block_payload, trace_payload};
+use crate::trace::{trace, trace_block, trace_block_payload, trace_payload};
 
 pub use crate::error::{Error, ReadError, RemoteError};
 use crate::parse::{Call, MessageReader, Response, RpcObject};
@@ -291,13 +331,8 @@ impl<'a, W: Write + 'static> Drop for PanicGuard<'a, W> {
     fn drop(&mut self) {...}
 }
 
-trait IdleProc: Send {
-    fn call(self: Box<Self>, token: usize);
-}
-
-impl<F: Send + FnOnce(usize)> IdleProc for F {
-    fn call(self: Box<F>, token: usize) {...}
-}
+// IdleProc trait removed: The RPC idle queue uses tokens (usize), not boxed
+// closures, so a dedicated trait was unused and only raised warning noise.
 
 enum ResponseHandler {
     Chan(mpsc::Sender<Result<Value, Error>>),
@@ -455,7 +490,7 @@ impl PartialOrd for Timer {
 }
 ```
 
-## ref-outline/rust/rpc/src/parse.rs
+## xi-editor-ph7/rust/rpc/src/parse.rs
 
 ```rust
 use std::io::BufRead;
@@ -464,6 +499,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{Error as JsonError, Value};
 
 use crate::error::{ReadError, RemoteError};
+use crate::trace::trace_block;
 
 /// A unique identifier attached to request RPCs.
 type RequestId = u64;
@@ -559,7 +595,7 @@ impl From<Value> for RpcObject {
 }
 ```
 
-## ref-outline/rust/rpc/src/test_utils.rs
+## xi-editor-ph7/rust/rpc/src/test_utils.rs
 
 ```rust
 use std::io::{self, Cursor, Write};
@@ -628,6 +664,69 @@ impl Peer for DummyPeer {
     fn request_is_pending(&self) -> bool {...}
     fn schedule_idle(&self, _token: usize) {...}
     fn schedule_timer(&self, _time: Instant, _token: usize) {...}
+}
+```
+
+## xi-editor-ph7/rust/rpc/src/trace.rs
+
+```rust
+#[cfg(feature = "trace")]
+pub use xi_trace::{
+    trace,
+    trace_block,
+    trace_block_payload,
+    trace_payload,
+    SampleGuard,
+};
+
+#[cfg(not(feature = "trace"))]
+mod shim {
+    use std::marker::PhantomData;
+
+    #[derive(Debug, Default)]
+    pub struct SampleGuard<'a>(PhantomData<&'a ()>);
+
+    impl<'a> Drop for SampleGuard<'a> {
+        fn drop(&mut self) {...}
+    }
+
+    pub fn trace<S, C>(_name: S, _categories: C) {...}
+
+    pub fn trace_payload<S, C, P>(_name: S, _categories: C, _payload: P) {...}
+
+    pub fn trace_block<'a, S, C>(_name: S, _categories: C) -> SampleGuard<'a> {...}
+
+    pub fn trace_block_payload<'a, S, C, P>(_name: S, _categories: C, _payload: P) -> SampleGuard<'a> {...}
+
+}
+
+#[cfg(not(feature = "trace"))]
+pub use shim::{trace, trace_block, trace_block_payload, trace_payload, SampleGuard};
+```
+
+## xi-editor-ph7/rust/rpc/tests/integration.rs
+
+```rust
+#[macro_use]
+extern crate serde_json;
+extern crate xi_rpc;
+
+use std::io;
+use std::time::Duration;
+
+use serde_json::Value;
+use xi_rpc::test_utils::{make_reader, test_channel};
+use xi_rpc::{Handler, ReadError, RemoteError, RpcCall, RpcCtx, RpcLoop};
+
+/// Handler that responds to requests with whatever params they sent.
+pub struct EchoHandler;
+
+#[allow(unused)]
+impl Handler for EchoHandler {
+    type Notification = RpcCall;
+    type Request = RpcCall;
+    fn handle_notification(&mut self, ctx: &RpcCtx, rpc: Self::Notification) {...}
+    fn handle_request(&mut self, ctx: &RpcCtx, rpc: Self::Request) -> Result<Value, RemoteError> {...}
 }
 ```
 
