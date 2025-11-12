@@ -16,6 +16,7 @@
 - `TreeBuilder` 与 `LeafSplitter` 负责将长文本切分为符合 `MaxLeafSize` 的片段，优先选择换行与代理对友好的边界；配合阶段 B 引入的 `NormalizeLeafMinimum()`，叶片欠载会通过局部合并/借用自动修复，当前仍缺少内部节点层面的整体再平衡策略。
 - `Node` 已提供 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`EnsureWritableLeaf`、`SplitLeafByBounds`、`NormalizeLeafMinimum()` 等结构共享/调节 API；局部编辑完成后会自动修复欠载叶片并保持 `[MinLeafSize, MaxLeafSize]` 约束，内部节点仍依赖简单聚合，后续需要阶段 C/D 的再平衡与增量刷新。
 - 阶段 B（叶片容量与诊断）已收官，当前重点转向阶段 C：需要定义内部节点借用/合并/分裂策略，并评估 `Concat`、`TreeBuilder` 等入口生成失衡树时的调节方案，为保持树高稳定和聚合信息正确性做准备。
+- 已评估结构体 Helper 静态多态方案（见 `docs/architecture/static-polymorphism-assessment.md`），确认可支撑 `Node<TInfo, TLeaf, TLeafOps>` 泛型化，但需留意默认初始化、共享状态与资源注入限制。
 - `Node.ValidateInvariants` 可在测试中校验高度、聚合信息与叶片容量，并支持可选的最小叶片严格检查；`RopeTestHelpers.AssertInvariants` 已在单元测试中默认启用该校验。
 - `Rope` 通过 `InternalsVisibleTo` 暴露 `DebugRoot`，测试层借此在缓冲区级别断言结构不变量，混合编辑序列覆盖默认开启。
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 66 项 Rope/TextBuffer 测试全部通过，新增跨层欠载与 surrogate 场景的诊断回归；在 `NormalizeLeafMinimum()` 引入后所有编辑路径均保持叶片容量约束，为后续 COW 阶段收尾与 Delta 原型验证提供回归基线。

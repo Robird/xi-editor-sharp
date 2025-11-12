@@ -81,3 +81,45 @@
 2. **同步测试骨架**：在 `xi.Core.Tests` 下新增与 Rust 测试同名的测试类/方法，标记 `Skip` 或 `TODO`。
 3. **持续更新表格**：每完成一次接口/实现迭代，更新本表状态列与备注列。
 4. **范式扩展**：遇到新的语言差异（如迭代器、闭包、宏）时，将翻译策略追加到范式表中。
+
+## 主要缺口
+先对照 rope.md 走了一圈，整体感觉这份 C# skeleton 已经把“Rope + Tree + Metric”主干都列出来了，但和 Rust 原版相比仍有几块明显缺口，需要补上才能支撑后续的类型对齐和实现规划。
+
+- **Delta/Subset/Transformer 整块缺席**  
+  Rust `delta.rs`、`multiset.rs` 的类型（`Delta<T>`, `InsertDelta`, `Subset`, `SubsetBuilder`, `Transformer` 等）在 C# skeleton 中完全没有。`core-lib` 与 `engine.rs` 强依赖这套接口，缺了它们我们很难往上游推进。
+
+- **辅助模块（Breaks/Compare/Diff/Find）未体现**  
+  Rust 的 `breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 在 C# 侧没有任何骨架，意味着行号、diff、搜索等能力还没映射，后续要补的类型和接口会不少。
+
+- **Tree 模块泛型差异未记录**  
+  Rust 的 `Node<N>`、`TreeBuilder<N>` 是泛型化设计；我们 C# 目前直接特化成 `Node`（string 叶片）。Skeleton 里最好显式备注“暂时特化 string”或“未来计划恢复泛型”，免得在设计阶段忽略这一差异。
+
+- **Cursor 细节空白**  
+  Rust `Cursor<'a, N>` 包含位置缓存、固定大小数组等优化。C# 的 `NodeCursor` 目前只是方法签名。Skeleton 可以添加字段/注释（例如 cache、当前 leaf 引用、偏移量等），否则后续实现时还要回头从 Rust 文档再找一次。
+
+- **RopeInfo 与 Metric 贯穿全局的契约说明不足**  
+  Rust 中 `NodeInfo::interval` 等默认方法在 C# 已抽象出来，但 skeleton 里没有标明这些契约如何被 `Node`、`TreeBuilder` 使用，也没有点出“IntervalForPrefix 仍未覆盖非默认行为”。
+
+- **命名空间层级和模块边界未凸显**  
+  Rust 按模块分层。Skeleton 里所有类型几乎都堆在一个文件里，很难看出“这是 Tree”“这是 Delta 模块”。对照时会增加认知负担。
+
+## 改进思路
+
+1. **补齐缺失模块骨架**  
+   - 按照 `rope-port-mapping.md` 建的映射表，把 `Delta`, `Subset`, `Transformer`, `CountMatcher`, `BreakBuilder`, `LineHashDiff`, `FindResult` 等关键类型都先放进 skeleton，并写上职责摘要。
+   - 即便暂时未实现，也能在文档中清楚列出 TODO/待对齐信息，方便设定下一阶段的编码任务。
+
+2. **强化 Tree 泛型/特化的设计说明**  
+   - 在 skeleton 的 `Node`/`TreeBuilder` 注释里写明“C# 当前特化 string 叶片，后续评估泛型化方案”，必要时给出拓展接口（例如 `ILeafOperations`）的使用方式。
+   - 如果有计划引入泛型版本，可在 skeleton 里预先定义 `Node<TInfo>`、`TreeBuilder<TInfo>` 的草稿或备注，让设计取向更明确。
+
+3. **补全 Cursor 内部状态骨架**  
+   - 给 `NodeCursor` 增加与 Rust 一致的字段：`root`, `position`, `cache`（例如固定大小数组）、`leaf`, `offsetOfLeaf`。并在注释里标出缓存策略/无分配前提。
+   - 将 Rust 中的核心方法（`descend`, `measure_leaf`, `descend_metric`, `next_leaf`, `prev_leaf` 等）以 stub 形式加进去，避免遗漏。
+
+4. **模块化视图与文档互通**  
+   - 在 skeleton 文件里按模块加标题或分段注释（例如 `// ==== Delta ====`, `// ==== Engine ==== `），对应 Rust 中的 `mod`。这样和 rope.md 对照时更直观。
+   - 新增关联文档链接注释，例如在 `Delta` 段落写“// 参考 docs/architecture/rope-delta-notes.md”。
+
+5. **记录跨文件依赖**  
+   - 例如在 `Rope`、`Engine` 骨架位置注明它们依赖的模块（Delta/Subset/Tree），以及任何计划使用的辅助结构（Breaks、Compare、Diff）。帮助在规划实现顺序时横向串联。
