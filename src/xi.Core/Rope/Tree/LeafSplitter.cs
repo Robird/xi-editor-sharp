@@ -14,7 +14,7 @@ internal static class LeafSplitter
             yield break;
         }
 
-        var max = Node.MaxLeafSize;
+    var max = StringLeafOperations.MaxLeafSize;
         var offset = 0;
         var length = text.Length;
 

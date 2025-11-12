@@ -10,8 +10,8 @@ namespace Xi.Core.Rope.Tree;
 /// </summary>
 public sealed class Node
 {
-    public const int MinLeafSize = 511;
-    public const int MaxLeafSize = 1024;
+    public const int MinLeafSize = StringLeafOperations.MinLeafSize;
+    public const int MaxLeafSize = StringLeafOperations.MaxLeafSize;
 
     private readonly NodeBody _body;
 
@@ -294,7 +294,7 @@ public sealed class Node
             return Empty;
         }
 
-        var cloneText = string.Create(source.Length, source, static (span, s) => s.AsSpan().CopyTo(span));
+        var cloneText = StringLeafOperations.Clone(source);
         if (ReferenceEquals(source, cloneText))
         {
             return this;
@@ -342,17 +342,7 @@ public sealed class Node
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
 
-            var newLength = leafText.Length + text.Length;
-
-            var newLeafText = string.Create(newLength, (leafText, start, text), static (span, state) =>
-            {
-                var (source, insertIndex, insertText) = state;
-                source.AsSpan(0, insertIndex).CopyTo(span);
-                var current = insertText.AsSpan();
-                current.CopyTo(span[insertIndex..(insertIndex + current.Length)]);
-            source.AsSpan(insertIndex).CopyTo(span[(insertIndex + current.Length)..]);
-            });
-
+            var newLeafText = StringLeafOperations.Insert(leafText, start, text);
             var newLeaf = FromLeaf(newLeafText);
 
             if (newLeaf.Length <= MaxLeafSize)
@@ -427,29 +417,25 @@ public sealed class Node
         if (IsLeaf)
         {
             var leafText = _body.Leaf ?? string.Empty;
-            var newLength = leafText.Length - length;
 
-            if (newLength < 0)
+            if (length < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(length));
             }
 
-            if (newLength == 0)
+            if (start < 0 || start > leafText.Length || start + length > leafText.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length));
+            }
+
+            if (length == leafText.Length)
             {
                 result = Empty;
                 return true;
             }
 
-            var newLeaf = string.Create(newLength, (leafText, start, length), static (span, state) =>
-            {
-                var (source, removeStart, removeLength) = state;
-                var head = source.AsSpan(0, removeStart);
-                head.CopyTo(span);
-                var tail = source.AsSpan(removeStart + removeLength);
-                tail.CopyTo(span[head.Length..]);
-            });
-
-            result = FromLeaf(newLeaf);
+            var updated = StringLeafOperations.RemoveRange(leafText, start, length);
+            result = updated.Length == 0 ? Empty : FromLeaf(updated);
             return true;
         }
 
@@ -529,22 +515,8 @@ public sealed class Node
         if (IsLeaf)
         {
             var leafText = _body.Leaf ?? string.Empty;
-            var newLength = leafText.Length - length + text.Length;
 
-            var newLeafText = string.Create(newLength, (leafText, start, length, text), static (span, state) =>
-            {
-                var (source, replaceStart, replaceLength, replacement) = state;
-                var head = source.AsSpan(0, replaceStart);
-                head.CopyTo(span);
-
-                var replacementSpan = replacement.AsSpan();
-                var replacementSlice = span.Slice(replaceStart, replacementSpan.Length);
-                replacementSpan.CopyTo(replacementSlice);
-
-                var tail = source.AsSpan(replaceStart + replaceLength);
-                tail.CopyTo(span.Slice(replaceStart + replacementSpan.Length));
-            });
-
+            var newLeafText = StringLeafOperations.ReplaceRange(leafText, start, length, text);
             var newLeaf = FromLeaf(newLeafText);
 
             if (newLeaf.Length <= MaxLeafSize)
