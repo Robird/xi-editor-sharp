@@ -3,29 +3,44 @@ using System.Diagnostics.CodeAnalysis;
 namespace Xi.Core.Rope.Tree;
 
 /// <summary>
-/// Describes operations required for rope leaf values. Mirrors xi-editor's <c>Leaf</c> trait.
+/// Describes operations required for rope leaf values. Mirrors xi-editor's <c>Leaf</c> trait。
+/// 采用 static abstract 成员以便在泛型节点中通过类型实参直接调用。
 /// </summary>
-/// <typeparam name="TLeaf">The underlying leaf data type.</typeparam>
+/// <typeparam name="TLeaf">叶片数据类型。</typeparam>
 public interface ILeafOperations<TLeaf>
 {
-    /// <summary>Returns the length of the leaf in base units.</summary>
-    int GetLength(TLeaf leaf);
+    /// <summary>最小叶片容量。</summary>
+    static abstract int MinLeafSize { get; }
 
-    /// <summary>
-    /// Determines whether the leaf respects structural constraints and can remain a child in the tree.
-    /// </summary>
-    bool IsValidChild(TLeaf leaf, int minLeafSize, int maxLeafSize);
+    /// <summary>最大叶片容量。</summary>
+    static abstract int MaxLeafSize { get; }
 
-    /// <summary>
-    /// Attempts to append a slice of <paramref name="other"/> described by <paramref name="interval"/> to <paramref name="destination"/>.
-    /// When the resulting leaf exceeds capacity, the overflow segment is returned via <paramref name="splitLeaf"/>.
-    /// </summary>
-    bool TryPushMaybeSplit(ref TLeaf destination, TLeaf other, Interval interval, [MaybeNullWhen(false)] out TLeaf splitLeaf);
+    /// <summary>空叶片实例。</summary>
+    static abstract TLeaf Empty { get; }
 
-    /// <summary>
-    /// Extracts a subsequence of <paramref name="leaf"/> described by <paramref name="interval"/>.
-    /// </summary>
-    TLeaf Slice(TLeaf leaf, Interval interval);
+    /// <summary>返回叶片长度（以基础单位计）。</summary>
+    static abstract int GetLength(TLeaf leaf);
+
+    /// <summary>判断叶片是否满足结构约束。</summary>
+    static abstract bool IsValidChild(TLeaf leaf);
+
+    /// <summary>克隆叶片，确保写时复制场景不共享底层存储。</summary>
+    static abstract TLeaf Clone(TLeaf leaf);
+
+    /// <summary>在指定位置插入 <paramref name="insertion"/> 内容并返回新叶片。</summary>
+    static abstract TLeaf Insert(TLeaf leaf, int index, TLeaf insertion);
+
+    /// <summary>删除指定范围的内容并返回新叶片。</summary>
+    static abstract TLeaf RemoveRange(TLeaf leaf, int index, int length);
+
+    /// <summary>将指定范围替换为 <paramref name="replacement"/> 内容并返回新叶片。</summary>
+    static abstract TLeaf ReplaceRange(TLeaf leaf, int index, int length, TLeaf replacement);
+
+    /// <summary>合并相邻叶片内容。</summary>
+    static abstract TLeaf Merge(TLeaf left, TLeaf right);
+
+    /// <summary>尝试根据容量约束对两个叶片进行平衡拆分。</summary>
+    static abstract bool TryComputeBalancedSplit(TLeaf left, TLeaf right, [MaybeNullWhen(false)] out TLeaf newLeft, [MaybeNullWhen(false)] out TLeaf newRight);
 }
 
 /// <summary>

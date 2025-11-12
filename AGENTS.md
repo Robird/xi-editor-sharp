@@ -6,23 +6,8 @@
 - 不要使用'insert_edit_into_file'工具，经常产生难以补救的错误结果。
 
 ## 项目概览
-
-## 当前关键认知
-- Metric 体系（Base/Lines/Utf16）通过统一接口支持不同坐标转换；`prev/next` 等操作需跨叶处理断裂，C# 版本必须提供等效能力以避免重复扫描。
-- Delta/Subset 组合支撑插入、删除与并发协作：`factor()` 拆分插入/删除，`transform_expand`/`synthesize` 完成坐标重映射，是撤销与插件同步的基础能力。
-- C# 迁移需实现写时复制的节点管理（引用计数或复制策略），并评估 `string`、`char[]`、`ArrayPool<char>` 等叶节点承载方式以控制 GC 压力。
-- 核心 API 设计需保持嵌入式调用友好，同时为 JSON-RPC/插件层预留事件与通知扩展点。
-- 已对 `reference/rust/core-lib` 与 `reference/rust/rope` 的关键入口文件完成首轮梳理，输出 C# 子系统映射与迁移顺序初稿（`docs/architecture/xi-core-structure.md`），并配套 `docs/architecture/module-migration-plan.md`、`docs/architecture/api-contract.md`、`docs/architecture/xi-port-goals-roadmap.md` 与 `docs/architecture/rope-delta-notes.md` 等文档作为实施基线。
-- `TreeBuilder` 与 `LeafSplitter` 负责将长文本切分为符合 `MaxLeafSize` 的片段，优先选择换行与代理对友好的边界；配合阶段 B 引入的 `NormalizeLeafMinimum()`，叶片欠载会通过局部合并/借用自动修复，当前仍缺少内部节点层面的整体再平衡策略。
-- `Node` 已提供 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`EnsureWritableLeaf`、`SplitLeafByBounds`、`NormalizeLeafMinimum()` 等结构共享/调节 API；局部编辑完成后会自动修复欠载叶片并保持 `[MinLeafSize, MaxLeafSize]` 约束，内部节点仍依赖简单聚合，后续需要阶段 C/D 的再平衡与增量刷新。
-- 阶段 B（叶片容量与诊断）已收官，当前重点转向阶段 C：需要定义内部节点借用/合并/分裂策略，并评估 `Concat`、`TreeBuilder` 等入口生成失衡树时的调节方案，为保持树高稳定和聚合信息正确性做准备。
-- 已评估结构体 Helper 静态多态方案（见 `docs/architecture/static-polymorphism-assessment.md`），确认可支撑 `Node<TInfo, TLeaf, TLeafOps>` 泛型化，但需留意默认初始化、共享状态与资源注入限制。
-- `Node` 泛型化改造已完成依赖盘点（`docs/architecture/node-generic-refactor-plan.md`），确认落点集中于 `Tree/Node.cs`、`TreeBuilder.cs`、`LeafSplitter.cs`、`Rope.cs` 及测试集，主要风险在叶操作接口扩展与常量迁移。
-- 已将字符串叶片编辑路径集中到 `StringLeafOperations` 并以单元测试锁定行为，为泛型化后的叶操作接口提供可复用基线。
-- `Node.ValidateInvariants` 可在测试中校验高度、聚合信息与叶片容量，并支持可选的最小叶片严格检查；`RopeTestHelpers.AssertInvariants` 已在单元测试中默认启用该校验。
-- `Rope` 通过 `InternalsVisibleTo` 暴露 `DebugRoot`，测试层借此在缓冲区级别断言结构不变量，混合编辑序列覆盖默认开启。
-- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 74 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`，确保 Leaf Helper 抽象的回归基线稳定。
-- 已整理《Rope 移植方法论》（`docs/architecture/rope-porting-methodology.md`）与《Rope 文件级映射与类型翻译计划》（`docs/architecture/rope-port-mapping.md`），确认采用“先契约后实现”的分层移植策略，并建立 Rust→C# 文件映射与翻译范式。
+- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 78 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`，确保 Leaf Helper 抽象的回归基线稳定。
+- `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 78 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
 - `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
 - Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
@@ -70,7 +55,7 @@
 
 ## 下一步行动（高优先级 Backlog）
 1. **叶操作抽象巩固**
-  - 将叶片合并、借用、再平衡以及 `NormalizeLeafMinimum()` 相关逻辑逐步迁移至 `StringLeafOperations`（或后续的泛型 Helper），收敛所有字符串特化逻辑。
+  - 已将叶片合并与再平衡所需的字符串处理迁移至 `StringLeafOperations`，并让其实现静态抽象 `ILeafOperations<string>` 接口；继续盘点剩余 string 特化（诊断、快照等），并规划泛型 Helper 最终接口。
   - 盘点 `Node` 中仍直接操作 `string` 的调用点，映射到未来 `ILeafOperations` 所需的接口能力，并同步更新 `node-generic-refactor-plan.md`。
   - 扩展现有单元测试覆盖（合并、拆分、借用）以及异常路径，确保 Helper 行为可独立验证。
 2. **泛型 Node 内核试验**
@@ -109,7 +94,7 @@
 - 评估协同编辑/CRDT 功能的技术路线，明确所需的 Delta/Subset 扩展与一致性测试。
 
 ## 摘要Agent提示
-- 下次执行摘要时请突出：`StringLeafOperations` 已抽离并配套 74 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper。
+- 下次执行摘要时请突出：`StringLeafOperations` 已抽离叶片编辑/合并/再平衡逻辑，并配套 78 项测试基线，为泛型 `Node` 铺设叶操作 Helper。
 - 概述紧邻的短期计划（叶操作抽象巩固、泛型 Node 内核试验、阶段 C 再平衡设计），以便快速恢复上下文。
 - 若摘要篇幅受限，优先保留关键认知列表中新添加的 Helper 与测试信息，其次是“下一步行动”前两项的执行要点。
 
@@ -208,3 +193,4 @@
 - 梳理原版 `Node<N>` 的使用场景并更新 `docs/architecture/node-generic-refactor-plan.md`，以 tree/rope/delta/serde 等模块分类指导 C# 泛型化落地。
 - 回顾并强化 `docs/architecture/node-generic-refactor-plan.md`，补充接口能力映射、迁移节奏与风险缓释建议，为泛型 Node 实施提供更细致的执行清单。
 - 提取字符串叶片操作至 `StringLeafOperations`，并调整 `Node` 及 `LeafSplitter` 复用公共 Helper，同时补充单元测试验证插入/删除/替换等基础行为。
+- 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 78 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。

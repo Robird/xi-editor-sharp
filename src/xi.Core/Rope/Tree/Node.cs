@@ -10,8 +10,8 @@ namespace Xi.Core.Rope.Tree;
 /// </summary>
 public sealed class Node
 {
-    public const int MinLeafSize = StringLeafOperations.MinLeafSize;
-    public const int MaxLeafSize = StringLeafOperations.MaxLeafSize;
+    public static int MinLeafSize => StringLeafOperations.MinLeafSize;
+    public static int MaxLeafSize => StringLeafOperations.MaxLeafSize;
 
     private readonly NodeBody _body;
 
@@ -1016,6 +1016,16 @@ public sealed class Node
         throw new InvalidOperationException("Operation requires an internal node with children.");
     }
 
+    private static string GetLeafText(Node node)
+    {
+        if (!node.IsLeaf)
+        {
+            throw new InvalidOperationException("Requested leaf text from an internal node.");
+        }
+
+        return node._body.Leaf ?? string.Empty;
+    }
+
     private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result)
     {
         result = Empty;
@@ -1025,12 +1035,15 @@ public sealed class Node
             return false;
         }
 
+        var replacementText = GetLeafText(replacement);
+
         if (index > 0)
         {
             var left = children[index - 1];
             if (left.IsLeaf && left.Length + replacement.Length <= MaxLeafSize)
             {
-                var mergedLeaf = MergeLeaves(left, replacement);
+                var mergedText = StringLeafOperations.Merge(GetLeafText(left), replacementText);
+                var mergedLeaf = FromLeaf(mergedText);
                 result = BuildMergedNode(children, index - 1, index, mergedLeaf);
                 return true;
             }
@@ -1041,7 +1054,8 @@ public sealed class Node
             var right = children[index + 1];
             if (right.IsLeaf && replacement.Length + right.Length <= MaxLeafSize)
             {
-                var mergedLeaf = MergeLeaves(replacement, right);
+                var mergedText = StringLeafOperations.Merge(replacementText, GetLeafText(right));
+                var mergedLeaf = FromLeaf(mergedText);
                 result = BuildMergedNode(children, index, index + 1, mergedLeaf);
                 return true;
             }
@@ -1087,10 +1101,16 @@ public sealed class Node
             return false;
         }
 
-        if (!TryComputeBalancedLeafSplit(first, second, out var newFirst, out var newSecond))
+        var firstText = GetLeafText(first);
+        var secondText = GetLeafText(second);
+
+        if (!StringLeafOperations.TryComputeBalancedSplit(firstText, secondText, out var firstSegment, out var secondSegment))
         {
             return false;
         }
+
+        var newFirst = FromLeaf(firstSegment);
+        var newSecond = FromLeaf(secondSegment);
 
         var newChildren = new Node[children.Length];
         Array.Copy(children, newChildren, children.Length);
@@ -1099,145 +1119,6 @@ public sealed class Node
 
         result = CloneWithChildren(newChildren);
         return true;
-    }
-
-    private static bool TryComputeBalancedLeafSplit(Node first, Node second, out Node newFirst, out Node newSecond)
-    {
-        var firstText = first.ToString();
-        var secondText = second.ToString();
-        var totalLength = firstText.Length + secondText.Length;
-
-        var minSplit = Math.Max(MinLeafSize, totalLength - MaxLeafSize);
-        var maxSplit = Math.Min(MaxLeafSize, totalLength - MinLeafSize);
-
-        if (minSplit > maxSplit)
-        {
-            newFirst = first;
-            newSecond = second;
-            return false;
-        }
-
-        var candidate = Math.Clamp(totalLength / 2, minSplit, maxSplit);
-        candidate = PreferNewlineBoundary(firstText, secondText, candidate, minSplit, maxSplit);
-
-        if (!TryEnsureSurrogateBoundary(firstText, secondText, ref candidate, minSplit, maxSplit))
-        {
-            newFirst = first;
-            newSecond = second;
-            return false;
-        }
-
-        var leftSegment = CreateCombinedSegment(firstText, secondText, 0, candidate);
-        var rightSegment = CreateCombinedSegment(firstText, secondText, candidate, totalLength - candidate);
-
-        if (leftSegment.Length < MinLeafSize || rightSegment.Length < MinLeafSize)
-        {
-            newFirst = first;
-            newSecond = second;
-            return false;
-        }
-
-        newFirst = FromLeaf(leftSegment);
-        newSecond = FromLeaf(rightSegment);
-        return true;
-    }
-
-    private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit)
-    {
-        var window = LeafSplitter.NewlinePreferenceWindow;
-        var lowerBound = Math.Max(minSplit, candidate - window);
-
-        for (var split = candidate; split >= lowerBound; split--)
-        {
-            if (split == 0)
-            {
-                break;
-            }
-
-            if (GetCombinedChar(left, right, split - 1) == '\n')
-            {
-                return split;
-            }
-        }
-
-        return candidate;
-    }
-
-    private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit)
-    {
-        var total = left.Length + right.Length;
-
-        if (!IsSafeBoundary(left, right, splitIndex))
-        {
-            if (splitIndex + 1 <= maxSplit && IsSafeBoundary(left, right, splitIndex + 1))
-            {
-                splitIndex += 1;
-            }
-            else if (splitIndex - 1 >= minSplit && IsSafeBoundary(left, right, splitIndex - 1))
-            {
-                splitIndex -= 1;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        if (splitIndex <= 0 || splitIndex >= total)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool IsSafeBoundary(string left, string right, int index)
-    {
-        if (index <= 0)
-        {
-            return true;
-        }
-
-        var total = left.Length + right.Length;
-        if (index >= total)
-        {
-            return true;
-        }
-
-        var prev = GetCombinedChar(left, right, index - 1);
-        var next = GetCombinedChar(left, right, index);
-        return !(char.IsHighSurrogate(prev) && char.IsLowSurrogate(next));
-    }
-
-    private static string CreateCombinedSegment(string left, string right, int start, int length)
-    {
-        return string.Create(length, (left, right, start), static (span, state) =>
-        {
-            var (first, second, offset) = state;
-            var remaining = span.Length;
-            var writeIndex = 0;
-            var currentOffset = offset;
-
-            if (currentOffset < first.Length)
-            {
-                var take = Math.Min(first.Length - currentOffset, remaining);
-                first.AsSpan(currentOffset, take).CopyTo(span);
-                writeIndex += take;
-                currentOffset += take;
-                remaining -= take;
-            }
-
-            if (remaining > 0)
-            {
-                var secondOffset = currentOffset - first.Length;
-                second.AsSpan(secondOffset, remaining).CopyTo(span[writeIndex..]);
-            }
-        });
-    }
-
-    private static char GetCombinedChar(string left, string right, int index)
-    {
-        return index < left.Length ? left[index] : right[index - left.Length];
     }
 
     private static void ValidateNode(Node node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path)
@@ -1394,26 +1275,6 @@ public sealed class Node
         }
 
         return newChildren.Length == 1 ? newChildren[0] : CreateInternal(Height, newChildren);
-    }
-
-    private static Node MergeLeaves(Node first, Node second)
-    {
-        if (!first.IsLeaf || !second.IsLeaf)
-        {
-            throw new InvalidOperationException("MergeLeaves requires leaf inputs.");
-        }
-
-        var leftText = first.ToString();
-        var rightText = second.ToString();
-        var mergedText = string.Create(leftText.Length + rightText.Length, (leftText, rightText), static (span, state) =>
-        {
-            var (left, right) = state;
-            var leftSpan = left.AsSpan();
-            leftSpan.CopyTo(span);
-            right.AsSpan().CopyTo(span[leftSpan.Length..]);
-        });
-
-        return FromLeaf(mergedText);
     }
 
     private static Node CreateInternal(int height, IReadOnlyList<Node> children)

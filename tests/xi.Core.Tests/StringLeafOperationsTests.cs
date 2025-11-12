@@ -88,4 +88,57 @@ public class StringLeafOperationsTests
 
         Assert.Equal("abcXYZdef", result);
     }
+
+    [Fact]
+    public void Merge_Concatenates_Input_Strings()
+    {
+        var left = new string('a', 16);
+        var right = new string('b', 8);
+
+        var result = StringLeafOperations.Merge(left, right);
+
+        Assert.Equal(left + right, result);
+    }
+
+    [Fact]
+    public void TryComputeBalancedSplit_Returns_Balanced_Segments()
+    {
+        var left = new string('a', StringLeafOperations.MinLeafSize - 100);
+        var right = new string('b', StringLeafOperations.MaxLeafSize);
+
+        var success = StringLeafOperations.TryComputeBalancedSplit(left, right, out var newLeft, out var newRight);
+
+        Assert.True(success);
+        Assert.Equal(left.Length + right.Length, newLeft.Length + newRight.Length);
+        Assert.InRange(newLeft.Length, StringLeafOperations.MinLeafSize, StringLeafOperations.MaxLeafSize);
+        Assert.InRange(newRight.Length, StringLeafOperations.MinLeafSize, StringLeafOperations.MaxLeafSize);
+    }
+
+    [Fact]
+    public void TryComputeBalancedSplit_Prefers_Newline_Boundary()
+    {
+        var left = new string('a', 580) + "\n" + new string('a', 19);
+        var right = new string('b', StringLeafOperations.MinLeafSize + 150);
+
+        var success = StringLeafOperations.TryComputeBalancedSplit(left, right, out var newLeft, out var newRight);
+
+        Assert.True(success);
+        Assert.Equal('\n', newLeft[^1]);
+        Assert.Equal(left.Length + right.Length, newLeft.Length + newRight.Length);
+    }
+
+    [Fact]
+    public void TryComputeBalancedSplit_Avoids_Surrogate_Pair_Split()
+    {
+        const char high = '\uD83D';
+        const char low = '\uDE00';
+        var left = new string('a', 599) + high;
+        var right = low + new string('b', StringLeafOperations.MinLeafSize + 200);
+
+        var success = StringLeafOperations.TryComputeBalancedSplit(left, right, out var newLeft, out var newRight);
+
+        Assert.True(success);
+        Assert.False(char.IsHighSurrogate(newLeft[^1]) && char.IsLowSurrogate(newRight[0]));
+        Assert.Equal(left + right, newLeft + newRight);
+    }
 }
