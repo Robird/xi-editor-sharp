@@ -1,152 +1,74 @@
-Robird: 这是一个实验git分支，我正在尝试对位机械性翻译rust为近似C#的路线。请帮我先整体评估一下，以语句为单位，哪些是能“机械翻译”的，哪些需要做设计调整。
+## Rope 双向移植评估
 
-GitHub Copilot: 读取 [](file:///e%3A/repos/Atelia-org/xi-editor-sharp/src/xi.Core/Rope/Tree/Node.cs)
+> 目标：明确 C# 与 Rust 双侧协同的移植策略，既保持 C# 端贴近原版实现，也在 `xi-editor-ph7` fork 中逐步减少 Rust 特有语言特性的依赖，让两端最终围绕同一套骨架对齐。
 
-先帮你过一遍 `tree.rs` 的主要语句，标记出可以直接机械翻译的部分，以及需要在 C# 侧重新设计的部分。
+## 1. 评估范围
+- 以 `reference/rust/rope/tree.rs` 为样本，按语句/结构块拆分可“机械翻译”的部分与需重新设计的部分。
+- 将结果反向映射到 Rust 端，判断当前写法是否必须依赖特定语言特性，若非必要则列入“迁移友好”改造清单。
+- 输出双侧协同计划：C# 端保留语义一致的结构，Rust 端主动调整以便复用现有测试资产。
 
-## 评估范围与基准
+## 2. 语句与结构分类概览
 
-- 以 Rust 源文件 tree.rs 为基准，按结构块（常量、trait、结构体、impl 块、方法体语句）评估。
-- “机械翻译”指可无脑映射到等价 C# 语法/库（语义保持一致，复杂度基本为语法替换）。
-- “需要设计调整”指 C# 缺少等价概念、或现有 xi.Core 计划（如静态抽象接口、写时复制策略）需要格外处理的语句。
+| 分类 | 典型示例 | 对 C# 的处理 | Rust 端是否需改写 | 说明 |
+|------|----------|--------------|--------------------|------|
+| 基础语法 | `use`, `const`, 基本 `impl` getter | ✅ 直接语法映射 | 否 | 仅需将 `min`, `Ordering` 映射到 BCL。 |
+| 容器操作 | `Vec::push`, `collect`, while/for | ✅ 改写为 `List<T>`/LINQ | 否 | 控制流结构保持一致。 |
+| pattern matching | `match`, `if let`, `while let` | ⚠️ 转写为 `switch`/`if` | 可选 | 大多是表达风格，Rust 可留用也可替换。 |
+| 枚举携带数据 | `enum NodeVal { Leaf, Internal }` | ⚠️ 需要 `sealed` 层次或标记字段 | ✅ | Rust 可拆成 struct + 标记，减少模式匹配压力。 |
+| 关联类型 | `trait NodeInfo { type L; }` | ❌ 静态抽象接口/显式泛型 | ✅ | Rust 可改写为 `trait NodeInfo<L>` 及辅助别名。 |
+| 默认实现 | `fn identity() -> Self` | ⚠️ 可转 C# 默认接口实现 | 可选 | 若依赖关联类型建议改为 helper 函数。 |
+| COW 接口 | `Arc::make_mut`, `NodeRef` | ❌ 需重写 `SharedNode` | ✅ | Rust 端提供 `ensure_unique()` 等 helper 以屏蔽 `Arc::make_mut`。 |
+| 生命周期 | `Cursor<'a>` 直接借用叶片 | ❌ C# 无等价 | ✅ | Rust 可切换到索引/Arc 引用模型，牺牲部分零拷贝。 |
+| Iterator trait | `impl Iterator for CursorIter` | ⚠️ `IEnumerable<T>` + `yield` | 可选 | Rust 可保留 iterator，但可补 `collect_*` helper 便于跨语言重用。 |
+| 宏断言 | `debug_assert!`, `panic!` | ⚠️ `Debug.Assert`, `throw` | 可选 | Rust 若转为显式 `Result` 更易脚本测试。 |
 
-## 语句分类总览
+> ✅：C# 侧几乎可按部就班翻译；⚠️：需轻微语法重写；❌：需要额外设计或 Rust 协同调整。
 
-| 位置/类别 | 示例语句 | 机械翻译 | 需要调整 | 备注 |
-|-----------|---------|---------|---------|------|
-| 模块导入 | `use std::cmp::{min, Ordering};` | ✅ |  | 直接对应 `using System;` + `System.Math.Min` 等。 |
-| 常量定义 | `const MIN_CHILDREN: usize = 4;` | ✅ |  | 映射为 `private const int MIN_CHILDREN = 4;`。 |
-| trait 静态常量 | `const CURSOR_CACHE_SIZE: usize = 4;` | ✅ |  | 同上。 |
-| trait 定义（无关联类型） | `pub trait Metric<N: NodeInfo> { ... }` 中普通方法签名 | ⚠️ | ✅ | C# 接口无法表达关联类型；需通过泛型/静态抽象成员重构。 |
-| trait 关联类型 | `type L: Leaf;` |  | ✅ | 必须改写为额外的泛型参数或静态抽象接口；当前 `ILeafOperations<T>` 方向。 |
-| trait 默认实现 | `fn identity() -> Self { ... }` | ⚠️ | ✅ | C# 接口默认实现可行，但若依赖关联类型（`Self::L::default()`）则仍需设计 `default` 机制。 |
-| `#[derive(Clone)]` | |  | ✅ | C# 缺省无自动 Clone；需手写 `ICloneable` 或深拷贝逻辑。 |
-| tuple struct | `pub struct Node<N: NodeInfo>(Arc<NodeBody<N>>);` |  | ✅ | 需展开为 class +字段；`Arc`→`Arc<NodeBody>`? C# 需 `RefCounted`/`Shared<T>` 自定义。 |
-| `enum NodeVal` |  | ⚠️ | ✅ | C# 可用 `sealed class` + 子类或 `struct` + `DiscriminatedUnion`；需手工实现 `Leaf`/`Internal` 判别。 |
-| `impl` 块静态函数 | `pub fn from_leaf(...)` | ✅ |  | 转成 `public static Node FromLeaf(...)`（前提内层已设计好）。 |
-| `impl` 块普通函数 | `pub fn len(&self) -> usize` | ✅ |  | getter 映射简单。 |
-| 模式匹配 | `match {...}` / `if let` | ⚠️ | ✅ | 需改写为 `switch`/`if` + 手写解构。 |
-| `debug_assert!` | | ⚠️ | ✅ | C# 没有同名宏；可用 `Debug.Assert` 或条件编译。 |
-| `Arc::make_mut` | |  | ✅ | 需引入写时复制容器；现有 C# 没等价标准库。 |
-| 切片 `&nodes[1..]` | | ⚠️ | ✅ | 需使用 `for (var child in nodes.Skip(1))` 等；注意分配。 |
-| 数组连接 | `[children1, children2].concat()` | ⚠️ | ✅ | 需 `children1.Concat(children2).ToList()` 或 `Span`；性能考量。 |
-| 泛型约束 | `<N: NodeInfo>` | ⚠️ | ✅ | C# 需 `where N : INodeInfo<NLeaf, NMetrics>` 等方案。 |
-| `Option` 处理 | `Option<Self>` | ⚠️ | ✅ | 用 `T?`/自定义 Option；涉及模式匹配。 |
-| `Vec` 操作 | `vec![...]`, `push` | ✅ |  | 映射为 `List<T>`. |
-| `interval` 相关方法 | `iv.into_interval(self.len())` | ✅ |  | 若 Interval API 已复刻，可直接调用。 |
-| `panic!` | | ⚠️ | ✅ | 对应 `throw new InvalidOperationException(...)`. |
-| `Ordering` 比较 | `match h1.cmp(&h2)` | ⚠️ | ✅ | C# 转换为 `if/else` 或 `switch` 枚举。 |
-| `while let` / `loop` | | ⚠️ | ✅ | 需用 C# `while(true)` + `break`. |
-| `Iterator` 实现 | `impl Iterator for CursorIter` | ⚠️ | ✅ | C# 需 `IEnumerable<int>` + `yield return`. |
-| 生命周期 `'a` | `Cursor<'a, N>` |  | ✅ | C# 无生命周期；需约束读写语义，可能导致额外拷贝或 Span-like 设计。 |
-| 测试模块 | `#[cfg(test)]` | ⚠️ | ✅ | C# 需迁移到 xUnit 类；逻辑可机械化但要调整框架。 |
+## 3. Rust 端迁移友好改造建议
 
-## 详细说明
+| 主题 | 建议改造 | 预期收益 | 验证方式 |
+|------|----------|----------|----------|
+| 关联类型退场 | 将 `NodeInfo`, `Metric`, `Leaf` 等 trait 改为显式泛型或组合接口；提供 `type RopeNode = Node<RopeInfo, RopeLeaf>` 别名以兼容现有代码 | 与 C# 泛型约束对齐，脚本化生成骨架 | `cargo test -p xi-rope` 全量通过；查无 orphan impl | 
+| COW helper 抽象 | 在 `NodeBody`/`Arc` 外包裹 `SharedNode` 并提供 `ensure_unique`, `clone_with_children` API | C# 端可按函数签名模拟，避免直接翻译 `Arc::make_mut` | Rope 单测验证编辑后节点引用计数稳定 |
+| NodeVal 扁平化 | 用 `struct NodeBody { kind: NodeKind, leaf: RopeLeaf, children: SmallVec }` + 辅助方法替代 match-heavy 枚举 | 减少模式匹配差异，便于 C# `class` 表达 | `cargo fmt` + `cargo test`，审查生成代码差异 |
+| Cursor 抽象 | 将 `'a` 借用模式替换为节点索引 + `Arc<Node>` 捕获；提供 `CursorCache` 结构说明 | C# 无需实现生命周期可直接共享逻辑 | Cursor 相关单测 (`cursor_next_prev`) 行为保持一致 |
+| 迭代器封装 | 在 Rust 端提供 `collect_boundaries(metric)` 等纯函数 | C# 可以直接调用同名 helper，简化 iterator 翻译 | 复用现有 `Iterator` 测试，新增 helper 覆盖 |
+| 测试模块外置 | 将 `#[cfg(test)]` 模块拆入 `tests/` 目录或公共 helper | 便于提取共享测试数据，双端同步执行 | `cargo test` 结构调整后仍全绿 |
 
-### 1. 顶部导入、常量
+## 4. 双向协同计划
 
-- `use`、`const` 基本可机械翻译；唯一注意 `Ordering` 枚举与 `min` 属于 `std::cmp`，C# 对应 `System.Math.Min` 和自定义枚举映射。
+1. **冻结核心范围**：Rust 侧聚焦 `xi-rope`、`xi-core-lib`；C# 侧集中在 `Xi.Core.Rope`，暂缓视图/插件等模块。
+2. **建立骨架对照**：使用脚本从 Rust 生成精简骨架（已输出 `docs/reference/rust-skeleton.md`），确保每次 Rust 改造后可自动刷新；C# 侧维护同步 skeleton 并标注差异。
+3. **同步 Helper 契约**：先在 Rust 端落地 `SharedNode::ensure_unique()`、`LeafOps::split_at()` 等 helper，再在 C# 端实现等价静态方法，保持命名一致。
+4. **迭代式回放**：每完成一轮 Rust 改造，立即在 C# 侧更新骨架或实现；C# 端新增测试需在 Rust 仓库寻找等价覆盖，反之亦然。
+5. **双端回归基线**：
+	- Rust：`cargo test --workspace`（尤其 `xi-rope`）。
+	- C#：`dotnet test Xi.Editor.sln`，验证 81 项 Rope 测试保持通过。
+6. **脚本化对齐**：在 `scripts/` 增加对照脚本，输出“Rust helper 列表 vs C# 实际实现”差异并写入 CI 报告。
 
-### 2. trait 与接口
+## 5. 近期行动
 
-- `NodeInfo`/`Leaf`/`Metric` 均依赖关联类型与默认实现，C# 无直接等价。你当前在 `ILeafOperations<T>` 与静态抽象接口方向已经是必须的设计调整。
-- 语句如 `type L: Leaf;`、`fn compute_info(_: &Self::L) -> Self;` 均需要重新建模（泛型参数 + 静态抽象方法 + 值语义）。
+1. Rust 端：
+	- 起草 `SharedNode`/`NodeBody::ensure_unique()`，替换直接 `Arc::make_mut` 调用。
+	- 为 `NodeVal` 拆分引入 `NodeKind` 与访问器，减少高阶 `match`。
+	- 将 Cursor 生命周期改写为索引 + `Arc` 持有，更新相关测试。
+2. C# 端：
+	- 在 `StringLeafOperations` 中对齐 Rust 新 helper 命名，预留泛型接口。
+	- 继续扩展 `Node<TInfo, TLeaf, TLeafOps>` 骨架，保持字段/方法顺序与 Rust 同步。
+	- 梳理现有测试，标记可回放到 Rust 的数据集。
+3. 文档与脚本：
+	- 更新 `docs/architecture` 相关计划（当前任务）。
+	- 评估将 Rust/C# 测试矩阵映射输出到 `docs/reference/porting-progress.md`（待建）。
 
-### 3. 结构体/枚举
+## 6. 风险与监控
 
-- `Node<N: NodeInfo>(Arc<NodeBody<N>>)`：Rust 的 tuple struct + `Arc`（共享所有权）。C# 需 `class Node<TInfo>` + 内部 `_inner`，同时实现 `Copy-on-write`（需自建引用计数或借用 `System.Threading.Interlocked` 维护）。语句层面不能机械搬运。
-- `enum NodeVal` -> discriminated union。C# 缺内建 `enum` 携带数据，需要设计 `NodeKind` + `LeafValue`/`Children`，或者 `OneOf`/`Union` 模式。
+| 风险 | 描述 | 监控与缓解 |
+|------|------|------------|
+| Rust 改造破坏上游兼容 | `xi-editor-ph7` 仍需编译/运行 | 每次重构后运行全量测试；对外合入时保留 feature flag / 版本分支 |
+| C# 端实现偏离 | 未及时吸收 Rust 改造，导致分叉 | 建立每周对照清单；必要时生成“缺口报告”放入 `AGENTS.md` |
+| 双端语义不一致 | Helper 名称/参数不匹配 | 所有 helper/方法命名统一在 `rope-port-mapping.md` 维护，改动需同步 PR |
+| 测试资产难以共享 | Rust/C# 输出格式差异大 | 引入中立格式（JSON/Markdown）存储 golden data，并提供转换脚本 |
 
-### 4. `impl Node`
+---
 
-- 纯 getter (`len`, `is_empty`, `height`) 可机械翻译。
-- 依赖 `Arc::make_mut`、`match` 的函数（如 `with_leaf_mut`, `merge_leaves`）需重写 COW 逻辑：必须设计 `EnsureWritable` 等 API，不是机械。
-- `concat` 中递归 + `match Ordering` + 切片语法 -> 需重写控制流，可视为“结构保持但手动翻译”，即语义能保留，不过 `Arc::make_mut`/`clone`/`get_children` 仍要先有设计。
-
-### 5. `TreeBuilder`
-
-- `push` 中 `loop` + `match` + `Vec` 操作需改写为 C# `while (true)` + `switch`/`if`。
-- 使用 `Interval`、`push_maybe_split` 的语句若 C# 端已有等价类型则可机械翻译；否则需先把 Interval 契约补齐。
-- `push_slice` 的递归 match 在 C# 中可翻译为 `if (node.IsLeaf)` 等，属于中等复杂度但可机械；关键阻碍是 `Arc`/COW 设计。
-
-### 6. `Cursor` 与生命周期
-
-- 结构体字段 + 构造函数基本可机械翻译（改为 class/struct +数组）。
-- 但依赖 `Option`、`match`、生命周期 `'a`（借用 tree 内部引用）——C# 没法安全返回叶子引用而不复制；可能需要 `Span<char>` 或直接返回 `NodeRef`，属于设计调整。
-- Methods `prev`, `next`, `iter` 里的 `Option`、`Metric` 泛型 trait 调用都需要 C# 静态抽象接口支持；否则无法机械搬运。
-
-### 7. `CursorIter` 与 `Iterator`
-
-- Rust `impl Iterator` → C# 需实现 `IEnumerable<int>` 和 `IEnumerator<int>` 或 `yield return`。语句可机械翻译成 `while(cursor.Next()) yield return cursor.Position;`，但 `Metric` 接口仍是阻塞点。
-
-### 8. 测试模块
-
-- `#[cfg(test)]` 与 `#[test]` 块必须迁移到 xUnit/NUnit；断言 `assert_eq!` → `Assert.Equal` 可机械，但需改写 `build_triangle`、测试结构。
-- 语句中 `cursor.next::<LinesMetric>()` 依赖泛型常量；C# 版本要用 `cursor.Next<LinesMetric>()` + 约束。
-
-## 汇总
-
-- **完全可机械翻译**：常量、简单 getter、List/Vec push、`TreeBuilder.build` 的 while 循环等，只需语法替换。
-- **需要设计调整**：
-  - 所有 trait 关联类型、默认泛型方法。
-  - `Arc` 写时复制、`Option`/`Result` 模式匹配、`enum` 带数据。
-  - 生命周期 `'a`、`Cursor` 返回借用引用。
-  - `impl Iterator`、`debug_assert!` 宏、`panic!`。
-  - `Node`/`TreeBuilder` 内部对 `Vec` 切片、连接的高阶语法（需考虑性能和分配）。
-
-总体来说，上层控制流（if/while/for）多可以保持语序机械翻译；真正需要重新设计的是语言特性差异处：关联类型 + 写时复制容器 + 生命周期语义。只要先在 C# 侧抽象出 `ILeafOperations`、`SharedNode<T>` 等契约，再回头搬运语句，很多 `match`/`Option` 就能按“模板化”翻译。当前分支主攻泛型 Node/叶操作已经瞄准最大痛点，建议先把这些设计块定型，再分函数机械迁移。
-
-Robird: 我有了一个新思路，原版rust repo不是有完善的单元测试嘛！那些不易翻译为C#的语言特性，不一定完全依赖在C#端重新建模，我们还可以评估在rust端是否必须那样写，把rust版本身重构成跟更易于移植为其他语言的形式。请沿着这个思路，帮我再分析一遍rust源码中难以机械翻译为C#的那些部分，其使用rust语言特性哪些不是必须的。
-
-GitHub Copilot: 马上基于 `tree.rs` 重新审视那些阻碍机械翻译的 Rust 特性，看看哪些其实可以在 Rust 端重构成更“跨语言友好”的写法。
-
-## Rust 特性复用 vs 可重构性🧭
-
-| 特性/位置 | 当前写法 & 目的 | 是否必须 | 可在 Rust 端改写的思路 | 对测试/行为的影响 |
-|-----------|----------------|-----------|--------------------------|--------------------|
-| **`NodeInfo` / `Leaf` / `Metric` 的关联类型** | 通过 `type L` / `type DefaultMetric` 把叶节点与聚合信息绑定，静态确保一致 | 否：目标主要是编译期保障 | 1. 改为显式泛型：`trait NodeInfo<L>`，`Node<L, Info>`，把叶类型作为参数;<br>2. 若继续使用 trait，可拆成“信息”与“叶”两组 trait，通过约束组合 | 编译期约束略松，但可用单元测试兜底；接口变化较大，需要同步调所有实现与测试 |
-| **trait 默认实现 (`fn identity` 等)** | 复用 `compute_info` 默认逻辑，减少重复代码 | 否：只是便利性 | 1. 将默认方法拆到自由函数或 helper 模块；<br>2. 或保持 trait，但用更基本的函数（移除关联类型依赖） | 影响极小；测试可保持原样 |
-| **`Arc<NodeBody>` + `Arc::make_mut`** | 提供写时复制与跨线程共享 | 是：如果仍需 COW 语义 | 可替换为自定义 `SharedNode`（`Arc` 包装 + 手动 `try_unwrap`），接口用普通方法调用而非 `Arc::make_mut`；在 Rust 端实现更简单的 `ensure_unique`/`clone_with` API 后，C# 更容易模拟 | 行为不变；不过要验证 COW 的引用语义，通过现有 Rope 测试即可 |
-| **`enum NodeVal { Leaf, Internal }`** | 区分叶节点与内部节点 | 否：枚举只是表达方式 | 1. 用结构体 + 布尔标记;<br>2. 或拆成 `LeafNode`/`InternalNode` 两个 struct，通过 `NodeBody::Leaf`/`NodeBody::Internal` wrapping；<br>3. 甚至直接在 `NodeBody` 使用 `Option<Vec<Node>>` | 结构拆分后，需要更新 `match`/`if let` 逻辑，但测试可自动验证 |
-| **大量 `match` / `if let`** | 控制流表达 | 否：语言风格 | 可统一替换为 `if {...} else {...}`，或提取方法让模式匹配集中在一处 | 只是语法调整，测试不受影响 |
-| **`Ordering` 枚举匹配** | 清晰表达三向比较 | 否 | 改成 `if h1 < h2 { ... } else if h1 == h2 { ... }` | 无风险 |
-| **切片语法 (`nodes[1..]`)** | 快速遍历子数组 | 否 | 改成 `for child in &nodes[1..]` → `for child in nodes.iter().skip(1)` 等 | 仅语法变化 |
-| **`Option` / `None` 返回** | 表示可能缺失 | 否 | 仍可使用 `Option`; 但若想便于 C#，可在 Rust 端改用返回 `(bool, T)` 或自定义 struct；甚至将“无值”视为特殊 sentinel | API 会变化，需调整调用和测试断言 |
-| **生命周期 `'a` (Cursor)** | 避免分配，直接借用树中叶片 | 否：可换成引用计数或 ID | 1. Cursor 改用 `Arc<Node>` 或节点索引路径，内部每次 `get_leaf` 重新 `Arc::clone`；<br>2. 或返回 `Cow<'a, Leaf>` 兼容借用与所有权 | 需要补充测试验证性能/行为；可能牺牲零分配优势，但功能保持 |
-| **`CursorIter` 实现 `Iterator`** | 提供迭代接口 | 否：可手写 `next`/`prev` 方法 | 若更易翻译，可取消 `impl Iterator`，直接提供 `Cursor::next_boundary`，并在测试中用 while 循环；Rust 端新增简单封装即可 | 现有迭代行为测试要调整为显式循环 |
-| **`debug_assert!` / `panic!`** | 开发期断言 | 否 | 用常规函数 `ensure_children_ok` 返回 `Result`，或统一通过 `assert!`/`Result` 传播 | 测试需覆盖预期失败分支 |
-| **`#[cfg(test)]` 内联单测** | 保持多文件共享私有结构 | 否 | 可拆到独立测试模块/公共 helper，减少 `#[cfg]` 的侵入；便于生成更通用的测试数据 | 迁移工作量不大；测试照跑即可 |
-
-## 推荐改造优先级
-
-1. **接口层（NodeInfo/Leaf/Metric）**  
-   - **短期**：先在 Rust 端引入泛型版 alias（例如 `type RopeNode = Node<RopeInfo, RopeLeaf>`），逐步去除关联类型依赖。  
-   - **中期**：将 `compute_info`/`push_maybe_split` 的调用从静态函数改为显式 helper，以便未来映射到 C# 的 `StringLeafOperations`。
-
-2. **结构表现形式**  
-   - 把 `NodeVal` 改写成“扁平结构 + bool/enum 标记”，同时提供 `is_leaf()`、`as_leaf_mut()` 等辅助函数，使得源码更接近面向对象风格。
-
-3. **COW 封装**  
-   - 用 Rust 新增 `NodeBody::ensure_unique()` 等方法隐藏 `Arc::make_mut`，这样迁移时只需复制方法语义，不必在 C# 端重新模拟 `Arc`.
-
-4. **Cursor 生命周期**  
-   - 研究把 cursor 改成“存索引 + 每次按需取叶”的实现（即便性能稍降），以换取更通用的对象模型；现有测试套可验证行为一致。
-
-5. **迭代器包装**  
-   - 将 `CursorIter` 简化成 `pub fn collect_boundaries<M>(&self) -> Vec<usize>` 等更显式的 API，再用 tests 比对结果；方便 C# 侧直接移植。
-
-## 结论与下一步
-
-很多“难以机械翻译”的语句，其实是出于 Rust 风格/性能取舍，并非语义所迫。只要在 Rust 仓库里提前引入一层抽象（泛型参数、helper 函数、独立 COW 管理、显式控制流），就能让原测试继续覆盖，同时把源码变成“语言中立骨架”。建议按优先级分批重构，再运行原有单测确保回归，之后 C# 端同步迁移会顺畅许多。
-
-## Plan: 双向移植路线规划
-
-以 Rust/C# 双向收敛为目标，先裁剪 scope、统一核心抽象，再按阶段对齐节点/叶、Cursor、Delta/Subset 等模块，依托现有测试基线滚动验证；Rust 端通过辅助 API、泛型重构、移除强语言特性的写法来降低翻译难度，C# 端配合静态抽象/写时复制骨架，最终形成可脚本化的分段迁移流水线。
-
-### Steps
-1. 归档并冻结核心范围：Rust `core-lib/rope` + C# `xi.Core.Rope`；暂停 RPC/插件/UTF-8 等非目标功能。  
-2. 在 Rust 侧引入迁移友好层：封装 `Arc::make_mut`、拆 `NodeVal`、用显式泛型取代关联类型，保持现有测试全绿。  
-3. 对齐节点/叶抽象：完成 Rust/C# 双方 `Node<TInfo, TLeaf, TLeafOps>`、`ILeafOperations` 等接口，共享写时复制/容量策略测试。  
-4. 重建遍历与迭代：在 Rust 中改造 Cursor/迭代器到可索引模式；C# 侧实现等价 API 并覆盖 invariants/基准。  
-5. 迁移 Delta/Subset 与增量更新：先在 Rust 做可翻译重构，再在 .NET 端按映射实现并复用测试文件。  
-6. 建立分段迁移流水线：脚本按模块比对骨架、复制实现、运行双端测试/基准，逐步补充文档与基线。
+*维护人：GitHub Copilot Agent（2025-11-13 更新）*

@@ -1,6 +1,6 @@
 # Rope 与 Delta 迁移要点备忘
 
-> 目的：收敛 xi-editor 核心 Rope/Delta 能力在 .NET 迁移时的关键技术点，为后续实现提供结构化参考。
+> 目的：收敛 xi-editor 核心 Rope/Delta 能力在 .NET 迁移时的关键技术点，为后续实现提供结构化参考；并与 `xi-editor-ph7` fork 上的 Rust 重构协同推进，在 Rust 端提前提供迁移友好 helper/测试资产。
 
 ## 1. Rust 版 Rope 数据结构回顾
 
@@ -78,12 +78,6 @@
 - 提供静态注册表以便未来扩展（例如 grapheme cluster、display width）。
 
 ### 3.4 Delta 与 Subset
-- `RopeDelta` 类封装：
-  - `List<DeltaElement>`，元素为 `Copy(int start, int end)` 或 `Insert(Node)`。
-  - `int BaseLength`。
-- `DeltaBuilder` 提供 Fluent API（`Replace`, `Delete`, `Build`），与 Rust 语义保持一致。
-- `Subset` 使用压缩区间表（`List<(int start, int end, int count)>`）实现 `transform_expand` 等操作。
-- 确保 `Apply`, `Factor`, `Compose` 等操作在 O(k log n) 内完成，其中 k 为 Delta 元素数量。
 
 ### 3.5 与现有 `TextBuffer` 的衔接
 - 定义接口 `ITextBuffer`：
@@ -106,6 +100,7 @@
 4. **Delta/Subset 迁移**：
    - 移植 `RopeDelta` 与 `Subset`，构建针对多种编辑模式的测试组合。
    - 验证 `factor`、`transform_expand` 在并发编辑/撤销场景下的正确性（引入参考 trace）。
+  - 与 Rust 协调 helper 拆分顺序，优先在 Rust 端固化 API，再将语义复制到 C# 侧。
 5. **性能与内存验证**：
    - 构建基准，覆盖大文件加载、随机编辑、重复撤销/重做。
    - 探索 `ArrayPool<char>` 等优化策略，记录 GC 影响。
@@ -117,6 +112,7 @@
 - **Metric 扩展性**：Rust 中的 trait 对泛型友好，C# 需要考虑泛型接口、静态多态与性能之间的权衡。
 - **并发编辑**：`transform_expand` 等算法涉及大量区间映射，需确保整数溢出、安全检查符合 .NET 约束。
 - **测试资产导入**：Rust 版有海量 property-based 测试，C# 需决定等效的 QuickCheck/ FsCheck 引入策略。
+- **Rust 重构节奏**：若 `xi-editor-ph7` 中的 helper 未及时到位，C# 迁移将被阻塞；需在 `bi-direction-port.md` 维护待对齐列表，并准备临时 stub。
 
 ---
 

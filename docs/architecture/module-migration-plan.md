@@ -9,21 +9,22 @@
 - **分阶段交付**：以可运行骨架 → Rope/Delta → 编辑流水线 → 视图通知 → 插件与宿主 为主线，每阶段都要保证回归测试与性能验证。
 - **保持最小可用面**：优先实现核心文本存储和编辑语义，语法高亮、搜索等高级特性可延后。
 - **测试先行**：每个模块的实现都需伴随对应的单元/属性/集成测试，以 Rust 版行为为基准。
+- **双向调整**：当遇到难以在 C# 端直接实现的语言特性，优先在 `xi-editor-ph7` fork 中提供迁移友好 helper 或重写；C# 侧同步吸收最新骨架。
 - **文档与决策同步**：阶段完成后更新《AGENTS.md》《xi-core 结构梳理》与本文档，记录决策与风险。
 
 ---
 
 ## 1. 阶段性里程碑
 
-| 阶段 | 目标快照 | 关键输出 | 主要依赖 |
-|------|-----------|----------|----------|
-| M0 | 架构梳理完成，明确模块边界 | 架构文档、迁移计划（即本文） | 已有 Rust 代码调研 |
-| M1 | .NET 解决方案骨架 & 测试基线 | `Xi.Editor.sln`、`xi.Core`、`xi.Core.Tests`、占位 `TextBuffer` | M0 |
-| M2 | Rope & Delta 移植最小集 | `Xi.Core.Text`（Rope、Delta、Interval）、对照测试、基准脚手架 | M1 |
-| M3 | 编辑命令流水线 | `Xi.Core.Editing`（选择、移动、Undo/Redo）、CRDT 集成测试 | M2 |
-| M4 | 视图缓存与通知 | `Xi.Core.Views`（LineCache、Style）、增量更新协议与测试 | M3 |
-| M5 | 插件/宿主接口 | `Xi.Core.Plugins`、JSON-RPC Host、示例插件 | M4 |
-| M6 | 性能 & 观察性 & 文档 | Benchmark、Telemetry、使用指南 | M5 |
+| 阶段 | 目标快照 | 关键输出 | Rust 协同动作 | 主要依赖 |
+|------|-----------|----------|--------------|----------|
+| M0 | 架构梳理完成，明确模块边界 | 架构文档、迁移计划（即本文） | 提炼 `docs/reference/rust-skeleton.md`，确认同步脚本 | 已有 Rust 代码调研 |
+| M1 | .NET 解决方案骨架 & 测试基线 | `Xi.Editor.sln`、`xi.Core`、`xi.Core.Tests`、占位 `TextBuffer` | `xi-editor-ph7` 清理非必要 crate，冻结核心模块 | M0 |
+| M2 | Rope & Delta 移植最小集 | `Xi.Core.Text`（Rope、Delta、Interval）、对照测试、基准脚手架 | Rust 侧提供 `SharedNode`/`NodeKind` helper、Delta skeleton | M1 |
+| M3 | 编辑命令流水线 | `Xi.Core.Editing`（选择、移动、Undo/Redo）、CRDT 集成测试 | Rust 调整 `editor.rs` 相关 trait/宏，输出兼容骨架 | M2 |
+| M4 | 视图缓存与通知 | `Xi.Core.Views`（LineCache、Style）、增量更新协议与测试 | Rust 精简 `line_cache_shadow`，拆出可移植 helper | M3 |
+| M5 | 插件/宿主接口 | `Xi.Core.Plugins`、JSON-RPC Host、示例插件 | Rust RPC 层改造 trace 特性，梳理 JSON schema | M4 |
+| M6 | 性能 & 观察性 & 文档 | Benchmark、Telemetry、使用指南 | Rust 侧提供基准脚本与性能数据对照 | M5 |
 
 > 2025-11-13 注：Rust 工作区已精简为 `xi-core`、`xi-core-lib`、`xi-plugin-lib`、`xi-rope`、`xi-rpc`、`xi-trace`、`xi-unicode` 七个核心 crate；`experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 已删除，原基准测试目录已重命名为 `*.parked` 以保留参考源码。`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已处理完毕（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177）。
 
@@ -33,25 +34,27 @@
 
 ### 2.1 Text / Rope 子系统
 
-- **目标**：提供等价于 `xi_rope` 的 Rope 树、Delta、Interval、Diff、Metric 支持。
+- **目标**：提供等价于 `xi_rope` 的 Rope 树、Delta、Interval、Diff、Metric 支持，保持与 Rust 重构后的 helper 命名一致。
 - **子任务**：
-  - 翻译 `tree`, `rope`, `delta`, `interval`, `engine` 中的结构体与算法。
+  - 翻译 `tree`, `rope`, `delta`, `interval`, `engine` 中的结构体与算法；关注 Rust 端 helper 改造进度。
   - 为节点与 metric 使用 struct + Span 友好 API，避免过度 GC。
   - 引入 `BenchmarkDotNet` 验证常见操作（插入、删除、slice、line count）。
+  - 追踪 Rust 端 `SharedNode::ensure_unique`、`Cursor::collect_boundaries` 等新 API，保持方法签名一致。
 - **测试**：
   - 逐文件单元测试：节点分裂、合并、度量计算。
   - 属性测试：随机编辑序列保持 Rope 不变式（Base + FsCheck）。
-  - 与 Rust 版对照：重放 `xi_rope` 的 golden fixtures。
+  - 与 Rust 版对照：重放 `xi_rope` 的 golden fixtures，并与 Rust 端新增 helper 测试保持一致。
 - **完成判据**：通过所有单元/属性测试；性能基准达到 Rust 同阶或可接受差距；API 替换 `TextBuffer` 并保持测试通过。
 
 ### 2.2 Editing / CRDT
 
-- **目标**：移植 `editor`, `edit_ops`, `selection`, `movement`, `annotations`, `layers` 关键逻辑。
+- **目标**：移植 `editor`, `edit_ops`, `selection`, `movement`, `annotations`, `layers` 关键逻辑，同时吸收 Rust 端为跨语言友好而拆分的 helper。
 - **子任务**：
-  - 移植 `Engine`-based CRDT 与撤销/重做管理（undo group、GC 策略）。
+  - 移植 `Engine`-based CRDT 与撤销/重做管理（undo group、GC 策略），跟进 Rust 端对 `Engine` trait/宏的拆分。
   - 实现 `SelectionSet`, `SelRegion`, `Movement`，保证 Unicode 一致性。
   - 构建 `UndoManager`，覆盖 `MAX_UNDOS`, `force_undo_group` 场景。
   - 定义 `EditCommand` 枚举/类，与公共 API 对齐。
+  - 对接 Rust 新增的“无宏”编辑 helper，确保调用路径一致。
 - **测试**：
   - 操作级单元测试：插入、删除、换行、缩进、粘贴、撤销/重做链路。
   - 属性测试：随机命令序列与撤销栈一致性。
@@ -60,7 +63,7 @@
 
 ### 2.3 Views / Notifications
 
-- **目标**：移植 `view`, `line_cache_shadow`, `styles`, `width_cache`，提供增量 diff 推送。
+- **目标**：移植 `view`, `line_cache_shadow`, `styles`, `width_cache`，提供增量 diff 推送，并参考 Rust 端分离出的可移植行缓存 helper。
 - **子任务**：
   - 定义 `ViewDiff`, `LineCache` 数据模型，保持 RPC 兼容。
   - 移植样式层叠、范围合并算法。
@@ -73,7 +76,7 @@
 
 ### 2.4 Workspace / Host
 
-- **目标**：C# 版本的 `CoreState` 等价体，管理 buffer/view 生命周期、配置与文件 IO。
+- **目标**：C# 版本的 `CoreState` 等价体，管理 buffer/view 生命周期、配置与文件 IO；跟进 Rust 端在 `tabs.rs`、`core.rs` 的同类拆分。
 - **子任务**：
   - 设计 `Workspace` / `CoreHost` 类，处理命令调度与上下文创建。
   - 可插拔的配置提供者、文件管理器。
@@ -85,7 +88,7 @@
 
 ### 2.5 Plugins / RPC
 
-- **目标**：提供嵌入式插件接口、可选 JSON-RPC Host，与原版协议兼容。
+- **目标**：提供嵌入式插件接口、可选 JSON-RPC Host，与原版协议兼容；复用 Rust 端为 trace/transport 精简后的协议描述。
 - **子任务**：
   - 定义 `IPluginTransport`、`PluginHost`，支持进程内/进程外通信。
   - 复用 `System.Text.Json` + Pipelines 优化序列化。
@@ -97,7 +100,7 @@
 
 ### 2.6 Infrastructure
 
-- **目标**：提供日志、追踪、调度与诊断支撑。
+- **目标**：提供日志、追踪、调度与诊断支撑，保持与 Rust `trace` shim 的接口一致性。
 - **子任务**：
   - 选取日志框架（`Microsoft.Extensions.Logging`?）并接入关键路径。
   - 设计可配置的 idle 调度器、任务队列。
@@ -115,6 +118,7 @@
 | 风险 | 影响 | 缓解策略 |
 |------|------|-----------|
 | Rope 节点频繁分配导致 GC 压力 | 性能退化 | 使用 struct + ArrayPool，提前做基准；必要时引入 `SpanOwner` 等池化策略 |
+| Rust helper 改造进度滞后 | C# 实现阻塞 | 在 `bi-direction-port.md` 建立 TOC，每周同步 Rust 调整计划 |
 | CRDT 合并语义与 Rust 不完全一致 | 数据错乱 | 建立密集回归测试，参考 Rust traces；分阶段对照结果 |
 | Idle 调度在 .NET 中语义差异 | 更新延迟或 UI 卡顿 | 抽象调度接口，模拟 Rust idle token 行为；在集成测试中覆盖 |
 | 插件 RPC 兼容性 | 插件无法复用 | 用 Python 示例作为金标准；保持 JSON schema 一致；提供兼容层 |
@@ -138,8 +142,8 @@
 ## 5. 即将开展的行动建议
 
 1. **API 契约草案**：在 `docs/architecture/api-contract.md` 中定义最小外部接口（Buffer 命令、View 通知、插件交互）。
-2. **Rope 移植预研**：整理 `xi_rope` 数据结构与算法要点，评估 .NET 中的等价实现策略与可能的 helper 类型。
-3. **测试资源整理**：筛选原仓库中可复用的测试/trace，并规划如何在 .NET 测试项目中引入。
+2. **Rope 移植预研**：整理 `xi_rope` 数据结构与算法要点，评估 .NET 中的等价实现策略与可能的 helper 类型；确认 Rust 端即将落地的迁移友好改造。
+3. **测试资源整理**：筛选原仓库中可复用的测试/trace，并规划如何在 .NET 测试项目与 Rust 端共享（必要时输出中立格式）。
 
 ---
 

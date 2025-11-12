@@ -1,6 +1,6 @@
 # xi-editor-core C# 移植架构梳理（草案）
 
-本文档概述原始 Rust 版本 `xi-editor-core` 的关键子系统，并给出 C#/.NET 版本的目标分层与迁移顺序。目标是在保持核心语义和性能特征的前提下，交付一个可嵌入、可测试、可扩展的文本编辑引擎。
+本文档概述原始 Rust 版本 `xi-editor-core` 的关键子系统，并给出 C#/.NET 版本的目标分层与迁移顺序。目标是在保持核心语义和性能特征的前提下，交付一个可嵌入、可测试、可扩展的文本编辑引擎，并与 `xi-editor-ph7` fork 上的 Rust 重构形成双向协同（Rust 主动提供迁移友好 helper，C# 侧保持结构对齐）。
 
 ---
 
@@ -28,16 +28,16 @@
 
 ## 2. Rust 核心模块速览与 C# 映射
 
-| Rust 模块 | 职责概述 | 关键依赖 | 建议的 C# 命名空间/组件 |
-|-----------|----------|----------|---------------------------|
-| `core` / `tabs` | 管理 Buffer/View 生命周期；处理前端 RPC；组织插件 | `xi_rpc`, `serde_json`, `core-lib` 内部模块 | `Xi.Core.Host`（RPC 宿主）、`Xi.Core.Workspace` |
-| `editor` | 处理编辑命令（insert/delete, movement, selection）并生成 delta | `xi_rope`, `selection`, `movement`, `edit_ops` | `Xi.Core.Editing`（命令处理、编辑状态） |
-| `line_cache_shadow` / `view` | 维护视图缓存和增量更新，向前端发出差异 | Rope 视图、`find`, `styles` | `Xi.Core.Views`（增量呈现、通知模型） |
-| `plugins` / `plugin_rpc` | 插件注册、生命周期、消息路由 | `xi_rpc`, `serde_json`, `plugins::manifest` | `Xi.Core.Plugins`（宿主与嵌入式接口） |
-| `backspace`, `movement`, `selection`, `edit_ops` | 高阶编辑语义 | `xi_rope`, Unicode 工具 | `Xi.Core.Editing` 的子命名空间（`Operations`, `Selection`） |
-| `find`, `syntax`, `layers` | 搜索、语法高亮、层叠样式 | `xi_rope`, `syntect` | 暂定 `Xi.Core.Features`（可按需渐进移植） |
-| `xi_rope` crate | Rope 树、Delta、Interval、Diff | `tree`, `delta`, `interval` | 单独项目 `Xi.Core.Rope` 或 `Xi.Core.Text` |
-| `xi_unicode` | Unicode 宽度、词边界 | `unicode-segmentation` | 视情况直接引入 .NET 标准库或移植核心算法 |
+| Rust 模块 | 职责概述 | 关键依赖 | 建议的 C# 命名空间/组件 | Rust 协同策略 |
+|-----------|----------|----------|---------------------------|-------------------|
+| `core` / `tabs` | 管理 Buffer/View 生命周期；处理前端 RPC；组织插件 | `xi_rpc`, `serde_json`, `core-lib` 内部模块 | `Xi.Core.Host`（RPC 宿主）、`Xi.Core.Workspace` | Rust 正拆分 idle token/helper，确保 C# 可无宏复用 |
+| `editor` | 处理编辑命令（insert/delete, movement, selection）并生成 delta | `xi_rope`, `selection`, `movement`, `edit_ops` | `Xi.Core.Editing`（命令处理、编辑状态） | Rust 移除宏/关联类型，输出 helper skeleton |
+| `line_cache_shadow` / `view` | 维护视图缓存和增量更新，向前端发出差异 | Rope 视图、`find`, `styles` | `Xi.Core.Views`（增量呈现、通知模型） | Rust 抽离行缓存 diff helper，降低闭包依赖 |
+| `plugins` / `plugin_rpc` | 插件注册、生命周期、消息路由 | `xi_rpc`, `serde_json`, `plugins::manifest` | `Xi.Core.Plugins`（宿主与嵌入式接口） | Rust 引入 `trace` shim、精简 RPC schema |
+| `backspace`, `movement`, `selection`, `edit_ops` | 高阶编辑语义 | `xi_rope`, Unicode 工具 | `Xi.Core.Editing` 的子命名空间（`Operations`, `Selection`） | Rust 导出测试 fixture + helper，以复用在 C# |
+| `find`, `syntax`, `layers` | 搜索、语法高亮、层叠样式 | `xi_rope`, `syntect` | 暂定 `Xi.Core.Features`（可按需渐进移植） | 迁移到后期，Rust 保持接口稳定 |
+| `xi_rope` crate | Rope 树、Delta、Interval、Diff | `tree`, `delta`, `interval` | 单独项目 `Xi.Core.Rope` 或 `Xi.Core.Text` | Rust 正封装 `SharedNode`、泛型 helper，避免 `Arc::make_mut` 直暴露 |
+| `xi_unicode` | Unicode 宽度、词边界 | `unicode-segmentation` | 视情况直接引入 .NET 标准库或移植核心算法 | Rust 输出宽度表/测试数据，C# 侧可重用 |
 
 > 注：JSON-RPC/插件层可以独立于核心库存在，因此核心 API 需保持宿主无关，便于嵌入模式和独立 Host 复用。
 
@@ -71,7 +71,7 @@
 
 - 新视图通过 `CoreRequest::NewView` 创建：同步返回 `ViewId`，随后将 `view_init` 事件加入 `pending_views`。
 - `CoreState` 在下一个 idle tick (`NEW_VIEW_IDLE_TOKEN`) 完成视图配置、主题加载、插件自动启动，实现顺序化初始化。
-- 其他 idle token（渲染、重排、查找）用于节流昂贵操作；C# 实现需保留等价调度点，可使用 `TaskScheduler` 或自定义事件循环。
+- 其他 idle token（渲染、重排、查找）用于节流昂贵操作；C# 实现需保留等价调度点，可使用 `TaskScheduler` 或自定义事件循环。Rust 端计划将 idle token 逻辑拆成显式 helper，便于 C# 复用。
 
 ---
 
@@ -96,7 +96,7 @@
 | `Xi.Core.Plugins` | 插件生命周期、RPC 桥接 | `PluginHost`, `PluginSession`, `IPluginTransport` | 待设计 |
 | `Xi.Core.Infrastructure` | 日志、诊断、调度 | `IClock`, `ILogger`, `Scheduler` | 待设计 |
 
-当前仅有 `TextBuffer` 作为占位，计划在 Rope 完成后迁移到 `Xi.Core.Text`。
+当前仅有 `TextBuffer` 作为占位，计划在 Rope 完成后迁移到 `Xi.Core.Text`。与此同时，Rust 端正调整 `xi-rope` helper，以确保新 `Node<TInfo, TLeaf, TLeafOps>` 骨架在双端保持同步。
 
 ---
 
@@ -104,31 +104,36 @@
 
 1. **M0 - 架构梳理（当前任务）**
    - 输出跨模块依赖图、公共 API 草案。
-   - 判定哪些 Rust 模块可延后（如语法高亮）。
+   - 判定哪些 Rust 模块可延后（如语法高亮），并与 Rust 侧约定 helper 改造优先级。
 
 2. **M1 - .NET 骨架与测试基线**
    - 已完成基本 Solution + 测试项目。
-   - 后续在基线上补充 `ITextBuffer` 接口与 smoke tests。
+   - 后续在基线上补充 `ITextBuffer` 接口与 smoke tests；Rust 侧同步清理工作区与骨架文档。
 
 3. **M2 - Rope & Delta 移植**
    - 按 `xi_rope` 子模块逐步翻译，建立对照测试（可引入原始 fixtures）。
    - 构建性能基准（插入/删除/查找）。
+   - 依赖 Rust 提供 `SharedNode`、`Delta` helper 等迁移友好结构。
 
 4. **M3 - 编辑命令与撤销/重做**
    - 移植 `editor`, `edit_ops`, `selection` 等模块。
    - 与 Rope 集成，打通基本编辑流水线。
+   - Rust 侧同步拆除宏，输出可复用 helper。
 
 5. **M4 - 视图缓存与通知**
    - 移植 `line_cache_shadow`, `view`，定义增量更新协议。
    - 构建前端模拟测试，验证 diff 正确性。
+   - 对应 Rust 拆分行缓存 helper，提供共享测试数据。
 
 6. **M5 - 插件/扩展层**
    - 设计嵌入式接口 + JSON-RPC Host。
    - 运行示例插件（echo、spellcheck）作为集成测试。
+   - Rust 侧提供 `trace` no-op shim 与协议文档。
 
 7. **M6 - 性能与工具化**
    - 基准测试、诊断、日志、遥测。
    - 文档与示例完善。
+   - 双端记录性能数字，形成对照表。
 
 ---
 
@@ -147,18 +152,19 @@
 
 1. **内存布局差异**：C# GC 对频繁节点分配的影响，需要池化策略或 struct 优化。
 2. **并发模型映射**：Rust channel + worker 需在 .NET 中选用 `System.Threading.Channels` 或任务调度模型，确保顺序语义。
-3. **插件隔离**：嵌入式模式与独立 Host 的契约需要统一抽象，避免重复实现。
-4. **跨平台文件系统差异**：Rust 依赖 notify/tracing 等库，需要评估 C# 对应方案。
-5. **Unicode 工具链**：Rust 采用专用 crate，C# 需验证内置 API 是否满足一致性。
+3. **跨端 helper 偏差**：Rust 重构节奏与 C# 实现可能不同步，导致接口不一致。
+4. **插件隔离**：嵌入式模式与独立 Host 的契约需要统一抽象，避免重复实现。
+5. **跨平台文件系统差异**：Rust 依赖 notify/tracing 等库，需要评估 C# 对应方案。
+6. **Unicode 工具链**：Rust 采用专用 crate，C# 需验证内置 API 是否满足一致性。
 
 ---
 
 ## 9. 下一步建议
 
-- 深入 `reference/rust/core-lib/src/editor.rs` 及 `tabs/` 代码，补充交互序列图。
+- 深入 `reference/rust/core-lib/src/editor.rs` 及 `tabs/` 代码，补充交互序列图，并与 Rust 侧确认 helper 改造计划。
 - 起草 `Xi.Core` 对外 API 接口草图，明确最小可用命令集合。
 - 评估 Rope 迁移所需的 .NET 数据结构支持（Span、MemoryPool、ValueTask）。
-- 选取 2-3 个原始测试样例，准备仪式性回归测试框架。
+- 选取 2-3 个原始测试样例，准备仪式性回归测试框架，并规划如何生成跨语言共享数据。
 
 ---
 

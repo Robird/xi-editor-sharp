@@ -1,12 +1,13 @@
 # Rope 写时复制与再平衡实施方案草案
 
-> 目的：在当前 `Node`/`Rope` 已具备的结构共享能力基础上，定义写时复制（COW）与再平衡策略的落地路径，指导后续编码、测试与性能验证。
+> 目的：在当前 `Node`/`Rope` 已具备的结构共享能力基础上，定义写时复制（COW）与再平衡策略的落地路径，指导后续编码、测试与性能验证；同时与 `xi-editor-ph7` fork 的 Rust 改造保持同步（Rust 侧输出 `SharedNode` 等 helper，C# 侧实施对应逻辑）。
 
 ## 1. 背景与现状
 - `SplitAt`、`Slice`、`Insert`、`Delete` 已重写为走结构共享路径，但仍会在编辑过程中重建大量中间节点。
 - 树结构暂未设置叶节点/内部节点的容量上下界，顺序插入可能导致树高增长或局部失衡。
 - 聚合信息（`RopeInfo`）在编辑过程中整体重算，缺乏局部更新优化。
 - 现有测试覆盖基础编辑语义，但尚未验证共享节点、边界合并与再平衡行为。
+- Rust 侧尚未提供 `SharedNode::ensure_unique`、`NodeKind` 等 helper，需要在计划中考虑等待窗口与同步策略。
 
 ## 2. 设计目标
 1. **结构共享最大化**：对未修改子树引用复用，保证常见编辑操作的内存分配与拷贝数量控制在 O(log n)。
@@ -34,14 +35,14 @@
 
 ## 4. 工作拆解
 
-| 阶段 | 子任务 | 关键交付物 | 依赖 | 验收标准 |
-| --- | --- | --- | --- | --- |
-| A | **节点所有权与引用管理** | `NodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 |
-| B | **叶节点策略** | `EnsureWritableLeaf`、`SplitLeaf`, `MergeLeaf` 实现 | 阶段 A | 叶节点长度在编辑后保持约束，同步更新 `RopeInfo`，通过跨叶编辑测试。 |
-| C | **内部节点再平衡** | `RebalanceAfterEdit` 框架、借用/合并逻辑 | 阶段 B | 顺序插入/删除 10^5 字符后树高度上限保持在 `ceil(log_{MIN_CHILDREN}(n)) + 1`。 |
-| D | **聚合信息增量更新** | 上行更新函数 `RefreshInfoUpwards` | 阶段 C | 编辑操作仅重新计算沿途节点的 `RopeInfo`，测试验证行/UTF-16 计数无回归。 |
-| E | **测试与诊断** | 新增 xUnit 测试（共享引用、借用、合并、分裂、性能守护） | 阶段 A-D | 新增 8+ 测试场景；基准记录 v0（当前）与 v1（COW+Rebalance）差异。 |
-| F | **性能基线** | BenchmarkDotNet harness 与初次运行报告 | 阶段 E | 提供 3 个典型场景（顺序插入、随机编辑、批量删除）指标并记录至文档。 |
+| 阶段 | 子任务 | 关键交付物 | 依赖 | 验收标准 | Rust 协同 |
+| --- | --- | --- | --- | --- | --- |
+| A | **节点所有权与引用管理** | `NodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 | 跟进 Rust `SharedNode::ensure_unique` helper，保持命名与语义一致 |
+| B | **叶节点策略** | `EnsureWritableLeaf`、`SplitLeaf`, `MergeLeaf` 实现 | 阶段 A | 叶节点长度在编辑后保持约束，同步更新 `RopeInfo`，通过跨叶编辑测试。 | Rust 输出 `LeafOps`/`split_leaf` 等迁移友好函数，C# 对齐接口 |
+| C | **内部节点再平衡** | `RebalanceAfterEdit` 框架、借用/合并逻辑 | 阶段 B | 顺序插入/删除 10^5 字符后树高度上限保持在 `ceil(log_{MIN_CHILDREN}(n)) + 1`。 | Rust 侧评估 `borrow_from_left/right` helper，提供测试用例 |
+| D | **聚合信息增量更新** | 上行更新函数 `RefreshInfoUpwards` | 阶段 C | 编辑操作仅重新计算沿途节点的 `RopeInfo`，测试验证行/UTF-16 计数无回归。 | Rust 标记需同步的 `update_info` helper，便于回溯 |
+| E | **测试与诊断** | 新增 xUnit 测试（共享引用、借用、合并、分裂、性能守护） | 阶段 A-D | 新增 8+ 测试场景；基准记录 v0（当前）与 v1（COW+Rebalance）差异。 | Rust 创建等价 fixture 或导出 JSON 数据，支持双端回放 |
+| F | **性能基线** | BenchmarkDotNet harness 与初次运行报告 | 阶段 E | 提供 3 个典型场景（顺序插入、随机编辑、批量删除）指标并记录至文档。 | 与 Rust `cargo bench`/手工脚本结果对比，形成性能对照表 |
 
 ## 5. 关键 API 变更草案
 | 类/方法 | 新增/调整 | 说明 |
@@ -55,14 +56,14 @@
 
 ## 6. 测试计划
 1. **单元测试**
-      - `NodeTests`
-     - `InsertMaintainsLeafConstraints`
-     - `DeleteTriggersLeafMerge`
-     - `BalanceRestoresHeight`
-     - `CowPreservesSharedSubtrees`
-  - `RopeTests`
-     - 顺序插入 / 顺序删除 / 随机编辑验证长度与行计数。
-     - 与 `StringBuilder` 基线比对，确保结果一致。
+    - `NodeTests`
+       - `InsertMaintainsLeafConstraints`
+       - `DeleteTriggersLeafMerge`
+       - `BalanceRestoresHeight`
+       - `CowPreservesSharedSubtrees`
+    - `RopeTests`
+       - 顺序插入 / 顺序删除 / 随机编辑验证长度与行计数。
+       - 与 `StringBuilder` 基线比对，确保结果一致。
 2. **属性测试（可选，FsCheck）**
    - 随机编辑序列，确保最终文本与朴素实现匹配。
    - 验证树高度与叶节点大小区间。
@@ -86,6 +87,7 @@
 - 本方案确认后，需同步更新 `docs/architecture/module-migration-plan.md` 中的阶段里程碑与交付物列表。
 - 实施过程中记录关键决策（如参数调整、引用管理策略）至 `AGENTS.md` 的“决策 & 假设日志”。
 - 性能基线完成后，形成独立报告或补充到 `docs/architecture/rope-performance.md`（待建）。
+- rust/c# helper 对齐情况写入 `docs/architecture/bi-direction-port.md`，保持跨端透明度。
 
 ---
 > 下一动作：按照阶段 A 启动写时复制辅助 API 的编码，先在 `Node`引入必要的引用管理骨架并补充最小测试。

@@ -151,4 +151,4 @@ struct SpanHelper : IHelper<ReadOnlySpan<char>>
 3. **提前识别需要共享资源的 Helper**：如果后续要支持基于 `ArrayPool<char>` 的叶片，应设计备用构造/工厂方案。
 4. **文档化最佳实践**：为团队编写 Helper 时提供 checklist，防止隐性状态或默认初始化陷阱。
 
-综上，当前“静态多态”能力能够满足 Rope 泛型化的核心需求，但需在 Helper 设计规范和实例化方式上补充约束，以避免上述隐患。
+综上，当前“静态多态”能力能够满足 Rope 泛型化的核心需求，但需在 Helper 设计规范和实例化方式上补充约束，以避免上述隐患。未来在 `xi-editor-ph7` fork 为 `Node<TInfo, TLeaf, TLeafOps>` 提供迁移友好 helper 时，应保持命名与接口与本文示例一致，便于双端协同。

@@ -8,15 +8,13 @@
 ## 项目概览
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 81 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations` 及泛型 Node 验证，确保 Leaf Helper 抽象的回归基线稳定。
 - `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 81 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
+- `docs/architecture` 系列文档已完成“双向协同”策略重写（含 `bi-direction-port.md`、`rope-*`、`module-migration-plan.md` 等），明确 C# 迁移与 `xi-editor-ph7` Rust 重构的互锁里程碑、待协同 helper 列表与风险登记。
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
 - `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
 - Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
 - 引入 `src/xi.Core/Rope/Interval.cs` 以及 `TreeContracts.cs` 中的 `ILeafOperations`、`ITreeNodeInfo`、`ITreeMetric` 等接口，完成 rope/tree 模块的核心契约映射；`RopeInfo` 与三种 Metric 已对齐新接口，`IMetric` 成为 `ITreeMetric<string, RopeInfo>` 的特化别名，并新增 `NodeCursor` 骨架为后续游标实现预留结构。
+  - 与 Rust 侧同步 `transform_expand`/`factor` 等 helper 的拆分节奏，在 `bi-direction-port.md` 追踪依赖状态，必要时以临时 stub 解锁 C# 侧验证。
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
-
-(小结) 目前已完成基础的结构共享路径改造（SplitAt + 编辑重写），下一阶段将把实现从“功能正确”转向“性能与长期稳定性”，通过写时复制、叶片容量限制与再平衡保证 O(log n) 性能边界。
-
-（后续将随 Rope 优化、Delta 迁移及测试导入推进，持续补充新的关键认知。）
 
 ## 工作节奏建议
 1. **进入仓库**：优先阅读“当前聚焦事项”，确认阻塞与最新决策，必要时调整计划。
@@ -40,6 +38,7 @@
 ## 当前聚焦事项（WIP）
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
+- **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
 - **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
@@ -84,6 +83,7 @@
 8. **Delta/Subset 原型推进**
   - 按 `rope-port-mapping.md` 中的映射表与翻译范式，先完成 `delta.rs` 类型/接口壳子移植，再实现 `factor()`、`summary()`、`apply()` 并与 Rope 缓冲区对接。
   - 构建端到端单元测试，验证 Delta 的应用结果与 Rope 文本状态保持一致。
+  - 与 Rust 侧同步 `transform_expand`、`factor` 等 helper 拆分节奏，在 `bi-direction-port.md` 追踪依赖状态，必要时以临时 stub 解锁 C# 验证。
 9. **文档与风险跟踪**
   - 随阶段推进更新 `rope-cow-rebalance-plan.md`、`module-migration-plan.md` 与风险日志，记录参数调整与新假设。
   - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
@@ -102,6 +102,7 @@
 - 下次执行摘要时请突出：`StringLeafOperations` 已抽离叶片编辑/合并/再平衡逻辑，并配套 81 项测试基线，为泛型 `Node` 铺设叶操作 Helper；泛型节点骨架已建立并通过基础单元测试。
 - 概述紧邻的短期计划（叶操作抽象巩固、泛型 Node 内核试验、阶段 C 再平衡设计），以便快速恢复上下文。
 - 若摘要篇幅受限，优先保留关键认知列表中新添加的 Helper 与测试信息，其次是“下一步行动”前两项的执行要点。
+- 若摘要需要压缩，也请提及 `docs/architecture` 已对齐双向协同策略，并提醒跟进 `bi-direction-port.md` 依赖清单的最新状态。
 
 ## 决策 & 假设日志
 - [假设] 保持与 Rust 版相同的树/片段结构以便复用测试与算法描述。
@@ -137,6 +138,7 @@
 - 写时复制（COW）实现细节：如何在不引入复杂并发/锁问题的前提下复用节点（通过不可变结构与引用复用），以及是否需要引用计数或弱引用池来管理共享节点生命周期。
 - GC/内存压力：目前叶片是 `string`，内存复制风险在大文本与频繁编辑中更明显；需要设计并比较 `char[]+ArrayPool` 与 `string` 实现的折中。
 - 再平衡算法的工程复杂性：与 Rust 的细节对齐需要时间，优先以正确、可测且渐进优化的方式实现功能而不是追求一次性完美。
+- 文档与实现协同：若 `docs/architecture` 中的“双向协同”计划未随 Rust helper/测试资产更新，将导致任务优先级判断失真，需要将 `bi-direction-port.md` 作为单一事实来源持续维护。
 
 ## 已完成事项
 - **工程骨架与测试基线（2025-11-11）**：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core`/`xi.Core.Tests` 并通过首轮 `dotnet test` 验证基础编译与测试链路。

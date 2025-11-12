@@ -1,12 +1,13 @@
 # Rope 文件级映射与类型翻译计划
 
 ## 目标
-建立 `reference/rust/rope` 与 `src/xi.Core/Rope` 之间的一一映射，记录每个模块的移植状态，并沉淀 Rust → C# 在接口与类型层面的翻译范式，支撑“先契约后实现”的移植流程。
+建立 `reference/rust/rope` 与 `src/xi.Core/Rope` 之间的一一映射，记录每个模块的移植状态，并沉淀 Rust → C# 在接口与类型层面的翻译范式，支撑“先契约后实现 + Rust 侧迁移友好化”的移植流程。
 
 ## 状态标签
 - `未开始`：尚未在 C# 侧创建对应文件或类型。
 - `仅骨架`：已建立目录/类型壳子但缺少真实逻辑。
 - `实现中`：核心逻辑正在移植或调试，测试逐步补齐。
+- `Rust 重构中`：C# 侧暂缓，等待 `xi-editor-ph7` 提供迁移友好 helper 或结构调整。
 - `已实现`：关键能力与诊断均已移植，后续仅保留优化或性能工作。
 
 ## 路径映射约定
@@ -18,13 +19,13 @@
 ## 文件级映射表
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
-| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；内部节点再平衡、聚合刷新待补齐。 |
-| `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | 未开始 | 迁移阶段 C/D 时引入，对应子类型先列入目录后续补充。 |
+| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；内部节点再平衡、聚合刷新待补齐。Rust 正在抽象 `SharedNode::ensure_unique`。 |
+| `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 缺少多 Metric 组合测试与聚合增量刷新；需补充 `Cursor`/`Metric` 交互。 |
-| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | 规划为 `Delta/Delta.cs`, `Delta/Subset.cs`, `Delta/Transformer.cs` | 未开始 | 先创建骨架并对齐类型命名，再补实现与测试。 |
+| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | 规划为 `Delta/Delta.cs`, `Delta/Subset.cs`, `Delta/Transformer.cs` | Rust 重构中 | 等待 Rust 提供拆分后的 helper、`transform_expand` 无宏实现；C# 先同步骨架。 |
 | `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
 | `multiset.rs` | Rope 统计聚合辅助 | 规划为 `Stats/MultiSet.cs` | 未开始 | 可结合 .NET `Dictionary` 或自定义结构。 |
-| `engine.rs` | 编辑命令应用、Undo/Redo 入口 | 规划为 `Engine/Engine.cs` | 未开始 | 依赖 Rope 与 Delta 实现完成后启动。 |
+| `engine.rs` | 编辑命令应用、Undo/Redo 入口 | 规划为 `Engine/Engine.cs` | 未开始 | 依赖 Rope 与 Delta 实现完成后启动；Rust 正拆除宏以便移植。 |
 | `diff.rs` | 文本 diff 逻辑 | 规划为 `Diff/DiffEngine.cs` | 未开始 | 评估复用现有 diff 库或移植 Rust 算法。 |
 | `compare.rs` | Rope 比较工具 | 规划为 `Diff/Compare.cs` | 未开始 | 与 `diff.rs` 共享目录，落地后补测试。 |
 | `breaks.rs` | 换行符/段落切分逻辑 | 规划为 `Tree/Breaks.cs` | 未开始 | 与 `LeafSplitter` 结合，提供界面供 Rope/Delta 使用。 |
@@ -32,7 +33,7 @@
 | `spans.rs` | 高亮范围管理 | 规划为 `Search/Spans.cs` | 未开始 | 与 `find.rs` 同目录，提供 Span/Style 聚合。 |
 | `serde_impls.rs` | 序列化支持 | 规划为 `Serialization/RopeJsonConverters.cs` | 未开始 | 依据 JSON-RPC 宿主方案决定实现。 |
 | `lib.rs` | 模块导出、测试入口 | Solution 顶层 | 已实现 | 通过 `Xi.Editor.sln` 管理，对应 C# 项目已经建立。 |
-| `test_helpers.rs` | Rope 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 已封装不变量断言与调试 API。 |
+| `test_helpers.rs` | Rope 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 已封装不变量断言与调试 API；Rust 侧需输出同步 fixture。 |
 
 > 注：表格只列出首批重点模块，可在实际推进中扩充行或拆分更细粒度的子文件（例如 `tree/node.rs`、`tree/edit.rs` 等）。
 
@@ -53,13 +54,13 @@
 
 ### 类型命名映射范式
 
-为减少“翻译”成本，优先保持 Rust 与 C# 类型在语义上的同名对应，仅按照语言风格调整大小写或命名空间。遇到新类型时，按照以下步骤执行：
+为减少“翻译”成本，优先保持 Rust 与 C# 类型在语义上的同名对应，仅按照语言风格调整大小写或命名空间。遇到新类型时，按照以下步骤执行，并同步评估 Rust 端是否需要改名或补 alias：
 
 1. **识别来源上下文**：记录 Rust 模块路径与原始类型名，例如 `tree::Node`, `rope::RopeInfo`。
 2. **选择命名空间**：将顶层模块映射为 `Xi.Core.Rope` 子命名空间；子模块可通过子文件夹或局部命名空间体现，如 `Xi.Core.Rope.Tree`。
 3. **保持核心名**：除非存在语义差异或泛型化计划，保持核心名不变，仅转换为 C# PascalCase。例如 `rope::base_metric` → `BaseMetric`。
 4. **为特化类型加前缀/后缀**：当 Rust 类型在 C# 中转化为领域特化版本（如 Rust 泛型 `Node<N>` 被具体化为 `String` 叶片实现）时，可在名称中加入领域限定词，例如 `Node`，并在映射表中标注该差异，后续若回归泛型可统一回原名。
-5. **别名与 type alias**：Rust 的 `type Rope = Node<RopeInfo>` 建议直接映射为同名顶层公开类型 `Rope`。若 C# 需要额外封装（例如实现接口），优先使用同名 `partial` 或包装类，避免新增后缀。
+5. **别名与 type alias**：Rust 的 `type Rope = Node<RopeInfo>` 建议直接映射为同名顶层公开类型 `Rope`。若 C# 需要额外封装（例如实现接口），优先使用同名 `partial` 或包装类，避免新增后缀；若 Rust 出现 alias 改名，需在此文档中同步。
 6. **测试/辅助类型**：`test_helpers.rs` 等测试支撑类型保持 `*TestHelper`、`*Assertions` 等约定，便于搜索与复用。
 
 以下表格提供常见类别的命名参考：
@@ -77,22 +78,22 @@
 > **命名冲突决策**：若 C# 名称已在 BCL 或项目中占用，优先添加领域限定词（例如 `RopeInterval`），同时在映射表备注列记录原始名称，防止日后回归时产生歧义。
 
 ## 规划动作
-1. **补齐空壳**：按照映射表对 `delta.rs`、`interval.rs` 等模块创建对应 C# 文件，声明类型但暂不实现逻辑。
-2. **同步测试骨架**：在 `xi.Core.Tests` 下新增与 Rust 测试同名的测试类/方法，标记 `Skip` 或 `TODO`。
-3. **持续更新表格**：每完成一次接口/实现迭代，更新本表状态列与备注列。
-4. **范式扩展**：遇到新的语言差异（如迭代器、闭包、宏）时，将翻译策略追加到范式表中。
+1. **补齐空壳**：按照映射表对 `delta.rs`、`interval.rs` 等模块创建对应 C# 文件，声明类型但暂不实现逻辑，并在 Rust 端预留迁移友好 helper。
+2. **同步测试骨架**：在 `xi.Core.Tests` 下新增与 Rust 测试同名的测试类/方法，标记 `Skip` 或 `TODO`；Rust 端将关键测试转换为共享 fixture。
+3. **持续更新表格**：每完成一次接口/实现迭代，更新本表状态列与备注列，同时同步 Rust 改造状态。
+4. **范式扩展**：遇到新的语言差异（如迭代器、闭包、宏）时，将翻译策略追加到范式表中，并评估是否需在 Rust 端提供替代写法。
 
 ## 主要缺口
 先对照 rope.md 走了一圈，整体感觉这份 C# skeleton 已经把“Rope + Tree + Metric”主干都列出来了，但和 Rust 原版相比仍有几块明显缺口，需要补上才能支撑后续的类型对齐和实现规划。
 
 - **Delta/Subset/Transformer 整块缺席**  
-  Rust `delta.rs`、`multiset.rs` 的类型（`Delta<T>`, `InsertDelta`, `Subset`, `SubsetBuilder`, `Transformer` 等）在 C# skeleton 中完全没有。`core-lib` 与 `engine.rs` 强依赖这套接口，缺了它们我们很难往上游推进。
+  Rust `delta.rs`、`multiset.rs` 的类型（`Delta<T>`, `InsertDelta`, `Subset`, `SubsetBuilder`, `Transformer` 等）在 C# skeleton 中完全没有。`core-lib` 与 `engine.rs` 强依赖这套接口，缺了它们我们很难往上游推进；当前等待 Rust 拆分宏与 helper 后再同步实现。
 
 - **辅助模块（Breaks/Compare/Diff/Find）未体现**  
   Rust 的 `breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 在 C# 侧没有任何骨架，意味着行号、diff、搜索等能力还没映射，后续要补的类型和接口会不少。
 
 - **Tree 模块泛型差异未记录**  
-  Rust 的 `Node<N>`、`TreeBuilder<N>` 是泛型化设计；我们 C# 目前直接特化成 `Node`（string 叶片）。Skeleton 里最好显式备注“暂时特化 string”或“未来计划恢复泛型”，免得在设计阶段忽略这一差异。
+  Rust 的 `Node<N>`、`TreeBuilder<N>` 是泛型化设计；我们 C# 目前直接特化成 `Node`（string 叶片）。Skeleton 里最好显式备注“暂时特化 string”或“未来计划恢复泛型”，免得在设计阶段忽略这一差异；Rust 端正在将关联类型替换为显式泛型，完成后需同步更新。
 
 - **Cursor 细节空白**  
   Rust `Cursor<'a, N>` 包含位置缓存、固定大小数组等优化。C# 的 `NodeCursor` 目前只是方法签名。Skeleton 可以添加字段/注释（例如 cache、当前 leaf 引用、偏移量等），否则后续实现时还要回头从 Rust 文档再找一次。
@@ -106,8 +107,8 @@
 ## 改进思路
 
 1. **补齐缺失模块骨架**  
-   - 按照 `rope-port-mapping.md` 建的映射表，把 `Delta`, `Subset`, `Transformer`, `CountMatcher`, `BreakBuilder`, `LineHashDiff`, `FindResult` 等关键类型都先放进 skeleton，并写上职责摘要。
-   - 即便暂时未实现，也能在文档中清楚列出 TODO/待对齐信息，方便设定下一阶段的编码任务。
+  - 按照 `rope-port-mapping.md` 建的映射表，把 `Delta`, `Subset`, `Transformer`, `CountMatcher`, `BreakBuilder`, `LineHashDiff`, `FindResult` 等关键类型都先放进 skeleton，并写上职责摘要。
+  - 即便暂时未实现，也能在文档中清楚列出 TODO/待对齐信息，方便设定下一阶段的编码任务；若 Rust 端已有 helper 改造，需同步方法签名。
 
 2. **强化 Tree 泛型/特化的设计说明**  
    - 在 skeleton 的 `Node`/`TreeBuilder` 注释里写明“C# 当前特化 string 叶片，后续评估泛型化方案”，必要时给出拓展接口（例如 `ILeafOperations`）的使用方式。
@@ -118,8 +119,9 @@
    - 将 Rust 中的核心方法（`descend`, `measure_leaf`, `descend_metric`, `next_leaf`, `prev_leaf` 等）以 stub 形式加进去，避免遗漏。
 
 4. **模块化视图与文档互通**  
-   - 在 skeleton 文件里按模块加标题或分段注释（例如 `// ==== Delta ====`, `// ==== Engine ==== `），对应 Rust 中的 `mod`。这样和 rope.md 对照时更直观。
-   - 新增关联文档链接注释，例如在 `Delta` 段落写“// 参考 docs/architecture/rope-delta-notes.md”。
+  - 在 skeleton 文件里按模块加标题或分段注释（例如 `// ==== Delta ====`, `// ==== Engine ==== `），对应 Rust 中的 `mod`。这样和 rope.md 对照时更直观。
+  - 新增关联文档链接注释，例如在 `Delta` 段落写“// 参考 docs/architecture/rope-delta-notes.md”，并在 Rust 端注释中标明对齐目标，方便双端定位。
 
 5. **记录跨文件依赖**  
-   - 例如在 `Rope`、`Engine` 骨架位置注明它们依赖的模块（Delta/Subset/Tree），以及任何计划使用的辅助结构（Breaks、Compare、Diff）。帮助在规划实现顺序时横向串联。
+  - 例如在 `Rope`、`Engine` 骨架位置注明它们依赖的模块（Delta/Subset/Tree），以及任何计划使用的辅助结构（Breaks、Compare、Diff）。帮助在规划实现顺序时横向串联。
+  - 若 Rust 端在 helper 拆分后新增模块/函数，也要在此处标注，以免遗漏迁移。
