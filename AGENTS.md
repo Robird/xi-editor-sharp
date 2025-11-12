@@ -38,6 +38,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
+- **Rust Workspace 精简**：全局 MSRV 已提升至 1.75；下一步需要剥离 Criterion 基准、整理 dev-deps 与脚本，确保移植前的 Rust 代码库更紧凑易对照。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
@@ -54,35 +55,39 @@
     - `ValidateInvariants` 诊断输出增加节点路径上下文、叶片预览与子节点长度摘要，结合 `CollectInvariantIssues` 可在测试与调试中快速定位问题并输出详细日志。
 
 ## 下一步行动（高优先级 Backlog）
-1. **叶操作抽象巩固**
+1. **Rust 基线瘦身（后 MSRV）**
+  - 清理各 crate 中的 Criterion 基准与 `[[bench]]` 声明，移除不再需要的 dev-deps，更新 `run_all_checks` 脚本与文档说明。
+  - 评估 `xi-rpc`、`xi-trace`、`xi-plugin` 等可选 crate 的保留必要性，确认移植范围，只保留 C# 侧近期要对照的模块。
+  - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
+2. **叶操作抽象巩固**
   - 已将叶片合并与再平衡所需的字符串处理迁移至 `StringLeafOperations`，并让其实现静态抽象 `ILeafOperations<string>` 接口；继续盘点剩余 string 特化（诊断、快照等），并规划泛型 Helper 最终接口。
   - 盘点 `Node` 中仍直接操作 `string` 的调用点，映射到未来 `ILeafOperations` 所需的接口能力，并同步更新 `node-generic-refactor-plan.md`。
   - 扩展现有单元测试覆盖（合并、拆分、借用）以及异常路径，确保 Helper 行为可独立验证。
-2. **泛型 Node 内核试验**
+3. **泛型 Node 内核试验**
   - 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架（可先放置在实验命名空间），并让现有 `Node` 作为包装层调用泛型实现，验证编译与测试链路。
   - 在 `TreeContracts` 中草拟静态抽象成员与实例方法的拆分方案，结合 Helper 能力展开 POC。
   - 评估引入编译期开关或类型别名以便在泛型与特化实现间快速切换调试。
-3. **阶段 C 启动：内部节点再平衡设计与实现**
+4. **阶段 C 启动：内部节点再平衡设计与实现**
   - 梳理 `Concat`、`CreateInternal`、`TreeBuilder` 产生的高度失衡案例，定义借用/合并/分裂的触发条件与算法草案。
   - 在 Node 层实现最小可用的内部节点 re-balance 操作，并配套顺序/随机大文本编辑测试验证树高与聚合信息正确性。
   - 评估并规划沿父链的最小聚合刷新策略，为后续增量更新打基础。
   - 参考 `rope-port-mapping.md` 的映射表与翻译范式，优先补齐 `tree.rs` 相关接口占位并对照 Rust 逻辑拆分具体实现任务。
-4. **阶段 D 准备：聚合信息增量更新**
+5. **阶段 D 准备：聚合信息增量更新**
   - 设计 `RefreshInfoUpwards` 或等效机制，确保局部编辑后无需整棵树重算聚合。
   - 针对 Base/Lines/Utf16 三种 Metric 增加断言与差分测试，锁定潜在的聚合偏差。
-5. **测试与诊断扩展**
+6. **测试与诊断扩展**
   - 引入属性测试或随机编辑序列（可考虑 FsCheck）覆盖更多组合场景，并将不变量断言纳入测试基线。
   - 继续扩展诊断输出（现已包含路径上下文、叶片预览与子节点长度摘要），后续评估记录更精细的片段快照以缩短定位时间。
-6. **性能与基准体系搭建**
+7. **性能与基准体系搭建**
   - 搭建 `BenchmarkDotNet` 基准，覆盖顺序插入、跨叶替换、大范围删除等典型场景。
   - 建立阶段性性能回归表，记录 COW/再平衡前后的延迟与内存占用，指导后续优化。
-7. **Delta/Subset 原型推进**
+8. **Delta/Subset 原型推进**
   - 按 `rope-port-mapping.md` 中的映射表与翻译范式，先完成 `delta.rs` 类型/接口壳子移植，再实现 `factor()`、`summary()`、`apply()` 并与 Rope 缓冲区对接。
   - 构建端到端单元测试，验证 Delta 的应用结果与 Rope 文本状态保持一致。
-8. **文档与风险跟踪**
+9. **文档与风险跟踪**
   - 随阶段推进更新 `rope-cow-rebalance-plan.md`、`module-migration-plan.md` 与风险日志，记录参数调整与新假设。
   - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
-9. **文档外部记忆与计划维护**
+10. **文档外部记忆与计划维护**
   - 定期同步 `docs/skeleton/xi.Core.Rope.cs` 与 Rust skeleton 的差异标注，形成最新的对照清单。
   - 在 `AGENTS.md` 与架构文档中记录阶段目标、开放问题与请求协作的事项，避免上下文压缩造成的信息丢失。
 
@@ -195,3 +200,7 @@
 - 提取字符串叶片操作至 `StringLeafOperations`，并调整 `Node` 及 `LeafSplitter` 复用公共 Helper，同时补充单元测试验证插入/删除/替换等基础行为。
 - 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 81 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。
 - 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架，实现叶节点/内部节点构造与遍历能力，并补充 `GenericNodeSmokeTests` 验证长度与聚合信息；现有字符串特化实现未受影响，可作为后续迁移的对照基准。
+- 在 `rpc/src/lib.rs` 中移除未使用的 `IdleProc` trait 与其 `impl`，以减少构建警告噪音（dead_code）。
+
+### 2025-11-13
+- Rust 工作区 `rust-version` 已统一至 1.75，`cargo test --workspace` 全量运行通过但仍存在若干警告；开始筹划移除 Criterion 基准与多余 crate，以便为 C# 移植阶段清理依赖面。
