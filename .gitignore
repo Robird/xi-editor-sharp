@@ -4,3 +4,4 @@ bin/
 ref-outline/
 __pycache__/
 docs/skeleton/xi.Core.Rope.full.cs
+xi-editor-ph7/
