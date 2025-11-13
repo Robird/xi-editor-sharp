@@ -46,19 +46,18 @@
 	- C#：`dotnet test Xi.Editor.sln`，验证 81 项 Rope 测试保持通过。
 6. **脚本化对齐**：在 `scripts/` 增加对照脚本，输出“Rust helper 列表 vs C# 实际实现”差异并写入 CI 报告。
 
-## 5. 近期行动
+## 5. 近期行动（更新 2025-11-13）
 
-1. Rust 端：
-	- 起草 `SharedNode`/`NodeBody::ensure_unique()`，替换直接 `Arc::make_mut` 调用。
-	- 为 `NodeVal` 拆分引入 `NodeKind` 与访问器，减少高阶 `match`。
-	- 将 Cursor 生命周期改写为索引 + `Arc` 持有，更新相关测试。
-2. C# 端：
-	- 在 `StringLeafOperations` 中对齐 Rust 新 helper 命名，预留泛型接口。
-	- 继续扩展 `Node<TInfo, TLeaf, TLeafOps>` 骨架，保持字段/方法顺序与 Rust 同步。
-	- 梳理现有测试，标记可回放到 Rust 的数据集。
-3. 文档与脚本：
-	- 更新 `docs/architecture` 相关计划（当前任务）。
-	- 评估将 Rust/C# 测试矩阵映射输出到 `docs/reference/porting-progress.md`（待建）。
+### 5.1 进展快照
+- Rust 端已完成 `NodeInfo`、`TreeBuilder`、`Delta` 及依赖模块的显式叶泛型化，`cargo test -p xi-rope`（149 项）全部通过，现行实现以 `Node<RopeInfo, String>` 等别名维持兼容。
+- `scripts/refresh_skeleton_docs.py` 已刷新 `docs/skeleton/rope.md`，C# 骨架仍以实验版泛型节点为准，尚未迁入主实现。
+- C# 与文档侧对 `Cursor<'a>` 生命周期、`Arc::make_mut` 相关 helper 的映射尚无定案，阻滞后续双向移植。
+
+### 5.2 差距与短期计划
+1. **Node 泛型双向同步**：在 `node-generic-refactor-plan.md` 标注已完成的 Rust 泛型化内容，更新 C# 迁移任务清单，并将 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现后串联 81 项 Rope 测试。
+2. **Cursor 生命周期削薄预研**：梳理 `Cursor<'a, N, L>` 生命周期依赖，评估以节点索引 + 共享指针实现的方案，输出设计权衡与最小 POC 验证路径。
+3. **SharedNode/COW Helper 抽象**：归纳 `Arc::make_mut` 触点并设计语言无关的 helper 契约，为 C# 端静态 helper 提供对照实现与测试要求。
+4. **文档与骨架对齐**：在上述调整完成后，刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs` 与 `rope-port-mapping.md` 对应段落，确保 helper 名称与泛型签名的一致性，并将进展同步至 `AGENTS.md`。
 
 ## 6. 风险与监控
 

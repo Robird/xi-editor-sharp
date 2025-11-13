@@ -44,7 +44,8 @@
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
-- **Trait 泛型化试点**：已通过 `runSubagent` 驱动的流水线完成 `DefaultMetricProvider`、`Metric<N, L>` 的显式叶类型改造，当前聚焦将同一模式推广至 Cursor/NodeInfo，保持 C# 侧契约同步。
+- **Trait 泛型化延伸**：`NodeInfo`、`TreeBuilder`、`Delta` 等核心模块已完成显式叶类型泛型化并通过 `cargo test -p xi-rope`，当前聚焦在 Rust 端梳理 Cursor/Iterator 的生命周期依赖，同时指导 C# `Node<TInfo, TLeaf, TLeafOps>` 的落地与测试补位。
+- **C# 泛型 Node 对齐准备**：根据最新骨架与 `node-generic-refactor-plan.md`，规划将实验版泛型节点迁入主实现并串联 81 项 Rope 测试，记录仍依赖字符串特化的调用点与阻塞。
 
 ## 已完成行动
 1. **阶段 A：节点所有权与引用复用**
@@ -55,43 +56,47 @@
     - `ValidateInvariants` 诊断输出增加节点路径上下文、叶片预览与子节点长度摘要，结合 `CollectInvariantIssues` 可在测试与调试中快速定位问题并输出详细日志。
 
 ## 下一步行动（高优先级 Backlog）
-1. **Rust 基线瘦身后续（后 MSRV）**
+1. **Node 泛型双向同步**
+  - Rust：在 `node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
+  - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。
+  - 文档：刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs`，确保签名与 helper 名称同步更新。
+2. **Cursor 生命周期削薄预研**
+  - 拆解 Rust `Cursor<'a, N, L>` 对生命周期的真实需求，评估以节点索引 + 共享指针重构的可行性与性能影响。
+  - 在 `bi-direction-port.md`、`node-generic-refactor-plan.md` 记录设计假设、权衡与验证案例，为 C# 端提供未来接口草案。
+  - 若方案可行，准备最小 POC（含单元测试）验证向后兼容性。
+3. **SharedNode/COW Helper 抽象**
+  - 归纳 `Arc::make_mut`、`Node::with_leaf_mut` 等触点，设计 `SharedNode::ensure_unique()` 等 helper API，降低语言差异对 C# 复刻的阻碍。
+  - 评估 C# 侧以静态 helper 模拟 copy-on-write 的实现草案，并列出必须的断言与测试覆盖。
+4. **Rust 基线瘦身后续（后 MSRV）**
   - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
   - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
   - 逐步为 `xi-plugin-lib` 等仍引用 `xi-trace` 的 crate 添加可选特性或 shim，确保核心子集可在无 trace 依赖下编译。
-2. **叶操作抽象巩固**
+5. **叶操作抽象巩固**
   - 已将叶片合并与再平衡所需的字符串处理迁移至 `StringLeafOperations`，并让其实现静态抽象 `ILeafOperations<string>` 接口；继续盘点剩余 string 特化（诊断、快照等），并规划泛型 Helper 最终接口。
   - 盘点 `Node` 中仍直接操作 `string` 的调用点，映射到未来 `ILeafOperations` 所需的接口能力，并同步更新 `node-generic-refactor-plan.md`。
   - 扩展现有单元测试覆盖（合并、拆分、借用）以及异常路径，确保 Helper 行为可独立验证。
-3. **泛型 Node 内核试验**
-  - 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架（可先放置在实验命名空间），并让现有 `Node` 作为包装层调用泛型实现，验证编译与测试链路。
-  - 在 `TreeContracts` 中草拟静态抽象成员与实例方法的拆分方案，结合 Helper 能力展开 POC。
-  - 评估引入编译期开关或类型别名以便在泛型与特化实现间快速切换调试。
-4. **Trait 泛型化扩展**
-  - 继 `Metric<N, L>` 之后，规划 Cursor/迭代器及 `NodeInfo::L` 的显式类型管线，分阶段拆分并在 C#/Rust 两侧同步实现。
-  - 继续借助 `runSubagent` 汇总受影响接口与调用点，保持上下文精简与质量监管。
-5. **阶段 C 启动：内部节点再平衡设计与实现**
+6. **阶段 C 启动：内部节点再平衡设计与实现**
   - 梳理 `Concat`、`CreateInternal`、`TreeBuilder` 产生的高度失衡案例，定义借用/合并/分裂的触发条件与算法草案。
   - 在 Node 层实现最小可用的内部节点 re-balance 操作，并配套顺序/随机大文本编辑测试验证树高与聚合信息正确性。
   - 评估并规划沿父链的最小聚合刷新策略，为后续增量更新打基础。
   - 参考 `rope-port-mapping.md` 的映射表与翻译范式，优先补齐 `tree.rs` 相关接口占位并对照 Rust 逻辑拆分具体实现任务。
-5. **阶段 D 准备：聚合信息增量更新**
+7. **阶段 D 准备：聚合信息增量更新**
   - 设计 `RefreshInfoUpwards` 或等效机制，确保局部编辑后无需整棵树重算聚合。
   - 针对 Base/Lines/Utf16 三种 Metric 增加断言与差分测试，锁定潜在的聚合偏差。
-6. **测试与诊断扩展**
+8. **测试与诊断扩展**
   - 引入属性测试或随机编辑序列（可考虑 FsCheck）覆盖更多组合场景，并将不变量断言纳入测试基线。
   - 继续扩展诊断输出（现已包含路径上下文、叶片预览与子节点长度摘要），后续评估记录更精细的片段快照以缩短定位时间。
-7. **性能与基准体系搭建**
+9. **性能与基准体系搭建**
   - 搭建 `BenchmarkDotNet` 基准，覆盖顺序插入、跨叶替换、大范围删除等典型场景。
   - 建立阶段性性能回归表，记录 COW/再平衡前后的延迟与内存占用，指导后续优化。
-8. **Delta/Subset 原型推进**
+10. **Delta/Subset 原型推进**
   - 按 `rope-port-mapping.md` 中的映射表与翻译范式，先完成 `delta.rs` 类型/接口壳子移植，再实现 `factor()`、`summary()`、`apply()` 并与 Rope 缓冲区对接。
   - 构建端到端单元测试，验证 Delta 的应用结果与 Rope 文本状态保持一致。
   - 与 Rust 侧同步 `transform_expand`、`factor` 等 helper 拆分节奏，在 `bi-direction-port.md` 追踪依赖状态，必要时以临时 stub 解锁 C# 验证。
-9. **文档与风险跟踪**
+11. **文档与风险跟踪**
   - 随阶段推进更新 `rope-cow-rebalance-plan.md`、`module-migration-plan.md` 与风险日志，记录参数调整与新假设。
   - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
-10. **文档外部记忆与计划维护**
+12. **文档外部记忆与计划维护**
   - 定期同步 `docs/skeleton/xi.Core.Rope.cs` 与 Rust skeleton 的差异标注，形成最新的对照清单。
   - 在 `AGENTS.md` 与架构文档中记录阶段目标、开放问题与请求协作的事项，避免上下文压缩造成的信息丢失。
 
