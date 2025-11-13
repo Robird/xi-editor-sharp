@@ -68,6 +68,7 @@
     - 在 Rust `rope/src/metrics/` 下新增 `codepoint`、`lines`、`break_indices`、`identity` 模块，抽离 UTF-8 边界、换行定位、Breaks 索引与 Base 单位包装逻辑；`LinesMetric`/`BreaksMetric`/`Utf16CodeUnitsMetric` 统一改用 helper。
     - 保留 `rope.rs` 里的 `count_newlines`/`count_utf16_code_units` shim 以兼容其他 crate，并在 `docs/architecture/rope-port-mapping.md` 记录新 helper 与 C# 对映；`cargo test -p xi-rope`、`dotnet test tests/xi.Core.Tests` 全部通过。
     - 刷新 `docs/skeleton/*.md` 以反映新的模块布局，确保跨语言映射表及时更新。
+    - C# 侧新增 `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）复刻零分配查找语义，并配套 `BreaksMetricHelperTests` 验证空集、重复断点与越界行为，保持与 Rust helper 同步。
 
 ## 下一步行动（高优先级 Backlog）
 1. **Node 泛型双向同步**
@@ -255,3 +256,4 @@
 ### 2025-11-14
 - 深度盘点 `xi-editor-ph7/rust/rope/src` 内各 `Metric` 实现的重复逻辑，形成 UTF-8/换行/断点 helper 候选集，并在 `docs/rust-refactor/breaks-metrics-templating.md` 写入可行的 helper 模块设计与迁移计划，为 Rust/C# 对照迁移提供依据。
 - 通过 `git rm --cached xi-editor-ph7` 将外部参考仓库从索引移除，依托 `.gitignore` 保持其与主仓库彼此独立；如需恢复子模块模式，需补齐 `.gitmodules` 并重新执行 `git submodule add`。
+- 将 `docs/skeleton/xi.Core.Rope.cs` 中各方法体替换为摘要注释，生成适合鸟瞰的 C# Rope 骨架视图，便于对照 Rust 文档快速定位接口差异。

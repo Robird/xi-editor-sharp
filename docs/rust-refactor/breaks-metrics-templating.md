@@ -79,9 +79,19 @@
 	- Run `python scripts/refresh_skeleton_docs.py` to refresh the skeleton snapshots.
 	- Reflect the new helper structure in `docs/skeleton/rope.md` and the C# mapping docs as needed.
 
+## 进度更新（2025-11-14）
+- Rust 侧已完成阶段 1-4，`BaseMetric`、`LinesMetric`、`Utf16CodeUnitsMetric` 与 `BreaksMetric` 现全部委托至 `metrics::*` helper，并保留 `rope.rs` 的 `count_newlines` / `count_utf16_code_units` shim 兼容下游。
+- C# 侧新增 `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`），实现 `GetNthBreakOffset`、`CountBreaksUpTo`、`FindPreviousBreak`、`FindNextBreak`、`IsBreakBoundary` 等方法，与 Rust `break_indices` helper 对齐；`BreaksMetricHelperTests` 覆盖空集、重复断点及异常路径。
+- `docs/architecture/rope-port-mapping.md`、`docs/skeleton/*.md` 与 `AGENTS.md` 已同步记录最新 helper 对照与进展。
+
+## 后续计划
+- 在 C# 端实现 `BreaksMetric` / `BreaksBaseMetric` 时直接复用 `BreaksMetricHelper`，并补充端到端测试验证 Breaks Rope 行为。
+- 选定轻量性能基准（临时 micro benchmark 或脚本）记录 Lines/Breaks 导航的前后差异，为 Criterion 恢复前提供数据。
+- 若 Rust 新增额外 helper（如 Cursor 边界缓存），继续按本方案更新文档、刷新 skeleton，并及时对齐 C# 实现。
+
 ## Validation Plan
 - Run `cargo check -p xi-rope` and `cargo test -p xi-rope` after each stage; finish with `cargo test --workspace` to guard cross-crate usages (`xi-core-lib`, `xi-plugin-lib`).
-- Execute `.\scripts\refresh_skeleton_docs.py` to ensure documentation snapshots stay in sync (tracked as part of Stage 5).
+- 执行 `python .\scripts\refresh_skeleton_docs.py` 以确保文档骨架保持同步（Stage 5 的一部分）。
 - Run `dotnet test tests/xi.Core.Tests` to confirm the C# metrics remain green once naming parity updates land.
 - Capture before/after timings for simple cursor-navigation micro-benchmarks (e.g., `rope::rope::tests::bench_style_next_prev` or, temporarily, a debug-only loop over `BaseMetric::next`) since Criterion benches are disabled. Record findings in a scratchpad until the official benchmarking suite returns.
 - Verify helper unit tests intentionally cover sentinel cases (`offset == leaf.len()`, empty break lists) before removing duplicated logic.
@@ -89,4 +99,4 @@
 ## Outstanding Questions
 - Do we want helper names that exactly match the C# `Utf16BoundaryHelper` and friends (`GetNextBoundary` vs `next_codepoint_boundary`)? If we prefer idiomatic Rust snake_case, document the mapping explicitly in `rope-port-mapping.md` to prevent drift.
 - Should we expose the helper module to other crates (e.g., `xi-core-lib`) once stabilised, or keep them internal and rely on `count_newlines`-style shims? This affects long-term API surface commitments.
-- What lightweight micro-benchmark should we use while Criterion benches are parked? Options include a bespoke `cargo run --example` harness or instrumented unit tests; decision pending once we see the first perf measurements.
+- What lightweight micro-benchmark should we use while Criterion benches are parked? Options include临时 `cargo run --example` 脚本或带计时的单元测试；需在执行“后续计划”中的性能记录任务前敲定方案。

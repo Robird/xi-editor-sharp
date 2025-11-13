@@ -16,7 +16,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+cce7f6fc3dcd38d45e780cab6f9d06463a7f315a")]
+[assembly: AssemblyInformationalVersion("1.0.0+2fd534ac2373ebb95f87c706eecd168045f714d9")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -35,34 +35,49 @@ namespace Xi.Core {
 		private readonly StringBuilder _builder = new StringBuilder();
 		public int Length => _builder.Length;
 		public void Append(string? text) {
-			/* Append provided text to the buffer (delegates to Replace).
-			   Compact summary: Append at end, no-op if null. */
+			// Appends text to the end of the buffer in the original implementation.
 		}
 		public void Append(ReadOnlySpan<char> text) {
-			/* Append ReadOnlySpan<char> contents to buffer if non-empty. */
+			// Appended spans directly to the StringBuilder when not empty.
 		}
 		public void Clear() {
-			/* Clear the underlying StringBuilder contents. */
+			// Cleared all accumulated text within the backing builder.
 		}
 		public void Replace(int start, int length, string? text) {
-			/* Replace a range in the buffer with the provided text.
-			   Validates range and updates the underlying builder. */
+			// Replaced a span within the buffer, removing and optionally inserting new text.
 		}
 		public string Snapshot() {
-			/* Return a string snapshot of the buffer contents. */
+			// Returned the full textual contents captured in the builder.
 		}
 		public string GetSlice(int start, int length) {
-			/* Return a substring of the buffer; validates bounds and throws when invalid. */
+			// Produced a substring slice after validating bounds against the builder length.
 		}
 		public override string ToString() {
-			/* Return the buffer snapshot as string. */
+			// Delegated to Snapshot() for textual representation.
 		}
 		private static void ValidateRange(int start, int length, int totalLength) {
-			/* Validate start and length are within [0, totalLength]; throw on violation. */
+			// Guarded against invalid range parameters before mutating the buffer state.
 		}
 	}
 }
 namespace Xi.Core.Rope {
+	internal static class BreaksMetricHelper {
+		public static int GetNthBreakOffset(ReadOnlySpan<int> breaks, int leafLength, int measuredUnits) {
+			// Located the offset of the Nth break with guard rails for range checks.
+		}
+		public static int CountBreaksUpTo(ReadOnlySpan<int> breaks, int offset) {
+			// Counted break markers up to the requested offset using a binary search.
+		}
+		public static int? FindPreviousBreak(ReadOnlySpan<int> breaks, int offset) {
+			// Walked backwards through sorted breaks to find the last boundary before offset.
+		}
+		public static int? FindNextBreak(ReadOnlySpan<int> breaks, int offset) {
+			// Located the next available break boundary at or after the offset.
+		}
+		public static bool IsBreakBoundary(ReadOnlySpan<int> breaks, int offset) {
+			// Determined whether the supplied offset exactly matched a break point.
+		}
+	}
 	public interface IMetric : ITreeMetric<string, RopeInfo> {
 	}
 	public readonly struct Interval : IEquatable<Interval> {
@@ -72,126 +87,126 @@ namespace Xi.Core.Rope {
 		public bool IsEmpty => Start == End;
 		public static Interval Empty => new Interval(0, 0);
 		public Interval(int start, int end) {
-			/* Initialize interval with start and end; validate non-negative and start <= end. */
+			// Validated inputs and populated Start/End to describe a half-open interval.
 		}
 		public bool Contains(int position) {
-			/* Return true when position lies in [Start, End). */
+			// Reported whether the provided position fell within the interval bounds.
 		}
 		public Interval Intersect(Interval other) {
-			/* Return intersection of this interval with other, or Empty when disjoint. */
+			// Returned overlap between two intervals or Empty when no intersection existed.
 		}
 		public Interval Union(Interval other) {
-			/* Return union of two intervals, handling empties specially. */
+			// Combined two intervals into a minimal covering range, preserving empties.
 		}
 		public Interval Translate(int delta) {
-			/* Translate interval by delta with checked arithmetic; return new interval. */
+			// Shifted the interval by a signed delta while preserving length.
 		}
 		public static Interval EmptyAt(int position) {
-			/* Create and return an empty interval at the given position. */
+			// Produced an empty interval anchored at the requested position.
 		}
 		public bool Equals(Interval other) {
-			/* Compare start and end for equality. */
+			// Performed value equality by comparing start and end positions.
 		}
 		public override bool Equals(object? obj) {
-			/* Boxed equality comparison: true when obj is an Interval and equal. */
+			// Deferred to the strongly-typed Equals implementation.
 		}
 		public override int GetHashCode() {
-			/* Compute hash code from Start and End. */
+			// Combined Start and End for hashing semantics consistent with Equals.
 		}
 		public override string ToString() {
-			/* Format interval as string "[Start, End)". */
+			// Formatted the interval using half-open notation.
 		}
 		public static bool operator ==(Interval left, Interval right) {
-			/* Equality operator: compare as Equals. */
+			// Compared two intervals for equality.
 		}
 		public static bool operator !=(Interval left, Interval right) {
-			/* Inequality operator: opposite of Equals. */
+			// Reported inequality between two intervals.
 		}
 	}
 	public sealed class BaseMetric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static BaseMetric Instance { get; } = new BaseMetric();
 		public bool CanFragment => false;
 		private BaseMetric() {
-			/* Private ctor for singleton BaseMetric. */
+			// Singleton constructor hidden in the original implementation.
 		}
 		public int Measure(RopeInfo info, int nodeLength) {
-			/* Measure returns nodeLength in base units for BaseMetric. */
+			// Reported node length as the base-unit measurement.
 		}
 		public int ToBaseUnits(string leaf, int measuredUnits) {
-			/* Convert measured units to base units (identity) while validating UTF-16 boundary. */
+			// Validated UTF-16 boundaries and returned the measured units unchanged.
 		}
 		public int FromBaseUnits(string leaf, int baseUnits) {
-			/* Convert base units to measured units (identity) while validating UTF-16 boundary. */
+			// Converted base units to metric units with surrogate safety checks.
 		}
 		public bool IsBoundary(string leaf, int offset) {
-			/* Determine if offset is a UTF-16 boundary using helper. */
+			// Determined if an offset was a valid UTF-16 boundary within the leaf.
 		}
 		public int? GetPreviousBoundary(string leaf, int offset) {
-			/* Return previous UTF-16 boundary index if any. */
+			// Found the preceding UTF-16 boundary relative to the offset.
 		}
 		public int? GetNextBoundary(string leaf, int offset) {
-			/* Return next UTF-16 boundary index if any. */
+			// Located the next UTF-16 boundary after the supplied offset.
 		}
 	}
 	public sealed class LinesMetric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static LinesMetric Instance { get; } = new LinesMetric();
 		public bool CanFragment => true;
 		private LinesMetric() {
-			/* Private ctor for LinesMetric singleton. */
+			// Private constructor retaining singleton semantics.
 		}
 		public int Measure(RopeInfo info, int nodeLength) {
-			/* Measure returns the line count from RopeInfo. */
+			// Reported the number of newline-delimited segments encoded in RopeInfo.
 		}
 		public int ToBaseUnits(string leaf, int measuredUnits) {
-			/* Convert measured line count to base character units by scanning for newlines and validating count. */
+			// Walked newline characters to translate line counts into UTF-16 offsets.
 		}
 		public int FromBaseUnits(string leaf, int baseUnits) {
-			/* Compute number of lines present in the first baseUnits characters. */
+			// Counted newline characters within a span to compute measured units.
 		}
 		public bool IsBoundary(string leaf, int offset) {
-			/* A boundary is at offset when previous character is newline (except boundaries beyond range). */
+			// Determined whether a position followed a newline boundary.
 		}
 		public int? GetPreviousBoundary(string leaf, int offset) {
-			/* Search backward for previous newline and return its subsequent offset, or null. */
+			// Searched backwards for the prior newline boundary if present.
 		}
 		public int? GetNextBoundary(string leaf, int offset) {
-			/* Search forward for next newline and return its subsequent offset, or null. */
+			// Scanned forward to locate the next newline boundary.
 		}
 	}
 	public sealed class Utf16Metric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static Utf16Metric Instance { get; } = new Utf16Metric();
 		public bool CanFragment => false;
 		private Utf16Metric() {
-			/* Private ctor for singleton Utf16Metric. */
+			// Private constructor maintaining singleton lifetime.
 		}
 		public int Measure(RopeInfo info, int nodeLength) {
-			/* Measure returns the UTF-16 code unit length from RopeInfo. */
+			// Reported the cached UTF-16 code unit count from RopeInfo.
 		}
 		public int ToBaseUnits(string leaf, int measuredUnits) {
-			/* Convert measured UTF-16 units to base units by enumerating runes, validating boundaries. */
+			// Converted rune counts into UTF-16 unit offsets with surrogate validation.
 		}
 		public int FromBaseUnits(string leaf, int baseUnits) {
-			/* Convert base unit count to measured value; simple identity with range validation. */
+			// Ensured the supplied base units were in range and returned them unchanged.
 		}
 		public bool IsBoundary(string leaf, int offset) {
-			/* Determine whether offset sits on a valid UTF-16 boundary using helper. */
+			// Checked surrogate boundaries via Utf16BoundaryHelper.
 		}
 		public int? GetPreviousBoundary(string leaf, int offset) {
-			/* Return previous UTF-16 boundary index via helper. */
+			// Delegated to Utf16BoundaryHelper for the preceding boundary.
 		}
 		public int? GetNextBoundary(string leaf, int offset) {
-			/* Return next UTF-16 boundary index via helper. */
+			// Delegated to Utf16BoundaryHelper for the next boundary.
 		}
 	}
 	internal static class Utf16BoundaryHelper {
 		public static bool IsBoundary(ReadOnlySpan<char> leaf, int offset) {
-			/* Determine whether offset is a valid UTF-16 boundary: true for ends, or not splitting a surrogate pair. */
+			// Determined whether a position falls on a valid UTF-16 surrogate boundary.
 		}
 		public static int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset) {
-			/* Return the index of the previous UTF-16 boundary, adjusting for surrogate pairs. */
+			// Returned the previous safe boundary, adjusting for trailing surrogates.
 		}
 		public static int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset) {
-			/* Return the next UTF-16 boundary index, adjusting for surrogate pairs, or null when at end. */
+			// Returned the next safe boundary, handling high-surrogate pairs.
 		}
 	}
 	public sealed class Rope : ITextBuffer {
@@ -199,25 +214,25 @@ namespace Xi.Core.Rope {
 		public int Length => _root.Length;
 		internal Node DebugRoot => _root;
 		public void Append(string? text) {
-			/* Append provided text to the rope by delegating to Replace at end. */
+			// Appended text by delegating to the core Replace pipeline at the tail.
 		}
 		public void Append(ReadOnlySpan<char> text) {
-			/* Append span contents to rope if non-empty (converts to string). */
+			// Accepted spans, converting to string before forwarding to Replace.
 		}
 		public void Clear() {
-			/* Reset root to empty node. */
+			// Reset the rope to its canonical empty node.
 		}
 		public void Replace(int start, int length, string? text) {
-			/* Replace range in rope by validating and delegating to root.Replace. */
+			// Validated a range and replaced the corresponding rope region.
 		}
 		public string Snapshot() {
-			/* Return concatenated string snapshot by delegating to root.ToString(). */
+			// Materialized the rope into a contiguous string snapshot.
 		}
 		public string GetSlice(int start, int length) {
-			/* Validate and return a slice by delegating to node slicing. */
+			// Extracted a substring by slicing the underlying rope structure.
 		}
 		private static void ValidateRange(int start, int length, int totalLength) {
-			/* Validate that start/length fit inside totalLength; throw on invalid values. */
+			// Ensured index and length arguments were within the rope's bounds.
 		}
 	}
 	public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric> {
@@ -226,29 +241,29 @@ namespace Xi.Core.Rope {
 		public static RopeInfo Identity => new RopeInfo(0, 0);
 		static BaseMetric IDefaultMetricProvider<RopeInfo, string, BaseMetric>.DefaultMetric => BaseMetric.Instance;
 		private RopeInfo(int lineCount, int utf16Length) {
-			/* Initialize RopeInfo with line count and UTF-16 length. */
+			// Stored line and UTF-16 aggregates for a rope segment.
 		}
 		public static RopeInfo FromLeaf(ReadOnlySpan<char> span) {
-			/* Analyze span and return RopeInfo representing line and utf16 counts. */
+			// Analyzed a leaf span to produce aggregate line and UTF-16 metrics.
 		}
 		public static RopeInfo FromLeaf(string leaf) {
-			/* Validate leaf is non-null and forward to span-based analyzer. */
+			// Overload accepting string leaves before forwarding to the span-based analyzer.
 		}
 		public RopeInfo Accumulate(RopeInfo other) {
-			/* Accumulate counts from other RopeInfo and return a combined value. */
+			// Combined metrics from another RopeInfo to support tree aggregation.
 		}
 		public Interval IntervalForPrefix(int prefixLength) {
-			/* Return interval representing first prefixLength base units (clamped to Utf16Length). */
+			// Projected a prefix length onto an interval bounded by cached UTF-16 length.
 		}
 		private static (int lines, int utf16) AnalyzeSpan(ReadOnlySpan<char> span) {
-			/* Compute line count and total UTF-16 sequence length from span by scanning chars and runes. */
+			// Counted newline characters and UTF-16 code units across the provided span.
 		}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int AddLength(int baseLength) {
-			/* Add this info's UTF-16 length to baseLength with checked arithmetic. */
+			// Accumulated the stored UTF-16 length with an existing base length.
 		}
 		static RopeInfo ITreeNodeInfo<RopeInfo, string>.FromLeaf(string leaf) {
-			/* Explicit interface impl delegation to FromLeaf. */
+			// Invoked the static factory to derive RopeInfo from a leaf string.
 		}
 	}
 }
@@ -256,7 +271,7 @@ namespace Xi.Core.Rope.Tree {
 	internal static class LeafSplitter {
 		internal const int NewlinePreferenceWindow = 64;
 		internal static IEnumerable<string> Split(string leaf) {
-            /* Split a string leaf into segments that satisfy capacity constraints (newline-preferring). */
+			// Delegated to StringLeafOperations to generate appropriately sized leaves.
 		}
 	}
 	public sealed class Node {
@@ -267,10 +282,10 @@ namespace Xi.Core.Rope.Tree {
 			public string? Leaf { get; }
 			public Node[]? Children { get; }
 			public NodeBody(int height, int length, RopeInfo info, string? leaf, Node[]? children) {
-				/* Construct NodeBody with height, aggregate length, info and payload. */
+				// Stored the structural metadata, leaf payload, and child array reference.
 			}
 			public NodeBody Clone(Node[]? overrideChildren = null) {
-				/* Clone underlying body optionally replacing children; used by shared node make-unique paths. */
+				// Produced a shallow copy optionally substituting the child array reference.
 			}
 		}
 		private sealed class SharedNode {
@@ -283,25 +298,25 @@ namespace Xi.Core.Rope.Tree {
 			public string? Leaf => _body.Leaf;
 			public Node[]? Children => _body.Children;
 			public SharedNode(NodeBody body) {
-				/* Wrap an existing NodeBody in an immutable SharedNode container. */
+				// Wrapped the immutable node body shared across rope instances.
 			}
 			public SharedNode EnsureUnique() {
-				/* Return a new SharedNode wrapping a shallow-cloned NodeBody (to ensure unique ownership). */
+				// Cloned the underlying body to guarantee writable ownership.
 			}
 			public SharedNode CloneWithChildren(IReadOnlyList<Node> newChildren) {
-				/* Create a new SharedNode built from provided children while validating heights and aggregating info. */
+				// Rebuilt an internal body using a new child list and updated aggregates.
 			}
 			public SharedNode ReplaceChildRange(int index, int removeCount, IReadOnlyList<Node> replacements) {
-				/* Replace a child range with replacements; validate inputs and aggregate new info/length. */
+				// Produced a new SharedNode with a spliced child range and refreshed aggregates.
 			}
 			public static SharedNode FromInternal(int height, IReadOnlyList<Node> children) {
-				/* Construct SharedNode from internal children by materializing and aggregating info. */
+				// Materialized an internal node from child references while computing metadata.
 			}
 			private static (int Length, RopeInfo Info, Node[] Array) MaterializeChildren(int parentHeight, IReadOnlyList<Node> children) {
-				/* Validate and materialize provided children for an internal node; aggregate length and info. */
+				// Validated child heights, accumulated metrics, and produced a dense array copy.
 			}
 			private static (int Length, RopeInfo Info) AggregateChildren(int parentHeight, Node[] children) {
-				/* Aggregate child lengths and info, validating heights for an internal node. */
+				// Recomputed length and RopeInfo by iterating children of a fixed height.
 			}
 		}
 		private readonly SharedNode _shared;
@@ -316,129 +331,128 @@ namespace Xi.Core.Rope.Tree {
 		public bool IsEmpty => Length == 0;
 		public int ChildCount {
 			get {
-				/* Return number of child nodes for internal node (0 for leaves). */
+				// Reported the number of child nodes held by this internal node.
 			}
 		}
 		public IReadOnlyList<Node> Children => Body.Children ?? Array.Empty<Node>();
 		public ReadOnlySpan<char> LeafSpan => (Body.Leaf == null) ? ReadOnlySpan<char>.Empty : Body.Leaf.AsSpan();
 		private Node(NodeBody body)
 			: this(new SharedNode(body)) {
-			/* Create a new Node by wrapping NodeBody in a SharedNode. */
+			// Wrapped a raw node body inside the shared-node container.
 		}
 		private Node(SharedNode shared) {
-			/* Construct Node from shared wrapper. */
+			// Captured the shared node handle for future structural operations.
 		}
 		private static Node FromShared(SharedNode shared) {
-			/* Create Node from existing SharedNode. */
+			// Constructed a Node façade around an existing SharedNode instance.
 		}
 		public static Node FromLeaf(string? text) {
-			/* Create a leaf node from a string; compute RopeInfo and return Empty for null/empty. */
+			// Created a leaf node from raw text, computing rope metadata along the way.
 		}
 		public static Node Concat(Node left, Node right) {
-			/* Concatenate two nodes, handling empty cases and balancing heights with helpers. */
+			// Concatenated two nodes, balancing heights by delegating to helper paths.
 		}
 		public IEnumerable<Node> TraverseLeaves() {
-			/* Iterate leaf nodes in the tree; depth-first traversal exposing leaves. */
+			// Enumerated leaf nodes depth-first for inspection and diagnostics.
 		}
 		public Node Slice(int start, int length) {
-			/* Return a node representing the slice [start, start+length) by splitting as needed. */
+			// Produced a sub-node representing a contiguous range of the original node.
 		}
 		public override string ToString() {
-			/* Concatenate child strings or return leaf payload. */
+			// Materialized the rope node and its descendants into a single string.
 		}
 		public Node Insert(int start, string text) {
-			/* Insert text at position start: try in-leaf fast path, otherwise split and rebuild with TreeBuilder. */
+			// Inserted text at a position, falling back to structural rebuilds when needed.
 		}
 		public Node Delete(int start, int length) {
-			/* Delete the range [start, start+length); attempt fast single-segment path or rebuild from splits. */
+			// Removed a length of text, attempting localized edits before rebuilding.
 		}
 		public Node Replace(int start, int length, string? text) {
-			/* Replace a range with text by delegating to Insert/Delete fast paths or performing split-based rebuild. */
+			// Replaced text within the node, using targeted edits or composite operations.
 		}
 		public Node EnsureWritableLeaf() {
-			/* Return a writable clone of a leaf: clone payload if needed to ensure uniqueness. */
+			// Guaranteed a writable leaf by cloning shared strings when necessary.
 		}
 		public IReadOnlyList<Node> SplitLeafByBounds() {
-			/* Split this leaf into smaller leaf nodes according to capacity boundaries. */
+			// Split oversized leaves into capacity-bounded segments using helper logic.
 		}
 		private bool TryInsertInSingleLeaf(int start, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {
-			/* Fast-path insertion when operation affects only a single leaf.
-			   Returns result or replacement segments if splitting was required. */
+			// Attempted to mutate a single leaf in-place, cascading splits when capacity overflowed.
 		}
 		private bool TryDeleteInSingleSegment(int start, int length, out Node result) {
-			/* Fast-path deletion when the range lies entirely within a single leaf; may merge/rebalance neighbors. */
+			// Attempted to delete within a single leaf or child segment, updating structure minimally.
 		}
 		private bool TryReplaceInSingleSegment(int start, int length, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {
-			/* Fast-path replace when impact is confined to a single leaf; may split, merge, or rebalance neighboring leaves. */
+			// Tried to rewrite a single segment, handling splits, merges, and rebalancing as needed.
 		}
 		public Node CloneWithChildren(IReadOnlyList<Node> newChildren) {
-			/* Clone current node but replace its children with the provided list; validate node type. */
+			// Returned a new node sharing metadata but with substituted children.
 		}
 		public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false) {
-			/* Collect a list of invariant issues by traversing and validating the tree; optional leaf-min enforcement. */
+			// Collected structural invariant violations for diagnostics and testing.
 		}
 		public void ValidateInvariants(bool enforceLeafMinimum = false) {
-			/* Validate invariants and throw if issues found (delegates to CollectInvariantIssues). */
+			// Threw an exception when invariant checks uncovered structural problems.
 		}
 		public Node NormalizeLeafMinimum() {
-			/* Iterate to repair leaf underflow issues by resolving paths and rebalancing until stable. */
+			// Iteratively resolved underfilled leaves until size invariants were satisfied.
 		}
 		private static bool TryParseInvariantPath(string issue, out int[] indices) {
-			/* Parse a path expression from an invariant description string and return indices for node traversal. */
+			// Parsed an invariant error message into a navigation path for remediation.
 		}
 		private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out Node updated) {
-			/* Attempt to resolve a leaf underflow found at path: merge or rebalance and rebuild upward segments. */
+			// Walked a path toward an underflowing leaf and merged or rebalanced it.
 		}
 		private Node ReplaceChildWithSegments(Node[] children, int index, IReadOnlyList<Node> segments) {
-			/* Replace a single child with a set of segment nodes and rebuild the internal SharedNode. */
+			// Replaced a single child with multiple segments and rebuilt node metadata.
 		}
 		public Node WithChildReplaced(int index, Node newChild) {
-			/* Replace child at index with a new child node, returning updated internal node. */
+			// Produced a node with a single child replaced while keeping other children intact.
 		}
 		public (Node Left, Node Right) SplitAt(int index) {
-			/* Split node at index into a left and right node; recurse into children for internal splits. */
+			// Split the node into two parts around the specified index, recursing as needed.
 		}
 		private static Node ConcatLeftShorter(Node left, Node right) {
-			/* Handle concatenation when left.Height < right.Height by pushing into right's leftmost subtree and rebalancing. */
+			// Balanced concatenation when the left operand was shorter than the right.
 		}
 		private static Node ConcatRightShorter(Node left, Node right) {
-			/* Handle concatenation when right.Height < left.Height by merging into left's rightmost subtree and rebalancing. */
+			// Balanced concatenation when the right operand was shorter than the left.
 		}
 		private Node[] RequireChildren() {
-			/* Return non-null children array for internal nodes; throw if leaf. */
+			// Retrieved the internal node's child array, asserting presence of children.
 		}
 		private static string GetLeafText(Node node) {
-			/* Return the leaf text of a leaf node, or empty string if null; throw when called on internal node. */
+			// Exposed the string payload stored in a leaf node.
 		}
 		private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {
-			/* Attempt to merge a small replacement leaf with a neighboring sibling when size constraints permit. */
+			// Attempted to merge a small leaf with adjacent siblings to satisfy capacity rules.
 		}
 		private bool TryRebalanceLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {
-			/* Attempt to rebalance a pair of adjacent leaf nodes to maintain min/max constraints, using helper TryRebalancePair. */
+			// Redistributed characters with neighbors to bring an underflowing leaf back in range.
 		}
 		private bool TryRebalancePair(Node[] children, int firstIndex, int secondIndex, Node first, Node second, out Node result) {
-			/* Rebalance an adjacent leaf pair by computing a balanced split if combined size exceeds max; return new internal structure. */
+			// Rebuilt a neighboring leaf pair with balanced splits to enforce capacity constraints.
 		}
 		private static void ValidateNode(Node node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
-			/* Validate a node's invariants: leaf length, leaf sizes, and internal-child aggregates; record issues in the list. */
+			// Validated tree invariants recursively, emitting issues for diagnostics.
 		}
 		private static string FormatLeafPreview(Node node) {
-			/* Return a short escaped preview of a leaf's text (first 32 chars visible). */
+			// Generated a truncated, escaped preview of a leaf's contents for logging.
 		}
 		private static string EscapePreview(string text) {
-			/* Escape control characters in preview strings for display in diagnostic messages. */
+			// Escaped control characters to keep previews readable in diagnostics.
 		}
 		private static string SummarizeChildren(Node[] children) {
-			/* Return a compact summary string with lengths of up to first 6 children and total count. */
+			// Produced a compact textual summary of child lengths for diagnostics.
 		}
 		private Node BuildMergedNode(Node[] children, int firstIndex, int secondIndex, Node mergedLeaf) {
-			/* Build a node with two adjacent children replaced by a merged leaf; handle edge cases like full-child replacement. */
+			// Replaced a consecutive child range with a merged leaf and rebuilt the node.
 		}
 		private static Node CreateInternal(int height, IReadOnlyList<Node> children) {
-			/* Create an internal node from the given children; return Empty when no children. */
+			// Created an internal node from children while computing aggregate metadata.
 		}
 		private static Node BuildFromSegments(List<Node> segments) {
-			/* Build a balanced node tree from provided segments using TreeBuilder, handling empty and single segment cases. */
+			// Folded a list of node segments into a balanced tree via TreeBuilder.
 		}
 	}
 	public sealed class Node<TInfo, TLeaf, TLeafOps> where TInfo : struct, ITreeNodeInfo<TInfo, TLeaf> where TLeafOps : ILeafOperations<TLeaf> {
@@ -453,21 +467,21 @@ namespace Xi.Core.Rope.Tree {
 		public bool IsEmpty => Length == 0;
 		public TLeaf Leaf {
 			get {
-				/* Return the leaf payload; throws when called on an internal node. */
+				// Provided access to the leaf payload when the node represented a leaf.
 			}
 		}
 		public IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> Children => _body.Children ?? Array.Empty<Node<TInfo, TLeaf, TLeafOps>>();
 		private Node(NodeBody body) {
-			/* Construct a generic node from NodeBody. */
+			// Captured the provided node body in the original implementation.
 		}
 		public static Node<TInfo, TLeaf, TLeafOps> FromLeaf(TLeaf leaf) {
-			/* Create generic leaf node from TLeaf by computing length and node info via TLeafOps/TInfo. */
+			// Constructed a leaf node using leaf operations to populate metadata.
 		}
 		public static Node<TInfo, TLeaf, TLeafOps> CreateInternal(IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children) {
-			/* Create an internal generic node by validating heights, aggregating length/info, and building NodeBody. */
+			// Built an internal node from homogeneous children, aggregating metadata generically.
 		}
 		public IEnumerable<Node<TInfo, TLeaf, TLeafOps>> TraverseLeaves() {
-			/* Generic traversal of leaf nodes; equivalent semantics to non-generic TraverseLeaves. */
+			// Enumerated generic leaf nodes recursively.
 		}
 	}
 	public sealed class NodeCursor {
@@ -475,28 +489,28 @@ namespace Xi.Core.Rope.Tree {
 		public int Position { get; private set; }
 		public int TotalLength => Root.Length;
 		public NodeCursor(Node root, int position) {
-			/* NodeCursor skeleton: store root and initial position; implementation omitted. */
+			// Intended to couple a traversal cursor with a rope root and position.
 		}
 		public (string Leaf, int Offset)? GetLeaf() {
-			/* Return the leaf string and offset for current cursor position when available. */
+			// Would expose the current leaf text and offset under the cursor.
 		}
 		public void SetPosition(int position) {
-			/* Update cursor position within root bounds. */
+			// Planned to update the cursor position within the rope.
 		}
 		public bool IsBoundary(IMetric metric) {
-			/* Determine if the current position is a metric boundary (e.g., glyph or line). */
+			// Intended to report whether the cursor is on a metric boundary.
 		}
 		public int? MoveToPrevious(IMetric metric) {
-			/* Move cursor to the previous boundary for given metric and return new position. */
+			// Would move the cursor to the previous boundary according to a metric.
 		}
 		public int? MoveToNext(IMetric metric) {
-			/* Move cursor to next boundary for metric and return new position. */
+			// Would move the cursor to the next boundary according to a metric.
 		}
 		public int? AtOrNext(IMetric metric) {
-			/* Return the position at or after the current cursor that aligns to the metric boundary. */
+			// Intended to snap to the current or next boundary defined by the metric.
 		}
 		public int? AtOrPrevious(IMetric metric) {
-			/* Return the position at or before the current cursor that aligns to the metric boundary. */
+			// Intended to snap to the current or previous boundary defined by the metric.
 		}
 	}
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
@@ -505,70 +519,70 @@ namespace Xi.Core.Rope.Tree {
 		public static int MaxLeafSize => 1024;
 		public static string Empty => string.Empty;
 		public static int GetLength(string leaf) {
-			/* Return the length of the leaf string (zero for null). */
+			// Reported the UTF-16 length of the string leaf.
 		}
 		public static bool IsValidChild(string leaf) {
-			/* Return whether the leaf is long enough to be a valid child (>= MinLeafSize). */
+			// Determined whether a string leaf met the minimum capacity requirement.
 		}
 		public static string Clone(string leaf) {
-			/* Clone a leaf string into a new allocation preserving contents; returns Empty when length is 0. */
+			// Produced a new string copy to break sharing of the original leaf.
 		}
 		public static string Insert(string leaf, int index, string text) {
-			/* Insert text into leaf at index and return a newly created string; validate index and no-op when insertion is empty. */
+			// Inserted text into a string leaf while preserving UTF-16 ordering.
 		}
 		public static string RemoveRange(string leaf, int index, int length) {
-			/* Remove a range from a leaf and return a new string with content before and after removed range; validate bounds. */
+			// Removed a substring from the leaf and returned the compacted result.
 		}
 		public static string ReplaceRange(string leaf, int index, int length, string replacement) {
-			/* Replace range in a leaf with a replacement string, combining Insert/Remove fast paths; returns new string. */
+			// Replaced a substring with new text, combining insertion and removal semantics.
 		}
 		public static string Merge(string left, string right) {
-			/* Merge two adjacent leaf strings into a single new string; empty optimized to Empty. */
+			// Concatenated two string leaves while preserving order.
 		}
 		public static bool TryComputeBalancedSplit(string left, string right, out string newLeft, out string newRight) {
-			/* Try to split a combined left/right into two balanced leaves within Min/Max constraints, favoring newline boundaries and UTF-16 safety. */
+			// Calculated balanced split strings ensuring size and surrogate constraints.
 		}
 		public static IEnumerable<string> SplitByCapacity(string leaf) {
-			/* Split a leaf into capacity-bound segments preferring newline boundaries and avoiding surrogate split. */
+			// Yielded capacity-aware substrings, preferring newline boundaries when splitting.
 		}
 		private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit) {
-			/* Prefer a split offset that lands on a newline within a reasonable window when possible. */
+			// Nudged the split toward a nearby newline when possible.
 		}
 		private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit) {
-			/* Adjust candidate split index to ensure it doesn't split a surrogate pair; attempt +-1 adjustment if possible. */
+			// Adjusted split positions to avoid breaking surrogate pairs.
 		}
 		private static bool IsSafeBoundary(string left, string right, int index) {
-			/* Return true when index does not split a surrogate pair across left+right combined boundaries. */
+			// Checked whether a split index avoided bisecting surrogate pairs.
 		}
 		private static string CreateCombinedSegment(string left, string right, int start, int length) {
-			/* Create a contiguous segment from the logical concatenation of left and right, starting at start for length chars. */
+			// Built a substring spanning the virtual concatenation of left and right.
 		}
 		private static char GetCombinedChar(string left, string right, int index) {
-			/* Retrieve the char at index from the conceptual concatenation of left+right. */
+			// Accessed a character from the conceptual concatenation of two strings.
 		}
 	}
 	public sealed class TreeBuilder {
 		private readonly List<Node> _pending = new List<Node>();
 		public void PushString(string? text) {
-			/* Push a string into the builder by splitting into leaf-sized segments and appending. */
+			// Split text into leaf-sized segments and appended them as nodes.
 		}
 		public void PushSpan(ReadOnlySpan<char> span) {
-			/* Push a span by converting to string and pushing via PushString when non-empty. */
+			// Accepted a span and forwarded it through the string-based push path.
 		}
 		public void PushNode(Node node) {
-			/* Append a pre-built node segment into pending list if it's not empty. */
+			// Added an existing node to the builder, skipping empties.
 		}
 		public Node Build() {
-			/* Build and return a balanced node tree by concatenating pending nodes. */
+			// Reduced pending nodes into a balanced rope via concatenation.
 		}
 		public void Reset() {
-			/* Clear the internal pending list. */
+			// Cleared all accumulated nodes to reuse the builder.
 		}
 		private void AppendNode(Node node) {
-			/* Append node while collapsing adjacent nodes of equal height by concatenating them. */
+			// Maintained a height-sorted pending list by merging nodes eagerly.
 		}
 		private static IEnumerable<string> SplitIntoLeaves(string text) {
-			/* Split string into leaf-sized segments via the LeafSplitter (newline-preferring). */
+			// Delegated to LeafSplitter for capacity-aware segmentation.
 		}
 	}
 	public interface ILeafOperations<TLeaf> {

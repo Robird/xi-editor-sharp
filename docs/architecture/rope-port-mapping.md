@@ -130,6 +130,6 @@
 
   - Rust `rope::metrics::codepoint::{is_codepoint_boundary, prev_codepoint_boundary, next_codepoint_boundary}` ↔ C# `Utf16BoundaryHelper.{IsBoundary, GetPreviousBoundary, GetNextBoundary}`。命名风格遵循各语言惯例（snake_case vs. PascalCase），但语义保持一致；新增 helper 后，任何 API 变更需要同步更新两侧命名对照。
   - Rust `rope::metrics::lines::{count_newlines_bytes, find_next_newline, find_prev_newline}` ↔ C# `LinesMetric` 内部的 `CountNewlines`, `GetNextBoundary`, `GetPreviousBoundary` 逻辑。Rust 侧仍提供 `pub fn count_newlines(&str)` 作为 shim 以兼容其他 crate。
-  - Rust `rope::metrics::break_indices::{nth_break_offset, count_breaks_up_to, find_prev_break, find_next_break, is_break_boundary}` ↔ 计划中的 C# `BreaksMetricHelper`（待实现）以及 `BreaksMetric`/`BreaksBaseMetric`。在 C# 侧落地前，可先以静态内部方法临时承载这些能力。
+  - Rust `rope::metrics::break_indices::{nth_break_offset, count_breaks_up_to, find_prev_break, find_next_break, is_break_boundary}` ↔ C# `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）。Helper 已实现并复刻零分配查找语义；`BreaksMetric`/`BreaksBaseMetric` 后续对齐。
   - Rust `rope::metrics::identity::BaseUnitsIdentity` ↔ C# `BaseMetricIdentity`（TODO：待引入），用于生成“与 base 单位一致”的 metric 包装，减少重复实现。
   - 以上 helper 列表纳入 review checklist：每当 Rust/C# 端新增或改名 helper，必须更新此对照表，并执行 `scripts/refresh_skeleton_docs.py` 刷新骨架文档。
