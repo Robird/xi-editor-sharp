@@ -17,7 +17,7 @@ use std::cmp::min;
 use std::mem;
 
 /// A set of indexes. A motivating use is storing line breaks.
-pub type Breaks = Node<BreaksInfo>;
+pub type Breaks = Node<BreaksInfo, BreaksLeaf>;
 
 const MIN_LEAF: usize = 32;
 const MAX_LEAF: usize = 64;
@@ -45,18 +45,22 @@ impl Leaf for BreaksLeaf {
     fn push_maybe_split(&mut self, other: &BreaksLeaf, iv: Interval) -> Option<BreaksLeaf> {...}
 }
 
-impl NodeInfo for BreaksInfo {
-    type L = BreaksLeaf;
-
+impl NodeInfo<BreaksLeaf> for BreaksInfo {
     fn accumulate(&mut self, other: &Self) {...}
 
     fn compute_info(l: &BreaksLeaf) -> BreaksInfo {...}
 }
 
-impl DefaultMetricProvider for BreaksInfo {
-    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+impl DefaultMetricProvider<BreaksLeaf> for BreaksInfo {
+    fn convert_from_default<M: Metric<Self, BreaksLeaf>>(
+        node: &Node<Self, BreaksLeaf>,
+        offset: usize,
+    ) -> usize {...}
 
-    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+    fn convert_to_default<M: Metric<Self, BreaksLeaf>>(
+        node: &Node<Self, BreaksLeaf>,
+        offset: usize,
+    ) -> usize {...}
 }
 
 impl BreaksLeaf {
@@ -68,7 +72,7 @@ impl BreaksLeaf {
 #[derive(Copy, Clone)]
 pub struct BreaksMetric(());
 
-impl Metric<BreaksInfo> for BreaksMetric {
+impl Metric<BreaksInfo, BreaksLeaf> for BreaksMetric {
     fn measure(info: &BreaksInfo, _: usize) -> usize {...}
 
     fn to_base_units(l: &BreaksLeaf, in_measured_units: usize) -> usize {...}
@@ -87,7 +91,7 @@ impl Metric<BreaksInfo> for BreaksMetric {
 #[derive(Copy, Clone)]
 pub struct BreaksBaseMetric(());
 
-impl Metric<BreaksInfo> for BreaksBaseMetric {
+impl Metric<BreaksInfo, BreaksLeaf> for BreaksBaseMetric {
     fn measure(_: &BreaksInfo, len: usize) -> usize {...}
 
     fn to_base_units(_: &BreaksLeaf, in_measured_units: usize) -> usize {...}
@@ -112,7 +116,7 @@ impl Breaks {
 }
 
 pub struct BreakBuilder {
-    b: TreeBuilder<BreaksInfo>,
+    b: TreeBuilder<BreaksInfo, BreaksLeaf>,
     leaf: BreaksLeaf,
 }
 
@@ -210,8 +214,8 @@ pub fn ne_idx_rev_fallback(one: &[u8], two: &[u8]) -> Option<usize> {...}
 
 /// Utility for efficiently comparing two ropes.
 pub struct RopeScanner<'a> {
-    base: Cursor<'a, RopeInfo>,
-    target: Cursor<'a, RopeInfo>,
+    base: Cursor<'a, RopeInfo, String>,
+    target: Cursor<'a, RopeInfo, String>,
     base_chunk: &'a str,
     target_chunk: &'a str,
     scanned: usize,
@@ -306,17 +310,17 @@ impl<'a> RopeScanner<'a> {
 ```rust
 use crate::interval::{Interval, IntervalBounds};
 use crate::multiset::{CountMatcher, Subset, SubsetBuilder};
-use crate::tree::{Node, NodeInfo, TreeBuilder};
+use crate::tree::{Leaf, Node, NodeInfo, TreeBuilder};
 use std::cmp::min;
 use std::fmt;
 use std::ops::Deref;
 use std::slice;
 
 #[derive(Clone)]
-pub enum DeltaElement<N: NodeInfo> {
+pub enum DeltaElement<N: NodeInfo<L>, L: Leaf> {
     /// Represents a range of text in the base document. Includes beginning, excludes end.
     Copy(usize, usize), // note: for now, we lose open/closed info at interval endpoints
-    Insert(Node<N>),
+    Insert(Node<N, L>),
 }
 
 /// Represents changes to a document by describing the new document as a
@@ -327,8 +331,8 @@ pub enum DeltaElement<N: NodeInfo> {
 /// For example, Editing "abcd" into "acde" could be represented as:
 /// `[Copy(0,1),Copy(2,4),Insert("e")]`
 #[derive(Clone)]
-pub struct Delta<N: NodeInfo> {
-    pub els: Vec<DeltaElement<N>>,
+pub struct Delta<N: NodeInfo<L>, L: Leaf> {
+    pub els: Vec<DeltaElement<N, L>>,
     pub base_len: usize,
 }
 
@@ -336,13 +340,17 @@ pub struct Delta<N: NodeInfo> {
 /// all of the old document in the same order. It has a `Deref` impl so all
 /// normal `Delta` methods can also be used on it.
 #[derive(Clone)]
-pub struct InsertDelta<N: NodeInfo>(Delta<N>);
+pub struct InsertDelta<N: NodeInfo<L>, L: Leaf>(Delta<N, L>);
 
-impl<N: NodeInfo> Delta<N> {
-    pub fn simple_edit<T: IntervalBounds>(interval: T, rope: Node<N>, base_len: usize) -> Delta<N> {...}
+impl<N: NodeInfo<L>, L: Leaf> Delta<N, L> {
+    pub fn simple_edit<T: IntervalBounds>(
+        interval: T,
+        rope: Node<N, L>,
+        base_len: usize,
+    ) -> Delta<N, L> {...}
 
     /// If this delta represents a simple insertion, returns the inserted node.
-    pub fn as_simple_insert(&self) -> Option<&Node<N>> {...}
+    pub fn as_simple_insert(&self) -> Option<&Node<N, L>> {...}
 
     /// Returns `true` if this delta represents a single deletion without
     /// any insertions.
@@ -356,7 +364,7 @@ impl<N: NodeInfo> Delta<N> {
 
     /// Apply the delta to the given rope. May not work well if the length of the rope
     /// is not compatible with the construction of the delta.
-    pub fn apply(&self, base: &Node<N>) -> Node<N> {...}
+    pub fn apply(&self, base: &Node<N, L>) -> Node<N, L> {...}
 
     /// Factor the delta into an insert-only delta and a subset representing deletions.
     /// Applying the insert then the delete yields the same result as the original delta:
@@ -365,13 +373,13 @@ impl<N: NodeInfo> Delta<N> {
     /// # use xi_rope::rope::{Rope, RopeInfo};
     /// # use xi_rope::delta::Delta;
     /// # use std::str::FromStr;
-    /// fn test_factor(d : &Delta<RopeInfo>, r : &Rope) {
+    /// fn test_factor(d : &Delta<RopeInfo, String>, r : &Rope) {
     ///     let (ins, del) = d.clone().factor();
     ///     let del2 = del.transform_expand(&ins.inserted_subset());
     ///     assert_eq!(String::from(del2.delete_from(&ins.apply(r))), String::from(d.apply(r)));
     /// }
     /// ```
-    pub fn factor(self) -> (InsertDelta<N>, Subset) {...}
+    pub fn factor(self) -> (InsertDelta<N, L>, Subset) {...}
 
     /// Synthesize a delta from a "union string" and two subsets: an old set
     /// of deletions and a new set of deletions from the union. The Delta is
@@ -390,7 +398,7 @@ impl<N: NodeInfo> Delta<N> {
     /// # use xi_rope::rope::{Rope, RopeInfo};
     /// # use xi_rope::delta::Delta;
     /// # use std::str::FromStr;
-    /// fn test_synthesize(d : &Delta<RopeInfo>, r : &Rope) {
+    /// fn test_synthesize(d : &Delta<RopeInfo, String>, r : &Rope) {
     ///     let (ins_d, del) = d.clone().factor();
     ///     let ins = ins_d.inserted_subset();
     ///     let del2 = del.transform_expand(&ins);
@@ -403,7 +411,11 @@ impl<N: NodeInfo> Delta<N> {
     // For if last_old.is_some() && last_old.unwrap().0 <= beg {. Clippy complaints
     // about not using if-let, but that'd change the meaning of the conditional.
     #[allow(clippy::unnecessary_unwrap)]
-    pub fn synthesize(tombstones: &Node<N>, from_dels: &Subset, to_dels: &Subset) -> Delta<N> {...}
+    pub fn synthesize(
+        tombstones: &Node<N, L>,
+        from_dels: &Subset,
+        to_dels: &Subset,
+    ) -> Delta<N, L> {...}
 
     /// Produce a summary of the delta. Everything outside the returned interval
     /// is unchanged, and the old contents of the interval are replaced by new
@@ -422,47 +434,47 @@ impl<N: NodeInfo> Delta<N> {
     /// `d.apply(r).len() == d.new_document_len()`
     pub fn new_document_len(&self) -> usize {...}
 
-    fn total_element_len(els: &[DeltaElement<N>]) -> usize {...}
+    fn total_element_len(els: &[DeltaElement<N, L>]) -> usize {...}
 
     /// Returns the sum length of the inserts of the delta.
     pub fn inserts_len(&self) -> usize {...}
 
     /// Iterates over all the inserts of the delta.
-    pub fn iter_inserts(&self) -> InsertsIter<'_, N> {...}
+    pub fn iter_inserts(&self) -> InsertsIter<'_, N, L> {...}
 
     /// Iterates over all the deletions of the delta.
-    pub fn iter_deletions(&self) -> DeletionsIter<'_, N> {...}
+    pub fn iter_deletions(&self) -> DeletionsIter<'_, N, L> {...}
 }
 
-impl<N: NodeInfo> fmt::Debug for Delta<N>
+impl<N: NodeInfo<L>, L: Leaf> fmt::Debug for Delta<N, L>
 where
-    Node<N>: fmt::Debug,
+    Node<N, L>: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {...}
 }
 
-impl<N: NodeInfo> fmt::Debug for InsertDelta<N>
+impl<N: NodeInfo<L>, L: Leaf> fmt::Debug for InsertDelta<N, L>
 where
-    Node<N>: fmt::Debug,
+    Node<N, L>: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {...}
 }
 
-impl<N: NodeInfo> InsertDelta<N> {
+impl<N: NodeInfo<L>, L: Leaf> InsertDelta<N, L> {
     #![allow(clippy::many_single_char_names)]
     /// Do a coordinate transformation on an insert-only delta. The `after` parameter
     /// controls whether the insertions in `self` come after those specific in the
     /// coordinate transform.
     //
     // TODO: write accurate equations
-    pub fn transform_expand(&self, xform: &Subset, after: bool) -> InsertDelta<N> {...}
+    pub fn transform_expand(&self, xform: &Subset, after: bool) -> InsertDelta<N, L> {...}
 
     // TODO: it is plausible this method also works on Deltas with deletes
     /// Shrink a delta through a deletion of some of its copied regions with
     /// the same base. For example, if `self` applies to a union string, and
     /// `xform` is the deletions from that union, the resulting Delta will
     /// apply to the text.
-    pub fn transform_shrink(&self, xform: &Subset) -> InsertDelta<N> {...}
+    pub fn transform_shrink(&self, xform: &Subset) -> InsertDelta<N, L> {...}
 
     /// Return a Subset containing the inserted ranges.
     ///
@@ -473,23 +485,23 @@ impl<N: NodeInfo> InsertDelta<N> {
 /// An InsertDelta is a certain kind of Delta, and anything that applies to a
 /// Delta that may include deletes also applies to one that definitely
 /// doesn't. This impl allows implicit use of those methods.
-impl<N: NodeInfo> Deref for InsertDelta<N> {
-    type Target = Delta<N>;
+impl<N: NodeInfo<L>, L: Leaf> Deref for InsertDelta<N, L> {
+    type Target = Delta<N, L>;
 
-    fn deref(&self) -> &Delta<N> {...}
+    fn deref(&self) -> &Delta<N, L> {...}
 }
 
 // TODO: this doesn't need the new strings, so it should either be based on a new structure
 /// A mapping from coordinates in the source sequence to coordinates in the sequence after
 /// the delta is applied.
 // like Delta but missing the strings, or perhaps the two subsets it's synthesized from.
-pub struct Transformer<'a, N: NodeInfo + 'a> {
-    delta: &'a Delta<N>,
+pub struct Transformer<'a, N: NodeInfo<L> + 'a, L: Leaf> {
+    delta: &'a Delta<N, L>,
 }
 
-impl<'a, N: NodeInfo + 'a> Transformer<'a, N> {
+impl<'a, N: NodeInfo<L> + 'a, L: Leaf> Transformer<'a, N, L> {
     /// Create a new transformer from a delta.
-    pub fn new(delta: &'a Delta<N>) -> Self {...}
+    pub fn new(delta: &'a Delta<N, L>) -> Self {...}
 
     // TODO: implement a cursor so we're not scanning from the beginning every time.
     /// Transform a single coordinate. The `after` parameter indicates whether it
@@ -504,33 +516,33 @@ impl<'a, N: NodeInfo + 'a> Transformer<'a, N> {
 ///
 /// Note that all edit operations must be sorted; the start point of each
 /// interval must be no less than the end point of the previous one.
-pub struct Builder<N: NodeInfo> {
-    delta: Delta<N>,
+pub struct Builder<N: NodeInfo<L>, L: Leaf> {
+    delta: Delta<N, L>,
     last_offset: usize,
 }
 
-impl<N: NodeInfo> Builder<N> {
+impl<N: NodeInfo<L>, L: Leaf> Builder<N, L> {
     /// Creates a new builder, applicable to a base rope of length `base_len`.
-    pub fn new(base_len: usize) -> Builder<N> {...}
+    pub fn new(base_len: usize) -> Builder<N, L> {...}
 
     /// Deletes the given interval. Panics if interval is not properly sorted.
     pub fn delete<T: IntervalBounds>(&mut self, interval: T) {...}
 
     /// Replaces the given interval with the new rope. Panics if interval
     /// is not properly sorted.
-    pub fn replace<T: IntervalBounds>(&mut self, interval: T, rope: Node<N>) {...}
+    pub fn replace<T: IntervalBounds>(&mut self, interval: T, rope: Node<N, L>) {...}
 
     /// Determines if delta would be a no-op transformation if built.
     pub fn is_empty(&self) -> bool {...}
 
     /// Builds the `Delta`.
-    pub fn build(mut self) -> Delta<N> {...}
+    pub fn build(mut self) -> Delta<N, L> {...}
 }
 
-pub struct InsertsIter<'a, N: NodeInfo + 'a> {
+pub struct InsertsIter<'a, N: NodeInfo<L> + 'a, L: Leaf> {
     pos: usize,
     last_end: usize,
-    els_iter: slice::Iter<'a, DeltaElement<N>>,
+    els_iter: slice::Iter<'a, DeltaElement<N, L>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -544,20 +556,20 @@ impl DeltaRegion {
     fn new(old_offset: usize, new_offset: usize, len: usize) -> Self {...}
 }
 
-impl<'a, N: NodeInfo> Iterator for InsertsIter<'a, N> {
+impl<'a, N: NodeInfo<L>, L: Leaf> Iterator for InsertsIter<'a, N, L> {
     type Item = DeltaRegion;
 
     fn next(&mut self) -> Option<Self::Item> {...}
 }
 
-pub struct DeletionsIter<'a, N: NodeInfo + 'a> {
+pub struct DeletionsIter<'a, N: NodeInfo<L> + 'a, L: Leaf> {
     pos: usize,
     last_end: usize,
     base_len: usize,
-    els_iter: slice::Iter<'a, DeltaElement<N>>,
+    els_iter: slice::Iter<'a, DeltaElement<N, L>>,
 }
 
-impl<'a, N: NodeInfo> Iterator for DeletionsIter<'a, N> {
+impl<'a, N: NodeInfo<L>, L: Leaf> Iterator for DeletionsIter<'a, N, L> {
     type Item = DeltaRegion;
 
     fn next(&mut self) -> Option<Self::Item> {...}
@@ -574,11 +586,15 @@ use crate::compare::RopeScanner;
 use crate::delta::{Delta, DeltaElement};
 use crate::interval::Interval;
 use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
-use crate::tree::{Node, NodeInfo};
+use crate::tree::{Leaf, Node, NodeInfo};
 
 /// A trait implemented by various diffing strategies.
-pub trait Diff<N: NodeInfo> {
-    fn compute_delta(base: &Node<N>, target: &Node<N>) -> Delta<N>;
+pub trait Diff<N, L>
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+{
+    fn compute_delta(base: &Node<N, L>, target: &Node<N, L>) -> Delta<N, L>;
 }
 
 /// The minimum length of non-whitespace characters in a line before
@@ -600,7 +616,7 @@ const MIN_SIZE: usize = 32;
 /// using a suffix array, while being an order of magnitude faster.
 pub struct LineHashDiff;
 
-impl Diff<RopeInfo> for LineHashDiff {
+impl Diff<RopeInfo, String> for LineHashDiff {
     fn compute_delta(base: &Rope, target: &Rope) -> RopeDelta {...}
 }
 
@@ -849,7 +865,7 @@ impl Engine {
 
     /// A delta that, when applied to `base_rev`, results in the current head. Returns
     /// an error if there is not at least one edit.
-    pub fn try_delta_rev_head(&self, base_rev: RevToken) -> Result<Delta<RopeInfo>, Error> {...}
+    pub fn try_delta_rev_head(&self, base_rev: RevToken) -> Result<Delta<RopeInfo, String>, Error> {...}
 
     // TODO: don't construct transform if subsets are empty
     // TODO: maybe switch to using a revision index for `base_rev` once we disable GC
@@ -862,7 +878,7 @@ impl Engine {
         new_priority: usize,
         undo_group: usize,
         base_rev: RevToken,
-        delta: Delta<RopeInfo>,
+        delta: Delta<RopeInfo, String>,
     ) -> Result<(Revision, Rope, Rope, Subset), Error> {...}
     // NOTE: maybe just deprecate this? we can panic on the other side of
     // the call if/when that makes sense.
@@ -876,7 +892,7 @@ impl Engine {
         priority: usize,
         undo_group: usize,
         base_rev: RevToken,
-        delta: Delta<RopeInfo>,
+        delta: Delta<RopeInfo, String>,
     ) {...}
 
     // TODO: have `base_rev` be an index so that it can be used maximally
@@ -889,7 +905,7 @@ impl Engine {
         priority: usize,
         undo_group: usize,
         base_rev: RevToken,
-        delta: Delta<RopeInfo>,
+        delta: Delta<RopeInfo, String>,
     ) -> Result<(), Error> {...}
 
     // since undo and gc replay history with transforms, we need an empty set
@@ -973,7 +989,7 @@ struct DeltaOp {
     rev_id: RevId,
     priority: usize,
     undo_group: usize,
-    inserts: InsertDelta<RopeInfo>,
+    inserts: InsertDelta<RopeInfo, String>,
     deletes: Subset,
 }
 
@@ -1071,7 +1087,7 @@ pub enum CaseMatching {
 ///
 /// Can panic if `pat` is empty.
 pub fn find(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     lines: &mut LinesRaw,
     cm: CaseMatching,
     pat: &str,
@@ -1090,7 +1106,7 @@ pub fn find(
 ///
 /// [find]: fn.find.html
 pub fn find_progress(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     lines: &mut LinesRaw,
     cm: CaseMatching,
     pat: &str,
@@ -1100,11 +1116,11 @@ pub fn find_progress(
 
 // Run the core repeatedly until there is a result, up to a certain number of steps.
 fn find_progress_iter(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     lines: &mut LinesRaw,
     pat: &str,
     scanner: impl Fn(&str) -> Option<usize>,
-    matcher: impl Fn(&mut Cursor<RopeInfo>, &mut LinesRaw, &str) -> Option<usize>,
+    matcher: impl Fn(&mut Cursor<RopeInfo, String>, &mut LinesRaw, &str) -> Option<usize>,
     num_steps: usize,
 ) -> FindResult {...}
 
@@ -1113,11 +1129,11 @@ fn find_progress_iter(
 // then a "matcher" which confirms that such a candidate actually matches
 // in the full rope.
 fn find_core(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     lines: &mut LinesRaw,
     pat: &str,
     scanner: impl Fn(&str) -> Option<usize>,
-    matcher: impl Fn(&mut Cursor<RopeInfo>, &mut LinesRaw, &str) -> Option<usize>,
+    matcher: impl Fn(&mut Cursor<RopeInfo, String>, &mut LinesRaw, &str) -> Option<usize>,
 ) -> FindResult {...}
 
 /// Compare whether the substring beginning at the current cursor location
@@ -1125,7 +1141,7 @@ fn find_core(
 /// position on failure, but the end of the string on success. Returns the
 /// start position of the match.
 pub fn compare_cursor_str(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     _lines: &mut LinesRaw,
     mut pat: &str,
 ) -> Option<usize> {...}
@@ -1134,7 +1150,7 @@ pub fn compare_cursor_str(
 /// normalize both strings before comparison). Returns the start position
 /// of the match.
 pub fn compare_cursor_str_casei(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     _lines: &mut LinesRaw,
     pat: &str,
 ) -> Option<usize> {...}
@@ -1146,7 +1162,7 @@ pub fn compare_cursor_str_casei(
 /// is consumed and matched against the regular expression. Otherwise only
 /// the current line is matched. Returns the start position of the match.
 pub fn compare_cursor_regex(
-    cursor: &mut Cursor<RopeInfo>,
+    cursor: &mut Cursor<RopeInfo, String>,
     lines: &mut LinesRaw,
     pat: &str,
     regex: &Regex,
@@ -1336,7 +1352,7 @@ use std::cmp;
 
 // These two imports are for the `apply` method only.
 use crate::interval::Interval;
-use crate::tree::{Node, NodeInfo, TreeBuilder};
+use crate::tree::{Leaf, Node, NodeInfo, TreeBuilder};
 use std::fmt;
 use std::slice;
 
@@ -1413,7 +1429,7 @@ impl Subset {
     // Maybe Subset should be a pure data structure and this method should
     // be a method of Node.
     /// Builds a version of `s` with all the elements in this `Subset` deleted from it.
-    pub fn delete_from<N: NodeInfo>(&self, s: &Node<N>) -> Node<N> {...}
+    pub fn delete_from<N: NodeInfo<L>, L: Leaf>(&self, s: &Node<N, L>) -> Node<N, L> {...}
 
     /// The length of the resulting sequence after deleting this subset. A
     /// convenience alias for `self.count(CountMatcher::Zero)` to reduce
@@ -1647,13 +1663,13 @@ const MAX_LEAF: usize = 1024;
 /// a.edit(1..9, "era");
 /// assert_eq!("herald", String::from(a));
 /// ```
-pub type Rope = Node<RopeInfo>;
+pub type Rope = Node<RopeInfo, String>;
 
 /// Represents a transform from one rope to another.
-pub type RopeDelta = Delta<RopeInfo>;
+pub type RopeDelta = Delta<RopeInfo, String>;
 
 /// An element in a `RopeDelta`.
-pub type RopeDeltaElement = DeltaElement<RopeInfo>;
+pub type RopeDeltaElement = DeltaElement<RopeInfo, String>;
 
 impl Leaf for String {
     fn len(&self) -> usize {...}
@@ -1669,9 +1685,7 @@ pub struct RopeInfo {
     utf16_size: usize,
 }
 
-impl NodeInfo for RopeInfo {
-    type L = String;
-
+impl NodeInfo<String> for RopeInfo {
     fn accumulate(&mut self, other: &Self) {...}
 
     fn compute_info(s: &String) -> Self {...}
@@ -1679,10 +1693,10 @@ impl NodeInfo for RopeInfo {
     fn identity() -> Self {...}
 }
 
-impl DefaultMetricProvider for RopeInfo {
-    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+impl DefaultMetricProvider<String> for RopeInfo {
+    fn convert_from_default<M: Metric<Self, String>>(node: &Node<Self, String>, offset: usize) -> usize {...}
 
-    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+    fn convert_to_default<M: Metric<Self, String>>(node: &Node<Self, String>, offset: usize) -> usize {...}
 }
 
 //TODO: document metrics, based on https://github.com/google/xi-editor/issues/456
@@ -1703,7 +1717,7 @@ impl DefaultMetricProvider for RopeInfo {
 #[derive(Clone, Copy)]
 pub struct BaseMetric(());
 
-impl Metric<RopeInfo> for BaseMetric {
+impl Metric<RopeInfo, String> for BaseMetric {
     fn measure(_: &RopeInfo, len: usize) -> usize {...}
 
     fn to_base_units(s: &String, in_measured_units: usize) -> usize {...}
@@ -1731,7 +1745,7 @@ pub struct LinesMetric(usize); // number of lines
 /// Measured unit is newline amount.
 /// Base unit is utf8 code unit.
 /// Boundary is trailing and determined by a newline char.
-impl Metric<RopeInfo> for LinesMetric {
+impl Metric<RopeInfo, String> for LinesMetric {
     fn measure(info: &RopeInfo, _: usize) -> usize {...}
 
     fn is_boundary(s: &String, offset: usize) -> bool {...}
@@ -1751,7 +1765,7 @@ impl Metric<RopeInfo> for LinesMetric {
 #[allow(dead_code)]
 pub struct Utf16CodeUnitsMetric(usize);
 
-impl Metric<RopeInfo> for Utf16CodeUnitsMetric {
+impl Metric<RopeInfo, String> for Utf16CodeUnitsMetric {
     fn measure(info: &RopeInfo, _: usize) -> usize {...}
 
     fn is_boundary(s: &String, offset: usize) -> bool {...}
@@ -1888,7 +1902,7 @@ impl Rope {
 
 // should make this generic, but most leaf types aren't going to be sliceable
 pub struct ChunkIter<'a> {
-    cursor: Cursor<'a, RopeInfo>,
+    cursor: Cursor<'a, RopeInfo, String>,
     end: usize,
 }
 
@@ -1898,7 +1912,7 @@ impl<'a> Iterator for ChunkIter<'a> {
     fn next(&mut self) -> Option<&'a str> {...}
 }
 
-impl TreeBuilder<RopeInfo> {
+impl TreeBuilder<RopeInfo, String> {
     /// Push a string on the accumulating tree in the naive way.
     ///
     /// Splits the provided string in chunks that fit in a leaf
@@ -1935,7 +1949,7 @@ impl Add for Rope {
 
 //additional cursor features
 
-impl<'a> Cursor<'a, RopeInfo> {
+impl<'a> Cursor<'a, RopeInfo, String> {
     /// Get previous codepoint before cursor position, and advance cursor backwards.
     pub fn prev_codepoint(&mut self) -> Option<char> {...}
 
@@ -1989,7 +2003,7 @@ use serde::ser::{Serialize, SerializeStruct, SerializeTupleVariant, Serializer};
 use crate::tree::Node;
 use crate::{Delta, DeltaElement, Rope, RopeInfo};
 
-// Interim serializable types used for (de)serializing `Delta<RopeInfo>`.
+// Interim serializable types used for (de)serializing `Delta<RopeInfo, String>`.
 // These are defined at module-level so derive macros generate impls at the
 // correct (non-nested) scope; this avoids `non_local_definitions` lint
 // failures when serde attributes are used inside function bodies.
@@ -1999,7 +2013,7 @@ use crate::{Delta, DeltaElement, Rope, RopeInfo};
 #[allow(clippy::non_local_definitions)]
 enum RopeDeltaElement_ {
     Copy(usize, usize),
-    Insert(Node<RopeInfo>),
+    Insert(Node<RopeInfo, String>),
 }
 
 #[cfg(feature = "serde")]
@@ -2010,12 +2024,12 @@ struct RopeDelta_ {
     base_len: usize,
 }
 
-impl From<RopeDeltaElement_> for DeltaElement<RopeInfo> {
-    fn from(elem: RopeDeltaElement_) -> DeltaElement<RopeInfo> {...}
+impl From<RopeDeltaElement_> for DeltaElement<RopeInfo, String> {
+    fn from(elem: RopeDeltaElement_) -> DeltaElement<RopeInfo, String> {...}
 }
 
-impl From<RopeDelta_> for Delta<RopeInfo> {
-    fn from(mut delta: RopeDelta_) -> Delta<RopeInfo> {...}
+impl From<RopeDelta_> for Delta<RopeInfo, String> {
+    fn from(mut delta: RopeDelta_) -> Delta<RopeInfo, String> {...}
 }
 
 impl Serialize for Rope {
@@ -2045,21 +2059,21 @@ impl<'de> Visitor<'de> for RopeVisitor {
     {...}
 }
 
-impl Serialize for DeltaElement<RopeInfo> {
+impl Serialize for DeltaElement<RopeInfo, String> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {...}
 }
 
-impl Serialize for Delta<RopeInfo> {
+impl Serialize for Delta<RopeInfo, String> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {...}
 }
 
-impl<'de> Deserialize<'de> for Delta<RopeInfo> {
+impl<'de> Deserialize<'de> for Delta<RopeInfo, String> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -2081,7 +2095,7 @@ use crate::tree::{Cursor, Leaf, Node, NodeInfo, TreeBuilder};
 const MIN_LEAF: usize = 32;
 const MAX_LEAF: usize = 64;
 
-pub type Spans<T> = Node<SpansInfo<T>>;
+pub type Spans<T> = Node<SpansInfo<T>, SpansLeaf<T>>;
 
 #[derive(Clone)]
 pub struct Span<T: Clone> {
@@ -2117,16 +2131,14 @@ impl<T: Clone> Leaf for SpansLeaf<T> {
     fn push_maybe_split(&mut self, other: &Self, iv: Interval) -> Option<Self> {...}
 }
 
-impl<T: Clone> NodeInfo for SpansInfo<T> {
-    type L = SpansLeaf<T>;
-
+impl<T: Clone> NodeInfo<SpansLeaf<T>> for SpansInfo<T> {
     fn accumulate(&mut self, other: &Self) {...}
 
     fn compute_info(l: &SpansLeaf<T>) -> Self {...}
 }
 
 pub struct SpansBuilder<T: Clone> {
-    b: TreeBuilder<SpansInfo<T>>,
+    b: TreeBuilder<SpansInfo<T>, SpansLeaf<T>>,
     leaf: SpansLeaf<T>,
     len: usize,
     total_len: usize,
@@ -2145,7 +2157,7 @@ impl<T: Clone> SpansBuilder<T> {
 }
 
 pub struct SpanIter<'a, T: 'a + Clone> {
-    cursor: Cursor<'a, SpansInfo<T>>,
+    cursor: Cursor<'a, SpansInfo<T>, SpansLeaf<T>>,
     ix: usize,
 }
 
@@ -2155,12 +2167,16 @@ impl<T: Clone> Spans<T> {
     // the tree, and only delve into subtrees that are transformed.
     /// Perform operational transformation on a spans object intended to be edited into
     /// a sequence at the given offset.
-    pub fn transform<N: NodeInfo>(
+    pub fn transform<N, L>(
         &self,
         base_start: usize,
         base_end: usize,
-        xform: &mut Transformer<N>,
-    ) -> Self {...}
+        xform: &mut Transformer<'_, N, L>,
+    ) -> Self
+    where
+        N: NodeInfo<L>,
+        L: Leaf,
+    {...}
 
     /// Creates a new Spans instance by merging spans from `other` with `self`,
     /// using a closure to transform values.
@@ -2189,7 +2205,7 @@ impl<T: Clone> Spans<T> {
     ///
     /// This is intended to be used to keep spans up to date with a `Rope`
     /// as edits occur.
-    pub fn apply_shape<M: NodeInfo>(&mut self, delta: &Delta<M>) {...}
+    pub fn apply_shape<M: NodeInfo<L>, L: Leaf>(&mut self, delta: &Delta<M, L>) {...}
 
     /// Deletes all spans that intersect with `interval` and that come after.
     pub fn delete_after(&mut self, interval: Interval) {...}
@@ -2219,7 +2235,7 @@ use crate::rope::{Rope, RopeInfo};
 /// when deleted from `s` yields `substr`.
 pub fn find_deletions(substr: &str, s: &str) -> Subset {...}
 
-impl Delta<RopeInfo> {
+impl Delta<RopeInfo, String> {
     pub fn apply_to_string(&self, s: &str) -> String {...}
 }
 
@@ -2233,7 +2249,7 @@ pub fn parse_subset_list(s: &str) -> Vec<Subset> {...}
 
 pub fn debug_subsets(subsets: &[Subset]) {...}
 
-pub fn parse_delta(s: &str) -> Delta<RopeInfo> {...}
+pub fn parse_delta(s: &str) -> Delta<RopeInfo, String> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/tree.rs
@@ -2248,13 +2264,7 @@ use crate::interval::{Interval, IntervalBounds};
 const MIN_CHILDREN: usize = 4;
 const MAX_CHILDREN: usize = 8;
 
-pub trait NodeInfo: Clone {
-    /// The type of the leaf.
-    ///
-    /// A given `NodeInfo` is for exactly one type of leaf. That is why
-    /// the leaf type is an associated type rather than a type parameter.
-    type L: Leaf;
-
+pub trait NodeInfo<L: Leaf>: Clone {
     /// An operator that combines info from two subtrees. It is intended
     /// (but not strictly enforced) that this operator be associative and
     /// obey an identity property. In mathematical terms, the accumulate
@@ -2267,7 +2277,7 @@ pub trait NodeInfo: Clone {
     /// deriving the info from the concatenation of the two leaves. In
     /// mathematical terms, the compute_info method is a monoid
     /// homomorphism.
-    fn compute_info(_: &Self::L) -> Self;
+    fn compute_info(_: &L) -> Self;
 
     /// The identity of the monoid. Need not be implemented because it
     /// can be computed from the leaf default.
@@ -2285,9 +2295,9 @@ pub trait NodeInfo: Clone {
 ///
 /// Implementors supply the logic used by [`Node::count`] and
 /// [`Node::count_base_units`] to translate offsets between metrics.
-pub trait DefaultMetricProvider: NodeInfo {
-    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize;
-    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize;
+pub trait DefaultMetricProvider<L: Leaf>: NodeInfo<L> {
+    fn convert_from_default<M: Metric<Self, L>>(node: &Node<Self, L>, offset: usize) -> usize;
+    fn convert_to_default<M: Metric<Self, L>>(node: &Node<Self, L>, offset: usize) -> usize;
 }
 
 /// A trait for the leaves of trees of type [Node](struct.Node.html).
@@ -2336,20 +2346,20 @@ pub trait Leaf: Sized + Clone + Default {
 /// to strings, and it is expected to be the basis for a number of data
 /// structures useful for text processing.
 #[derive(Clone)]
-pub struct Node<N: NodeInfo>(Arc<NodeBody<N>>);
+pub struct Node<N: NodeInfo<L>, L: Leaf>(Arc<NodeBody<N, L>>);
 
 #[derive(Clone)]
-struct NodeBody<N: NodeInfo> {
+struct NodeBody<N: NodeInfo<L>, L: Leaf> {
     height: usize,
     len: usize,
     info: N,
-    val: NodeVal<N>,
+    val: NodeVal<N, L>,
 }
 
 #[derive(Clone)]
-enum NodeVal<N: NodeInfo> {
-    Leaf(N::L),
-    Internal(Vec<Node<N>>),
+enum NodeVal<N: NodeInfo<L>, L: Leaf> {
+    Leaf(L),
+    Internal(Vec<Node<N, L>>),
 }
 
 // also consider making Metric a newtype for usize, so type system can
@@ -2360,10 +2370,9 @@ enum NodeVal<N: NodeInfo> {
 ///
 /// For the conceptual background see the
 /// [blog post, Rope science, part 2: metrics](https://github.com/google/xi-editor/blob/master/docs/docs/rope_science_02.md).
-pub trait Metric<N: NodeInfo> {
+pub trait Metric<N: NodeInfo<L>, L: Leaf> {
     /// Return the size of the
-    /// [NodeInfo::L](trait.NodeInfo.html#associatedtype.L), as measured by this
-    /// metric.
+    /// leaf as measured by this metric.
     ///
     /// The usize argument is the total size/length of the node, in base units.
     ///
@@ -2380,28 +2389,28 @@ pub trait Metric<N: NodeInfo> {
     /// # Invariants:
     ///
     /// - `from_base_units(to_base_units(x)) == x` is True for valid `x`
-    fn to_base_units(l: &N::L, in_measured_units: usize) -> usize;
+    fn to_base_units(l: &L, in_measured_units: usize) -> usize;
 
     /// Returns the smallest offset in measured units corresponding to an offset in base units.
     ///
     /// # Invariants:
     ///
     /// - `from_base_units(to_base_units(x)) == x` is True for valid `x`
-    fn from_base_units(l: &N::L, in_base_units: usize) -> usize;
+    fn from_base_units(l: &L, in_base_units: usize) -> usize;
 
     /// Return whether the offset in base units is a boundary of this metric.
     /// If a boundary is at end of a leaf then this method must return true.
     /// However, a boundary at the beginning of a leaf is optional
     /// (the previous leaf will be queried).
-    fn is_boundary(l: &N::L, offset: usize) -> bool;
+    fn is_boundary(l: &L, offset: usize) -> bool;
 
     /// Returns the index of the boundary directly preceding offset,
     /// or None if no such boundary exists. Input and result are in base units.
-    fn prev(l: &N::L, offset: usize) -> Option<usize>;
+    fn prev(l: &L, offset: usize) -> Option<usize>;
 
     /// Returns the index of the first boundary for which index > offset,
     /// or None if no such boundary exists. Input and result are in base units.
-    fn next(l: &N::L, offset: usize) -> Option<usize>;
+    fn next(l: &L, offset: usize) -> Option<usize>;
 
     /// Returns true if the measured units in this metric can span multiple
     /// leaves.  As an example, in a metric that measures lines in a rope, a
@@ -2410,8 +2419,8 @@ pub trait Metric<N: NodeInfo> {
     fn can_fragment() -> bool;
 }
 
-impl<N: NodeInfo> Node<N> {
-    pub fn from_leaf(l: N::L) -> Node<N> {...}
+impl<N: NodeInfo<L>, L: Leaf> Node<N, L> {
+    pub fn from_leaf(l: L) -> Node<N, L> {...}
 
     /// Create a node from a vec of nodes.
     ///
@@ -2419,7 +2428,7 @@ impl<N: NodeInfo> Node<N> {
     /// * The length of `nodes` must be <= MAX_CHILDREN and > 1.
     /// * All the nodes are the same height.
     /// * All the nodes must satisfy is_ok_child.
-    fn from_nodes(nodes: Vec<Node<N>>) -> Node<N> {...}
+    fn from_nodes(nodes: Vec<Node<N, L>>) -> Node<N, L> {...}
 
     pub fn len(&self) -> usize {...}
 
@@ -2437,39 +2446,42 @@ impl<N: NodeInfo> Node<N> {
 
     fn interval(&self) -> Interval {...}
 
-    fn get_children(&self) -> &[Node<N>] {...}
+    fn get_children(&self) -> &[Node<N, L>] {...}
 
-    fn get_leaf(&self) -> &N::L {...}
+    fn get_leaf(&self) -> &L {...}
 
     /// Call a callback with a mutable reference to a leaf.
     ///
     /// This clones the leaf if the reference is shared. It also recomputes
     /// length and info after the leaf is mutated.
-    fn with_leaf_mut<T>(&mut self, f: impl FnOnce(&mut N::L) -> T) -> T {...}
+    fn with_leaf_mut<T>(&mut self, f: impl FnOnce(&mut L) -> T) -> T {...}
 
     fn is_ok_child(&self) -> bool {...}
 
-    fn merge_nodes(children1: &[Node<N>], children2: &[Node<N>]) -> Node<N> {...}
+    fn merge_nodes(children1: &[Node<N, L>], children2: &[Node<N, L>]) -> Node<N, L> {...}
 
-    fn merge_leaves(mut rope1: Node<N>, rope2: Node<N>) -> Node<N> {...}
+    fn merge_leaves(mut rope1: Node<N, L>, rope2: Node<N, L>) -> Node<N, L> {...}
 
-    pub fn concat(rope1: Node<N>, rope2: Node<N>) -> Node<N> {...}
+    pub fn concat(rope1: Node<N, L>, rope2: Node<N, L>) -> Node<N, L> {...}
 
-    pub fn measure<M: Metric<N>>(&self) -> usize {...}
+    pub fn measure<M: Metric<N, L>>(&self) -> usize {...}
 
-    pub fn subseq<T: IntervalBounds>(&self, iv: T) -> Node<N> {...}
+    pub fn subseq<T: IntervalBounds>(&self, iv: T) -> Node<N, L> {...}
 
     pub fn edit<T, IV>(&mut self, iv: IV, new: T)
     where
-        T: Into<Node<N>>,
+        T: Into<Node<N, L>>,
         IV: IntervalBounds,
     {...}
 
     // doesn't deal with endpoint, handle that specially if you need it
-    pub fn convert_metrics<M1: Metric<N>, M2: Metric<N>>(&self, mut m1: usize) -> usize {...}
+    pub fn convert_metrics<M1: Metric<N, L>, M2: Metric<N, L>>(
+        &self,
+        mut m1: usize,
+    ) -> usize {...}
 }
 
-impl<N: DefaultMetricProvider> Node<N> {
+impl<N: DefaultMetricProvider<L>, L: Leaf> Node<N, L> {
     /// Measures the length of the text bounded by the default metric offset using another metric.
     ///
     /// # Examples
@@ -2483,7 +2495,7 @@ impl<N: DefaultMetricProvider> Node<N> {
     /// let num_lines = my_rope.count::<LinesMetric>(my_rope.len());
     /// assert_eq!(2, num_lines);
     /// ```
-    pub fn count<M: Metric<N>>(&self, offset: usize) -> usize {...}
+    pub fn count<M: Metric<N, L>>(&self, offset: usize) -> usize {...}
 
     /// Measures the length of the text bounded by another metric using the default metric.
     ///
@@ -2498,30 +2510,30 @@ impl<N: DefaultMetricProvider> Node<N> {
     /// let byte_offset = my_rope.count_base_units::<LinesMetric>(1);
     /// assert_eq!(12, byte_offset);
     /// ```
-    pub fn count_base_units<M: Metric<N>>(&self, offset: usize) -> usize {...}
+    pub fn count_base_units<M: Metric<N, L>>(&self, offset: usize) -> usize {...}
 }
 
-impl<N: NodeInfo> Default for Node<N> {
-    fn default() -> Node<N> {...}
+impl<N: NodeInfo<L>, L: Leaf> Default for Node<N, L> {
+    fn default() -> Node<N, L> {...}
 }
 
 /// A builder for creating new trees.
-pub struct TreeBuilder<N: NodeInfo> {
+pub struct TreeBuilder<N: NodeInfo<L>, L: Leaf> {
     // A stack of partially built trees. These are kept in order of
     // strictly descending height, and all vectors have a length less
     // than MAX_CHILDREN and greater than zero.
     //
     // In addition, there is a balancing invariant: for each vector
     // of length greater than one, all elements satisfy `is_ok_child`.
-    stack: Vec<Vec<Node<N>>>,
+    stack: Vec<Vec<Node<N, L>>>,
 }
 
-impl<N: NodeInfo> TreeBuilder<N> {
+impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
     /// A new, empty builder.
-    pub fn new() -> TreeBuilder<N> {...}
+    pub fn new() -> TreeBuilder<N, L> {...}
 
     /// Append a node to the tree being built.
-    pub fn push(&mut self, mut n: Node<N>) {...}
+    pub fn push(&mut self, mut n: Node<N, L>) {...}
 
     /// Push a subsequence of a rope.
     ///
@@ -2531,25 +2543,25 @@ impl<N: NodeInfo> TreeBuilder<N> {
     /// This is intended as an efficient operation. It is equivalent to taking
     /// the subsequence of `n` and pushing that, but attempts to minimize the
     /// allocation of intermediate results.
-    pub fn push_slice(&mut self, n: &Node<N>, iv: Interval) {...}
+    pub fn push_slice(&mut self, n: &Node<N, L>, iv: Interval) {...}
 
     /// Append a sequence of leaves.
-    pub fn push_leaves(&mut self, leaves: impl IntoIterator<Item = N::L>) {...}
+    pub fn push_leaves(&mut self, leaves: impl IntoIterator<Item = L>) {...}
 
     /// Append a single leaf.
-    pub fn push_leaf(&mut self, l: N::L) {...}
+    pub fn push_leaf(&mut self, l: L) {...}
 
     /// Append a slice of a single leaf.
-    pub fn push_leaf_slice(&mut self, l: &N::L, iv: Interval) {...}
+    pub fn push_leaf_slice(&mut self, l: &L, iv: Interval) {...}
 
     /// Build the final tree.
     ///
     /// The tree is the concatenation of all the nodes and leaves that have been pushed
     /// on the builder, in order.
-    pub fn build(mut self) -> Node<N> {...}
+    pub fn build(mut self) -> Node<N, L> {...}
 
     /// Pop the last vec-of-nodes off the stack, resulting in a node.
-    fn pop(&mut self) -> Node<N> {...}
+    fn pop(&mut self) -> Node<N, L> {...}
 }
 
 const CURSOR_CACHE_SIZE: usize = 4;
@@ -2565,9 +2577,9 @@ const CURSOR_CACHE_SIZE: usize = 4;
 /// or [`next`](#method.next) fails to find a boundary.
 ///
 /// [`Metric`]: struct.Metric.html
-pub struct Cursor<'a, N: 'a + NodeInfo> {
+pub struct Cursor<'a, N: NodeInfo<L> + 'a, L: Leaf> {
     /// The tree being traversed by this cursor.
-    root: &'a Node<N>,
+    root: &'a Node<N, L>,
     /// The current position of the cursor.
     ///
     /// It is always less than or equal to the tree length.
@@ -2580,31 +2592,31 @@ pub struct Cursor<'a, N: 'a + NodeInfo> {
     ///
     /// The main motivation for this being a fixed-size array is to keep the cursor
     /// an allocation-free data structure.
-    cache: [Option<(&'a Node<N>, usize)>; CURSOR_CACHE_SIZE],
+    cache: [Option<(&'a Node<N, L>, usize)>; CURSOR_CACHE_SIZE],
     /// The leaf containing the current position, when the cursor is valid.
     ///
     /// The position is only at the end of the leaf when it is at the end of the tree.
-    leaf: Option<&'a N::L>,
+    leaf: Option<&'a L>,
     /// The offset of `leaf` within the tree.
     offset_of_leaf: usize,
 }
 
-impl<'a, N: NodeInfo> Cursor<'a, N> {
+impl<'a, N: NodeInfo<L>, L: Leaf> Cursor<'a, N, L> {
     /// Create a new cursor at the given position.
-    pub fn new(n: &'a Node<N>, position: usize) -> Cursor<'a, N> {...}
+    pub fn new(n: &'a Node<N, L>, position: usize) -> Cursor<'a, N, L> {...}
 
     /// The length of the tree.
     pub fn total_len(&self) -> usize {...}
 
     /// Return a reference to the root node of the tree.
-    pub fn root(&self) -> &'a Node<N> {...}
+    pub fn root(&self) -> &'a Node<N, L> {...}
 
     /// Get the current leaf of the cursor.
     ///
     /// If the cursor is valid, returns the leaf containing the current position,
     /// and the offset of the current position within the leaf. That offset is equal
     /// to the leaf length only at the end, otherwise it is less than the leaf length.
-    pub fn get_leaf(&self) -> Option<(&'a N::L, usize)> {...}
+    pub fn get_leaf(&self) -> Option<(&'a L, usize)> {...}
 
     /// Set the position of the cursor.
     ///
@@ -2620,33 +2632,33 @@ impl<'a, N: NodeInfo> Cursor<'a, N> {
     ///
     /// Note: the beginning and end of the tree may or may not be boundaries, depending on the
     /// metric. If the metric is not `can_fragment`, then they always are.
-    pub fn is_boundary<M: Metric<N>>(&mut self) -> bool {...}
+    pub fn is_boundary<M: Metric<N, L>>(&mut self) -> bool {...}
 
     /// Moves the cursor to the previous boundary.
     ///
     /// When there is no previous boundary, returns `None` and the cursor becomes invalid.
     ///
     /// Return value: the position of the boundary, if it exists.
-    pub fn prev<M: Metric<N>>(&mut self) -> Option<usize> {...}
+    pub fn prev<M: Metric<N, L>>(&mut self) -> Option<usize> {...}
 
     /// Moves the cursor to the next boundary.
     ///
     /// When there is no next boundary, returns `None` and the cursor becomes invalid.
     ///
     /// Return value: the position of the boundary, if it exists.
-    pub fn next<M: Metric<N>>(&mut self) -> Option<usize> {...}
+    pub fn next<M: Metric<N, L>>(&mut self) -> Option<usize> {...}
 
     /// Returns the current position if it is a boundary in this [`Metric`],
     /// else behaves like [`next`](#method.next).
     ///
     /// [`Metric`]: struct.Metric.html
-    pub fn at_or_next<M: Metric<N>>(&mut self) -> Option<usize> {...}
+    pub fn at_or_next<M: Metric<N, L>>(&mut self) -> Option<usize> {...}
 
     /// Returns the current position if it is a boundary in this [`Metric`],
     /// else behaves like [`prev`](#method.prev).
     ///
     /// [`Metric`]: struct.Metric.html
-    pub fn at_or_prev<M: Metric<N>>(&mut self) -> Option<usize> {...}
+    pub fn at_or_prev<M: Metric<N, L>>(&mut self) -> Option<usize> {...}
 
     /// Returns an iterator with this cursor over the given [`Metric`].
     ///
@@ -2662,28 +2674,28 @@ impl<'a, N: NodeInfo> Cursor<'a, N> {
     ///
     /// ```
     /// [`Metric`]: struct.Metric.html
-    pub fn iter<'c, M: Metric<N>>(&'c mut self) -> CursorIter<'c, 'a, N, M> {...}
+    pub fn iter<'c, M: Metric<N, L>>(&'c mut self) -> CursorIter<'c, 'a, N, L, M> {...}
 
     /// Tries to find the last boundary in the leaf the cursor is currently in.
     ///
     /// If the last boundary is at the end of the leaf, it is only counted if
     /// it is less than `orig_pos`.
     #[inline]
-    fn last_inside_leaf<M: Metric<N>>(&mut self, orig_pos: usize) -> Option<usize> {...}
+    fn last_inside_leaf<M: Metric<N, L>>(&mut self, orig_pos: usize) -> Option<usize> {...}
 
     /// Tries to find the next boundary in the leaf the cursor is currently in.
     #[inline]
-    fn next_inside_leaf<M: Metric<N>>(&mut self) -> Option<usize> {...}
+    fn next_inside_leaf<M: Metric<N, L>>(&mut self) -> Option<usize> {...}
 
     /// Move to beginning of next leaf.
     ///
     /// Return value: same as [`get_leaf`](#method.get_leaf).
-    pub fn next_leaf(&mut self) -> Option<(&'a N::L, usize)> {...}
+    pub fn next_leaf(&mut self) -> Option<(&'a L, usize)> {...}
 
     /// Move to beginning of previous leaf.
     ///
     /// Return value: same as [`get_leaf`](#method.get_leaf).
-    pub fn prev_leaf(&mut self) -> Option<(&'a N::L, usize)> {...}
+    pub fn prev_leaf(&mut self) -> Option<(&'a L, usize)> {...}
 
     /// Go to the leaf containing the current position.
     ///
@@ -2694,7 +2706,7 @@ impl<'a, N: NodeInfo> Cursor<'a, N> {
     /// Returns the measure at the beginning of the leaf containing `pos`.
     ///
     /// This method is O(log n) no matter the current cursor state.
-    fn measure_leaf<M: Metric<N>>(&self, mut pos: usize) -> usize {...}
+    fn measure_leaf<M: Metric<N, L>>(&self, mut pos: usize) -> usize {...}
 
     /// Find the leaf having the given measure.
     ///
@@ -2704,25 +2716,35 @@ impl<'a, N: NodeInfo> Cursor<'a, N> {
     ///
     /// If `measure` is greater than the measure of the whole tree, then moves
     /// to the last node.
-    fn descend_metric<M: Metric<N>>(&mut self, mut measure: usize) {...}
+    fn descend_metric<M: Metric<N, L>>(&mut self, mut measure: usize) {...}
 }
 
 /// An iterator generated by a [`Cursor`], for some [`Metric`].
 ///
 /// [`Cursor`]: struct.Cursor.html
 /// [`Metric`]: struct.Metric.html
-pub struct CursorIter<'c, 'a: 'c, N: 'a + NodeInfo, M: 'a + Metric<N>> {
-    cursor: &'c mut Cursor<'a, N>,
+pub struct CursorIter<'c, 'a: 'c, N: NodeInfo<L> + 'a, L: Leaf, M: Metric<N, L> + 'a> {
+    cursor: &'c mut Cursor<'a, N, L>,
     _metric: PhantomData<&'a M>,
 }
 
-impl<'c, 'a, N: NodeInfo, M: Metric<N>> Iterator for CursorIter<'c, 'a, N, M> {
+impl<'c, 'a, N, L, M> Iterator for CursorIter<'c, 'a, N, L, M>
+where
+    N: NodeInfo<L> + 'a,
+    L: Leaf,
+    M: Metric<N, L> + 'a,
+{
     type Item = usize;
 
     fn next(&mut self) -> Option<usize> {...}
 }
 
-impl<'c, 'a, N: NodeInfo, M: Metric<N>> CursorIter<'c, 'a, N, M> {
+impl<'c, 'a, N, L, M> CursorIter<'c, 'a, N, L, M>
+where
+    N: NodeInfo<L> + 'a,
+    L: Leaf,
+    M: Metric<N, L> + 'a,
+{
     /// Returns the current position of the underlying [`Cursor`].
     ///
     /// [`Cursor`]: struct.Cursor.html

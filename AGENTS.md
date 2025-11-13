@@ -44,6 +44,7 @@
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
+- **Trait 泛型化试点**：已通过 `runSubagent` 驱动的流水线完成 `DefaultMetricProvider`、`Metric<N, L>` 的显式叶类型改造，当前聚焦将同一模式推广至 Cursor/NodeInfo，保持 C# 侧契约同步。
 
 ## 已完成行动
 1. **阶段 A：节点所有权与引用复用**
@@ -66,7 +67,10 @@
   - 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架（可先放置在实验命名空间），并让现有 `Node` 作为包装层调用泛型实现，验证编译与测试链路。
   - 在 `TreeContracts` 中草拟静态抽象成员与实例方法的拆分方案，结合 Helper 能力展开 POC。
   - 评估引入编译期开关或类型别名以便在泛型与特化实现间快速切换调试。
-4. **阶段 C 启动：内部节点再平衡设计与实现**
+4. **Trait 泛型化扩展**
+  - 继 `Metric<N, L>` 之后，规划 Cursor/迭代器及 `NodeInfo::L` 的显式类型管线，分阶段拆分并在 C#/Rust 两侧同步实现。
+  - 继续借助 `runSubagent` 汇总受影响接口与调用点，保持上下文精简与质量监管。
+5. **阶段 C 启动：内部节点再平衡设计与实现**
   - 梳理 `Concat`、`CreateInternal`、`TreeBuilder` 产生的高度失衡案例，定义借用/合并/分裂的触发条件与算法草案。
   - 在 Node 层实现最小可用的内部节点 re-balance 操作，并配套顺序/随机大文本编辑测试验证树高与聚合信息正确性。
   - 评估并规划沿父链的最小聚合刷新策略，为后续增量更新打基础。
@@ -199,6 +203,11 @@
 - 将 `docs/skeleton/xi.Core.Rope.cs` 转换为注释化骨架，保留类型与方法签名并添加功能摘要，供 C# 端快速 Birdview 查阅。
 - 梳理原版 `Node<N>` 的使用场景并更新 `docs/architecture/node-generic-refactor-plan.md`，以 tree/rope/delta/serde 等模块分类指导 C# 泛型化落地。
 - 回顾并强化 `docs/architecture/node-generic-refactor-plan.md`，补充接口能力映射、迁移节奏与风险缓释建议，为泛型 Node 实施提供更细致的执行清单。
+- 利用 `runSubagent` 预研 Metric 关联类型改造范围，为后续自动化执行奠定模板。
+
+### 2025-11-13
+- 以 `runSubagent` 收集 `Metric` 实现与调用点，并驱动自动化补丁完成 `Metric<N, L>` 显式叶类型重构，`cargo test -p xi-rope` 通过验证。
+- 记录 SubAgent 协作模式收益，确立后续 trait 泛型化任务沿用该流程，以降低上下文占用并强化质量把控。
 - 提取字符串叶片操作至 `StringLeafOperations`，并调整 `Node` 及 `LeafSplitter` 复用公共 Helper，同时补充单元测试验证插入/删除/替换等基础行为。
 - 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 81 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。
 - 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架，实现叶节点/内部节点构造与遍历能力，并补充 `GenericNodeSmokeTests` 验证长度与聚合信息；现有字符串特化实现未受影响，可作为后续迁移的对照基准。
@@ -216,3 +225,4 @@
 - 更新 `xi-editor-ph7/README.md`、`docs/architecture/rust-workspace-slimming.md`、`module-migration-plan.md` 以及 `rust/run_all_checks`，同步记录瘦身后的核心工作区与运行指引。
 - 将 `tree::DefaultMetric` 关联类型重构为 `DefaultMetricProvider` 泛型接口，`RopeInfo` 与 `BreaksInfo` 提供显式转换实现；`cargo test -p xi-rope` 通过验证，作为泛型化移植的首个试点。
 - 新增 `scripts/refresh_skeleton_docs.py`，可无参一键调用 `stub_rust_functions.py` 刷新 `docs/skeleton/*.md`，确保骨架文档随源码同步更新。
+- 完成 `NodeInfo<L>`、`TreeBuilder<N, L>` 与 `Delta<N, L>` 泛型改造，`xi-rope` 及依赖模块（`breaks`/`spans`/`diff`/`engine` 等）已对齐新的叶片类型参数，并通过 `cargo test -p xi-rope`（149 项）与 `cargo check --workspace` 验证。
