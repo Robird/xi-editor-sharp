@@ -5,6 +5,9 @@
 - 需要要删除请用改名替代，因为环境会拦截删除文件操作。
 - 不要使用'insert_edit_into_file'工具，经常产生难以补救的错误结果。
 
+## 用户语言
+请主要用简体中文与用户交流，对于术语/标识符等实体名称则不不受限制。
+
 ## 项目概览
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 81 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations` 及泛型 Node 验证，确保 Leaf Helper 抽象的回归基线稳定。
 - Rust/C# 双端已通过 `SharedNode` 封装收敛写时复制触点，`tree.rs` 与 `Tree/Node.cs` 现统一委托 `EnsureUnique/CloneWithChildren/ReplaceChildRange`；`cargo test -p xi-rope` 与 `dotnet test tests/xi.Core.Tests` 保持通过。

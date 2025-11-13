@@ -2356,6 +2356,7 @@ pub trait Leaf: Sized + Clone + Default {
 /// rope in functional programming jargon). However, it is not restricted
 /// to strings, and it is expected to be the basis for a number of data
 /// structures useful for text processing.
+/// Internal helper that wraps `Arc<NodeBody>` and centralizes copy-on-write logic.
 #[derive(Clone)]
 pub(crate) struct SharedNode<N: NodeInfo<L>, L: Leaf> {
     arc: Arc<NodeBody<N, L>>,
