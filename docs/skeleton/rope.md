@@ -843,7 +843,11 @@ impl Engine {
 
     /// Garbage collection means undo can sometimes need to replay the very first
     /// revision, and so needs a way to get the deletion set before then.
-    fn deletes_from_union_before_index(&self, rev_index: usize, invert_undos: bool) -> Cow<'_, Subset> {...}
+    fn deletes_from_union_before_index(
+        &self,
+        rev_index: usize,
+        invert_undos: bool,
+    ) -> Cow<'_, Subset> {...}
 
     /// Get the contents of the document at a given revision number
     fn rev_content_for_index(&self, rev_index: usize) -> Rope {...}
@@ -1694,9 +1698,15 @@ impl NodeInfo<String> for RopeInfo {
 }
 
 impl DefaultMetricProvider<String> for RopeInfo {
-    fn convert_from_default<M: Metric<Self, String>>(node: &Node<Self, String>, offset: usize) -> usize {...}
+    fn convert_from_default<M: Metric<Self, String>>(
+        node: &Node<Self, String>,
+        offset: usize,
+    ) -> usize {...}
 
-    fn convert_to_default<M: Metric<Self, String>>(node: &Node<Self, String>, offset: usize) -> usize {...}
+    fn convert_to_default<M: Metric<Self, String>>(
+        node: &Node<Self, String>,
+        offset: usize,
+    ) -> usize {...}
 }
 
 //TODO: document metrics, based on https://github.com/google/xi-editor/issues/456
@@ -2257,6 +2267,7 @@ pub fn parse_delta(s: &str) -> Delta<RopeInfo, String> {...}
 ```rust
 use std::cmp::{min, Ordering};
 use std::marker::PhantomData;
+use std::ops::Range;
 use std::sync::Arc;
 
 use crate::interval::{Interval, IntervalBounds};
@@ -2346,10 +2357,17 @@ pub trait Leaf: Sized + Clone + Default {
 /// to strings, and it is expected to be the basis for a number of data
 /// structures useful for text processing.
 #[derive(Clone)]
-pub struct Node<N: NodeInfo<L>, L: Leaf>(Arc<NodeBody<N, L>>);
+pub(crate) struct SharedNode<N: NodeInfo<L>, L: Leaf> {
+    arc: Arc<NodeBody<N, L>>,
+}
 
 #[derive(Clone)]
-struct NodeBody<N: NodeInfo<L>, L: Leaf> {
+pub struct Node<N: NodeInfo<L>, L: Leaf> {
+    shared: SharedNode<N, L>,
+}
+
+#[derive(Clone)]
+pub(crate) struct NodeBody<N: NodeInfo<L>, L: Leaf> {
     height: usize,
     len: usize,
     info: N,
@@ -2360,6 +2378,40 @@ struct NodeBody<N: NodeInfo<L>, L: Leaf> {
 enum NodeVal<N: NodeInfo<L>, L: Leaf> {
     Leaf(L),
     Internal(Vec<Node<N, L>>),
+}
+
+impl<N: NodeInfo<L>, L: Leaf> SharedNode<N, L> {
+    #[inline]
+    pub(crate) fn new(body: NodeBody<N, L>) -> Self {...}
+
+    #[inline]
+    #[allow(dead_code)]
+    pub(crate) fn from_arc(arc: Arc<NodeBody<N, L>>) -> Self {...}
+
+    #[inline]
+    #[allow(dead_code)]
+    pub(crate) fn into_arc(self) -> Arc<NodeBody<N, L>> {...}
+
+    #[inline]
+    #[allow(dead_code)]
+    pub(crate) fn arc(&self) -> &Arc<NodeBody<N, L>> {...}
+
+    #[inline]
+    pub(crate) fn body(&self) -> &NodeBody<N, L> {...}
+
+    #[inline]
+    pub(crate) fn ensure_unique(&mut self) -> &mut NodeBody<N, L> {...}
+
+    #[inline]
+    pub(crate) fn ptr_eq(&self, other: &Self) -> bool {...}
+
+    pub(crate) fn from_children(children: Vec<Node<N, L>>) -> Self {...}
+
+    pub(crate) fn clone_with_children(&self, children: &[Node<N, L>]) -> SharedNode<N, L> {...}
+
+    pub(crate) fn replace_child_range(&mut self, range: Range<usize>, replacements: &[Node<N, L>]) {...}
+
+    fn refresh_len_info(body: &mut NodeBody<N, L>) {...}
 }
 
 // also consider making Metric a newtype for usize, so type system can
@@ -2420,6 +2472,18 @@ pub trait Metric<N: NodeInfo<L>, L: Leaf> {
 }
 
 impl<N: NodeInfo<L>, L: Leaf> Node<N, L> {
+    #[inline]
+    fn from_shared(shared: SharedNode<N, L>) -> Self {...}
+
+    #[inline]
+    pub(crate) fn shared(&self) -> &SharedNode<N, L> {...}
+
+    #[inline]
+    pub(crate) fn shared_mut(&mut self) -> &mut SharedNode<N, L> {...}
+
+    #[inline]
+    pub(crate) fn body(&self) -> &NodeBody<N, L> {...}
+
     pub fn from_leaf(l: L) -> Node<N, L> {...}
 
     /// Create a node from a vec of nodes.
@@ -2475,10 +2539,7 @@ impl<N: NodeInfo<L>, L: Leaf> Node<N, L> {
     {...}
 
     // doesn't deal with endpoint, handle that specially if you need it
-    pub fn convert_metrics<M1: Metric<N, L>, M2: Metric<N, L>>(
-        &self,
-        mut m1: usize,
-    ) -> usize {...}
+    pub fn convert_metrics<M1: Metric<N, L>, M2: Metric<N, L>>(&self, mut m1: usize) -> usize {...}
 }
 
 impl<N: DefaultMetricProvider<L>, L: Leaf> Node<N, L> {
