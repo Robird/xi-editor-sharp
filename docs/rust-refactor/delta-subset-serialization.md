@@ -23,11 +23,15 @@
 2. Add `serde_test::assert_ser_tokens` or snapshot-based tests to lock current behavior before refactoring.
 3. Ensure CI runs `cargo test -p xi-rope` under both `--features serde` and `--no-default-features` (expected to fail initially, serving as a guard).
 
+- **Progress (2025-11-14):** Added `subset_serialization_regression` in `xi-editor-ph7/rust/rope/src/multiset.rs` (gated behind `cfg(feature = "serde")`) to capture the current Subset JSON shape. Fixture string: `{"segments":[{"len":2,"count":0},{"len":3,"count":3},{"len":1,"count":0},{"len":1,"count":1},{"len":2,"count":0}]}`.
+
 ### Stage 1 – Multiset (`Subset` / `Segment`)
 1. Introduce read-only helpers returning segment iterators (`Subset::segments_iter`, `Segment::to_range`). Keep helpers `pub(crate)` initially.
 2. Move serde derives and impls into `multiset/serde.rs` guarded by `cfg(feature = "serde")`; re-export only the derives.
 3. Update `SubsetBuilder`, iterators, and tests to consume the new helpers.
 4. Validate: run targeted tests (`cargo test -p xi-rope --features serde multiset`) and the new snapshot suite; repeat with serde disabled to show core logic still compiles.
+
+- **Progress (2025-11-14):** Implemented helper surface with `Subset::segment_triples()`, `Subset::from_segment_triples()`, and `Subset::segment_count()` (all `pub(crate)`). Serde derives removed from `Segment`/`Subset`; new gated module `subset_serde` reuses the helpers to provide manual `Serialize`/`Deserialize` while preserving the Stage 0 fixture. Follow-up: Stage 2 (Delta) and Stage 3 (Engine) still require analogous helper extraction and serde shims.
 
 ### Stage 2 – Delta (`Delta`, `InsertDelta`, `DeleteDelta`)
 1. Add helpers exposing op sequences (`Delta::ops_iter`, `InsertDelta::spans`). Ensure they do not depend on serde traits.
