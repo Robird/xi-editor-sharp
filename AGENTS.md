@@ -70,6 +70,7 @@
   - 评估 C# 侧以静态 helper 模拟 copy-on-write 的实现草案，并列出必须的断言与测试覆盖。
   - 2025-11-13：已在 `docs/rust-refactor/shared-node-api.md` 记录当前 `Arc::make_mut` 触点、封装方案与风险清单，后续迭代按该计划跟进。
   - 2025-11-14：Rust 侧完成 `SharedNode` 封装落地，`tree.rs` 现通过 `SharedNode::ensure_unique/clone_with_children/replace_child_range` 屏蔽 `Arc::make_mut`，`cargo test -p xi-rope` 通过。
+  - 2025-11-14：C# 侧引入 `SharedNode` 封装，`Tree/Node.cs` 现复用 `EnsureUnique/CloneWithChildren/ReplaceChildRange`，`dotnet test tests/xi.Core.Tests` 通过。
 4. **Rust 基线瘦身后续（后 MSRV）**
   - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
   - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。

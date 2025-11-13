@@ -13,30 +13,227 @@ public sealed class Node
     public static int MinLeafSize => StringLeafOperations.MinLeafSize;
     public static int MaxLeafSize => StringLeafOperations.MaxLeafSize;
 
-    private readonly NodeBody _body;
+    private readonly SharedNode _shared;
 
     private Node(NodeBody body)
+        : this(new SharedNode(body))
     {
-        _body = body;
     }
 
-    public static Node Empty { get; } = new Node(new NodeBody(0, 0, RopeInfo.Identity, string.Empty, null));
+    private Node(SharedNode shared)
+    {
+        _shared = shared;
+    }
 
-    public int Height => _body.Height;
+    private NodeBody Body => _shared.Body;
 
-    public int Length => _body.Length;
+    private static Node FromShared(SharedNode shared)
+    {
+        return new Node(shared);
+    }
 
-    public RopeInfo Info => _body.Info;
+    public static Node Empty { get; } = new Node(SharedNode.Empty);
 
-    public bool IsLeaf => _body.Height == 0;
+    private sealed class NodeBody
+    {
+        public NodeBody(int height, int length, RopeInfo info, string? leaf, Node[]? children)
+        {
+            Height = height;
+            Length = length;
+            Info = info;
+            Leaf = leaf;
+            Children = children;
+        }
+
+        public int Height { get; }
+        public int Length { get; }
+        public RopeInfo Info { get; }
+        public string? Leaf { get; }
+        public Node[]? Children { get; }
+
+        public NodeBody Clone(Node[]? overrideChildren = null)
+        {
+            Node[]? nextChildren = overrideChildren;
+            if (nextChildren is null && Children is { } existing)
+            {
+                nextChildren = (Node[])existing.Clone();
+            }
+
+            return new NodeBody(Height, Length, Info, Leaf, nextChildren);
+        }
+    }
+
+    private sealed class SharedNode
+    {
+        private readonly NodeBody _body;
+
+        public SharedNode(NodeBody body)
+        {
+            _body = body ?? throw new ArgumentNullException(nameof(body));
+        }
+
+        public static SharedNode Empty { get; } = new SharedNode(new NodeBody(0, 0, RopeInfo.Identity, string.Empty, null));
+
+        public NodeBody Body => _body;
+        public int Height => _body.Height;
+        public int Length => _body.Length;
+        public RopeInfo Info => _body.Info;
+        public string? Leaf => _body.Leaf;
+        public Node[]? Children => _body.Children;
+
+        public SharedNode EnsureUnique()
+        {
+            return new SharedNode(_body.Clone());
+        }
+
+        public SharedNode CloneWithChildren(IReadOnlyList<Node> newChildren)
+        {
+            if (newChildren is null)
+            {
+                throw new ArgumentNullException(nameof(newChildren));
+            }
+
+            if (_body.Height == 0)
+            {
+                throw new InvalidOperationException("Cannot clone children for a leaf node.");
+            }
+
+            var (length, info, array) = MaterializeChildren(_body.Height, newChildren);
+            return new SharedNode(new NodeBody(_body.Height, length, info, null, array));
+        }
+
+        public SharedNode ReplaceChildRange(int index, int removeCount, IReadOnlyList<Node> replacements)
+        {
+            if (replacements is null)
+            {
+                throw new ArgumentNullException(nameof(replacements));
+            }
+
+            if (_body.Children is null)
+            {
+                throw new InvalidOperationException("Cannot replace children on a leaf node.");
+            }
+
+            var source = _body.Children;
+
+            if ((uint)index > (uint)source.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            if (removeCount < 0 || index + removeCount > source.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(removeCount));
+            }
+
+            var replacementCount = replacements.Count;
+            var newCount = source.Length - removeCount + replacementCount;
+
+            if (newCount == 0)
+            {
+                throw new InvalidOperationException("Internal node cannot have zero children.");
+            }
+
+            var newChildren = new Node[newCount];
+
+            if (index > 0)
+            {
+                Array.Copy(source, 0, newChildren, 0, index);
+            }
+
+            for (var i = 0; i < replacementCount; i++)
+            {
+                var child = replacements[i] ?? throw new ArgumentNullException(nameof(replacements), "Child node cannot be null.");
+                newChildren[index + i] = child;
+            }
+
+            var trailing = source.Length - index - removeCount;
+            if (trailing > 0)
+            {
+                Array.Copy(source, index + removeCount, newChildren, index + replacementCount, trailing);
+            }
+
+            var (length, info) = AggregateChildren(_body.Height, newChildren);
+            return new SharedNode(new NodeBody(_body.Height, length, info, null, newChildren));
+        }
+
+        public static SharedNode FromInternal(int height, IReadOnlyList<Node> children)
+        {
+            var (length, info, array) = MaterializeChildren(height, children);
+            return new SharedNode(new NodeBody(height, length, info, null, array));
+        }
+
+        private static (int Length, RopeInfo Info, Node[] Array) MaterializeChildren(int parentHeight, IReadOnlyList<Node> children)
+        {
+            if (children.Count == 0)
+            {
+                throw new ArgumentException("Internal node must have at least one child.", nameof(children));
+            }
+
+            var expectedChildHeight = parentHeight - 1;
+            if (expectedChildHeight < 0)
+            {
+                throw new InvalidOperationException("Parent height must be greater than zero for internal nodes.");
+            }
+
+            var length = 0;
+            var info = RopeInfo.Identity;
+            var array = new Node[children.Count];
+
+            for (var i = 0; i < children.Count; i++)
+            {
+                var child = children[i] ?? throw new ArgumentNullException(nameof(children), "Child node cannot be null.");
+                if (child.Height != expectedChildHeight)
+                {
+                    throw new InvalidOperationException($"Child at index {i} has height {child.Height}, expected {expectedChildHeight}.");
+                }
+
+                length = checked(length + child.Length);
+                info = info.Accumulate(child.Info);
+                array[i] = child;
+            }
+
+            return (length, info, array);
+        }
+
+        private static (int Length, RopeInfo Info) AggregateChildren(int parentHeight, Node[] children)
+        {
+            var expectedChildHeight = parentHeight - 1;
+            var length = 0;
+            var info = RopeInfo.Identity;
+
+            for (var i = 0; i < children.Length; i++)
+            {
+                var child = children[i] ?? throw new InvalidOperationException("Child node cannot be null.");
+
+                if (expectedChildHeight < 0 || child.Height != expectedChildHeight)
+                {
+                    throw new InvalidOperationException($"Child at index {i} has height {child.Height}, expected {expectedChildHeight}.");
+                }
+
+                length = checked(length + child.Length);
+                info = info.Accumulate(child.Info);
+            }
+
+            return (length, info);
+        }
+    }
+
+    public int Height => Body.Height;
+
+    public int Length => Body.Length;
+
+    public RopeInfo Info => Body.Info;
+
+    public bool IsLeaf => Body.Height == 0;
 
     public bool IsEmpty => Length == 0;
 
-    public int ChildCount => _body.Children?.Length ?? 0;
+    public int ChildCount => Body.Children?.Length ?? 0;
 
-    public IReadOnlyList<Node> Children => _body.Children ?? Array.Empty<Node>();
+    public IReadOnlyList<Node> Children => Body.Children ?? Array.Empty<Node>();
 
-    public ReadOnlySpan<char> LeafSpan => _body.Leaf is null ? ReadOnlySpan<char>.Empty : _body.Leaf.AsSpan();
+    public ReadOnlySpan<char> LeafSpan => Body.Leaf is null ? ReadOnlySpan<char>.Empty : Body.Leaf.AsSpan();
 
     public static Node FromLeaf(string? text)
     {
@@ -86,12 +283,12 @@ public sealed class Node
             yield break;
         }
 
-        if (_body.Children is null)
+        if (Body.Children is null)
         {
             yield break;
         }
 
-        foreach (var child in _body.Children)
+        foreach (var child in Body.Children)
         {
             foreach (var leaf in child.TraverseLeaves())
             {
@@ -134,18 +331,18 @@ public sealed class Node
 
     public override string ToString()
     {
-        if (_body.Leaf is { } leaf)
+        if (Body.Leaf is { } leaf)
         {
             return leaf;
         }
 
-        if (_body.Children is null)
+        if (Body.Children is null)
         {
             return string.Empty;
         }
 
         var builder = new StringBuilder();
-        foreach (var child in _body.Children)
+        foreach (var child in Body.Children)
         {
             builder.Append(child.ToString());
         }
@@ -283,12 +480,12 @@ public sealed class Node
             throw new InvalidOperationException("EnsureWritableLeaf can only be called on leaf nodes.");
         }
 
-        if (_body.Leaf is null)
+        if (Body.Leaf is null)
         {
             return Empty;
         }
 
-        var source = _body.Leaf;
+        var source = Body.Leaf;
         if (source.Length == 0)
         {
             return Empty;
@@ -300,7 +497,7 @@ public sealed class Node
             return this;
         }
 
-        return new Node(new NodeBody(0, cloneText.Length, _body.Info, cloneText, null));
+        return new Node(new NodeBody(0, cloneText.Length, Body.Info, cloneText, null));
     }
 
     public IReadOnlyList<Node> SplitLeafByBounds()
@@ -310,18 +507,18 @@ public sealed class Node
             throw new InvalidOperationException("SplitLeafByBounds can only be called on leaf nodes.");
         }
 
-        if (_body.Leaf is null)
+        if (Body.Leaf is null)
         {
             return Array.Empty<Node>();
         }
 
-        if (_body.Leaf.Length <= MaxLeafSize)
+        if (Body.Leaf.Length <= MaxLeafSize)
         {
             return new[] { this };
         }
 
         var segments = new List<Node>();
-        foreach (var segment in StringLeafOperations.SplitByCapacity(_body.Leaf))
+        foreach (var segment in StringLeafOperations.SplitByCapacity(Body.Leaf))
         {
             segments.Add(FromLeaf(segment));
         }
@@ -335,7 +532,7 @@ public sealed class Node
 
         if (IsLeaf)
         {
-            var leafText = _body.Leaf ?? string.Empty;
+            var leafText = Body.Leaf ?? string.Empty;
 
             if (start < 0 || start > leafText.Length)
             {
@@ -416,7 +613,7 @@ public sealed class Node
     {
         if (IsLeaf)
         {
-            var leafText = _body.Leaf ?? string.Empty;
+            var leafText = Body.Leaf ?? string.Empty;
 
             if (length < 0)
             {
@@ -466,18 +663,14 @@ public sealed class Node
                         return true;
                     }
 
-                    var newChildrenCount = children.Length - 1;
-                    var newChildren = new Node[newChildrenCount];
-                    if (i > 0)
+                    if (children.Length == 2)
                     {
-                        Array.Copy(children, 0, newChildren, 0, i);
-                    }
-                    if (i < children.Length - 1)
-                    {
-                        Array.Copy(children, i + 1, newChildren, i, children.Length - i - 1);
+                        result = i == 0 ? children[1] : children[0];
+                        return true;
                     }
 
-                    result = newChildrenCount == 1 ? newChildren[0] : CloneWithChildren(newChildren);
+                    var shared = _shared.ReplaceChildRange(i, 1, Array.Empty<Node>());
+                    result = FromShared(shared);
                     return true;
                 }
 
@@ -494,10 +687,9 @@ public sealed class Node
                     return true;
                 }
 
-                var clone = new Node[children.Length];
-                Array.Copy(children, clone, children.Length);
-                clone[i] = newChild;
-                result = CloneWithChildren(clone);
+                var replacement = new[] { newChild };
+                var sharedWithReplacement = _shared.ReplaceChildRange(i, 1, replacement);
+                result = FromShared(sharedWithReplacement);
                 return true;
             }
 
@@ -514,7 +706,7 @@ public sealed class Node
 
         if (IsLeaf)
         {
-            var leafText = _body.Leaf ?? string.Empty;
+            var leafText = Body.Leaf ?? string.Empty;
 
             var newLeafText = StringLeafOperations.ReplaceRange(leafText, start, length, text);
             var newLeaf = FromLeaf(newLeafText);
@@ -579,10 +771,8 @@ public sealed class Node
                         return true;
                     }
 
-                    var clone = new Node[children.Length];
-                    Array.Copy(children, clone, children.Length);
-                    clone[i] = newChild;
-                    result = CloneWithChildren(clone);
+                    var sharedWithReplacement = _shared.ReplaceChildRange(i, 1, new[] { newChild });
+                    result = FromShared(sharedWithReplacement);
                 }
 
                 return true;
@@ -607,31 +797,8 @@ public sealed class Node
             throw new InvalidOperationException("Cannot clone children for a leaf node.");
         }
 
-        if (newChildren.Count == 0)
-        {
-            throw new ArgumentException("Internal node must have at least one child.", nameof(newChildren));
-        }
-
-        var expectedChildHeight = Height - 1;
-        var length = 0;
-        var info = RopeInfo.Identity;
-        var array = new Node[newChildren.Count];
-
-        for (var i = 0; i < newChildren.Count; i++)
-        {
-            var child = newChildren[i] ?? throw new ArgumentNullException(nameof(newChildren), "Child node cannot be null.");
-
-            if (child.Height != expectedChildHeight)
-            {
-                throw new InvalidOperationException($"Child at index {i} has height {child.Height}, expected {expectedChildHeight}.");
-            }
-
-            length = checked(length + child.Length);
-            info = info.Accumulate(child.Info);
-            array[i] = child;
-        }
-
-        return new Node(new NodeBody(Height, length, info, null, array));
+        var shared = _shared.CloneWithChildren(newChildren);
+        return FromShared(shared);
     }
 
     public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false)
@@ -829,29 +996,8 @@ public sealed class Node
             throw new ArgumentException("Replacement segments must contain at least one node.", nameof(segments));
         }
 
-        var newChildCount = children.Length - 1 + segments.Count;
-        if (newChildCount == 0)
-        {
-            return Empty;
-        }
-
-        var newChildren = new Node[newChildCount];
-        if (index > 0)
-        {
-            Array.Copy(children, 0, newChildren, 0, index);
-        }
-
-        for (var s = 0; s < segments.Count; s++)
-        {
-            newChildren[index + s] = segments[s];
-        }
-
-        if (index < children.Length - 1)
-        {
-            Array.Copy(children, index + 1, newChildren, index + segments.Count, children.Length - index - 1);
-        }
-
-        return CreateInternal(Height, newChildren);
+        var shared = _shared.ReplaceChildRange(index, 1, segments);
+        return FromShared(shared);
     }
 
     public Node WithChildReplaced(int index, Node newChild)
@@ -878,11 +1024,8 @@ public sealed class Node
             return this;
         }
 
-        var clone = new Node[children.Length];
-        Array.Copy(children, clone, children.Length);
-        clone[index] = newChild;
-
-        return CloneWithChildren(clone);
+        var shared = _shared.ReplaceChildRange(index, 1, new[] { newChild });
+        return FromShared(shared);
     }
 
     public (Node Left, Node Right) SplitAt(int index)
@@ -904,13 +1047,13 @@ public sealed class Node
 
         if (IsLeaf)
         {
-            if (_body.Leaf is null)
+            if (Body.Leaf is null)
             {
                 return (Empty, Empty);
             }
 
-            var leftText = _body.Leaf[..index];
-            var rightText = _body.Leaf[index..];
+            var leftText = Body.Leaf[..index];
+            var rightText = Body.Leaf[index..];
             return (FromLeaf(leftText), FromLeaf(rightText));
         }
 
@@ -1008,7 +1151,7 @@ public sealed class Node
 
     private Node[] RequireChildren()
     {
-        if (_body.Children is { Length: > 0 } children)
+        if (Body.Children is { Length: > 0 } children)
         {
             return children;
         }
@@ -1023,7 +1166,7 @@ public sealed class Node
             throw new InvalidOperationException("Requested leaf text from an internal node.");
         }
 
-        return node._body.Leaf ?? string.Empty;
+        return node.Body.Leaf ?? string.Empty;
     }
 
     private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result)
@@ -1112,12 +1255,20 @@ public sealed class Node
         var newFirst = FromLeaf(firstSegment);
         var newSecond = FromLeaf(secondSegment);
 
-        var newChildren = new Node[children.Length];
-        Array.Copy(children, newChildren, children.Length);
-        newChildren[firstIndex] = newFirst;
-        newChildren[secondIndex] = newSecond;
+        if (firstIndex > secondIndex)
+        {
+            (firstIndex, secondIndex) = (secondIndex, firstIndex);
+            (newFirst, newSecond) = (newSecond, newFirst);
+        }
 
-        result = CloneWithChildren(newChildren);
+        var removeCount = secondIndex - firstIndex + 1;
+        if (removeCount != 2)
+        {
+            throw new InvalidOperationException("Rebalance expects an adjacent child pair.");
+        }
+        var replacements = new[] { newFirst, newSecond };
+        var shared = _shared.ReplaceChildRange(firstIndex, removeCount, replacements);
+        result = FromShared(shared);
         return true;
     }
 
@@ -1255,26 +1406,35 @@ public sealed class Node
 
     private Node BuildMergedNode(Node[] children, int firstIndex, int secondIndex, Node mergedLeaf)
     {
-        var newChildren = new Node[children.Length - 1];
-        var dest = 0;
-
-        for (var src = 0; src < children.Length; src++)
+        if (children is null)
         {
-            if (src == firstIndex)
-            {
-                newChildren[dest++] = mergedLeaf;
-                continue;
-            }
-
-            if (src == secondIndex)
-            {
-                continue;
-            }
-
-            newChildren[dest++] = children[src];
+            throw new ArgumentNullException(nameof(children));
         }
 
-        return newChildren.Length == 1 ? newChildren[0] : CreateInternal(Height, newChildren);
+        if (mergedLeaf is null)
+        {
+            throw new ArgumentNullException(nameof(mergedLeaf));
+        }
+
+        if (firstIndex > secondIndex)
+        {
+            (firstIndex, secondIndex) = (secondIndex, firstIndex);
+        }
+
+        var removeCount = secondIndex - firstIndex + 1;
+
+        if (removeCount <= 0)
+        {
+            throw new InvalidOperationException("Merge operation requires a positive child range.");
+        }
+
+        if (children.Length == removeCount)
+        {
+            return mergedLeaf;
+        }
+
+        var shared = _shared.ReplaceChildRange(firstIndex, removeCount, new[] { mergedLeaf });
+        return FromShared(shared);
     }
 
     private static Node CreateInternal(int height, IReadOnlyList<Node> children)
@@ -1284,28 +1444,9 @@ public sealed class Node
             return Empty;
         }
 
-        var expectedChildHeight = height - 1;
-        var length = 0;
-        var info = RopeInfo.Identity;
-        var array = new Node[children.Count];
-
-        for (var i = 0; i < children.Count; i++)
-        {
-            var child = children[i];
-            if (child.Height != expectedChildHeight && height > 0)
-            {
-                throw new InvalidOperationException($"Child height {child.Height} does not match expected {expectedChildHeight}.");
-            }
-
-            array[i] = child;
-            length = checked(length + child.Length);
-            info = info.Accumulate(child.Info);
-        }
-
-        return new Node(new NodeBody(height, length, info, null, array));
+        var shared = SharedNode.FromInternal(height, children);
+        return FromShared(shared);
     }
-
-    private sealed record NodeBody(int Height, int Length, RopeInfo Info, string? Leaf, Node[]? Children);
 
     private static Node BuildFromSegments(List<Node> segments)
     {
