@@ -960,12 +960,12 @@ use std::collections::BTreeSet;
 
 use serde_json::Value;
 
+use crate::trace::{trace_block, trace_payload};
 use xi_rope::diff::{Diff, LineHashDiff};
 use xi_rope::engine::{Engine, RevId, RevToken};
 use xi_rope::rope::count_newlines;
 use xi_rope::spans::SpansBuilder;
 use xi_rope::{DeltaBuilder, Interval, LinesMetric, Rope, RopeDelta, Transformer};
-use crate::trace::{trace_block, trace_payload};
 
 use crate::annotations::{AnnotationType, Annotations};
 use crate::config::BufferItems;
@@ -1256,9 +1256,9 @@ use std::time::{Duration, Instant};
 
 use serde_json::{self, Value};
 
+use crate::trace::trace_block;
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta};
 use xi_rpc::{Error as RpcError, RemoteError};
-use crate::trace::trace_block;
 
 use crate::plugins::rpc::{
     ClientPluginInfo, Hover, PluginBufferInfo, PluginNotification, PluginRequest, PluginUpdate,
@@ -1947,9 +1947,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use syntect::highlighting::StyleModifier;
 use syntect::parsing::Scope;
 
+use crate::trace::trace_block;
 use xi_rope::spans::{Spans, SpansBuilder};
 use xi_rope::{Interval, RopeDelta};
-use crate::trace::trace_block;
 
 use crate::plugins::PluginPid;
 use crate::styles::{Style, ThemeStyleMap};
@@ -2366,10 +2366,10 @@ impl LineOffset for Lines {
 use std::cmp::Ordering;
 use std::ops::Range;
 
+use crate::trace::trace_block;
 use xi_rope::breaks::{BreakBuilder, Breaks, BreaksInfo, BreaksLeaf, BreaksMetric};
 use xi_rope::spans::Spans;
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta, RopeInfo};
-use crate::trace::trace_block;
 use xi_unicode::LineBreakLeafIter;
 
 use crate::client::Client;
@@ -2377,8 +2377,7 @@ use crate::styles::{Style, N_RESERVED_STYLES};
 use crate::width_cache::{CodepointMono, Token, WidthCache, WidthMeasure};
 
 /// The visual width of the buffer for the purpose of word wrapping.
-#[derive(Clone, Copy, Debug, PartialEq)]
-#[derive(Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub(crate) enum WrapWidth {
     /// No wrapping in effect.
     #[default]
@@ -2392,7 +2391,6 @@ pub(crate) enum WrapWidth {
     /// Width in px units, requiring measurement by the front-end.
     Width(f64),
 }
-
 
 impl WrapWidth {
     fn differs_in_kind(self, other: WrapWidth) -> bool {...}
@@ -3824,7 +3822,6 @@ pub enum SelectionModifier {
     AddRemovingCurrent,
 }
 
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct FindQuery {
@@ -4169,8 +4166,7 @@ impl Deref for Selection {
 ///
 /// We say "cursor" here rather than "caret" because (depending on presentation)
 /// the front-end may draw a cursor even when the region is not a caret.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[derive(Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Affinity {
     /// The cursor should be displayed downstream of the line break. For
     /// example, if the buffer is "abcd", and the cursor is on a line break
@@ -4182,7 +4178,6 @@ pub enum Affinity {
     /// after "ab", it should be displayed on the previous line after "ab".
     Upstream,
 }
-
 
 /// A type representing a single contiguous region of a selection. We use the
 /// term "caret" (sometimes also "cursor", more loosely) to refer to a selection
@@ -4519,9 +4514,9 @@ use serde::de::{self, Deserialize, Deserializer, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use serde_json::Value;
 
+use crate::trace::trace_block;
 use xi_rope::Rope;
 use xi_rpc::{self, ReadError, RemoteError, RpcCtx, RpcPeer};
-use crate::trace::trace_block;
 
 use crate::client::Client;
 use crate::config::{self, ConfigDomain, ConfigDomainExternal, ConfigManager, Table};
@@ -4864,15 +4859,8 @@ impl BufferId {
 ```rust
 #[cfg(feature = "trace")]
 pub use xi_trace::{
-    chrome_trace_dump,
-    disable_tracing,
-    enable_tracing,
-    is_enabled,
-    samples_cloned_unsorted,
-    trace_block,
-    trace_payload,
-    Sample,
-    SampleGuard,
+    chrome_trace_dump, disable_tracing, enable_tracing, is_enabled, samples_cloned_unsorted,
+    trace_block, trace_payload, Sample, SampleGuard,
 };
 
 #[cfg(not(feature = "trace"))]
@@ -4925,15 +4913,8 @@ mod shim {
 
 #[cfg(not(feature = "trace"))]
 pub use shim::{
-    chrome_trace_dump,
-    disable_tracing,
-    enable_tracing,
-    is_enabled,
-    samples_cloned_unsorted,
-    trace_block,
-    trace_payload,
-    Sample,
-    SampleGuard,
+    chrome_trace_dump, disable_tracing, enable_tracing, is_enabled, samples_cloned_unsorted,
+    trace_block, trace_payload, Sample, SampleGuard,
 };
 ```
 
@@ -4960,11 +4941,11 @@ use crate::rpc::{FindQuery, GestureType, MouseAction, SelectionGranularity, Sele
 use crate::selection::{Affinity, InsertDrift, SelRegion, Selection};
 use crate::styles::{Style, ThemeStyleMap};
 use crate::tabs::{BufferId, Counter, ViewId};
+use crate::trace::trace_block;
 use crate::width_cache::WidthCache;
 use crate::word_boundaries::WordCursor;
 use xi_rope::spans::Spans;
 use xi_rope::{Cursor, Interval, LinesMetric, Rope, RopeDelta};
-use crate::trace::trace_block;
 
 type StyleMap = RefCell<ThemeStyleMap>;
 

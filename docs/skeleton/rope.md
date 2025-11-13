@@ -12,6 +12,10 @@ fn main() {...}
 
 ```rust
 use crate::interval::Interval;
+use crate::metrics::{
+    count_breaks_up_to, find_next_break, find_prev_break, is_break_boundary, nth_break_offset,
+    BreaksBaseMetric,
+};
 use crate::tree::{DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 use std::cmp::min;
 use std::mem;
@@ -78,25 +82,6 @@ impl Metric<BreaksInfo, BreaksLeaf> for BreaksMetric {
     fn to_base_units(l: &BreaksLeaf, in_measured_units: usize) -> usize {...}
 
     fn from_base_units(l: &BreaksLeaf, in_base_units: usize) -> usize {...}
-
-    fn is_boundary(l: &BreaksLeaf, offset: usize) -> bool {...}
-
-    fn prev(l: &BreaksLeaf, offset: usize) -> Option<usize> {...}
-
-    fn next(l: &BreaksLeaf, offset: usize) -> Option<usize> {...}
-
-    fn can_fragment() -> bool {...}
-}
-
-#[derive(Copy, Clone)]
-pub struct BreaksBaseMetric(());
-
-impl Metric<BreaksInfo, BreaksLeaf> for BreaksBaseMetric {
-    fn measure(_: &BreaksInfo, len: usize) -> usize {...}
-
-    fn to_base_units(_: &BreaksLeaf, in_measured_units: usize) -> usize {...}
-
-    fn from_base_units(_: &BreaksLeaf, in_base_units: usize) -> usize {...}
 
     fn is_boundary(l: &BreaksLeaf, offset: usize) -> bool {...}
 
@@ -1336,6 +1321,7 @@ pub mod diff;
 pub mod engine;
 pub mod find;
 pub mod interval;
+pub(crate) mod metrics;
 pub mod multiset;
 pub mod rope;
 #[cfg(feature = "serde")]
@@ -1347,6 +1333,141 @@ pub use crate::delta::{Builder as DeltaBuilder, Delta, DeltaElement, Transformer
 pub use crate::interval::Interval;
 pub use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
 pub use crate::tree::{Cursor, Metric};
+```
+
+## xi-editor-ph7/rust/rope/src/metrics/break_indices.rs
+
+```rust
+#[inline]
+pub(crate) fn nth_break_offset(data: &[usize], leaf_len: usize, in_measured_units: usize) -> usize {...}
+
+#[inline]
+pub(crate) fn count_breaks_up_to(data: &[usize], offset: usize) -> usize {...}
+
+#[inline]
+pub(crate) fn find_prev_break(data: &[usize], offset: usize) -> Option<usize> {...}
+
+#[inline]
+pub(crate) fn find_next_break(data: &[usize], offset: usize) -> Option<usize> {...}
+
+#[inline]
+pub(crate) fn is_break_boundary(data: &[usize], offset: usize) -> bool {...}
+```
+
+## xi-editor-ph7/rust/rope/src/metrics/codepoint.rs
+
+```rust
+use std::cmp;
+
+const CONT_MASK: u8 = 0b1100_0000;
+const CONT_TAG: u8 = 0b1000_0000;
+
+#[inline(always)]
+fn is_continuation(byte: u8) -> bool {...}
+
+#[inline(always)]
+pub(crate) fn len_utf8_from_first_byte(b: u8) -> usize {...}
+
+#[inline]
+pub(crate) fn is_codepoint_boundary(bytes: &[u8], offset: usize) -> bool {...}
+
+#[inline]
+pub(crate) fn prev_codepoint_boundary(bytes: &[u8], offset: usize) -> Option<usize> {...}
+
+#[inline]
+pub(crate) fn next_codepoint_boundary(bytes: &[u8], offset: usize) -> Option<usize> {...}
+
+#[inline]
+pub(crate) fn count_utf16_code_units_bytes(bytes: &[u8]) -> usize {...}
+```
+
+## xi-editor-ph7/rust/rope/src/metrics/identity.rs
+
+```rust
+use std::marker::PhantomData;
+
+use crate::breaks::BreaksMetric;
+use crate::tree::{Leaf, Metric, NodeInfo};
+
+#[derive(Clone, Copy)]
+pub(crate) struct BaseUnitsIdentity<M> {
+    _marker: PhantomData<M>,
+}
+
+impl<M> Default for BaseUnitsIdentity<M> {
+    #[inline]
+    fn default() -> Self {...}
+}
+
+impl<N, L, M> Metric<N, L> for BaseUnitsIdentity<M>
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+    M: Metric<N, L>,
+{
+    #[inline]
+    fn measure(_: &N, len: usize) -> usize {...}
+
+    #[inline]
+    fn to_base_units(_: &L, in_measured_units: usize) -> usize {...}
+
+    #[inline]
+    fn from_base_units(_: &L, in_base_units: usize) -> usize {...}
+
+    #[inline]
+    fn is_boundary(leaf: &L, offset: usize) -> bool {...}
+
+    #[inline]
+    fn prev(leaf: &L, offset: usize) -> Option<usize> {...}
+
+    #[inline]
+    fn next(leaf: &L, offset: usize) -> Option<usize> {...}
+
+    #[inline]
+    fn can_fragment() -> bool {...}
+}
+
+pub(crate) type BreaksBaseMetric = BaseUnitsIdentity<BreaksMetric>;
+```
+
+## xi-editor-ph7/rust/rope/src/metrics/lines.rs
+
+```rust
+use memchr::{memchr, memrchr};
+
+#[inline]
+pub(crate) fn count_newlines_bytes(bytes: &[u8]) -> usize {...}
+
+#[inline]
+pub(crate) fn is_newline_boundary(bytes: &[u8], offset: usize) -> bool {...}
+
+#[inline]
+pub(crate) fn find_next_newline(bytes: &[u8], offset: usize) -> Option<usize> {...}
+
+#[inline]
+pub(crate) fn find_prev_newline(bytes: &[u8], offset: usize) -> Option<usize> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/metrics/mod.rs
+
+```rust
+pub(crate) mod break_indices;
+pub(crate) mod codepoint;
+pub(crate) mod identity;
+pub(crate) mod lines;
+
+pub(crate) use break_indices::{
+    count_breaks_up_to, find_next_break, find_prev_break, is_break_boundary, nth_break_offset,
+};
+pub(crate) use codepoint::{
+    count_utf16_code_units_bytes, is_codepoint_boundary, len_utf8_from_first_byte,
+    next_codepoint_boundary, prev_codepoint_boundary,
+};
+#[allow(unused_imports)]
+pub(crate) use identity::{BaseUnitsIdentity, BreaksBaseMetric};
+pub(crate) use lines::{
+    count_newlines_bytes, find_next_newline, find_prev_newline, is_newline_boundary,
+};
 ```
 
 ## xi-editor-ph7/rust/rope/src/multiset.rs
@@ -1605,11 +1726,15 @@ use std::borrow::Cow;
 use std::cmp::{max, min, Ordering};
 use std::fmt;
 use std::ops::Add;
-use std::str::{self, FromStr};
+use std::str::FromStr;
 use std::string::ParseError;
 
 use crate::delta::{Delta, DeltaElement};
 use crate::interval::{Interval, IntervalBounds};
+use crate::metrics::{
+    count_newlines_bytes, count_utf16_code_units_bytes, find_next_newline, find_prev_newline,
+    is_codepoint_boundary, is_newline_boundary, next_codepoint_boundary, prev_codepoint_boundary,
+};
 use crate::tree::{Cursor, DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 
 use memchr::{memchr, memrchr};

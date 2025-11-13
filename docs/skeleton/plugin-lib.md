@@ -3,10 +3,10 @@
 ```rust
 use memchr::memchr;
 
+use crate::trace::trace_block;
 use crate::xi_core::plugin_rpc::{GetDataResponse, TextUnit};
 use xi_rope::interval::IntervalBounds;
 use xi_rope::{DeltaElement, Interval, LinesMetric, Rope, RopeDelta};
-use crate::trace::trace_block;
 
 use super::{Cache, DataSource, Error};
 
@@ -283,8 +283,8 @@ mod base_cache;
 mod core_proxy;
 mod dispatch;
 mod state_cache;
-mod view;
 pub mod trace;
+mod view;
 
 use std::io;
 use std::path::Path;
@@ -463,9 +463,9 @@ pub fn mainloop<P: Plugin>(plugin: &mut P) -> Result<(), ReadError> {...}
 ```rust
 use rand::{thread_rng, Rng};
 
+use crate::trace::trace_block;
 use xi_rope::interval::IntervalBounds;
 use xi_rope::{LinesMetric, RopeDelta};
-use crate::trace::trace_block;
 
 use super::{Cache, DataSource, Error, View};
 use crate::base_cache::ChunkCache;
@@ -627,17 +627,8 @@ fn count_newlines(s: &str) -> usize {...}
 ```rust
 #[cfg(feature = "trace")]
 pub use xi_trace::{
-    chrome_trace_dump,
-    disable_tracing,
-    enable_tracing,
-    is_enabled,
-    samples_cloned_unsorted,
-    trace,
-    trace_block,
-    trace_block_payload,
-    trace_payload,
-    Sample,
-    SampleGuard,
+    chrome_trace_dump, disable_tracing, enable_tracing, is_enabled, samples_cloned_unsorted, trace,
+    trace_block, trace_block_payload, trace_payload, Sample, SampleGuard,
 };
 
 #[cfg(not(feature = "trace"))]
@@ -662,7 +653,11 @@ mod shim {
 
     pub fn trace_block<'a, S, C>(_name: S, _categories: C) -> SampleGuard<'a> {...}
 
-    pub fn trace_block_payload<'a, S, C, P>(_name: S, _categories: C, _payload: P) -> SampleGuard<'a> {...}
+    pub fn trace_block_payload<'a, S, C, P>(
+        _name: S,
+        _categories: C,
+        _payload: P,
+    ) -> SampleGuard<'a> {...}
 
     pub fn enable_tracing() {...}
 
@@ -696,17 +691,8 @@ mod shim {
 
 #[cfg(not(feature = "trace"))]
 pub use shim::{
-    chrome_trace_dump,
-    disable_tracing,
-    enable_tracing,
-    is_enabled,
-    samples_cloned_unsorted,
-    trace,
-    trace_block,
-    trace_block_payload,
-    trace_payload,
-    Sample,
-    SampleGuard,
+    chrome_trace_dump, disable_tracing, enable_tracing, is_enabled, samples_cloned_unsorted, trace,
+    trace_block, trace_block_payload, trace_payload, Sample, SampleGuard,
 };
 ```
 
@@ -717,6 +703,7 @@ use serde::Deserialize;
 use serde_json::{self, Value};
 use std::path::{Path, PathBuf};
 
+use crate::trace::trace_block;
 use crate::xi_core::plugin_rpc::{
     GetDataResponse, PluginBufferInfo, PluginEdit, ScopeSpan, TextUnit,
 };
@@ -725,7 +712,6 @@ use xi_core_lib::annotations::AnnotationType;
 use xi_core_lib::plugin_rpc::DataSpan;
 use xi_rope::interval::IntervalBounds;
 use xi_rope::RopeDelta;
-use crate::trace::trace_block;
 
 use xi_rpc::RpcPeer;
 
