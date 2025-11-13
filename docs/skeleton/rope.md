@@ -12,7 +12,7 @@ fn main() {...}
 
 ```rust
 use crate::interval::Interval;
-use crate::tree::{DefaultMetric, Leaf, Metric, Node, NodeInfo, TreeBuilder};
+use crate::tree::{DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 use std::cmp::min;
 use std::mem;
 
@@ -53,8 +53,10 @@ impl NodeInfo for BreaksInfo {
     fn compute_info(l: &BreaksLeaf) -> BreaksInfo {...}
 }
 
-impl DefaultMetric for BreaksInfo {
-    type DefaultMetric = BreaksBaseMetric;
+impl DefaultMetricProvider for BreaksInfo {
+    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+
+    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
 }
 
 impl BreaksLeaf {
@@ -1588,7 +1590,7 @@ use std::string::ParseError;
 
 use crate::delta::{Delta, DeltaElement};
 use crate::interval::{Interval, IntervalBounds};
-use crate::tree::{Cursor, DefaultMetric, Leaf, Metric, Node, NodeInfo, TreeBuilder};
+use crate::tree::{Cursor, DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 
 use memchr::{memchr, memrchr};
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
@@ -1677,8 +1679,10 @@ impl NodeInfo for RopeInfo {
     fn identity() -> Self {...}
 }
 
-impl DefaultMetric for RopeInfo {
-    type DefaultMetric = BaseMetric;
+impl DefaultMetricProvider for RopeInfo {
+    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
+
+    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize {...}
 }
 
 //TODO: document metrics, based on https://github.com/google/xi-editor/issues/456
@@ -2277,13 +2281,13 @@ pub trait NodeInfo: Clone {
     fn interval(&self, len: usize) -> Interval {...}
 }
 
-/// A trait indicating the default metric of a NodeInfo.
+/// Provides conversions between the default metric of a node and other metrics.
 ///
-/// Adds quality of life functions to
-/// Node\<N\>, where N is a DefaultMetric.
-/// For example, [Node\<DefaultMetric\>.count](struct.Node.html#method.count).
-pub trait DefaultMetric: NodeInfo {
-    type DefaultMetric: Metric<Self>;
+/// Implementors supply the logic used by [`Node::count`] and
+/// [`Node::count_base_units`] to translate offsets between metrics.
+pub trait DefaultMetricProvider: NodeInfo {
+    fn convert_from_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize;
+    fn convert_to_default<M: Metric<Self>>(node: &Node<Self>, offset: usize) -> usize;
 }
 
 /// A trait for the leaves of trees of type [Node](struct.Node.html).
@@ -2465,8 +2469,8 @@ impl<N: NodeInfo> Node<N> {
     pub fn convert_metrics<M1: Metric<N>, M2: Metric<N>>(&self, mut m1: usize) -> usize {...}
 }
 
-impl<N: DefaultMetric> Node<N> {
-    /// Measures the length of the text bounded by ``DefaultMetric::measure(offset)`` with another metric.
+impl<N: DefaultMetricProvider> Node<N> {
+    /// Measures the length of the text bounded by the default metric offset using another metric.
     ///
     /// # Examples
     /// ```
@@ -2481,7 +2485,7 @@ impl<N: DefaultMetric> Node<N> {
     /// ```
     pub fn count<M: Metric<N>>(&self, offset: usize) -> usize {...}
 
-    /// Measures the length of the text bounded by ``M::measure(offset)`` with the default metric.
+    /// Measures the length of the text bounded by another metric using the default metric.
     ///
     /// # Examples
     /// ```

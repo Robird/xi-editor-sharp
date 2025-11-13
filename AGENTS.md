@@ -214,3 +214,5 @@
 - 为 `xi-core-lib` 新增 `trace` 可选特性：`xi-trace` 依赖默认启用但可关闭，trace API 统一经 `crate::trace` shim 输出并在禁用时回退为 no-op；`cargo check -p xi-core-lib` 验证通过。
 - 将 `xi-plugin-lib`、`xi-rpc` 接入 `crate::trace` shim 并默认开启可禁用的 `trace` 特性，`rpc/src/parse.rs` 现复用 shim 的 `trace_block`；`cargo check -p xi-rpc` 验证通过，仅保留既有警告。
 - 更新 `xi-editor-ph7/README.md`、`docs/architecture/rust-workspace-slimming.md`、`module-migration-plan.md` 以及 `rust/run_all_checks`，同步记录瘦身后的核心工作区与运行指引。
+- 将 `tree::DefaultMetric` 关联类型重构为 `DefaultMetricProvider` 泛型接口，`RopeInfo` 与 `BreaksInfo` 提供显式转换实现；`cargo test -p xi-rope` 通过验证，作为泛型化移植的首个试点。
+- 新增 `scripts/refresh_skeleton_docs.py`，可无参一键调用 `stub_rust_functions.py` 刷新 `docs/skeleton/*.md`，确保骨架文档随源码同步更新。
