@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Xi.Core.Rope.Tree;
@@ -41,6 +42,9 @@ public interface ILeafOperations<TLeaf>
 
     /// <summary>尝试根据容量约束对两个叶片进行平衡拆分。</summary>
     static abstract bool TryComputeBalancedSplit(TLeaf left, TLeaf right, [MaybeNullWhen(false)] out TLeaf newLeft, [MaybeNullWhen(false)] out TLeaf newRight);
+
+    /// <summary>按容量约束拆分叶片，返回顺序片段。</summary>
+    static abstract IEnumerable<TLeaf> SplitByCapacity(TLeaf leaf);
 }
 
 /// <summary>

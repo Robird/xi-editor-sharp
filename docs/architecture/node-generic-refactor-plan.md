@@ -2,8 +2,13 @@
 
 > 目标：对齐 Rust 版 `Node<N>`，将当前 `Node` 从 `string` 特化改造成基于静态多态的 `Node<TInfo, TLeaf, TLeafOps>`。本文记录实际引用面、需要触达的 C# 文件以及预期的改动风险。
 
+## Progress Snapshot
+- [x] Rust 侧 `NodeInfo`、`TreeBuilder`、`Delta` 已全面改造为对叶类型显式泛型，`Rope` 等别名通过特化绑定到字符串实现。
+- [ ] C# 侧主线仍使用字符串特化 `Node`；实验性 `Node<TInfo,TLeaf,TLeafOps>` 骨架已在 `Tree/Node.Generic.cs` 落地，但尚未接入 Builder/Delta 等路径。
+- [ ] 集成泛型节点、游标重构与共享节点契约规划见短期路线图 1-3 项。
+
 ## 1. 原版参考
-- Rust 源（见 `docs/skeleton/rope.md` `tree.rs` 部分）：`Node<N>` 通过 `N::L` 访问叶类型，`NodeInfo`/`Leaf` trait 提供叶操作与聚合逻辑。
+- Rust 源（见 `docs/skeleton/rope.md` `tree.rs` 部分）：`Node<N>` 通过 `N::L` 访问叶类型；`NodeInfo`/`TreeBuilder`/`Delta` 现已全部以叶类型为泛型参数，在 Rust 端形成自洽链路。
 - 迁移规划文档：`docs/architecture/rope-port-mapping.md` 中已将 `tree.rs` → `Tree/Node.cs` 对应关系列出；`docs/architecture/static-polymorphism-assessment.md` 评估了使用 `struct` Helper 的静态多态可行性。
 
 ## 2. 使用面盘点
@@ -29,7 +34,7 @@
   1. 在泛型节点中保留虚/委托形式，仅在 `string` 特化中注入；
   2. 或者提供 `LeafDisplayAdapter` 接口专门用于测试。
 - **结构共享方法**：如 `CloneWithChildren`, `ReplaceChildWithSegments`, `BuildFromSegments` 需要泛型化，确保在不重建叶片的前提下操作 `Node<T...>`。
-- **兼容层**：为了渐进迁移，可先创建 `internal sealed class RopeNode : Node<RopeInfo, string, StringLeafOperations>` 并保留现有 API，随后逐步替换使用点。
+- **兼容层**：为了渐进迁移，可先创建 `internal sealed class RopeNode : Node<RopeInfo, string, StringLeafOperations>` 并保留现有 API，随后逐步替换使用点；当前实验性骨架存于 `Tree/Node.Generic.cs`，尚未与主 `Node` partial 类和 Builder/Delta 管线连通。
 
 > **操作映射速览**
 > 为了落地泛型版 `Node`，需要在 `TLeafOps` 中补齐以下能力，以承载当前 `Node.cs` 中的叶操作：
@@ -81,26 +86,20 @@
 4. **额外叶类型的需求**：若未来要支持基于 `char[]`/`ArrayPool<char>` 的实现，Helper 结构体无法通过构造注入资源；需要提前决定是否允许 `Node` 构造时显式传入 Helper 实例。
 5. **过渡阶段的二义性**：重构过程中测试与业务同时存在旧、新 Node；建议采用别名或 `partial class` 手段，保证在一次合并中完成 API 切换，避免调用点混淆。
 
-## 5. 建议的迭代路线
-1. **接口准备**：扩展 `ILeafOperations`、`ITreeNodeInfo`，并实现 `StringLeafOperations`；补充单元测试覆盖 Helper 行为。（2025-11-12 已完成：`ILeafOperations` 转换为 static abstract 契约，`StringLeafOperations` 以结构体形态实现并新增 81 项测试基线）
-  - 明确静态抽象成员（`MinLeafSize/MaxLeafSize`, `Create`, `Empty`）与实例方法职责；
-  - 为 `StringLeafOperations` 提供零拷贝实现（复用 `string.Create`, `ReadOnlySpan<char>`）；
-  - 在 `RopeInfo`、`LinesMetric` 等结构上增加针对新接口的回归测试。
-2. **引入泛型 Node 内核**：在不移除旧 `Node` 的情况下新增 `Node<TInfo,TLeaf,TLeafOps>` 或 `NodeCore`；（2025-11-12 首版骨架已落地于 `Tree/Node.Generic.cs`，提供叶节点/内部节点构造与遍历，并通过 `GenericNodeSmokeTests` 验证基本聚合能力）
-  - 通过 `partial`/包装类保留现有 `Node` API，底层调用泛型实现；
-  - 为写时复制路径 (`EnsureWritableLeaf`、`SplitLeafByBounds`) 衔接新接口，锁定性能回退风险。
-3. **迁移构建器与拆分器**：
-  - 将 `TreeBuilder`、`LeafSplitter` 改造为泛型，并在 `StringLeafOperations` 中承载特化逻辑；
-  - 补充基于字符串叶片的回归（拆分阈值、借用/合并）以验证行为未变。
-4. **逐步替换上层依赖**：
-  - `Rope`、`Delta`、`Subset`、`Cursor` 等模块引入类型别名（`using RopeNode = Node<RopeInfo,string,StringLeafOperations>`）；
-  - 为 `NodeTests`、`RopeTests` 增加泛型 API 覆盖，确保新增类型参数不影响断言可读性。
-5. **测试切换与基线校准**：
-  - 全量运行现有 `dotnet test`，对比结构不变量日志确认行为一致；
-  - 如有必要，调整测试构造器（`NodeFactory`/`RopeTestHelpers`）使用新别名。
-6. **清理遗留与文档更新**：
-  - 删除旧 `Node` 外壳与字符串专用常量，转而从 `TLeafOps` 提供；
-  - 同步更新 `AGENTS.md`、`rope-port-mapping.md`，记录泛型化完成后的接口形态。
+## 5. 短期路线图
+
+**已完成**
+- [x] 接口准备：扩展 `ILeafOperations`/`ITreeNodeInfo` 为 static abstract 契约，并以 `StringLeafOperations` 结构体实现；81 项单元测试锁定字符串 Helper 行为。
+- [x] 泛型 Node 骨架：`Tree/Node.Generic.cs` 中提供 `Node<TInfo,TLeaf,TLeafOps>` 原型，并通过 `GenericNodeSmokeTests` 验证聚合与遍历路径。
+
+**待办（当前冲刺）**
+1. [ ] 集成泛型 `Node<TInfo,TLeaf,TLeafOps>` 至现有 C# 主实现（`TreeBuilder`、`LeafSplitter`、`Rope`、`Delta`），并确保 81 项基线测试在新路径下通过。
+2. [ ] 调研并设计基于泛型节点的 Cursor 生命周期/索引方案，澄清父缓存、借用与高度访问信约。
+3. [ ] 定义 `SharedNode` 辅助契约（或包装类型），覆盖 clone/borrow/调试视图需求，为跨模块共享节点打好接口基础。
+
+**后续待排期**
+- [ ] 泛型化 `TreeBuilder`/`LeafSplitter` 余项将在步骤 1 落地后拆分提交，完善策略注入与特化逻辑。
+- [ ] 清理 `Rope`、`Delta`、`Subset`、`Cursor` 等上层 API 的别名与回归测试，并同步更新相关文档（`AGENTS.md`、`rope-port-mapping.md`）。
 
 ## 6. 可行性结论
 - **可行**：从语言特性和静态多态评估来看，C# 端完全可以实现与 Rust 类似的泛型 `Node`。

@@ -40,6 +40,7 @@
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
 - **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
+  - 新增 `ILeafOperations.SplitByCapacity()` 静态抽象方法并由 `StringLeafOperations` 实现，`LeafSplitter` 现委托 Helper，便于泛型节点直接调用统一的叶片拆分逻辑。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
@@ -67,6 +68,7 @@
 3. **SharedNode/COW Helper 抽象**
   - 归纳 `Arc::make_mut`、`Node::with_leaf_mut` 等触点，设计 `SharedNode::ensure_unique()` 等 helper API，降低语言差异对 C# 复刻的阻碍。
   - 评估 C# 侧以静态 helper 模拟 copy-on-write 的实现草案，并列出必须的断言与测试覆盖。
+  - 2025-11-13：已在 `docs/rust-refactor/shared-node-api.md` 记录当前 `Arc::make_mut` 触点、封装方案与风险清单，后续迭代按该计划跟进。
 4. **Rust 基线瘦身后续（后 MSRV）**
   - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
   - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
@@ -130,6 +132,9 @@
 - Rope 采用 B-树节点 + 写时复制，叶节点倾向 1KB 左右；C# 实现需维护 `lines`、`utf16_size` 聚合信息以支撑多 Metric。
 - 叶节点候选：短期继续使用 `string`，中长期评估 `char[]` / `ArrayPool<char>` + `ReadOnlyMemory<char>` 的池化方案。
 - 临时实现：`TextBuffer` 使用 `StringBuilder` 作为占位，便于快速落地测试；后续需由 Rope 实现替换并保持 API 兼容。
+
+### API 迁移
+- 2025-11-13：完成 iterator façade 可行性调研，`docs/rust-refactor/iterator-facade-export.md` 已列出候选 façade 签名、现有迭代器使用面与迁移步骤，后续可据此优先替换 `Delta::iter_*`、`Cursor::iter` 等调用。
 
 ### 并发模型
 - TODO：对照 Rust 中的调度（channel + worker），评估 C# 中 `System.Threading.Channels` / `Task` 的映射策略。
@@ -231,3 +236,6 @@
 - 将 `tree::DefaultMetric` 关联类型重构为 `DefaultMetricProvider` 泛型接口，`RopeInfo` 与 `BreaksInfo` 提供显式转换实现；`cargo test -p xi-rope` 通过验证，作为泛型化移植的首个试点。
 - 新增 `scripts/refresh_skeleton_docs.py`，可无参一键调用 `stub_rust_functions.py` 刷新 `docs/skeleton/*.md`，确保骨架文档随源码同步更新。
 - 完成 `NodeInfo<L>`、`TreeBuilder<N, L>` 与 `Delta<N, L>` 泛型改造，`xi-rope` 及依赖模块（`breaks`/`spans`/`diff`/`engine` 等）已对齐新的叶片类型参数，并通过 `cargo test -p xi-rope`（149 项）与 `cargo check --workspace` 验证。
+
+### 2025-11-14
+- 深度盘点 `xi-editor-ph7/rust/rope/src` 内各 `Metric` 实现的重复逻辑，形成 UTF-8/换行/断点 helper 候选集，并在 `docs/rust-refactor/breaks-metrics-templating.md` 写入可行的 helper 模块设计与迁移计划，为 Rust/C# 对照迁移提供依据。

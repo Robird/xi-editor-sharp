@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Xi.Core.Rope.Tree;
 
@@ -213,6 +214,57 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
         newLeft = leftSegment;
         newRight = rightSegment;
         return true;
+    }
+
+    public static IEnumerable<string> SplitByCapacity(string leaf)
+    {
+        if (string.IsNullOrEmpty(leaf))
+        {
+            yield break;
+        }
+
+        var max = MaxLeafSize;
+        var window = LeafSplitter.NewlinePreferenceWindow;
+        var offset = 0;
+        var length = leaf.Length;
+
+        while (offset < length)
+        {
+            var remaining = length - offset;
+            var desired = Math.Min(max, remaining);
+            var split = desired;
+
+            if (remaining > desired)
+            {
+                var searchEnd = offset + desired - 1;
+                var windowStart = Math.Max(offset, searchEnd - (window - 1));
+
+                for (var index = searchEnd; index >= windowStart; index--)
+                {
+                    if (leaf[index] == '\n')
+                    {
+                        split = index - offset + 1;
+                        break;
+                    }
+                }
+
+                if (offset + split < length &&
+                    split > 0 &&
+                    char.IsHighSurrogate(leaf[offset + split - 1]) &&
+                    char.IsLowSurrogate(leaf[offset + split]))
+                {
+                    split--;
+                }
+
+                if (split <= 0)
+                {
+                    split = desired;
+                }
+            }
+
+            yield return leaf.Substring(offset, split);
+            offset += split;
+        }
     }
 
     private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit)

@@ -321,7 +321,7 @@ public sealed class Node
         }
 
         var segments = new List<Node>();
-        foreach (var segment in LeafSplitter.Split(_body.Leaf))
+        foreach (var segment in StringLeafOperations.SplitByCapacity(_body.Leaf))
         {
             segments.Add(FromLeaf(segment));
         }
