@@ -247,3 +247,4 @@
 
 ### 2025-11-14
 - 深度盘点 `xi-editor-ph7/rust/rope/src` 内各 `Metric` 实现的重复逻辑，形成 UTF-8/换行/断点 helper 候选集，并在 `docs/rust-refactor/breaks-metrics-templating.md` 写入可行的 helper 模块设计与迁移计划，为 Rust/C# 对照迁移提供依据。
+- 通过 `git rm --cached xi-editor-ph7` 将外部参考仓库从索引移除，依托 `.gitignore` 保持其与主仓库彼此独立；如需恢复子模块模式，需补齐 `.gitmodules` 并重新执行 `git submodule add`。
