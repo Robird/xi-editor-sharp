@@ -24,6 +24,7 @@
 3. Ensure CI runs `cargo test -p xi-rope` under both `--features serde` and `--no-default-features` (expected to fail initially, serving as a guard).
 
 - **Progress (2025-11-14):** Added `subset_serialization_regression` in `xi-editor-ph7/rust/rope/src/multiset.rs` (gated behind `cfg(feature = "serde")`) to capture the current Subset JSON shape. Fixture string: `{"segments":[{"len":2,"count":0},{"len":3,"count":3},{"len":1,"count":0},{"len":1,"count":1},{"len":2,"count":0}]}`.
+- **Progress (2025-11-14):** Captured the Delta baseline via `delta_serialization_regression` in `xi-editor-ph7/rust/rope/src/delta.rs`. Fixture string: `{"els":[{"copy":[0,3]},{"insert":"[ins]"},{"copy":[8,10]},{"insert":"!"},{"copy":[15,62]}],"base_len":62}`.
 
 ### Stage 1 – Multiset (`Subset` / `Segment`)
 1. Introduce read-only helpers returning segment iterators (`Subset::segments_iter`, `Segment::to_range`). Keep helpers `pub(crate)` initially.
@@ -39,7 +40,11 @@
 3. If practical, generalize the serde shim to work with `Delta<TInfo, TLeaf>` (defaulting to `RopeInfo`/`String`) without widening the public surface.
 4. Extend snapshot tests to cover mixed deltas (insert+delete). Re-run Stage 0 checks.
 
+- **Progress (2025-11-14):** Added `Delta::base_len()`, `Delta::element_count()`, `Delta::iter_elements()`, `Delta::element_triples()`, and `Delta::from_element_vec()/from_element_tuples()` helpers (all `pub(crate)`) so serde and future C# bindings no longer reach into private fields. `serde_impls.rs` now hand-writes `Serialize`/`Deserialize` for `DeltaElement`/`Delta` using those helpers, eliminating the temporary `RopeDelta_` wrappers while keeping the Stage 0 JSON fixture locked by `delta_serialization_regression`.
+
 ### Stage 3 – Engine / Revision log
+
+- **Progress:** Pending; Stage 2 helpers land first so Engine refactor can reuse the same patterns.
 1. Extract serde-only fields from `Engine`, `Revision`, and `Contents` into a gated module (`engine/serde.rs`). Introduce an internal `SerializableEngine` struct mirroring the JSON shape.
 2. Add helpers on core types for revision walk (`Engine::revision_log()`, `Revision::as_payload()`), reused by both serde shim and C# port.
 3. Create integration tests that round-trip ledger samples via serde (requires fixture capture or synthetic ledger test).
