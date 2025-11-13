@@ -10,7 +10,7 @@
 - Unit tests rely on implicit invariants (reference counts, leaf sharing) that are not captured by a reusable API surface.
 - Without a shared abstraction, we must reimplement ownership checks in C#, increasing risk of subtle differences in aliasing or structural sharing.
 
-## Proposed Refactor
+## 实施要点（原计划回顾）
 1. Introduce a `SharedNode` wrapper struct encapsulating `Arc<NodeBody>` and exposing explicit helpers:
    - `ensure_unique(&mut self) -> &mut NodeBody`
    - `clone_with_children(&self, new_children: SmallVec<[Arc<NodeBody>; 4]>) -> SharedNode`
@@ -23,6 +23,11 @@
 - Aligns Rust and C# semantics by reducing the surface area of ownership-specific code to a small helper module.
 - Simplifies porting by providing a clear set of methods to replicate in `SharedNode<T>` on the .NET side.
 - Facilitates unit testing of COW behavior (e.g., verifying clone counts or exclusive access) without invasive instrumentation.
+
+## Status Update（2025-11-14）
+- **Rust**：`rope/src/tree.rs` 已切换为 `Node` 持有 `SharedNode`，所有 `Arc::make_mut` 触点集中在 `SharedNode::ensure_unique` 内；`clone_with_children`、`replace_child_range` 覆盖 TreeBuilder/节点拼接路径，`cargo test -p xi-rope` 通过。
+- **C#**：`Tree/Node.cs` 引入对等的内部 `SharedNode` 类型，`EnsureUnique/CloneWithChildren/ReplaceChildRange` 成为唯一写时复制入口，维持 81 项 `xi.Core.Tests` 全部通过。
+- **文档同步**：`docs/skeleton/xi.Core.Rope.cs`、`rope-port-mapping.md` 与 `AGENTS.md` 已记录新的 helper API；本文件的调查结论转入实施经验回顾。
 
 ## Compatibility & Risks
 - Requires auditing every call site touching `Arc::make_mut` to avoid missing stragglers.
@@ -70,7 +75,7 @@
 - `breaks.rs`, `spans.rs`, `delta.rs`, and friends interact with `Node` solely through its public API, so wrapping the `Arc` is ABI-neutral as long as constructors and iterators keep their signatures.
 - Cursor code (`Cursor<'a, N, L>`) holds `&Node`; it will continue to compile once `Node` delegates to `SharedNode`. Ensure the wrapper keeps pointer identity semantics (`ptr_eq`) by forwarding to `Arc::ptr_eq`.
 
-## Recommended Implementation Path
+## Implementation Path（已完成）
 1. Add `shared_node.rs` (or an internal module within `tree.rs`) defining `SharedNode` plus its `ensure_unique` helper; re-export it as `pub(crate)`.
 2. Refactor `Node` to hold a `SharedNode` instance, updating constructors (`from_leaf`, `from_nodes`) and `Clone` derives accordingly.
 3. Replace direct `Arc::make_mut` usages in `with_leaf_mut` and `merge_leaves` with `SharedNode::ensure_unique`.
@@ -85,7 +90,7 @@
 - Pointer equality semantics (`ptr_eq`) must continue to mirror `Arc::ptr_eq`; add regression tests covering shared-leaf scenarios before and after the refactor.
 
 ## Next Steps
-1. Draft the `SharedNode` wrapper and migrate one representative editing method.
-2. Iterate on API naming and ergonomics, document mapping in `rope-port-mapping.md`.
-3. Roll through remaining call sites and add tests for shared leaf cloning and child replacement.
-4. Share the helper contract with the C# team for mirroring in `SharedNode<T>` implementation.
+1. **Instrumentation**：提供 `shared_node_diagnostics`（或等效）特性开关，记录 `ensure_unique` / `clone_with_children` 调用次数，并设计与 C# 侧 `SharedNode` 调试计数器一致的输出格式。
+2. **测试补强**：新增针对共享叶片、内部节点子数组替换的回归测试，校验 instrumentation 打开/关闭时结果一致，并验证 `Arc::ptr_eq` 等指针语义未回归。
+3. **性能验证**：在 Rust `cargo bench` 与 C# `BenchmarkDotNet` 中补充最小基准，对照 instrumentation on/off 差异，确认 helper 抽象未引入额外分配或可观延迟。
+4. **文档同步**：持续更新 `rope-port-mapping.md`、`AGENTS.md` 与 `docs/skeleton/xi.Core.Rope.cs`，记录 instrumentation 字段、命名与迁移策略，确保双端实现保持对齐。

@@ -7,7 +7,7 @@
 - 树结构暂未设置叶节点/内部节点的容量上下界，顺序插入可能导致树高增长或局部失衡。
 - 聚合信息（`RopeInfo`）在编辑过程中整体重算，缺乏局部更新优化。
 - 现有测试覆盖基础编辑语义，但尚未验证共享节点、边界合并与再平衡行为。
-- Rust 侧尚未提供 `SharedNode::ensure_unique`、`NodeKind` 等 helper，需要在计划中考虑等待窗口与同步策略。
+- Rust/C# 已完成 `SharedNode::ensure_unique/CloneWithChildren/ReplaceChildRange` 封装，后续计划聚焦内部节点再平衡与 SharedNode 诊断 instrumentation。
 
 ## 2. 设计目标
 1. **结构共享最大化**：对未修改子树引用复用，保证常见编辑操作的内存分配与拷贝数量控制在 O(log n)。
@@ -35,9 +35,11 @@
 
 ## 4. 工作拆解
 
+> 更新（2025-11-14）：阶段 A（节点所有权/引用管理）与阶段 B（叶片策略）已完成，并在 Rust/C# 双端落地 `SharedNode` 封装；当前聚焦阶段 C 的内部节点再平衡与 SharedNode 诊断 instrumentation。
+
 | 阶段 | 子任务 | 关键交付物 | 依赖 | 验收标准 | Rust 协同 |
 | --- | --- | --- | --- | --- | --- |
-| A | **节点所有权与引用管理** | `NodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 | 跟进 Rust `SharedNode::ensure_unique` helper，保持命名与语义一致 |
+| A | **节点所有权与引用管理** | `NodeBody` 引用计数或复制策略说明与初版实现 | `SplitAt`/`Concat` 现有行为 | 插入/删除流程中未触碰分支的节点引用保持不变（通过调试断言或测试验证）。 | Rust/C# 已完成 `SharedNode::ensure_unique` 封装，后续转向调试计数与性能探针规划 |
 | B | **叶节点策略** | `EnsureWritableLeaf`、`SplitLeaf`, `MergeLeaf` 实现 | 阶段 A | 叶节点长度在编辑后保持约束，同步更新 `RopeInfo`，通过跨叶编辑测试。 | Rust 输出 `LeafOps`/`split_leaf` 等迁移友好函数，C# 对齐接口 |
 | C | **内部节点再平衡** | `RebalanceAfterEdit` 框架、借用/合并逻辑 | 阶段 B | 顺序插入/删除 10^5 字符后树高度上限保持在 `ceil(log_{MIN_CHILDREN}(n)) + 1`。 | Rust 侧评估 `borrow_from_left/right` helper，提供测试用例 |
 | D | **聚合信息增量更新** | 上行更新函数 `RefreshInfoUpwards` | 阶段 C | 编辑操作仅重新计算沿途节点的 `RopeInfo`，测试验证行/UTF-16 计数无回归。 | Rust 标记需同步的 `update_info` helper，便于回溯 |

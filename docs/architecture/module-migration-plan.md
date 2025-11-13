@@ -39,7 +39,7 @@
   - 翻译 `tree`, `rope`, `delta`, `interval`, `engine` 中的结构体与算法；关注 Rust 端 helper 改造进度。
   - 为节点与 metric 使用 struct + Span 友好 API，避免过度 GC。
   - 引入 `BenchmarkDotNet` 验证常见操作（插入、删除、slice、line count）。
-  - 追踪 Rust 端 `SharedNode::ensure_unique`、`Cursor::collect_boundaries` 等新 API，保持方法签名一致。
+  - 持续同步 Rust 端 `SharedNode::ensure_unique` instrumentation、`Cursor::collect_boundaries` 等新 API，保持方法签名一致并记录诊断字段。
 - **测试**：
   - 逐文件单元测试：节点分裂、合并、度量计算。
   - 属性测试：随机编辑序列保持 Rope 不变式（Base + FsCheck）。

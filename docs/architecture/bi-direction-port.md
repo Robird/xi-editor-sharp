@@ -39,24 +39,24 @@
 
 1. **冻结核心范围**：Rust 侧聚焦 `xi-rope`、`xi-core-lib`；C# 侧集中在 `Xi.Core.Rope`，暂缓视图/插件等模块。
 2. **建立骨架对照**：使用脚本从 Rust 生成精简骨架（已输出 `docs/reference/rust-skeleton.md`），确保每次 Rust 改造后可自动刷新；C# 侧维护同步 skeleton 并标注差异。
-3. **同步 Helper 契约**：先在 Rust 端落地 `SharedNode::ensure_unique()`、`LeafOps::split_at()` 等 helper，再在 C# 端实现等价静态方法，保持命名一致。
+3. **同步 Helper 契约**：`SharedNode::ensure_unique/CloneWithChildren/ReplaceChildRange` 已在 Rust/C# 双端落地；后续协同聚焦 SharedNode 诊断 instrumentation、`LeafOps::split_at()` 等剩余 helper 的命名与参数对齐。
 4. **迭代式回放**：每完成一轮 Rust 改造，立即在 C# 侧更新骨架或实现；C# 端新增测试需在 Rust 仓库寻找等价覆盖，反之亦然。
 5. **双端回归基线**：
 	- Rust：`cargo test --workspace`（尤其 `xi-rope`）。
 	- C#：`dotnet test Xi.Editor.sln`，验证 81 项 Rope 测试保持通过。
 6. **脚本化对齐**：在 `scripts/` 增加对照脚本，输出“Rust helper 列表 vs C# 实际实现”差异并写入 CI 报告。
 
-## 5. 近期行动（更新 2025-11-13）
+## 5. 近期行动（更新 2025-11-14）
 
 ### 5.1 进展快照
 - Rust 端已完成 `NodeInfo`、`TreeBuilder`、`Delta` 及依赖模块的显式叶泛型化，`cargo test -p xi-rope`（149 项）全部通过，现行实现以 `Node<RopeInfo, String>` 等别名维持兼容。
 - `scripts/refresh_skeleton_docs.py` 已刷新 `docs/skeleton/rope.md`，C# 骨架仍以实验版泛型节点为准，尚未迁入主实现。
-- C# 与文档侧对 `Cursor<'a>` 生命周期、`Arc::make_mut` 相关 helper 的映射尚无定案，阻滞后续双向移植。
+- `SharedNode` 封装已在 Rust/C# 双端完成并串联测试，当前在文档中追踪 instrumentation 需求；`Cursor<'a>` 生命周期削薄仍待定，是下一阶段的主要阻塞。
 
 ### 5.2 差距与短期计划
 1. **Node 泛型双向同步**：在 `node-generic-refactor-plan.md` 标注已完成的 Rust 泛型化内容，更新 C# 迁移任务清单，并将 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现后串联 81 项 Rope 测试。
 2. **Cursor 生命周期削薄预研**：梳理 `Cursor<'a, N, L>` 生命周期依赖，评估以节点索引 + 共享指针实现的方案，输出设计权衡与最小 POC 验证路径。
-3. **SharedNode/COW Helper 抽象**：归纳 `Arc::make_mut` 触点并设计语言无关的 helper 契约，为 C# 端静态 helper 提供对照实现与测试要求。
+3. **SharedNode 诊断与性能对齐**：在现有 helper 契约落地的基础上，规划调试计数、ptr_eq 校验与性能基线，对齐 Rust/C# instrumentation 输出格式并补充对应测试。
 4. **文档与骨架对齐**：在上述调整完成后，刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs` 与 `rope-port-mapping.md` 对应段落，确保 helper 名称与泛型签名的一致性，并将进展同步至 `AGENTS.md`。
 
 ## 6. 风险与监控
@@ -70,4 +70,4 @@
 
 ---
 
-*维护人：GitHub Copilot Agent（2025-11-13 更新）*
+*维护人：GitHub Copilot Agent（2025-11-14 更新）*

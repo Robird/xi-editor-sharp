@@ -19,7 +19,7 @@
 ## 文件级映射表
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
-| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；内部节点再平衡、聚合刷新待补齐。Rust 正在抽象 `SharedNode::ensure_unique`。 |
+| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装已对齐，仅经 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 触碰 COW；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
 | `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 缺少多 Metric 组合测试与聚合增量刷新；需补充 `Cursor`/`Metric` 交互。 |
 | `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | 规划为 `Delta/Delta.cs`, `Delta/Subset.cs`, `Delta/Transformer.cs` | Rust 重构中 | 等待 Rust 提供拆分后的 helper、`transform_expand` 无宏实现；C# 先同步骨架。 |

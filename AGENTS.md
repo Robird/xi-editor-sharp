@@ -7,6 +7,7 @@
 
 ## 项目概览
 - 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 81 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations` 及泛型 Node 验证，确保 Leaf Helper 抽象的回归基线稳定。
+- Rust/C# 双端已通过 `SharedNode` 封装收敛写时复制触点，`tree.rs` 与 `Tree/Node.cs` 现统一委托 `EnsureUnique/CloneWithChildren/ReplaceChildRange`；`cargo test -p xi-rope` 与 `dotnet test tests/xi.Core.Tests` 保持通过。
 - `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 81 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
 - `docs/architecture` 系列文档已完成“双向协同”策略重写（含 `bi-direction-port.md`、`rope-*`、`module-migration-plan.md` 等），明确 C# 迁移与 `xi-editor-ph7` Rust 重构的互锁里程碑、待协同 helper 列表与风险登记。
 - 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
@@ -42,6 +43,7 @@
 - **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
   - 新增 `ILeafOperations.SplitByCapacity()` 静态抽象方法并由 `StringLeafOperations` 实现，`LeafSplitter` 现委托 Helper，便于泛型节点直接调用统一的叶片拆分逻辑。
 - **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
+- **SharedNode 诊断筹备**：在 Rust/C# `SharedNode` 封装完成后，评估调试计数器与性能探针的可行性，为跨语言共享节点回归提供 instrumentation。
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
@@ -55,6 +57,10 @@
 2. **阶段 B：叶片容量与诊断收官（2025-11-11）**
   - 新增跨多层删除与 surrogate 边界替换测试，验证 `NormalizeLeafMinimum()` 能在编辑后自动修复欠载叶片并保持代理对完整性；`ValidateInvariants(true)` 现用于确认所有编辑路径维持 `[MinLeafSize, MaxLeafSize]` 约束。
     - `ValidateInvariants` 诊断输出增加节点路径上下文、叶片预览与子节点长度摘要，结合 `CollectInvariantIssues` 可在测试与调试中快速定位问题并输出详细日志。
+3. **SharedNode Helper 双端封装（2025-11-14）**
+  - 在 Rust `tree.rs` 中引入 `SharedNode` 封装，将所有 `Arc::make_mut` 调用集中到 `ensure_unique`，并通过 `clone_with_children`、`replace_child_range` 复用子节点拼接逻辑；`cargo test -p xi-rope` 完整通过。
+  - C# `Tree/Node.cs` 采用对等的 `SharedNode` 内部类型，`EnsureUnique/CloneWithChildren/ReplaceChildRange` 成为唯一写时复制入口，`dotnet test tests/xi.Core.Tests`（81 项）通过验证。
+  - 更新 `docs/rust-refactor/shared-node-api.md`、`docs/skeleton/xi.Core.Rope.cs` 与 `AGENTS.md`，记录 helper 封装完成与后续诊断计划。
 
 ## 下一步行动（高优先级 Backlog）
 1. **Node 泛型双向同步**
@@ -65,12 +71,11 @@
   - 拆解 Rust `Cursor<'a, N, L>` 对生命周期的真实需求，评估以节点索引 + 共享指针重构的可行性与性能影响。
   - 在 `bi-direction-port.md`、`node-generic-refactor-plan.md` 记录设计假设、权衡与验证案例，为 C# 端提供未来接口草案。
   - 若方案可行，准备最小 POC（含单元测试）验证向后兼容性。
-3. **SharedNode/COW Helper 抽象**
-  - 归纳 `Arc::make_mut`、`Node::with_leaf_mut` 等触点，设计 `SharedNode::ensure_unique()` 等 helper API，降低语言差异对 C# 复刻的阻碍。
-  - 评估 C# 侧以静态 helper 模拟 copy-on-write 的实现草案，并列出必须的断言与测试覆盖。
-  - 2025-11-13：已在 `docs/rust-refactor/shared-node-api.md` 记录当前 `Arc::make_mut` 触点、封装方案与风险清单，后续迭代按该计划跟进。
-  - 2025-11-14：Rust 侧完成 `SharedNode` 封装落地，`tree.rs` 现通过 `SharedNode::ensure_unique/clone_with_children/replace_child_range` 屏蔽 `Arc::make_mut`，`cargo test -p xi-rope` 通过。
-  - 2025-11-14：C# 侧引入 `SharedNode` 封装，`Tree/Node.cs` 现复用 `EnsureUnique/CloneWithChildren/ReplaceChildRange`，`dotnet test tests/xi.Core.Tests` 通过。
+3. **SharedNode 诊断与性能监测**
+  - 设计 Rust 侧 `shared_node_diagnostics`（或等效）特性开关，统计 `ensure_unique`、`clone_with_children` 调用，并输出最小计数器用于测试与日志分析。
+  - 规划 C# 侧调试计数器与 Rust instrumentation 的对齐，确保跨语言回归可比较共享节点复制开销。
+  - 在 `docs/rust-refactor/shared-node-api.md`、`rope-port-mapping.md` 记录诊断字段、命名与测试入口，防止后续 helper 演化偏离对齐目标。
+  - 评估 instrumentation 对性能的影响，必要时增加微基准验证开关前后差异。
 4. **Rust 基线瘦身后续（后 MSRV）**
   - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
   - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
