@@ -49,6 +49,7 @@
 - **SharedNode 诊断筹备**：在 Rust/C# `SharedNode` 封装完成后，评估调试计数器与性能探针的可行性，为跨语言共享节点回归提供 instrumentation。
 - **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
 - **Delta/Subset 原型**：依据 `docs/architecture/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
+  - `docs/rust-refactor/delta-subset-serialization.md` 已细化 serde 拆分四阶段计划（基线采样、`Subset` 模块化、`Delta` helper、`Engine` ledger serde），并约定 golden fixture、双轨 CI 与 Fuchsia ledger 校验作为成功标准。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
 - **Trait 泛型化延伸**：`NodeInfo`、`TreeBuilder`、`Delta` 等核心模块已完成显式叶类型泛型化并通过 `cargo test -p xi-rope`，当前聚焦在 Rust 端梳理 Cursor/Iterator 的生命周期依赖，同时指导 C# `Node<TInfo, TLeaf, TLeafOps>` 的落地与测试补位。
 - **C# 泛型 Node 对齐准备**：根据最新骨架与 `node-generic-refactor-plan.md`，规划将实验版泛型节点迁入主实现并串联 81 项 Rope 测试，记录仍依赖字符串特化的调用点与阻塞。

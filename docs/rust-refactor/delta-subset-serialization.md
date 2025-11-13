@@ -1,67 +1,89 @@
 # Delta & Subset Serialization Cleanup
 
-## Context
-- `delta.rs` and `multiset.rs` interleave core editing logic with optional serde serialization.
-- Structures like `Delta`, `InsertDelta`, `Subset`, and `Revision` include serde-only derives and fields.
-- C# porting requires deterministic data structures independent of serde, but current code tightly couples serialization with logic.
+## Goals
+- Separate serde-only code from core Delta/Subset logic so the data structures compile and behave identically with or without the `serde` feature.
+- Provide portable helper APIs (`to_ops`, `to_segments`, etc.) consumed by both serde shims and eventual C# bindings.
+- Establish golden artifacts and documentation that lock in the current JSON schema for Fuchsia sync and plugin ecosystems.
 
-## Problem Statement
-- Mixing serde derives with core logic complicates cross-language parity and increases compilation dependencies.
-- Tests often rely on serialized representations to validate behavior, making it harder to reproduce in C#.
-- Serialization-specific fields and helper methods introduce conditional compilation branches that are difficult to mirror.
+## Background
+- `multiset.rs`, `delta.rs`, and `engine.rs` currently mix serde derives with editing logic, and disabling the `serde` feature removes entire data paths.
+- Downstream crates (Fuchsia ledger, plugins) rely on stable JSON produced through these derives; tests such as `delta.rs` `serialize_delta` assert exact output.
+- The C# port needs serde-free parity plus a deterministic serialization story for cross-language validation.
 
-## Proposed Refactor
-1. Split serialization functionality into dedicated modules (e.g., `delta::serde_impls`, `multiset::serde`), keeping core types free from serde derives.
-2. Provide canonical helper functions (`Delta::to_ops()`, `Subset::to_segments()`) that output serialization-friendly data structures without requiring serde.
-3. Update serde modules to use the helpers, ensuring serialization logic is additive rather than intertwined.
-4. Document serialization formats (JSON structure, invariants) to align Rust and C# serde implementations or alternatives.
+## Deliverables
+- Core modules free from unconditional serde derives; serde logic moved to `*_serde.rs` or equivalent gated submodules.
+- Helper methods returning serialization-friendly data (segments, ops, revision logs) available without enabling serde.
+- Golden serialization fixtures and snapshot tests covering `Delta`, `Subset`, and `Engine` JSON.
+- Updated documentation describing schema, helper APIs, and feature-flag usage, with guidance mirrored in `rope-port-mapping.md`.
 
-## Expected Benefits
-- Clean separation of core logic from optional serialization features, simplifying C# translation.
-- Reduced compile-time dependencies when serde is disabled, improving workspace slim-down efforts.
-- Clearer debugging by exposing helper methods that can produce portable representations for golden tests.
+## Implementation Plan
 
-## Compatibility & Risks
-- Refactor may require changes to existing serde configuration (`cfg(feature = "serde")`), potentially affecting downstream crates.
-- Need to ensure derived implementations (e.g., `Serialize`, `Deserialize`) remain consistent with previous behavior.
-- Additional helper functions could expand public API surface; must review stability implications.
+### Stage 0 – Baseline capture (shared for all stages)
+1. Collect canonical JSON samples for `Delta`, `Subset`, and `Engine` (fixtures from existing tests and Fuchsia ledger traces).
+2. Add `serde_test::assert_ser_tokens` or snapshot-based tests to lock current behavior before refactoring.
+3. Ensure CI runs `cargo test -p xi-rope` under both `--features serde` and `--no-default-features` (expected to fail initially, serving as a guard).
 
-## Validation Plan
-- Run `cargo test -p xi-rope` with serde enabled and disabled to ensure identical behavior.
-- Add integration tests round-tripping `Delta`/`Subset` through serde to confirm compatibility.
-- Provide documentation snippets demonstrating new helper usage for debugging and testing.
+### Stage 1 – Multiset (`Subset` / `Segment`)
+1. Introduce read-only helpers returning segment iterators (`Subset::segments_iter`, `Segment::to_range`). Keep helpers `pub(crate)` initially.
+2. Move serde derives and impls into `multiset/serde.rs` guarded by `cfg(feature = "serde")`; re-export only the derives.
+3. Update `SubsetBuilder`, iterators, and tests to consume the new helpers.
+4. Validate: run targeted tests (`cargo test -p xi-rope --features serde multiset`) and the new snapshot suite; repeat with serde disabled to show core logic still compiles.
+
+### Stage 2 – Delta (`Delta`, `InsertDelta`, `DeleteDelta`)
+1. Add helpers exposing op sequences (`Delta::ops_iter`, `InsertDelta::spans`). Ensure they do not depend on serde traits.
+2. Restructure `delta/serde_impls.rs` to consume the helpers, trimming any direct access to private fields.
+3. If practical, generalize the serde shim to work with `Delta<TInfo, TLeaf>` (defaulting to `RopeInfo`/`String`) without widening the public surface.
+4. Extend snapshot tests to cover mixed deltas (insert+delete). Re-run Stage 0 checks.
+
+### Stage 3 – Engine / Revision log
+1. Extract serde-only fields from `Engine`, `Revision`, and `Contents` into a gated module (`engine/serde.rs`). Introduce an internal `SerializableEngine` struct mirroring the JSON shape.
+2. Add helpers on core types for revision walk (`Engine::revision_log()`, `Revision::as_payload()`), reused by both serde shim and C# port.
+3. Create integration tests that round-trip ledger samples via serde (requires fixture capture or synthetic ledger test).
+4. Coordinate with Fuchsia consumers to validate the preserved schema; record any field mapping notes in docs.
+
+### Stage 4 – Feature flag hardening and docs
+1. Audit workspace `Cargo.toml` files to stop unconditionally enabling `serde` on `xi-rope`; add opt-in flags with explicit propagation where needed.
+2. Update `docs/architecture/rope-port-mapping.md` and `AGENTS.md` to reflect the new helper surface.
+3. Add build matrix entries (CI script, `rust/run_all_checks`) covering `--no-default-features` and `--features serde`.
+4. Document schema (JSON keys, numeric units, ordering) in this file and link from `docs/rust-refactor/iterator-facade-export.md` if relevant.
+
+## Validation Matrix
+- `cargo test -p xi-rope --features serde` (default) – must stay green throughout.
+- `cargo test -p xi-rope --no-default-features` – becomes required once Stage 1 lands.
+- `cargo test --workspace --all-features` – ensures dependent crates remain compatible.
+- Snapshot or serde-test comparisons for every fixture, run before and after each stage.
+- Optional: QuickCheck/FsCheck style fuzz to ensure helper iterators align with existing logic.
+
+## Risks & Mitigations
+- **Schema drift:** Mitigate with pre/post golden fixtures and `serde_test::assert_ser_tokens` ensuring byte-identical output.
+- **Fuchsia ledger regression:** Coordinate with ledger owners, add integration fixtures, and provide a staged rollout plan.
+- **Public API creep:** Keep new helpers `pub(crate)` initially; only promote once C# binding requirements crystallize.
+- **Feature-flag churn:** Introduce CI coverage and update documentation so downstream crates know how to opt in explicitly.
+- **Generic delta surface expansion:** Document decision (specialized vs generic) before Stage 2 merges, and gate experimental APIs behind `#[cfg(feature = "experimental-generic-delta")]` if needed.
+
+## Dependencies
+- SharedNode/COW helpers already landed, enabling safe refactors without altering mutation semantics.
+- Metric templating work reduces duplicate logic touched by Delta helpers.
+- Need availability of ledger JSON samples (coordinate with Rust repo maintainers).
+
+## Stage Decisions (2025-11-14)
+- **Schema versioning**：暂不在 JSON 结构内嵌入显式版本号。现阶段目标是维持与 Fuchsia ledger 及现有插件的二进制兼容性，引入版本字段会立刻破坏黄金快照与外部消费端。版本记录改由文档 + golden fixture 校验承担；若将来出现破坏性变更，再通过新文件后缀或独立通道引入版本元数据。
+- **Alternative encodings**：保持 serde(JSON) 专属 shim，暂不扩展到 bincode/messagepack。当前跨语言验证与 C# 端只依赖 JSON；强行抽象公共编码层会额外锁定 API 表面而缺乏收益。若后续需要二进制格式，可在 serde 子模块旁新增平行 shim，并重用 Stage 1-3 建立的 helper。
+- **Helper surface for .NET**：计划对外公开（或 `pub(crate)` 暂存）的最小集合如下，保证无须访问私有字段即可完成 JSON 序列化与 C# 互操作：
+	- `Delta::iter_elements()`（或等价）返回 `Copy{begin,end}` / `Insert{rope}` 枚举视图，配套 `Delta::base_len()`。
+	- `InsertDelta::iter_inserts()` 与 `InsertDelta::copied_ranges()`，供 serde shim 与 C# `factor()` 路径共享。
+	- `Subset::segments_iter()` / `Subset::is_empty()` / `Subset::len()`，返回 `(start, len, count)` 三元组迭代器以匹配现有 JSON 阵列结构。
+	- `SubsetBuilder::from_segments()`（可选）便于测试和 C# 回写。
+	- `Engine::revision_log()`（返回只读迭代器），`Revision::as_delta()`，`Revision::tombstones()`，让 serde shim 与 ledger 同用。
+	- `Contents::as_text()` / `Contents::as_tombstones()`，对应 JSON 中双字段布局。
+ 这些 API 可先标记为 `pub(crate)` 并在 C# 需要跨 crate 调用时再择机公开；所有 helper 默认返回只读迭代器或 `Copy` 数据，避免外部修改内部状态。
 
 ## Open Questions
-- Should we define explicit schema versions for serialized deltas to guard against future changes?
-- Do we need to support alternative serialization backends (e.g., bincode) under the new structure?
-- Are there downstream consumers relying on private fields currently exposed via serde derives?
+- 调整为文档外追踪的 schema 版本是否需要同步到 plugin 协议文档？
+- 第二种编码格式若落地（例如 Fuchsia ledger 引入 bincode），是否同步沿用同一 helper 集合还是增设独立模块？
+- C# 侧若改用泛型叶片（非 `String`），上述 helper 是否需要进一步泛型化或扩展 trait 约束？
 
-## Next Steps
-1. Identify serde-only code sections and draft new modules housing their logic.
-2. Implement helper functions returning portable data (vectors of segments, ops) and migrate serde code to use them.
-3. Update build configuration and documentation, ensuring feature flags continue to work as expected.
-4. Engage with downstream users to confirm the refactor does not break their serialization workflows.
-
-**Key Observations**  
-- `Subset`/`Segment` in multiset.rs are entirely guarded by `#[cfg(feature = "serde")]` (see `L27-L56`), so the core data structure disappears if the feature is disabled. This confirms the proposal’s claim that serialization code is interwoven with core logic and currently blocks a “no-serde” build, which we will need for lightweight C# parity.  
-- `Engine`, `RevId`, `Revision`, and `Contents` in engine.rs follow the same pattern (`L44-L115`), and Fuchsia sync persists `Engine` via `serde_json` (`xsync.rs L27-L47`). Any refactor must preserve this JSON shape to avoid breaking ledger sync.  
-- `Delta` already offloads most JSON work to serde_impls.rs, but those impls are hard-coded to `Delta<RopeInfo, String>`, which complicates reuse once we move toward generic leaves. Tests under delta.rs (`L892-L907`) and rope.rs (`L1200-L1206`) assert the exact serialized form, so byte-for-byte compatibility is a must.  
-- There are no helper APIs today that expose `Subset` segments or `Delta` ops in a serialization-friendly form; serde impls reach directly into private state. That matches the proposal’s call for canonical helpers before splitting modules.  
-- Workspace-wide `cargo test --workspace` currently succeeds only because every dependent crate enables the `serde` feature on `xi-rope` (Cargo.toml links `features = ["serde"]`). The refactor would let us drop that dependency when we just need the data structures.
-
-**Feasibility Notes**  
-- Moving derives into `cfg_attr` (or into dedicated `serde` modules) is straightforward for `Subset`/`Segment` once we add minimal accessors (e.g., `pub(crate) fn raw_segments(&self) -> impl Iterator<Item = (usize, usize)>`). Expect touch-points in `SubsetBuilder` and iterators; invariants stay intact.  
-- `Engine` will need custom `Serialize`/`Deserialize` impls to keep the existing layout (`skip_serializing` + `default`). Extracting a mirror struct (e.g., `SerializableEngine`) inside `engine::serde`) keeps core code free of serde attributes while preserving JSON compatibility.  
-- `Delta`’s existing serde_impls.rs can be reshaped to consume new helpers so only a thin layer remains serde-aware. We should add golden tests (ideally `serde_test::assert_ser_tokens`) before and after to prove no format drift.  
-- Introducing helper methods (`Delta::to_ops`, `Subset::to_segments`, maybe `Engine::to_revision_log`) creates the “portable view” the doc requests and will immediately benefit C# translation. These can stay `pub(crate)` until the API design settles.  
-- Once derives move out, building `xi-rope` without `serde` becomes viable; we’ll need CI coverage for `--no-default-features`. Expect follow-up tweaks in crates that currently assume serde is always on.
-
-**Risks / Open Questions**  
-- `Engine` deserialization is used only on Fuchsia; we need sample ledgers or integration tests to ensure we don’t regress that path.  
-- `Delta` serialization currently requires `Node<RopeInfo, String>`; making it generic might expand the public API surface. We should decide if we keep the specialization or expose trait bounds for arbitrary leaves.  
-- Exposing raw `Subset` segments may leak invariants; we should document that callers must not mutate or reorder segments.  
-- Any format change breaks stored documents and plugin expectations. Before refactoring we should capture a corpus of serialized deltas/subsets/engines for regression comparison.
-
-**Suggested Next Steps**  
-1. Prototype `Subset`/`Segment` un-gating: add helpers, move serde derives into a new `multiset::serde` module, and run `cargo test -p xi-rope` with and without `--features serde`.  
-2. Mirror the approach in engine.rs, introducing a serde shim that round-trips an `Engine` pulled from `core-lib`’s ledger tests; extend tests to cover that JSON path.
+## Communication & Documentation
+- Announce the staged plan in the weekly sync; solicit feedback from plugin authors.
+- After each stage, update `docs/skeleton/rope.md` and `docs/skeleton/xi.Core.Rope.cs` to keep cross-language references aligned.
+- Record any downstream migration notes (e.g., ledger config changes) in `docs/rust-refactor/shared-node-api.md` or a new ledger-focused appendix.
