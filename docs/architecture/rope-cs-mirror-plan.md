@@ -18,7 +18,7 @@
 
 ## 3. C# 镜像落地总览
 ### 3.1 阶段划分
-1. **Stage A – Subset 对映与回归**
+1. **Stage A – Subset 对映与回归**（已完成，本次会话）
    - 新建 `Subset`/`SubsetBuilder` C# 实现，围绕 `segment_triples`、`from_segment_triples` 接口构建。
    - 导入 `subset_serialization_regression` JSON 作为黄金样本，编写 xUnit 回归测试（序列化与反序列化）。
    - 复用现有 `StringLeafOperations` 与不变量检查，确保 `Subset` 在编辑路径中行为一致。
@@ -49,7 +49,7 @@
 
 | 会话序号 | 目标内容 | 主要输出 | 入场条件 |
 | --- | --- | --- | --- |
-| Session A | Stage A (Subset) 实装与测试 | C# `Subset`/`SubsetBuilder` + JSON 回归测试 + 文档同步 | Rust helper 已就绪（当前状态） |
+| Session A | Stage A (Subset) 实装与测试 | C# `Subset`/`SubsetBuilder` + JSON 回归测试 + 文档同步（已完成，2025-11-14） | Rust helper 已就绪（当前状态） |
 | Session B | Stage B (Delta) 实装与测试 | C# `Delta` 泛型骨架 + `delta` 黄金回归 + 81 项测试保持通过 | Session A 完成 |
 | Session C | Stage C (Engine) 实装与测试 | C# `Engine`/`Revision`/`Contents` + JSON 回归 + 撤销/重做烟雾测试 | Session B 完成 |
 | Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 更新 `rope-port-mapping.md`、`run_all_checks` 集成、fixture 维护脚本 | Sessions A-C 交付稳定 |

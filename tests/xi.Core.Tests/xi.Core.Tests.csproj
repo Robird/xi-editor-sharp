@@ -22,4 +22,8 @@
     <ProjectReference Include="..\..\src\xi.Core\xi.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Fixtures\subset_regression.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

@@ -41,7 +41,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **C# 序列化镜像 Stage A**：以 AI 会话为单位推进 C# `Subset`/`SubsetBuilder` 与 JSON 回归测试，实现 Rust serde Stage A 的对映并保持 81 项测试全绿。
+- **C# 序列化镜像 Stage A**：本次会话已交付 `Subset`/`SubsetBuilder` 与 JSON 回归测试，准备转入 Stage B（Delta）落地并维持回归基线。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -188,6 +188,11 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》，更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-14 (Stage A 收官)
+- 实现 C# `Subset`/`SubsetBuilder` 并对齐 `SegmentTriples`、`FromSegmentTriples`、`SegmentCount` helper，确保相邻段合并与零长度防护。
+- 新增 `SubsetJson` 序列化/反序列化入口，引入 `tests/xi.Core.Tests/Fixtures/subset_regression.json` 黄金串并保证输出格式与 Rust 相同。
+- 编写 `SubsetSerializationTests` 覆盖序列化、反序列化与 triple round-trip，`dotnet test`（89 项）通过验证。
+- 更新 `docs/architecture/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md` 记录 Stage A 完成状态，并同步 AGENTS 进度。
 ### 2025-11-11
 - 初始化跨会话文档框架，整理目标与初步计划。
 - 搭建 .NET 解决方案骨架，创建核心/测试项目，编写 `TextBuffer` 占位实现与基础测试并验证通过。

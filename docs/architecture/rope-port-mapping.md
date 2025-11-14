@@ -24,7 +24,7 @@
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 缺少多 Metric 组合测试与聚合增量刷新；需补充 `Cursor`/`Metric` 交互。 |
 | `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | 规划为 `Delta/Delta.cs`, `Delta/Subset.cs`, `Delta/Transformer.cs` | Rust 重构中 | 等待 Rust 提供拆分后的 helper、`transform_expand` 无宏实现；C# 先同步骨架。 |
 | `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
-| `multiset.rs` | Rope 统计聚合辅助 | 规划为 `Stats/MultiSet.cs` | 未开始 | 可结合 .NET `Dictionary` 或自定义结构。 |
+| `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`SubsetJson` 对齐 Rust serde 输出。 |
 | `engine.rs` | 编辑命令应用、Undo/Redo 入口 | 规划为 `Engine/Engine.cs` | 未开始 | 依赖 Rope 与 Delta 实现完成后启动；Rust 正拆除宏以便移植。 |
 | `diff.rs` | 文本 diff 逻辑 | 规划为 `Diff/DiffEngine.cs` | 未开始 | 评估复用现有 diff 库或移植 Rust 算法。 |
 | `compare.rs` | Rope 比较工具 | 规划为 `Diff/Compare.cs` | 未开始 | 与 `diff.rs` 共享目录，落地后补测试。 |
