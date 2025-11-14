@@ -53,6 +53,7 @@
   - Stage 0/1 已完成 Subset 拆分试点：`subset_serialization_regression` 锁定 JSON 基线，核心实现新增 `Subset::segment_triples()`/`from_segment_triples()` helper 并将 serde 实现在 gated 模块，`cargo test -p xi-rope --features serde` 与 `--no-default-features` 均通过。
   - Stage 2 已完成 Delta 重构：新增 `Delta::base_len()`/`iter_elements()` 等 helper，`serde_impls.rs` 改为手写序列化并复用新 helper，同时 `delta_serialization_regression` 固化 JSON 产物；当前准备进入 Stage 4 的 feature flag 与文档收尾。
   - Stage 3（Engine）现已落地：核心类型移除 serde derive，新增 `Engine::revision_log()`、`Engine::from_serialized_state()`、`RevisionRef` 等 `pub(crate)` helper，并在 `engine::serde_impl` 内手写 `Serialize/Deserialize`。`engine_serialization_regression` 锁定 JSON 基线（fixture 与文档同步），`cargo test --manifest-path rope/Cargo.toml --features serde` 与 `--no-default-features` 均通过。
+  - Stage 4（Feature flags & docs）正在收尾：`xi-core-lib` 新增显式 `serde` 特性将 `xi-rope/serde` 设为按需启用，工作区顶层提供对应开关；`rust/run_all_checks` 追加 `cargo test -p xi-rope` 在 `--no-default-features` 与 `--features serde` 两种模式的运行。后续需关注 CI 流水线是否同步采用新命令。
 - **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
 - **Trait 泛型化延伸**：`NodeInfo`、`TreeBuilder`、`Delta` 等核心模块已完成显式叶类型泛型化并通过 `cargo test -p xi-rope`，当前聚焦在 Rust 端梳理 Cursor/Iterator 的生命周期依赖，同时指导 C# `Node<TInfo, TLeaf, TLeafOps>` 的落地与测试补位。
 - **C# 泛型 Node 对齐准备**：根据最新骨架与 `node-generic-refactor-plan.md`，规划将实验版泛型节点迁入主实现并串联 81 项 Rope 测试，记录仍依赖字符串特化的调用点与阻塞。

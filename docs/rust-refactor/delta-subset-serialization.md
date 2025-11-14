@@ -56,6 +56,8 @@
 3. Add build matrix entries (CI script, `rust/run_all_checks`) covering `--no-default-features` and `--features serde`.
 4. Document schema (JSON keys, numeric units, ordering) in this file and link from `docs/rust-refactor/iterator-facade-export.md` if relevant.
 
+- **Progress (2025-11-14):** Added opt-in `serde` feature gating through `xi-core-lib` and workspace-level `serde` flag so `xi-rope/serde` is disabled by default; refreshed `xi-editor-ph7/rust/run_all_checks` to run `cargo test -p xi-rope` under both `--no-default-features` and `--features serde`.
+
 ## Validation Matrix
 - `cargo test -p xi-rope --features serde` (default) – must stay green throughout.
 - `cargo test -p xi-rope --no-default-features` – becomes required once Stage 1 lands.
