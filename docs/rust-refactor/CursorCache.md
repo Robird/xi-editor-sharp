@@ -1,9 +1,18 @@
 **Cursor Cache 重构方案（修订版）**
 
 ## 背景
-- `Xi.Editor` C# 移植在阶段 M2 需要补齐 `NodeCursor` 与 `find`/`movement` 等遍历管线（参见 `docs/architecture/port-blueprint.md` §5.2、§9）。
-- `docs/architecture/rope-port-mapping.md` 将 `tree.rs` 游标列为“仅骨架”，等待 Rust 端提供无生命周期的缓存策略以便 C# 对齐。
-- 现有 Rust `Cursor<'a, N, L>`（`xi-editor-ph7/rust/rope/src/tree.rs:788-1188`）依赖生命周期缓存 `[Option<(&'a Node, usize)>; 4]` 与 `Option<&'a L>`，这是 C# 难以直接复刻的核心阻塞。
+`Cursor Cache` 重构隶属于 `Xi.Editor` 移植蓝图的 M2/M3 游标生命周期工作包，需与 `docs/architecture/port-blueprint.md`（尤其 §5.2、§9）以及 `docs/architecture/rope-port-mapping.md` 的映射表保持同步。
+- `port-blueprint` 将 `NodeCursor` 拓展视作 Rust/C# 协同交付，当前标记为等待 Rust 端 Descriptor/State 能力解锁。
+- `rope-port-mapping` 将 `Tree/NodeCursor.cs` 标记为“仅骨架”，明确依赖 Rust 侧游标缓存去生命周期化后才能推进。
+- 现有 Rust `Cursor<'a, N, L>`（`xi-editor-ph7/rust/rope/src/tree.rs:788-1188`）依赖生命周期缓存 `[Option<(&'a Node, usize)>; 4]` 与 `Option<&'a L>`，这是 C# 难以直接复刻的核心阻塞，也是上述两份文档列出的主路径风险。
+
+## 阶段进度追踪
+| Phase | Deliverable | Status | Dependencies | Next Checkpoint |
+|-------|-------------|--------|--------------|-----------------|
+| Phase 0 | 游标调用基线与缓存诊断报告 | 进行中 | `port-blueprint` §5.2（诊断基线） | 将命中率指标回填到 `port-blueprint` 附录 |
+| Phase 1 | `CursorDescriptor` API 与往返测试 | 已完成 | Rust `tree.rs`、`rope-port-mapping` 状态列 | 推动 `rope-port-mapping` 将 `Tree/NodeCursor.cs` 标记为“实现中”并准备 Phase 2 `CursorState` 草案 |
+| Phase 2 | `CursorState` 内核与 Feature Gate | 规划中 | Phase 1 稳定报告、`port-blueprint` §9 | 在 `port-blueprint` 更新 M3 进度并协调性能评估会 |
+| Phase 3 | C# `NodeCursor` 落地与共享夹具 | 规划中 | Phase 2 主分支可用、`rope-port-mapping` C# 行 | 宣告 `Tree/NodeCursor.cs` 从“仅骨架”晋级到“实现中/已实现” 并刷新 `AGENTS.md` |
 
 ## 问题现状
 - 游标缓存使用固定长度数组保存自底向上的父链，命中时可零分配前进/后退；树高度超过缓存时会自动回退到 `descend`，行为正确但有额外扫描成本。
@@ -31,12 +40,21 @@
 	- 审核现有游标调用点（`list_code_usages` 结果约 95 处）并按模块归档，确认必须保持零分配的路径。
 	- 为 `Cursor` 增加调试守卫（命令行 feature）记录缓存命中率、重新下钻次数，为后续性能比对提供基线。
 
+	**跨文档对齐**
+	- 在 `docs/architecture/port-blueprint.md` §5.2 记录缓存命中率基线，标记“Cursor 生命周期诊断”为“已完成”。
+	- 在 `docs/architecture/rope-port-mapping.md` 中保留 `Tree/NodeCursor.cs` 为“仅骨架”，附注“Phase 0 基线完成，等待 Descriptor 支持”。
+
 2. **Phase 1 – Descriptor API**
 	- 在 Rust `tree.rs` 中新增 `CursorDescriptor<N, L>`（持有 `position`、`offset_of_leaf`、有效位、`SmallVec<PathFrame>`，每个 `PathFrame` 包含 `Arc<NodeBody<N, L>>`、子索引、子偏移；可选叶节点 `Arc<L>`）。
 	- 实现 `Cursor::to_descriptor(&self) -> CursorDescriptor` 与 `CursorDescriptor::restore(&self, root: &Node<N, L>) -> Option<Cursor>`，使用 `Arc::ptr_eq` 验证路径，失败时返回 `None`。
 	- 添加 `Cursor::apply_descriptor(&mut self, &CursorDescriptor) -> bool`，在成功时重建缓存并保持零分配；否则回退到 `descend`。
 	- 在 `cursor_next_triangle` 等测试中增加 round-trip 验证，构建 `tests/cursor_descriptor.rs` 聚焦深树、多 Metric、编辑后失效场景。
+	- **当前成果（2025-11-15）**：`CursorDescriptor`, `PathFrame` 已合入 `tree.rs`，并配套 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs` 完成 round-trip、失效检测与超过缓存深度的覆盖；`Cursor::apply_descriptor`/`restore` 存在零拷贝成功路径，验证失败时保持游标状态不变。
 	- 文档更新：`Cursor` Rustdoc、`docs/architecture/rope-port-mapping.md` 状态栏转为“Rust 重构中 → 实施中”，`AGENTS.md` 记录阶段成果。
+
+	**跨文档对齐**
+	- Phase 1 完成后，在 `docs/architecture/port-blueprint.md` §5.2/§9 将 Descriptor 能力状态从“规划中”推进为“已完成”，并链接往返测试清单。
+	- 将 `docs/architecture/rope-port-mapping.md` 中 `Tree/NodeCursor.cs` 状态升级为“实现中”，记录 Descriptor JSON 夹具路径。
 
 3. **Phase 2 – CursorState 内核**
 	- 引入内部 `CursorState<N, L>`（拥有根 `Arc<NodeBody>`，记录 `position`、`offset_of_leaf`、路径 `SmallVec<PathFrame>`、`leaf_handle`）。
@@ -44,6 +62,10 @@
 	- 替换 `next_leaf`/`prev_leaf`/`descend_metric` 等内部方法为状态版本；确认 `CURSOR_CACHE_SIZE` 仍可固定为 4，路径超过 4 时 `CursorState` 自动保留完整 `SmallVec`（防止 Descriptor 信息不足）。
 	- 新增 `#[cfg(feature = "cursor_state")]` gate，初期通过 feature flag 供测试验证；性能稳定后默认启用并保留旧实现 behind feature fallback。
 	- 将核心模块（`find.rs`, `compare.rs`, `spans.rs`, `breaks.rs`, `core-lib` 游标调用）引导到 `CursorState` API，确保后续可直接镜像至 C#。
+
+	**跨文档对齐**
+	- 在 `docs/architecture/port-blueprint.md` §9 更新“CursorState 内核”任务的状态，从“规划中”提升为“进行中/已完成”，同时标注 C# 依赖解除时间点。
+	- 将 `docs/architecture/rope-port-mapping.md` 中 Rust 侧游标条目从“Rust 重构中”推进到“已实现”，并记录 feature gate 退出标准。
 
 4. **Phase 3 – C# NodeCursor 落地**
 	- 在 C# `NodeCursor` 中引入 `PathFrame` 结构（`SharedNode`, `ChildIndex`, `OffsetAtParent`）与 `LeafHandle`（指向 `SharedNode` 的叶子包装器）。
@@ -54,6 +76,10 @@
 	  - 深度树遍历（构造 8+ 层树，验证缓存超出情况）。
 	  - Delta 应用后缓存失效检测（使用 Stage A/B/C 序列化夹具生成的编辑序列）。
 	  - 与 Rust `cursor_descriptor_roundtrip` 测试共享 JSON fixture，确保路径重建一致。
+
+	**跨文档对齐**
+	- 在 `docs/architecture/port-blueprint.md` §5.2/§9 更新 M3 游标交付状态为“已实现”，并链接 C# 端回归测试结果。
+	- 将 `docs/architecture/rope-port-mapping.md` 中 `Tree/NodeCursor.cs` 状态从“实现中”最终标记为“已实现”，新增 Descriptor/State 夹具引用与测试清单。
 
 ## Rust 实施细节
 - `CursorDescriptor` 的 `PathFrame` 需同时存储 `child_offset`，避免恢复时重新累计长度。
@@ -99,3 +125,9 @@
 - C# `NodeCursor` 能够在 81 项 Rope 测试基础上新增游标回归用例并全部通过。
 - `docs/architecture/rope-port-mapping.md`、`docs/architecture/port-blueprint.md` 与 `AGENTS.md` 均同步描述新的游标策略。
 - 双端共享的 Descriptor 示例（JSON）可 round-trip 并被测试覆盖，确保跨语言恢复行为一致。
+
+## 文档与协同更新
+- [ ] Phase 0：在 `docs/architecture/port-blueprint.md` §5.2 回填缓存命中率基线，同时在 `docs/architecture/rope-port-mapping.md` 备注“Phase 0 基线完成，等待 Descriptor 支持”。
+- [x] Phase 1：更新 `docs/architecture/port-blueprint.md` §5.2/§9 的 Descriptor 任务为“已完成”，并将 `docs/architecture/rope-port-mapping.md` 中 `Tree/NodeCursor.cs` 调整为“实现中”；同步在 `AGENTS.md` 记录往返测试链接（新增 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`）。
+- [ ] Phase 2：将 `docs/architecture/port-blueprint.md` §9 的 `CursorState` 内核标记为“已完成”，把 `docs/architecture/rope-port-mapping.md` Rust 部分改为“已实现”，并在 `AGENTS.md` 更新性能验证摘要。
+- [ ] Phase 3：把 `docs/architecture/port-blueprint.md` M3 游标里程碑与 `docs/architecture/rope-port-mapping.md` C# 映射表同时标记为“已实现”，并在 `AGENTS.md` 与 `docs/skeleton/rope.md` 发布最终实现说明。

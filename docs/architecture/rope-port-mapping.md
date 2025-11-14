@@ -27,7 +27,7 @@
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
 | `tree.rs` | `Node`, `SharedNode`, `TreeBuilder`，负责节点借用/合并、再平衡骨架 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 写时复制 helper 已对齐；内部再平衡与诊断计数器尚未接入，`Node.Generic.cs` 仍待并入主实现。 |
-| `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 仅骨架 | Rust 端 API 已稳定，可在 C# 侧补齐缓存字段与 Metric 钩子；需要为 lifetime → 索引的映射设计落地方案。 |
+| `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 实现中 | Rust `CursorDescriptor` 已完成（参见 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`），C# 端待结合 Phase 2 `CursorState` 输出以完成缓存恢复逻辑。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代与 grapheme 接口。 |
 | `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | 注意记录 UTF-8/UTF-16 单位差异，继续扩充对拍样本。 |
 | `delta.rs` | `Delta`, `InsertDelta`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 镜像完成；`Transformer` 与 `factor()` 仍为 TODO。 |
@@ -148,7 +148,7 @@
 
 ## 主要缺口
 
-- **游标缓存与生命周期策略仍待定**：尽管 Rust `Cursor` 接口已经稳定，但其依赖的 `Option<&'a L>`、固定大小缓存数组需要在 C# 中重新建模，目前 `Tree/NodeCursor.cs` 仅包含最小骨架。
+- **游标缓存与生命周期策略更新**：Rust `CursorDescriptor` 已发布，可用于跨语言恢复缓存；后续仍需完成 Phase 2 `CursorState` 以去除生命周期约束，C# `Tree/NodeCursor.cs` 正等待该内核落地后填充实现。
 - **Rope 块/行/字素迭代器尚无 C# 映射**：`ChunkIter`、`LinesRaw`、`Lines` 以及相关 `Rope::lines*` API 在 C# 中缺位，导致高层遍历、Diff/查找等功能无法接线。
 - **Grapheme 与 ICU 依赖策略未决**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 需选择 `StringInfo`/ICU4N 等替代并评估性能差异。
 - **辅助模块仍为空白**：`breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 等仍在规划阶段，无法支撑视图层和插件所需的断点、差异和搜索能力。
