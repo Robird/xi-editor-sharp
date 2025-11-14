@@ -10,6 +10,12 @@
 - `Rust 重构中`：C# 侧暂缓，等待 `xi-editor-ph7` 提供迁移友好 helper 或结构调整。
 - `已实现`：关键能力与诊断均已移植，后续仅保留优化或性能工作。
 
+## 最新进展（2025-11-14）
+- SharedNode helper 重构完成，Rust `Arc::make_mut` 现由 `docs/rust-refactor/shared-node-api.md` 规范的包装层统一暴露，C# 同步采用。
+- Metric 模板化计划依 `docs/rust-refactor/breaks-metrics-templating.md` 落地，`StringLeafOperations` 与 `BreaksMetricHelper` 已承载共享字符串度量逻辑。
+- Delta/Subset 序列化经 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage A-C 镜像与 Stage D 黄金夹具流程现已打通。
+- Rust 与 C# skeleton bird’s-eye 文档同步刷新，结构与模块边界标注对齐当前实现。
+
 ## 路径映射约定
 - `reference/rust/rope/` ↔ `src/xi.Core/Rope/`
 - `reference/rust/rope/tree.rs` ↔ `src/xi.Core/Rope/Tree/` （当前包含 `Node.cs`、`TreeBuilder.cs`、`LeafSplitter.cs`，后续 Tree 相关类型统一进入该子目录与命名空间 `Xi.Core.Rope.Tree`）
@@ -19,12 +25,12 @@
 ## 文件级映射表
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
-| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装已对齐，仅经 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 触碰 COW；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
+| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装按照 `docs/rust-refactor/shared-node-api.md` 的 helper 完成，所有 `Arc::make_mut` 触点统一通过 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 访问；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
 | `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
-| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 缺少多 Metric 组合测试与聚合增量刷新；需补充 `Cursor`/`Metric` 交互。 |
-| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs`（C# `Delta` / JSON helper）；`Subset`/`Transformer` 仍规划中 | 实现中 | Stage B 已完成 `Delta<TInfo, TLeaf>`/`DeltaJson` 与回归测试，`factor()` 留作后续；`Transformer` 等高级 helper 待 Stage C/D 引入。 |
+| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 字符串度量逻辑已按 `docs/rust-refactor/breaks-metrics-templating.md` 规划落地，`StringLeafOperations` 与 `BreaksMetricHelper` 现统一承载字符串 Metric；仍缺多 Metric 组合测试与聚合增量刷新，`Cursor`/`Metric` 互操作待补完。 |
+| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs`（C# `Delta` / JSON helper）；`Subset`/`Transformer` 仍规划中 | 实现中 | Stage B 已完成 `Delta<TInfo, TLeaf>`/`DeltaJson` 与回归测试；序列化路径依 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage C 镜像与 Stage D 夹具（参见 `docs/architecture/rope-serialization-fixture-playbook.md`）已落地；`factor()` 及 `Transformer` helper 待下一阶段补齐。 |
 | `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
-| `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`SubsetJson` 对齐 Rust serde 输出。 |
+| `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`docs/rust-refactor/delta-subset-serialization.md` 的 serde 扫尾已套用，黄金夹具随 Stage D 流程刷新；后续仅跟进 Rust 端新增 builder helper。 |
 | `engine.rs` | 编辑命令应用、Undo/Redo 入口 | `Rope/Engine.cs`, `Rope/EngineJson.cs` | 已实现 | Stage C 交付：`Engine`/`Revision` 不可变镜像、`EngineJson` 序列化器、`EngineSerializationTests` 与黄金 fixture。 |
 | `diff.rs` | 文本 diff 逻辑 | 规划为 `Diff/DiffEngine.cs` | 未开始 | 评估复用现有 diff 库或移植 Rust 算法。 |
 | `compare.rs` | Rope 比较工具 | 规划为 `Diff/Compare.cs` | 未开始 | 与 `diff.rs` 共享目录，落地后补测试。 |
@@ -144,10 +150,28 @@
   - 例如在 `Rope`、`Engine` 骨架位置注明它们依赖的模块（Delta/Subset/Tree），以及任何计划使用的辅助结构（Breaks、Compare、Diff）。帮助在规划实现顺序时横向串联。
   - 若 Rust 端在 helper 拆分后新增模块/函数，也要在此处标注，以免遗漏迁移。
 
-  ### Metric Helper 对齐记录
+### Metric Helper 对齐记录
 
-  - Rust `rope::metrics::codepoint::{is_codepoint_boundary, prev_codepoint_boundary, next_codepoint_boundary}` ↔ C# `Utf16BoundaryHelper.{IsBoundary, GetPreviousBoundary, GetNextBoundary}`。命名风格遵循各语言惯例（snake_case vs. PascalCase），但语义保持一致；新增 helper 后，任何 API 变更需要同步更新两侧命名对照。
-  - Rust `rope::metrics::lines::{count_newlines_bytes, find_next_newline, find_prev_newline}` ↔ C# `LinesMetric` 内部的 `CountNewlines`, `GetNextBoundary`, `GetPreviousBoundary` 逻辑。Rust 侧仍提供 `pub fn count_newlines(&str)` 作为 shim 以兼容其他 crate。
-  - Rust `rope::metrics::break_indices::{nth_break_offset, count_breaks_up_to, find_prev_break, find_next_break, is_break_boundary}` ↔ C# `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）。Helper 已实现并复刻零分配查找语义；`BreaksMetric`/`BreaksBaseMetric` 后续对齐。
-  - Rust `rope::metrics::identity::BaseUnitsIdentity` ↔ C# `BaseMetricIdentity`（TODO：待引入），用于生成“与 base 单位一致”的 metric 包装，减少重复实现。
-  - 以上 helper 列表纳入 review checklist：每当 Rust/C# 端新增或改名 helper，必须更新此对照表，并执行 `scripts/refresh_skeleton_docs.py` 刷新骨架文档。
+`docs/rust-refactor/breaks-metrics-templating.md` 定义的模板现为 Rust/C# 度量 helper 的唯一真源，新 helper 需先在模板中登记，再落地到 `StringLeafOperations` 与 `BreaksMetricHelper` 复用点。
+
+- Rust `rope::metrics::codepoint::{is_codepoint_boundary, prev_codepoint_boundary, next_codepoint_boundary}` ↔ C# `Utf16BoundaryHelper.{IsBoundary, GetPreviousBoundary, GetNextBoundary}`；所有 boundary 逻辑通过模板生成的 `StringLeafOperations` 入口复用。
+- Rust `rope::metrics::lines::{count_newlines_bytes, find_next_newline, find_prev_newline}` ↔ C# `LinesMetric` 内部的 `CountNewlines`, `GetNextBoundary`, `GetPreviousBoundary`，共用 `StringLeafOperations` 的逐字节遍历实现。
+- Rust `rope::metrics::break_indices::{nth_break_offset, count_breaks_up_to, find_prev_break, find_next_break, is_break_boundary}` ↔ C# `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`），模板提供共享的段落断点扫描；`BreaksMetric`/`BreaksBaseMetric` 将直接消费该 helper。
+- Rust `rope::metrics::identity::BaseUnitsIdentity` ↔ C# 待引入的 `BaseMetricIdentity` 包装器，确保 base 单位 metric 不重复实现。
+- 模板新增或重命名 helper 时，需同步更新本表并运行 Stage D 夹具刷新（`scripts/refresh_serialization_fixtures.ps1`），确保度量输出与黄金资产保持一致。
+
+### Delta Helper 对齐记录
+
+- `Delta::base_len()` ↔ `Delta<TInfo, TLeaf>.BaseLength`
+- `Delta::iter_elements()` ↔ `Delta<TInfo, TLeaf>.EnumerateElements()`
+- `Delta::element_triples()` ↔ `Delta<TInfo, TLeaf>.EnumerateElementTriples()`
+- Rust serde DTO `els` / `base_len` ↔ C# `DeltaJson` 输出的 `els` 数组与 `base_len` 属性（使用 `System.Text.Json`）。
+
+### Engine Helper 对齐记录
+
+- `Engine::revision_log()` ↔ `Engine.RevisionLog()`（返回 `Revision` 只读视图，对应 Rust `RevisionRef` 迭代器）。
+- `Engine::text_snapshot()` ↔ `Engine.TextSnapshot()`。
+- `Engine::tombstones_snapshot()` ↔ `Engine.TombstonesSnapshot()`。
+- `Engine::deletes_from_union_snapshot()` ↔ `Engine.DeletesFromUnionSnapshot()`。
+- `Engine::undone_groups_snapshot()` ↔ `Engine.UndoneGroupsSnapshot()`（返回不可变组列表）。
+- `Engine::from_serialized_state()` ↔ `Engine.FromSerializedState(...)`（执行防御性拷贝并复用 `Subset` 镜像）。

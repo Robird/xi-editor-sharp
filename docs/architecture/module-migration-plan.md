@@ -20,13 +20,13 @@
 |------|-----------|----------|--------------|----------|
 | M0 | 架构梳理完成，明确模块边界 | 架构文档、迁移计划（即本文） | 提炼 `docs/reference/rust-skeleton.md`，确认同步脚本 | 已有 Rust 代码调研 |
 | M1 | .NET 解决方案骨架 & 测试基线 | `Xi.Editor.sln`、`xi.Core`、`xi.Core.Tests`、占位 `TextBuffer` | `xi-editor-ph7` 清理非必要 crate，冻结核心模块 | M0 |
-| M2 | Rope & Delta 移植最小集 | `Xi.Core.Text`（Rope、Delta、Interval）、对照测试、基准脚手架 | Rust 侧提供 `SharedNode`/`NodeKind` helper、Delta skeleton | M1 |
+| M2 | Rope & Delta 移植最小集 | `Xi.Core.Text`（Rope、Delta、Interval）、SharedNode helper mirror、Metric/serde consolidation scaffolding | Rust 侧已交付 SharedNode/NodeKind helper，并同步推进 Metrics templating 与 Delta/Subset serde 清理 | M1 |
 | M3 | 编辑命令流水线 | `Xi.Core.Editing`（选择、移动、Undo/Redo）、CRDT 集成测试 | Rust 调整 `editor.rs` 相关 trait/宏，输出兼容骨架 | M2 |
 | M4 | 视图缓存与通知 | `Xi.Core.Views`（LineCache、Style）、增量更新协议与测试 | Rust 精简 `line_cache_shadow`，拆出可移植 helper | M3 |
 | M5 | 插件/宿主接口 | `Xi.Core.Plugins`、JSON-RPC Host、示例插件 | Rust RPC 层改造 trace 特性，梳理 JSON schema | M4 |
 | M6 | 性能 & 观察性 & 文档 | Benchmark、Telemetry、使用指南 | Rust 侧提供基准脚本与性能数据对照 | M5 |
 
-> 2025-11-13 注：Rust 工作区已精简为 `xi-core`、`xi-core-lib`、`xi-plugin-lib`、`xi-rope`、`xi-rpc`、`xi-trace`、`xi-unicode` 七个核心 crate；`experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 已删除，原基准测试目录已重命名为 `*.parked` 以保留参考源码。`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已处理完毕（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177）。
+> 2025-11-14 注：Rust 工作区保持 `xi-core`、`xi-core-lib`、`xi-plugin-lib`、`xi-rope`、`xi-rpc`、`xi-trace`、`xi-unicode` 七个核心 crate；SharedNode helper pass 已在 Rust/C# 两侧落地（见 `docs/rust-refactor/shared-node-api.md`）；Metrics templating 专项已启动并整合 C# helper（见 `docs/rust-refactor/breaks-metrics-templating.md`）；Delta/Subset serde 清理完成，Stage A-C 镜像输出来驱动 Stage D fixtures（参阅 `docs/rust-refactor/delta-subset-serialization.md` 与 `docs/architecture/rope-serialization-fixture-playbook.md`）；Rust/C# skeleton 脚手架同步刷新。
 
 ---
 
@@ -34,7 +34,8 @@
 
 ### 2.1 Text / Rope 子系统
 
-- **目标**：提供等价于 `xi_rope` 的 Rope 树、Delta、Interval、Diff、Metric 支持，保持与 Rust 重构后的 helper 命名一致。
+ - **目标**：提供等价于 `xi_rope` 的 Rope 树、Delta、Interval、Diff、Metric 支持，保持与 Rust 重构后的 helper 命名一致。
+> 2025-11-14 进展：SharedNode helper 与命名在 Rust/C# 文档与实现中已对齐；Delta/Subset serde 清理现将 Stage A-C 镜像输出接入 Stage D fixture 流程。
 - **子任务**：
   - 翻译 `tree`, `rope`, `delta`, `interval`, `engine` 中的结构体与算法；关注 Rust 端 helper 改造进度。
   - 为节点与 metric 使用 struct + Span 友好 API，避免过度 GC。
@@ -147,4 +148,4 @@
 
 ---
 
-*状态：2025-11-11 初稿；随阶段推进迭代。*
+*状态：2025-11-14 修订；随阶段推进迭代。*

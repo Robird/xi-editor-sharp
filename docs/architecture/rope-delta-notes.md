@@ -45,6 +45,11 @@
 - `Subset` 用稀疏区间集合表示删除位置，依赖 `transform_*` 方法在多视图场景下重映射坐标。
 - 迁移时需同步移植 `multiset` 模块，提供 `CountMatcher` 等辅助枚举。
 
+### 2.4 Serde 清理与 Stage D 跨语言夹具流
+- Rust 端已合并 Delta/Subset serde 清理，使结构化字段与 C# 侧完全对齐，详见 [delta-subset-serialization.md](../rust-refactor/delta-subset-serialization.md)。
+- Stage D 夹具流水线沿用 `rope-serialization-fixture-playbook.md` 中的分层导出→镜像→回放流程，实现 Rust 产出的 snapshot 自动转换为 .NET 端的验证资产。
+- 通过该流程，Rust helpers 现可直接驱动 C# 侧的回归测试，消除了历史上 `serde_json` 字段偏移与空集编码差异带来的噪音。
+
 ## 3. C# 迁移设计要点
 
 ### 3.1 类型映射建议
@@ -89,6 +94,8 @@
 
 ## 4. 渐进式落地计划
 
+- **进展**：Stage A-C 的 Delta/Subset 镜像与跨语言夹具已上线，下一阶段集中在 `factor`/Transformer 深度移植与验证。
+
 1. **抽象层搭建**：
    - 引入 `ITextBuffer` 与 Metric/Delta 基础类型的接口定义。
    - 将现有测试改造为接口基准测试（插入、删除、Span 读取）。
@@ -116,4 +123,4 @@
 
 ---
 
-> 下一步：根据上述计划在代码层引入接口骨架与初版 Rope 节点，实现最小替换并扩展测试覆盖。
+> 下一步：Serde 清理与跨语言夹具集成已完成，转向收束 Transformer/factor 语义迁移与 Stage D 夹具扩展覆盖。
