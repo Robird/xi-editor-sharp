@@ -30,6 +30,7 @@
 
 ### 协作与工具心得
 - 充分利用 IDE/GUI 工具加速批量操作（如重命名、导航、格式化等），必要时可直接请人类协作者协助执行；相比 RL 阶段的“独立作业”要求，当前环境鼓励主动寻求外部工具/伙伴配合以提升效率。
+- `grep_search` 适合作为 `rg` 的轻量替代，按 `query`/`includePattern` 组合即可精准过滤文件，复杂模式时记得设置 `isRegexp=true`；`list_code_usages` 可直接询问 LSP，传入 `symbolName` 与候选定义文件就能获得 Rust 引用/实现清单，优先使用这两项工具再考虑手动 `read_file` 或终端检索。
 
 ## Rust一侧设计原则：
   1. 执行期行为尽量接近原版xi-editor，但允许推迟析构Drop。
@@ -213,6 +214,7 @@
 - 同步 `AGENTS.md` 反映 Stage D 验证结果与后续动作。
 - 校对 `docs/architecture/port-blueprint.md` 的模块映射表，标记 `Interval` 结构与 Subset/Delta/Engine JSON 转换器已完成功能，对齐当前实现状态。
 - 进一步对照仓库现状修订 `docs/architecture/port-blueprint.md` 的映射章节，补充 `Node.Generic.cs`/`StringLeafOperations.cs` 等目标文件、将 `BreaksMetricHelper` 标记为已完成，并明确 `Diff/`、`Search/` 模块尚未建目录。
+- 试用 `grep_search` 与 `list_code_usages` 检索 `Rope` 引用，确认 `grep_search` 能按 `includePattern` 与正则定位匹配，`list_code_usages` 能在 Rust 侧返回 400+ 个调用点，作为后续替代终端 `rg`/手动遍历的首选方案。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
