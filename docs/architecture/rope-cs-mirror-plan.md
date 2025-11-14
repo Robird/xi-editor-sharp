@@ -28,15 +28,15 @@
    - 迁移 `delta_serialization_regression` 黄金 JSON，补充序列化/反序列化验证与枚举回归测试，保持输出与 Rust 一致。
    - 在 `delta.Factor()` 预留 stub（抛出 `NotImplementedException`），为后续 Stage C/D 组合操作做好接口准备，同时维持现有 81 项 + 新增回归测试全绿。
 
-3. **Stage C – Engine 镜像**
-   - 建立精简版 `Engine`、`Revision`、`Contents`，利用 `revision_log()`/`from_serialized_state()` 对等 helper。
-   - 签入 `engine_serialization_regression` 黄金串，确保 JSON 结构完全一致。
-   - 补齐撤销/重做最小路径测试，保证与 Rust 行为相符。
+3. **Stage C – Engine 镜像**（已完成，2025-11-14 Session C）
+   - 引入不可变 `Engine`/`Revision`/`RevisionOperation`（含 `RevisionEdit`、`RevisionUndo`）类型，对齐 Rust `revision_log()`/`from_serialized_state()` helper surface。
+   - 新增 `EngineJson`（`System.Text.Json`）序列化器，复用 `SubsetJson` 语义还原 `engine_serialization_regression` 黄金串，并在反序列化阶段补充字段合法性校验。
+   - 添加 `engine_regression.json` fixture 与 `EngineSerializationTests`（构造→序列化、反序列化回写、`RevisionLog` 验证三项），`dotnet test` 全量通过。
 
-4. **Stage D – 共享资产同步**
-   - 更新 `docs/architecture/rope-port-mapping.md`：记录 C#/Rust helper 映射。
-   - 将黄金 JSON 保存在 `tests/xi.Core.Tests/Fixtures`（建议新目录），供未来 C# ↔ Rust 对照。
-   - 如果需要，通过脚本自动拉取 Rust 端 `serde` 输出以更新 fixture。
+4. **Stage D – 共享资产同步**（待启动）
+   - 梳理并记录 Engine helper 映射（`revision_log()`、`text_snapshot()` 等）至 `docs/architecture/rope-port-mapping.md`，确保 Rust/C# 对照完整。
+   - 明确黄金 JSON 维护流程（含脚本化刷新）与 CI 钩子，将 Stage A-C 产物纳入长期回归资产。
+   - 评估是否需要扩展回归样本（多 session/多 undo 组合），并规划 Stage D 会话的交付范围与依赖。
 
 ### 3.2 里程碑验收标准
 - 每个 Stage 完成后：
@@ -51,8 +51,8 @@
 | --- | --- | --- | --- |
 | Session A | Stage A (Subset) 实装与测试 | C# `Subset`/`SubsetBuilder` + JSON 回归测试 + 文档同步（已完成，2025-11-14） | Rust helper 已就绪（当前状态） |
 | Session B | Stage B (Delta) 实装与测试 | C# `Delta` 泛型骨架 + `delta` 黄金回归 + 81 项测试保持通过 | Session A 完成 → **已完成（2025-11-14）** |
-| Session C | Stage C (Engine) 实装与测试 | C# `Engine`/`Revision`/`Contents` + JSON 回归 + 撤销/重做烟雾测试 | Session B 完成 |
-| Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 更新 `rope-port-mapping.md`、`run_all_checks` 集成、fixture 维护脚本 | Sessions A-C 交付稳定 |
+| Session C | Stage C (Engine) 实装与测试 | **已完成（2025-11-14 Session C）**：C# `Engine`/`Revision`/`RevisionOperation`、`EngineJson` 回归套件、撤销/重做 helper 验证 | Session B 完成 |
+| Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 对齐文档映射、run_all_checks 集成与 fixture 维护脚本 | Sessions A-C 交付稳定 |
 
 ## 5. Rust 侧后续待办（与 C# 并行监控）
 - **CI 补强**：将 `run_all_checks` 纳入自动流水线，确保 serde 双轨测试自动执行。

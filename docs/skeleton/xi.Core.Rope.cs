@@ -16,7 +16,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+2fd534ac2373ebb95f87c706eecd168045f714d9")]
+[assembly: AssemblyInformationalVersion("1.0.0+9dbc2698e8d3dbbf3285b5c06b8e6025519024ae")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -76,6 +76,297 @@ namespace Xi.Core.Rope {
 		}
 		public static bool IsBreakBoundary(ReadOnlySpan<int> breaks, int offset) {
 			// Determined whether the supplied offset exactly matched a break point.
+		}
+	}
+	internal enum DeltaElementKind {
+		Copy,
+		Insert
+	}
+	internal readonly struct CopyElement {
+		public int Start { get; }
+		public int End { get; }
+		public int Length => End - Start;
+		public CopyElement(int start, int end) {
+			// Validated copy range bounds and stored the original span offsets.
+		}
+	}
+	internal readonly struct InsertElement<TLeaf> where TLeaf : class {
+		public TLeaf Value { get; }
+		public int Length { get; }
+		public InsertElement(TLeaf value, int length) {
+			// Captured the insert payload and enforced length invariants for the element.
+		}
+	}
+	internal readonly struct DeltaElement<TLeaf> where TLeaf : class {
+		private readonly DeltaElementKind _kind;
+		private readonly CopyElement _copy;
+		private readonly InsertElement<TLeaf> _insert;
+		internal DeltaElementKind Kind => _kind;
+		internal bool IsCopy => _kind == DeltaElementKind.Copy;
+		internal bool IsInsert => _kind == DeltaElementKind.Insert;
+		private DeltaElement(CopyElement copy) {
+			_kind = DeltaElementKind.Copy;
+			_copy = copy;
+			_insert = default(InsertElement<TLeaf>);
+		}
+		private DeltaElement(InsertElement<TLeaf> insert) {
+			_kind = DeltaElementKind.Insert;
+			_copy = default(CopyElement);
+			_insert = insert;
+		}
+		internal static DeltaElement<TLeaf> Copy(int start, int end) {
+			// Wrapped a copy range into a delta element.
+		}
+		internal static DeltaElement<TLeaf> Insert(TLeaf value, int? length = null) {
+			// Wrapped an insert payload into a delta element after resolving its length.
+		}
+		private static int ResolveInsertLength(TLeaf value) {
+			// Derived the insert segment length and rejected unsupported payload types.
+		}
+		internal CopyElement AsCopy() {
+			// Returned the copy payload or threw when the element was not a copy.
+		}
+		internal InsertElement<TLeaf> AsInsert() {
+			// Returned the insert payload or threw when the element was not an insert.
+		}
+	}
+	internal sealed class Delta<TInfo, TLeaf> where TLeaf : class {
+		private readonly List<DeltaElement<TLeaf>> _elements;
+		internal int BaseLength { get; }
+		internal int ElementCount => _elements.Count;
+		internal IReadOnlyList<DeltaElement<TLeaf>> Elements => _elements;
+		private Delta(List<DeltaElement<TLeaf>> elements, int baseLength) {
+			// Stored the canonicalized element list alongside the base document length.
+		}
+		internal IEnumerable<DeltaElement<TLeaf>> EnumerateElements() {
+			// Exposed the ordered delta elements for iteration.
+		}
+		internal IEnumerable<(bool IsInsert, int Start, int End)> EnumerateElementTriples() {
+			// Translated elements into xi-rope compatible triples while tracking new offsets.
+		}
+		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<DeltaElement<TLeaf>> elements) {
+			// Normalized incoming elements and asserted they stayed within the base length.
+		}
+		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<(int? CopyStart, int? CopyEnd, TLeaf? Insert)> elementTuples) {
+			// Converted tuple payloads into delta elements before delegating to the main factory.
+		}
+		internal (Delta<TInfo, TLeaf> InsertDelta, Subset DeletedSubset) Factor() {
+			// Split the delta into insertion and deletion components in the original implementation.
+		}
+		private static void ValidateBaseLength(int baseLength, int maxCopyEnd) {
+			// Guarded against negative base lengths and out-of-range copy spans.
+		}
+	}
+	internal static class DeltaJson {
+		private sealed class DeltaDto {
+			[JsonPropertyName("els")]
+			public ElementDto[] Elements { get; set; } = Array.Empty<ElementDto>();
+			[JsonPropertyName("base_len")]
+			public int BaseLength { get; set; }
+		}
+		private sealed class ElementDto {
+			[JsonPropertyName("copy")]
+			public int[]? Copy { get; set; }
+			[JsonPropertyName("insert")]
+			public string? Insert { get; set; }
+		}
+		private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
+			PropertyNamingPolicy = null,
+			WriteIndented = false,
+			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+		};
+		internal static string Serialize<TInfo>(Delta<TInfo, string> delta) {
+			// Emitted a xi-rope compatible JSON payload for the supplied delta.
+		}
+		internal static Delta<TInfo, string> Deserialize<TInfo>(string json) {
+			// Parsed the xi-rope delta JSON payload back into a Delta<TInfo, string> instance.
+		}
+	}
+	internal readonly struct RevId {
+		public long Session1 { get; }
+		public int Session2 { get; }
+		public int Number { get; }
+		public RevId(long session1, int session2, int number) {
+			// Validated revision identifiers and captured the composite revision id.
+		}
+	}
+	internal enum RevisionOperationKind {
+		Edit,
+		Undo
+	}
+	internal abstract class RevisionOperation {
+		internal abstract RevisionOperationKind Kind { get; }
+		internal bool IsEdit => Kind == RevisionOperationKind.Edit;
+		internal bool IsUndo => Kind == RevisionOperationKind.Undo;
+		internal RevisionEdit AsEdit() {
+			// Returned the edit payload after confirming the operation kind.
+		}
+		internal RevisionUndo AsUndo() {
+			// Returned the undo payload after confirming the operation kind.
+		}
+	}
+	internal sealed class RevisionEdit : RevisionOperation {
+		internal override RevisionOperationKind Kind => RevisionOperationKind.Edit;
+		internal int Priority { get; }
+		internal int UndoGroup { get; }
+		internal Subset Inserts { get; }
+		internal Subset Deletes { get; }
+		internal RevisionEdit(int priority, int undoGroup, Subset inserts, Subset deletes) {
+			// Captured edit metadata and enforced non-null subsets with non-negative priorities.
+		}
+	}
+	internal sealed class RevisionUndo : RevisionOperation {
+		private readonly int[] _toggledGroups;
+		private readonly IReadOnlyList<int> _toggledGroupsView;
+		internal override RevisionOperationKind Kind => RevisionOperationKind.Undo;
+		internal IReadOnlyList<int> ToggledGroups => _toggledGroupsView;
+		internal Subset DeletesBitxor { get; }
+		internal RevisionUndo(IEnumerable<int> toggledGroups, Subset deletesBitxor) {
+			// Stored the toggled undo groups alongside the deletes_bitxor subset snapshot.
+		}
+		private static int[] CopyGroups(IEnumerable<int> groups) {
+			// Copied and validated undo group identifiers before freezing them in an array.
+		}
+	}
+	internal sealed class Revision {
+		internal RevId RevId { get; }
+		internal int MaxUndoSoFar { get; }
+		internal RevisionOperation Operation { get; }
+		internal Revision(RevId revId, int maxUndoSoFar, RevisionOperation operation) {
+			// Recorded the revision metadata and enforced a non-negative undo depth.
+		}
+	}
+	internal sealed class Engine {
+		private readonly string _text;
+		private readonly string _tombstones;
+		private readonly Subset _deletesFromUnion;
+		private readonly int[] _undoneGroups;
+		private readonly Revision[] _revisions;
+		private readonly IReadOnlyList<int> _undoneGroupsView;
+		private readonly IReadOnlyList<Revision> _revisionLogView;
+		private Engine(string text, string tombstones, Subset deletesFromUnion, int[] undoneGroups, Revision[] revisions) {
+			// Stored serialized fields and materialized read-only views over engine state.
+		}
+		internal static Engine FromSerializedState(string text, string tombstones, Subset deletesFromUnion, IEnumerable<int> undoneGroups, IEnumerable<Revision> revisions) {
+			// Reconstructed an engine from serialized buffers, undone groups, and the revision log.
+		}
+		private static int[] CopyGroups(IEnumerable<int> source) {
+			// Copied and validated group identifiers from the enumerable source.
+		}
+		private static Revision[] CopyRevisions(IEnumerable<Revision> source) {
+			// Copied and validated revision entries from the enumerable source.
+		}
+		internal string TextSnapshot() {
+			// Returned the preserved text snapshot from the engine state.
+		}
+		internal string TombstonesSnapshot() {
+			// Returned the tombstones string captured in the engine state.
+		}
+		internal Subset DeletesFromUnionSnapshot() {
+			// Returned the deletes-from-union subset snapshot.
+		}
+		internal IReadOnlyList<int> UndoneGroupsSnapshot() {
+			// Returned the immutable view over undone groups.
+		}
+		internal IReadOnlyList<Revision> RevisionLog() {
+			// Returned the immutable revision log view.
+		}
+	}
+	internal static class EngineJson {
+		private sealed class EngineDto {
+			[JsonPropertyName("text")]
+			public string? Text { get; set; }
+			[JsonPropertyName("tombstones")]
+			public string? Tombstones { get; set; }
+			[JsonPropertyName("deletes_from_union")]
+			public SubsetDto? DeletesFromUnion { get; set; }
+			[JsonPropertyName("undone_groups")]
+			public int[]? UndoneGroups { get; set; }
+			[JsonPropertyName("revs")]
+			public RevisionDto[]? Revisions { get; set; }
+		}
+		private sealed class RevisionDto {
+			[JsonPropertyName("rev_id")]
+			public RevIdDto? RevId { get; set; }
+			[JsonPropertyName("max_undo_so_far")]
+			public int MaxUndoSoFar { get; set; }
+			[JsonPropertyName("edit")]
+			public RevisionEditEnvelopeDto? Edit { get; set; }
+		}
+		private sealed class RevIdDto {
+			[JsonPropertyName("session1")]
+			public long Session1 { get; set; }
+			[JsonPropertyName("session2")]
+			public int Session2 { get; set; }
+			[JsonPropertyName("num")]
+			public int Number { get; set; }
+		}
+		private sealed class RevisionEditEnvelopeDto {
+			[JsonPropertyName("Edit")]
+			public EditPayloadDto? Edit { get; set; }
+			[JsonPropertyName("Undo")]
+			public UndoPayloadDto? Undo { get; set; }
+		}
+		private sealed class EditPayloadDto {
+			[JsonPropertyName("priority")]
+			public int Priority { get; set; }
+			[JsonPropertyName("undo_group")]
+			public int UndoGroup { get; set; }
+			[JsonPropertyName("inserts")]
+			public SubsetDto? Inserts { get; set; }
+			[JsonPropertyName("deletes")]
+			public SubsetDto? Deletes { get; set; }
+		}
+		private sealed class UndoPayloadDto {
+			[JsonPropertyName("toggled_groups")]
+			public int[]? ToggledGroups { get; set; }
+			[JsonPropertyName("deletes_bitxor")]
+			public SubsetDto? DeletesBitxor { get; set; }
+		}
+		private sealed class SubsetDto {
+			[JsonPropertyName("segments")]
+			public SegmentDto[]? Segments { get; set; }
+		}
+		private sealed class SegmentDto {
+			[JsonPropertyName("len")]
+			public int Length { get; set; }
+			[JsonPropertyName("count")]
+			public int Count { get; set; }
+		}
+		private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
+			PropertyNamingPolicy = null,
+			WriteIndented = false,
+			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+		};
+		internal static string Serialize(Engine engine) {
+			// Serialized engine state into the xi-rope JSON fixture format.
+		}
+		internal static Engine Deserialize(string json) {
+			// Rehydrated an Engine instance from the xi-rope JSON payload.
+		}
+		private static int[] CopyGroups(IReadOnlyList<int> groups) {
+			// Created a defensive copy of the undo group list.
+		}
+		private static int[] ValidateGroups(int[] groups, string fieldName) {
+			// Validated undo group values and normalized empty sequences.
+		}
+		private static RevisionDto[] ToRevisionDtos(IReadOnlyList<Revision> revisions) {
+			// Translated the revision log into DTOs for serialization.
+		}
+		private static RevisionDto ToRevisionDto(Revision revision) {
+			// Projected a single revision into its DTO representation.
+		}
+		private static EditPayloadDto ToEditPayloadDto(RevisionEdit edit) {
+			// Converted an edit revision into its DTO payload.
+		}
+		private static UndoPayloadDto ToUndoPayloadDto(RevisionUndo undo) {
+			// Converted an undo revision into its DTO payload.
+		}
+		private static SubsetDto ToSubsetDto(Subset subset) {
+			// Converted a subset into DTO segments for JSON output.
+		}
+		private static Subset FromSubsetDto(SubsetDto dto) {
+			// Built a subset from DTO segments with validation.
 		}
 	}
 	public interface IMetric : ITreeMetric<string, RopeInfo> {
@@ -264,6 +555,77 @@ namespace Xi.Core.Rope {
 		}
 		static RopeInfo ITreeNodeInfo<RopeInfo, string>.FromLeaf(string leaf) {
 			// Invoked the static factory to derive RopeInfo from a leaf string.
+		}
+	}
+	internal readonly struct SubsetSegment {
+		public int Length { get; }
+		public int Count { get; }
+		public SubsetSegment(int length, int count) {
+			// Validated arguments and captured the subset segment metadata.
+		}
+	}
+	internal sealed class Subset {
+		private readonly SubsetSegment[] _segments;
+		private readonly int _totalLength;
+		internal static Subset Empty { get; } = new Subset(Array.Empty<SubsetSegment>(), 0);
+		internal int SegmentCount => _segments.Length;
+		internal bool IsEmpty => _segments.Length == 0 || (_segments.Length == 1 && _segments[0].Count == 0);
+		internal int Length => _totalLength;
+		private Subset(SubsetSegment[] segments, int totalLength) {
+			// Stored the ordered segments and their aggregate length.
+		}
+		internal static Subset Create(SubsetSegment[] segments, int totalLength) {
+			// Constructed a normalized subset from ordered segments and a total length.
+		}
+		internal int LengthAfterDelete() {
+			// Calculated the retained length after removing segments marked for deletion.
+		}
+		internal IEnumerable<(int Start, int Length, int Count)> SegmentTriples() {
+			// Iterated segments yielding triples for downstream serialization helpers.
+		}
+		internal static Subset FromSegmentTriples(IEnumerable<(int Start, int Length, int Count)> triples) {
+			// Built a subset by interpreting ordered triples and coalescing implicit gaps.
+		}
+	}
+	internal sealed class SubsetBuilder {
+		private readonly List<SubsetSegment> _segments = new List<SubsetSegment>();
+		private int _totalLength;
+		internal void PadToLength(int totalLength) {
+			// Extended the builder with zero-count padding to reach the requested length.
+		}
+		internal void AddRange(int begin, int end, int count) {
+			// Added a counted range while preserving ordering and coalescing gaps.
+		}
+		internal void PushSegment(int length, int count) {
+			// Added a single segment after validating length/count invariants.
+		}
+		private void PushSegmentInternal(int length, int count) {
+			// Internal helper that updates totals and merges adjacent segments when possible.
+		}
+		internal Subset Build() {
+			// Produced an immutable subset snapshot from accumulated segments.
+		}
+	}
+	internal static class SubsetJson {
+		private sealed class SubsetDto {
+			[JsonPropertyName("segments")]
+			public SegmentDto[] Segments { get; set; } = Array.Empty<SegmentDto>();
+		}
+		private sealed class SegmentDto {
+			[JsonPropertyName("len")]
+			public int Length { get; set; }
+			[JsonPropertyName("count")]
+			public int Count { get; set; }
+		}
+		private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
+			PropertyNamingPolicy = null,
+			WriteIndented = false
+		};
+		internal static string Serialize(Subset subset) {
+			// Serialized a subset into the xi-rope JSON payload shape.
+		}
+		internal static Subset Deserialize(string json) {
+			// Materialized a subset from the xi-rope JSON payload.
 		}
 	}
 }
@@ -616,9 +978,5 @@ namespace Xi.Core.Rope.Tree {
 		bool IsBoundary(TLeaf leaf, int offset);
 		int? GetPreviousBoundary(TLeaf leaf, int offset);
 		int? GetNextBoundary(TLeaf leaf, int offset);
-	}
-}
-namespace xi.Core {
-	public class Class1 {
 	}
 }
