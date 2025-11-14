@@ -4,8 +4,9 @@ using System.Collections.Generic;
 namespace Xi.Core.Rope.Tree;
 
 /// <summary>
-/// Centralizes string-specific leaf operations used by the rope <see cref="Node"/> 实现。
-/// 该结构实现 <see cref="ILeafOperations{TLeaf}"/>，为未来的泛型节点提供静态 Helper。
+/// Centralizes string-specific leaf operations used by the rope <see cref="Node"/> implementation.
+/// Implements <see cref="ILeafOperations{TLeaf}"/> to support future generic node helpers.
+/// Helpers operate on UTF-16 code unit offsets; Rust counterparts work with UTF-8 byte offsets, so parity tooling must translate units explicitly.
 /// </summary>
 internal readonly struct StringLeafOperations : ILeafOperations<string>
 {
@@ -14,6 +15,11 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
     public static int MaxLeafSize => 1024;
 
     public static string Empty => string.Empty;
+
+    /// <summary>
+    /// Exposes the newline preference window shared with <see cref="LeafSplitter"/>.
+    /// </summary>
+    public static int NewlinePreferenceWindow => LeafSplitter.NewlinePreferenceWindow;
 
     public static int GetLength(string leaf) => leaf?.Length ?? 0;
 
@@ -224,7 +230,7 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
         }
 
         var max = MaxLeafSize;
-        var window = LeafSplitter.NewlinePreferenceWindow;
+        var window = NewlinePreferenceWindow;
         var offset = 0;
         var length = leaf.Length;
 
@@ -269,7 +275,7 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
 
     private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit)
     {
-        var window = LeafSplitter.NewlinePreferenceWindow;
+        var window = NewlinePreferenceWindow;
         var lowerBound = Math.Max(minSplit, candidate - window);
 
         for (var split = candidate; split >= lowerBound; split--)

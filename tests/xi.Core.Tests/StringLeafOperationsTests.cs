@@ -5,6 +5,12 @@ namespace Xi.Core.Tests;
 public class StringLeafOperationsTests
 {
     [Fact]
+    public void NewlinePreferenceWindow_Exposes_LeafSplitter_Constant()
+    {
+        Assert.Equal(LeafSplitter.NewlinePreferenceWindow, StringLeafOperations.NewlinePreferenceWindow);
+    }
+
+    [Fact]
     public void Clone_Returns_New_Instance_With_Same_Content()
     {
         const string source = "hello world";

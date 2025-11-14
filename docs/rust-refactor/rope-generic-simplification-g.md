@@ -58,13 +58,15 @@ _草案建立：2025-11-15（最新修订同日）_
 
 ### Phase 4 — C# 策略对齐
 > 维持“BaseMetric=char”的设计，但需显式注记与 Rust 的差异。
-1. 在 `src/xi.Core/Rope/Tree/StringLeafOperations.cs`：
+- [x] 在 `src/xi.Core/Rope/Tree/StringLeafOperations.cs`：
    - 直接复用 `LeafSplitter.NewlinePreferenceWindow` 作为唯一窗口常量，必要时通过内部转发属性暴露，无需新增副本。
    - 根据需要调整窗口值（例如与 Rust 一致或保留 64），并在 docstring 中说明依据。
    - 将代理对修正逻辑封装为独立方法，便于跨语言对拍脚本读取。
-2. 复查 `tests/xi.Core.Tests/StringLeafOperationsTests.cs`，确认现有用例覆盖换行偏好与代理对安全；如需新增测试，确保断言描述包括期望拆分点。
-3. 若需长期维护样本，可在 `tests/xi.Core.Tests/Fixtures/` 添加 `leaf_split_parity_samples.json`，记录输入文本、Rust 拆分点（byte）、C# 拆分点（char）、备注，并在 README 中描述更新流程。
-4. 在 `docs/csharp-refactor/rope-cow-rebalance-plan.md` 或新文档中加入 Base Metric 差异说明，并引用本计划。
+- [x] 复查 `tests/xi.Core.Tests/StringLeafOperationsTests.cs`，确认现有用例覆盖换行偏好与代理对安全；如需新增测试，确保断言描述包括期望拆分点。
+- [ ] 若需长期维护样本，可在 `tests/xi.Core.Tests/Fixtures/` 添加 `leaf_split_parity_samples.json`，记录输入文本、Rust 拆分点（byte）、C# 拆分点（char）、备注，并在 README 中描述更新流程。
+- [ ] 在 `docs/csharp-refactor/rope-cow-rebalance-plan.md` 或新文档中加入 Base Metric 差异说明，并引用本计划。
+
+> 2025-11-15 更新：C# helper docstring 现显式说明“UTF-16 code unit vs UTF-8 byte”差异，并通过 `StringLeafOperations.NewlinePreferenceWindow` 转发 `LeafSplitter` 常量以保持单一来源。
 
 ### Phase 5 — 自动化与监测
 1. 编写最小化对拍脚本（Rust/C#，可先行放置为独立工具）：
