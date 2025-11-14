@@ -21,6 +21,7 @@
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 ## 工作节奏建议
+当前仅由人类开发者与 AI Coder 协作，执行节奏按单次 AI 会话推进；每次会话收尾前需同步更新本文件与相关计划文档。
 1. **进入仓库**：优先阅读“当前聚焦事项”，确认阻塞与最新决策，必要时调整计划。
 2. **执行任务**：按优先级推进，并实时更新“当前聚焦”“技术笔记”“风险”。
 3. **任务完成**：将成果移动至“已完成事项”，在“工作日志”记录关键行动，检视下一步。
@@ -40,6 +41,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
+- **C# 序列化镜像 Stage A**：以 AI 会话为单位推进 C# `Subset`/`SubsetBuilder` 与 JSON 回归测试，实现 Rust serde Stage A 的对映并保持 81 项测试全绿。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -76,6 +78,9 @@
     - C# 侧新增 `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）复刻零分配查找语义，并配套 `BreaksMetricHelperTests` 验证空集、重复断点与越界行为，保持与 Rust helper 同步。
 
 ## 下一步行动（高优先级 Backlog）
+1. **C# Serde 镜像 Stage A（Subset）**
+  - 交付项：`Subset`/`SubsetBuilder` 实现、序列化/反序列化 helper、导入 Rust 黄金 JSON fixture、新增回归测试。
+  - 验收：`dotnet test`（含新增回归）与 Rust `run_all_checks` 双轨通过；更新 `rope-cs-mirror-plan.md`、`rope-port-mapping.md`、`AGENTS.md`。
 1. **Node 泛型双向同步**
   - Rust：在 `node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
   - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。

@@ -317,8 +317,8 @@ pub enum DeltaElement<N: NodeInfo<L>, L: Leaf> {
 /// `[Copy(0,1),Copy(2,4),Insert("e")]`
 #[derive(Clone)]
 pub struct Delta<N: NodeInfo<L>, L: Leaf> {
-    pub els: Vec<DeltaElement<N, L>>,
-    pub base_len: usize,
+    pub(crate) els: Vec<DeltaElement<N, L>>,
+    pub(crate) base_len: usize,
 }
 
 /// A struct marking that a Delta contains only insertions. That is, it copies
@@ -328,6 +328,30 @@ pub struct Delta<N: NodeInfo<L>, L: Leaf> {
 pub struct InsertDelta<N: NodeInfo<L>, L: Leaf>(Delta<N, L>);
 
 impl<N: NodeInfo<L>, L: Leaf> Delta<N, L> {
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn base_len(&self) -> usize {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn element_count(&self) -> usize {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn iter_elements(&self) -> ElementIter<'_, N, L> {...}
+
+    #[allow(dead_code)]
+    pub(crate) fn element_triples(&self) -> ElementTripleIter<'_, N, L> {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn from_element_vec(
+        base_len: usize,
+        elements: Vec<DeltaElement<N, L>>,
+    ) -> Delta<N, L> {...}
+
+    #[allow(dead_code)]
+    pub(crate) fn from_element_tuples<I>(base_len: usize, elements: I) -> Delta<N, L>
+    where
+        I: IntoIterator<Item = DeltaElement<N, L>>,
+    {...}
+
     pub fn simple_edit<T: IntervalBounds>(
         interval: T,
         rope: Node<N, L>,
@@ -559,6 +583,33 @@ impl<'a, N: NodeInfo<L>, L: Leaf> Iterator for DeletionsIter<'a, N, L> {
 
     fn next(&mut self) -> Option<Self::Item> {...}
 }
+
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct ElementIter<'a, N: NodeInfo<L> + 'a, L: Leaf> {
+    iter: slice::Iter<'a, DeltaElement<N, L>>,
+}
+
+impl<'a, N: NodeInfo<L>, L: Leaf> Iterator for ElementIter<'a, N, L> {
+    type Item = &'a DeltaElement<N, L>;
+
+    fn next(&mut self) -> Option<Self::Item> {...}
+
+    fn size_hint(&self) -> (usize, Option<usize>) {...}
+}
+
+impl<'a, N: NodeInfo<L>, L: Leaf> ExactSizeIterator for ElementIter<'a, N, L> {}
+
+#[allow(dead_code)]
+pub(crate) struct ElementTripleIter<'a, N: NodeInfo<L> + 'a, L: Leaf> {
+    iter: slice::Iter<'a, DeltaElement<N, L>>,
+    new_offset: usize,
+}
+
+impl<'a, N: NodeInfo<L>, L: Leaf> Iterator for ElementTripleIter<'a, N, L> {
+    type Item = (bool, usize, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {...}
+}
 ```
 
 ## xi-editor-ph7/rust/rope/src/diff.rs
@@ -666,15 +717,10 @@ use crate::rope::{Rope, RopeInfo};
 
 /// Represents the current state of a document and all of its history
 #[derive(Debug)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 pub struct Engine {
     /// The session ID used to create new `RevId`s for edits made on this device
-    #[cfg_attr(feature = "serde", serde(default = "default_session", skip_serializing))]
     session: SessionId,
     /// The incrementing revision number counter for this session used for `RevId`s
-    #[cfg_attr(feature = "serde", serde(default = "initial_revision_counter", skip_serializing))]
     rev_id_counter: u32,
     /// The current contents of the document as would be displayed on screen
     text: Rope,
@@ -705,9 +751,6 @@ pub struct Engine {
 // The advantage of using a session ID over random numbers is that it can be
 // easily delta-compressed later.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 pub struct RevId {
     // 96 bits has a 10^(-12) chance of collision with 400 million sessions and 10^(-6) with 100 billion.
     // `session1==session2==0` is reserved for initialization which is the same on all sessions.
@@ -721,9 +764,6 @@ pub struct RevId {
 }
 
 #[derive(Debug)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 struct Revision {
     /// This uniquely represents the identity of this revision and it stays
     /// the same even if it is rebased or merged between devices.
@@ -762,9 +802,6 @@ struct FullPriority {
 use self::Contents::*;
 
 #[derive(Debug, Clone)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 enum Contents {
     Edit {
         /// Used to order concurrent inserts, for example auto-indentation
@@ -791,11 +828,84 @@ enum Contents {
     },
 }
 
+/// Lightweight read-only view over a revision, used by serde and future cross-language bindings.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct RevisionRef<'a> {
+    pub(crate) rev_id: RevId,
+    pub(crate) max_undo_so_far: usize,
+    pub(crate) contents: RevisionContentsRef<'a>,
+}
+
+/// Borrowed revision payload details exposed for serialization helpers.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) enum RevisionContentsRef<'a> {
+    Edit(EditContentsRef<'a>),
+    Undo(UndoContentsRef<'a>),
+}
+
+/// Borrowed view of an edit revision's contents.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct EditContentsRef<'a> {
+    pub(crate) priority: usize,
+    pub(crate) undo_group: usize,
+    pub(crate) inserts: &'a Subset,
+    pub(crate) deletes: &'a Subset,
+}
+
+/// Borrowed view of an undo revision's contents.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct UndoContentsRef<'a> {
+    pub(crate) toggled_groups: &'a BTreeSet<usize>,
+    pub(crate) deletes_bitxor: &'a Subset,
+}
+
+/// Owned revision payload produced during deserialization.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct RevisionOwned {
+    pub(crate) rev_id: RevId,
+    pub(crate) max_undo_so_far: usize,
+    pub(crate) contents: RevisionContentsOwned,
+}
+
+/// Owned representation of revision contents used to rebuild internal state.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) enum RevisionContentsOwned {
+    Edit(EditContentsOwned),
+    Undo(UndoContentsOwned),
+}
+
+/// Owned edit payload backing `RevisionContentsOwned::Edit`.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct EditContentsOwned {
+    pub(crate) priority: usize,
+    pub(crate) undo_group: usize,
+    pub(crate) inserts: Subset,
+    pub(crate) deletes: Subset,
+}
+
+/// Owned undo payload backing `RevisionContentsOwned::Undo`.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct UndoContentsOwned {
+    pub(crate) toggled_groups: BTreeSet<usize>,
+    pub(crate) deletes_bitxor: Subset,
+}
+
+/// Iterator over revisions that yields borrowed helper views for serialization.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct RevisionLogIter<'a> {
+    inner: std::slice::Iter<'a, Revision>,
+}
+
+impl<'a> Iterator for RevisionLogIter<'a> {
+    type Item = RevisionRef<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {...}
+}
+
 /// for single user cases, used by serde and ::empty
 fn default_session() -> (u64, u32) {...}
 
 /// Revision 0 is always an Undo of the empty set of groups
-#[cfg(feature = "serde")]
 fn initial_revision_counter() -> u32 {...}
 
 impl RevId {
@@ -804,6 +914,33 @@ impl RevId {
     pub fn token(&self) -> RevToken {...}
 
     pub fn session_id(&self) -> SessionId {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn raw_parts(&self) -> (u64, u32, u32) {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn from_raw_parts(session1: u64, session2: u32, num: u32) -> RevId {...}
+}
+
+impl Revision {
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn as_ref(&self) -> RevisionRef<'_> {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn from_owned(owned: RevisionOwned) -> Revision {...}
+}
+
+impl Contents {
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    fn as_ref(&self) -> RevisionContentsRef<'_> {...}
+
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    fn from_owned(owned: RevisionContentsOwned) -> Contents {...}
+}
+
+impl RevisionOwned {
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn new(rev_id: RevId, max_undo_so_far: usize, contents: RevisionContentsOwned) -> Self {...}
 }
 
 impl Engine {
@@ -936,6 +1073,48 @@ impl Engine {
     pub fn set_session_id(&mut self, session: SessionId) {...}
 }
 
+impl Engine {
+    /// Exposes the session tuple used when generating new `RevId`s.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn session_components(&self) -> SessionId {...}
+
+    /// Current revision counter associated with this engine's session.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn revision_counter(&self) -> u32 {...}
+
+    /// Returns an iterator over revisions for serialization or diagnostics.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn revision_log(&self) -> RevisionLogIter<'_> {...}
+
+    /// Provides a borrowed view of the head text.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn text_snapshot(&self) -> &Rope {...}
+
+    /// Provides a borrowed view of the tombstones rope.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn tombstones_snapshot(&self) -> &Rope {...}
+
+    /// Provides a borrowed view of the deletion subset from the union string.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn deletes_from_union_snapshot(&self) -> &Subset {...}
+
+    /// Provides a borrowed view of undo group state.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn undone_groups_snapshot(&self) -> &BTreeSet<usize> {...}
+
+    /// Recreates an engine from serialized components.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn from_serialized_state(
+        session: SessionId,
+        rev_id_counter: u32,
+        text: Rope,
+        tombstones: Rope,
+        deletes_from_union: Subset,
+        undone_groups: BTreeSet<usize>,
+        revs: Vec<RevisionOwned>,
+    ) -> Engine {...}
+}
+
 // ======== Generic helpers
 
 /// Move sections from text to tombstones and out of tombstones based on a new and old set of deletions
@@ -1022,6 +1201,175 @@ impl std::fmt::Debug for Error {
 }
 
 impl std::error::Error for Error {}
+
+#[cfg(feature = "serde")]
+mod serde_impl;
+```
+
+## xi-editor-ph7/rust/rope/src/engine/serde_impl.rs
+
+```rust
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::BTreeSet;
+
+use super::{
+    default_session, initial_revision_counter, Contents, EditContentsOwned, EditContentsRef, Engine,
+    Revision, RevisionContentsOwned, RevisionContentsRef, RevisionOwned, RevisionRef, RevId,
+    SessionId, UndoContentsOwned, UndoContentsRef,
+};
+use crate::multiset::Subset;
+use crate::rope::Rope;
+
+#[derive(Serialize)]
+struct EngineSerialize<'a> {
+    text: &'a Rope,
+    tombstones: &'a Rope,
+    deletes_from_union: &'a Subset,
+    undone_groups: &'a BTreeSet<usize>,
+    revs: Vec<RevisionSerialize<'a>>,
+}
+
+impl<'a> From<&'a Engine> for EngineSerialize<'a> {
+    fn from(engine: &'a Engine) -> Self {...}
+}
+
+#[derive(Serialize)]
+struct RevisionSerialize<'a> {
+    rev_id: RevId,
+    max_undo_so_far: usize,
+    edit: RevisionContentsSerialize<'a>,
+}
+
+#[derive(Serialize)]
+enum RevisionContentsSerialize<'a> {
+    Edit {
+        priority: usize,
+        undo_group: usize,
+        #[serde(borrow)]
+        inserts: &'a Subset,
+        #[serde(borrow)]
+        deletes: &'a Subset,
+    },
+    Undo {
+        #[serde(borrow)]
+        toggled_groups: &'a BTreeSet<usize>,
+        #[serde(borrow)]
+        deletes_bitxor: &'a Subset,
+    },
+}
+
+impl<'a> From<RevisionRef<'a>> for RevisionSerialize<'a> {
+    fn from(revision: RevisionRef<'a>) -> Self {...}
+}
+
+impl<'a> From<RevisionContentsRef<'a>> for RevisionContentsSerialize<'a> {
+    fn from(contents: RevisionContentsRef<'a>) -> Self {...}
+}
+
+#[derive(Deserialize)]
+struct EngineDeserialize {
+    #[serde(default = "default_session")]
+    session: SessionId,
+    #[serde(default = "initial_revision_counter")]
+    rev_id_counter: u32,
+    text: Rope,
+    tombstones: Rope,
+    deletes_from_union: Subset,
+    undone_groups: BTreeSet<usize>,
+    revs: Vec<RevisionDeserialize>,
+}
+
+#[derive(Deserialize)]
+struct RevisionDeserialize {
+    rev_id: RevId,
+    max_undo_so_far: usize,
+    edit: RevisionContentsDeserialize,
+}
+
+#[derive(Deserialize)]
+enum RevisionContentsDeserialize {
+    Edit {
+        priority: usize,
+        undo_group: usize,
+        inserts: Subset,
+        deletes: Subset,
+    },
+    Undo {
+        toggled_groups: BTreeSet<usize>,
+        deletes_bitxor: Subset,
+    },
+}
+
+impl From<RevisionContentsDeserialize> for RevisionContentsOwned {
+    fn from(contents: RevisionContentsDeserialize) -> Self {...}
+}
+
+impl From<RevisionDeserialize> for RevisionOwned {
+    fn from(revision: RevisionDeserialize) -> Self {...}
+}
+
+#[derive(Serialize, Deserialize)]
+struct RevIdParts {
+    session1: u64,
+    session2: u32,
+    num: u32,
+}
+
+impl Serialize for RevId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {...}
+}
+
+impl<'de> Deserialize<'de> for RevId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+impl Serialize for Revision {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {...}
+}
+
+impl<'de> Deserialize<'de> for Revision {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+impl Serialize for Contents {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {...}
+}
+
+impl<'de> Deserialize<'de> for Contents {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+impl Serialize for Engine {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {...}
+}
+
+impl<'de> Deserialize<'de> for Engine {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
 ```
 
 ## xi-editor-ph7/rust/rope/src/find.rs
@@ -1310,7 +1658,6 @@ extern crate regex;
 extern crate unicode_segmentation;
 
 #[cfg(feature = "serde")]
-#[macro_use]
 extern crate serde;
 
 
@@ -1482,9 +1829,6 @@ use std::fmt;
 use std::slice;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 struct Segment {
     len: usize,
     count: usize,
@@ -1497,9 +1841,6 @@ struct Segment {
 ///
 /// Internally, this is stored as a list of "segments" with a length and a count.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg(feature = "serde")]
-#[allow(clippy::non_local_definitions)]
-#[derive(Serialize, Deserialize)]
 pub struct Subset {
     /// Invariant, maintained by `SubsetBuilder`: all `Segment`s have non-zero
     /// length, and no `Segment` has the same count as the one before it.
@@ -1631,6 +1972,27 @@ impl Subset {
     /// Each returned `ZipSegment` will differ in at least one count.
     pub fn zip<'a>(&'a self, other: &'a Subset) -> ZipIter<'a> {...}
 
+    /// Returns an iterator over `(start, len, count)` triples that describe each
+    /// segment in document order. Intended for serialization and cross-crate interop
+    /// without exposing the internal `Segment` type.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn segment_triples(&self) -> SegmentTripleIter<'_> {...}
+
+    /// Rebuilds a `Subset` from a sequence of `(start, len, count)` triples.
+    /// Segments must be supplied in non-decreasing `start` order and represent
+    /// non-overlapping regions of the backing document. Gaps are interpreted as
+    /// zero-count segments.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn from_segment_triples<I>(triples: I) -> Subset
+    where
+        I: IntoIterator<Item = (usize, usize, usize)>,
+    {...}
+
+    /// Returns the number of segments currently stored. Primarily used by
+    /// serialization helpers when sizing output sequences.
+    #[cfg_attr(not(feature = "serde"), allow(dead_code))]
+    pub(crate) fn segment_count(&self) -> usize {...}
+
     /// Find the complement of this Subset. Every 0-count element will have a
     /// count of 1 and every non-zero element will have a count of 0.
     pub fn complement(&self) -> Subset {...}
@@ -1638,6 +2000,19 @@ impl Subset {
     /// Return a `Mapper` that can be use to map coordinates in the document to coordinates
     /// in this `Subset`, but only in non-decreasing order for performance reasons.
     pub fn mapper(&self, matcher: CountMatcher) -> Mapper<'_> {...}
+}
+
+/// Iterator produced by `Subset::segment_triples()`.
+#[cfg_attr(not(feature = "serde"), allow(dead_code))]
+pub(crate) struct SegmentTripleIter<'a> {
+    iter: slice::Iter<'a, Segment>,
+    offset: usize,
+}
+
+impl<'a> Iterator for SegmentTripleIter<'a> {
+    type Item = (usize, usize, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {...}
 }
 
 impl fmt::Debug for Subset {
@@ -1686,6 +2061,37 @@ impl<'a> Iterator for ZipIter<'a> {
     /// `ZipSegment`. Will panic if it reaches the end of one `Subset` before
     /// the other, that is when they have different total length.
     fn next(&mut self) -> Option<ZipSegment> {...}
+}
+
+#[cfg(feature = "serde")]
+mod subset_serde {
+    use super::Subset;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    #[derive(Serialize, Deserialize)]
+    struct SegmentRepr {
+        len: usize,
+        count: usize,
+    }
+
+    #[derive(Serialize, Deserialize)]
+    struct SubsetRepr {
+        segments: Vec<SegmentRepr>,
+    }
+
+    impl Serialize for Subset {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {...}
+    }
+
+    impl<'de> Deserialize<'de> for Subset {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {...}
+    }
 }
 
 pub struct Mapper<'a> {
@@ -2132,40 +2538,16 @@ impl<'a> Iterator for Lines<'a> {
 use std::fmt;
 use std::str::FromStr;
 
-use serde::de::{self, Deserialize, Deserializer, Visitor};
-use serde::ser::{Serialize, SerializeStruct, SerializeTupleVariant, Serializer};
+use serde::de::{
+    self, Deserialize, Deserializer, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor,
+};
+use serde::ser::{Serialize, SerializeSeq, SerializeStruct, SerializeTupleVariant, Serializer};
 
 use crate::tree::Node;
 use crate::{Delta, DeltaElement, Rope, RopeInfo};
 
-// Interim serializable types used for (de)serializing `Delta<RopeInfo, String>`.
-// These are defined at module-level so derive macros generate impls at the
-// correct (non-nested) scope; this avoids `non_local_definitions` lint
-// failures when serde attributes are used inside function bodies.
-#[cfg(feature = "serde")]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[allow(clippy::non_local_definitions)]
-enum RopeDeltaElement_ {
-    Copy(usize, usize),
-    Insert(Node<RopeInfo, String>),
-}
-
-#[cfg(feature = "serde")]
-#[derive(Serialize, Deserialize)]
-#[allow(clippy::non_local_definitions)]
-struct RopeDelta_ {
-    els: Vec<RopeDeltaElement_>,
-    base_len: usize,
-}
-
-impl From<RopeDeltaElement_> for DeltaElement<RopeInfo, String> {
-    fn from(elem: RopeDeltaElement_) -> DeltaElement<RopeInfo, String> {...}
-}
-
-impl From<RopeDelta_> for Delta<RopeInfo, String> {
-    fn from(mut delta: RopeDelta_) -> Delta<RopeInfo, String> {...}
-}
+const DELTA_ELEMENT_VARIANTS: &[&str] = &["copy", "insert"];
+const DELTA_FIELDS: &[&str] = &["els", "base_len"];
 
 impl Serialize for Rope {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -2201,10 +2583,92 @@ impl Serialize for DeltaElement<RopeInfo, String> {
     {...}
 }
 
+#[derive(Debug)]
+enum DeltaElementVariant {
+    Copy,
+    Insert,
+}
+
+impl<'de> Deserialize<'de> for DeltaElementVariant {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+struct CopyRangeVisitor;
+
+impl<'de> Visitor<'de> for CopyRangeVisitor {
+    type Value = (usize, usize);
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {...}
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {...}
+}
+
+struct DeltaElementVisitor;
+
+impl<'de> Visitor<'de> for DeltaElementVisitor {
+    type Value = DeltaElement<RopeInfo, String>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {...}
+
+    fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+    where
+        A: EnumAccess<'de>,
+    {...}
+}
+
+impl<'de> Deserialize<'de> for DeltaElement<RopeInfo, String> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+struct DeltaElementsSerialize<'a> {
+    delta: &'a Delta<RopeInfo, String>,
+}
+
+impl Serialize for DeltaElementsSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {...}
+}
+
 impl Serialize for Delta<RopeInfo, String> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
+    {...}
+}
+
+enum DeltaField {
+    Els,
+    BaseLen,
+}
+
+impl<'de> Deserialize<'de> for DeltaField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {...}
+}
+
+struct DeltaVisitor;
+
+impl<'de> Visitor<'de> for DeltaVisitor {
+    type Value = Delta<RopeInfo, String>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {...}
+
+    fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+    where
+        M: MapAccess<'de>,
     {...}
 }
 
