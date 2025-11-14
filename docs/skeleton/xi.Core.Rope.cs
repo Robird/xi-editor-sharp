@@ -16,7 +16,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+9dbc2698e8d3dbbf3285b5c06b8e6025519024ae")]
+[assembly: AssemblyInformationalVersion("1.0.0+8e70694a288359017e8225e799769d324e901489")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -880,6 +880,7 @@ namespace Xi.Core.Rope.Tree {
 		public static int MinLeafSize => 511;
 		public static int MaxLeafSize => 1024;
 		public static string Empty => string.Empty;
+		public static int NewlinePreferenceWindow => 64;
 		public static int GetLength(string leaf) {
 			// Reported the UTF-16 length of the string leaf.
 		}
