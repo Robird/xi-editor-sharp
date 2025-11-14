@@ -4,34 +4,31 @@
 
 ## 1. 黄金夹具来源
 - 基准产物来自 Rust `xi-editor-ph7` 工作区内的回归测试：`subset_serialization_regression`、`delta_serialization_regression`、`engine_serialization_regression`。
-- 相关 JSON 输出位于 `xi-editor-ph7/rust/rope/tests/regressions/serde/`，对应文件名保持与 C# 夹具一致（`subset_regression.json`、`delta_regression.json`、`engine_regression.json`）。
+- 黄金 JSON 全量集中在 `rope/src/serde_fixtures.rs` 常量 (`Fixture` 数组) 中，测试与导出工具共用同一来源，确保唯一事实。
 - C# 侧镜像保存在 `tests/xi.Core.Tests/Fixtures/`，测试项目通过内置 helper 直接读取这些文件。
 
 ## 2. 夹具刷新流程（Windows PowerShell）
-> 可通过 `scripts/refresh_serialization_fixtures.ps1` 自动化执行以下命令，脚本默认串联 Rust 校验、夹具复制与 `dotnet test`。
-1. **同步 Rust 子仓库**
-   ```powershell
-   git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" fetch origin;
-   git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" checkout feature/generic-node-refactor-experiment;
-   git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" pull --ff-only
-   ```
-2. **执行 Rust 回归测试（生成黄金输出）**
-   ```powershell
-   Set-Location "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust";
-   .\run_all_checks --filter serde-fixtures;
-   cargo test -p xi-rope --features serde subset_serialization_regression -- --nocapture;
-   cargo test -p xi-rope --features serde delta_serialization_regression -- --nocapture;
-   cargo test -p xi-rope --features serde engine_serialization_regression -- --nocapture;
-   Set-Location "E:\repos\Atelia-org\xi-editor-sharp"
-   ```
-   - `run_all_checks --filter serde-fixtures` 收敛到 serde 相关任务，可复用现有脚本的缓存配置。
-   - 各 `cargo test` 命令以 `--nocapture` 输出最新 JSON；Rust 测试负责在 `tests/regressions/serde/` 下覆盖旧文件。
-3. **复制黄金文件至 C# 夹具目录**
-   ```powershell
-   Copy-Item "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust\rope\tests\regressions\serde\subset_regression.json" "E:\repos\Atelia-org\xi-editor-sharp\tests\xi.Core.Tests\Fixtures\subset_regression.json";
-   Copy-Item "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust\rope\tests\regressions\serde\delta_regression.json" "E:\repos\Atelia-org\xi-editor-sharp\tests\xi.Core.Tests\Fixtures\delta_regression.json";
-   Copy-Item "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust\rope\tests\regressions\serde\engine_regression.json" "E:\repos\Atelia-org\xi-editor-sharp\tests\xi.Core.Tests\Fixtures\engine_regression.json"
-   ```
+> 推荐使用 `scripts/refresh_serialization_fixtures.ps1` 统一驱动 Rust 校验、夹具导出与 `dotnet test`；脚本已内置 `-SkipRust`、`-SkipDotnet`、`-DryRun`、`-Verbose` 等开关以适配不同需求。
+1. **同步 Rust 子仓库（按需）**
+  ```powershell
+  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" fetch origin;
+  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" checkout feature/generic-node-refactor-experiment;
+  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" pull --ff-only
+  ```
+2. **验证 Rust 基线（建议）**
+  ```powershell
+  Set-Location "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust";
+  .\run_all_checks --filter serde-fixtures;
+  cargo test -p xi-rope --features serde subset_serialization_regression -- --nocapture;
+  cargo test -p xi-rope --features serde delta_serialization_regression -- --nocapture;
+  cargo test -p xi-rope --features serde engine_serialization_regression -- --nocapture;
+  Set-Location "E:\repos\Atelia-org\xi-editor-sharp"
+  ```
+  - `run_all_checks --filter serde-fixtures` 复用现有脚本缓存，覆盖 serde/非 serde 双轨测试。
+  - 三个 `cargo test` 入口直接对比 `serde_fixtures` 常量，与 exporter 共用唯一来源；若想更新 JSON 结构，请先修改这些测试的断言与常量。
+3. **导出并覆写 C# 夹具**
+  - 默认：运行 `scripts/refresh_serialization_fixtures.ps1`（例如 `.\\scripts\\refresh_serialization_fixtures.ps1 -Verbose`），脚本会调用 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests\xi.Core.Tests\Fixtures` 由 Rust 侧直接写入目标目录，并在未使用 `-SkipDotnet` 时自动执行 `dotnet test`。
+  - 手动备选：进入 `xi-editor-ph7/rust` 后执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir <自定义目录>`，随后按需复制结果。
 4. **格式与差异检查**
    ```powershell
    git status --short tests/xi.Core.Tests/Fixtures;
@@ -62,7 +59,7 @@
 ## 5. 自动化展望与开放问题
 - **自动化钩子候选**：
   - 在 `scripts/refresh_skeleton_docs.py` 追加可选子命令，串连 Rust 夹具刷新与 C# 复制步骤。
-  - 扩展现有 `scripts/refresh_serialization_fixtures.ps1`（原型已提供），完善模式开关并接入 CI。
+  - 基于已集成的 `scripts/refresh_serialization_fixtures.ps1`（调用 `export-serde-fixtures`），完善模式开关与日志输出，并在 CI 中复用相同脚本。
   - 将 Rust `run_all_checks` 结果与 `dotnet test` 组合至 CI pipeline，输出夹具漂移报告。
 - **开放问题**：
   - 是否需要在 Rust 端提供专门的 `cargo xtask fixtures` 以保证输出路径稳定。

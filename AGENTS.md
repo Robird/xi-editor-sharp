@@ -42,7 +42,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **C# 序列化镜像 Stage D（进行中）**：本会话交付共享夹具刷新手册、CI 集成策略与文档同步准则，持续保持 Rust/C# 黄金资产一致，并跟踪后续自动化落地；脚本原型 `scripts/refresh_serialization_fixtures.ps1` 已新增，用于串联 Rust 校验与 `dotnet test`。
+- **C# 序列化镜像 Stage D（进行中）**：本会话交付共享夹具刷新手册、CI 集成策略与文档同步准则，持续保持 Rust/C# 黄金资产一致，并跟踪后续自动化落地；`serde_fixtures` 模块集中存放黄金 JSON，`export-serde-fixtures` CLI 与 `scripts/refresh_serialization_fixtures.ps1` 串联 Rust 校验与 `dotnet test`，已验证 `-SkipRust -SkipDotnet` 流程可复写夹具而无副作用。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -81,7 +81,7 @@
 ## 下一步行动（高优先级 Backlog）
 1. **Stage D 共享资产同步**
   - 将 `run_all_checks` serde/无 serde 与 `dotnet test` 集成至统一 CI 节点，并补充失败回溯策略。
-  - 运行并验证 `scripts/refresh_serialization_fixtures.ps1`（当前为原型），确保复制夹具与测试链路可重放。
+  - 定期运行 `scripts/refresh_serialization_fixtures.ps1`（现接入 `export-serde-fixtures`）验证 CLI 导出与测试链路；最新一次以 `-SkipRust -SkipDotnet` 方式确认覆写流程稳定。
   - 设定夹具更新的审核 checklist：Rust 输出确认、C# 测试、文档刷新与 AGENTS 日志同步。
 1. **Node 泛型双向同步**
   - Rust：在 `node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
@@ -192,14 +192,24 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》，更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-15 (Stage D Fixture Consolidation)
+- 分别运行 `cargo test -p xi-rope --features serde subset_serialization_regression`, `cargo test -p xi-rope --features serde delta_serialization_regression` 与 `cargo test -p xi-rope --features serde engine_serialization_regression`，确认 `serde_fixtures` 常量与回归预期一致。
+- 执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests/xi.Core.Tests/Fixtures` 并通过 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 验证 CLI 覆写路径无副作用。
+- 更新 `docs/architecture/rope-serialization-fixture-playbook.md`，强调脚本参数与 exporter 流程，记录最新操作指引。
+- 同步 `AGENTS.md` 反映 Stage D 验证结果与后续动作。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/architecture/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/architecture/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
 - 在 `docs/architecture/rope-port-mapping.md` 记录 Stage D 维护职责，`AGENTS.md` 同步当前聚焦与行动列表。
 - 摸底 CI 集成策略（Rust `run_all_checks` 双轨 + `dotnet test`），本次未执行新的自动化测试，仍待后续会话按流程手动触发。
 ### 2025-11-14 (Stage D Automation Prototype)
-- 新增 `scripts/refresh_serialization_fixtures.ps1`，串联 Rust `run_all_checks`/回归测试与 `dotnet test`，支持 `--dryRun`、`--skip*`、`--verbose` 选项以便后续扩展。
+- 新增并迭代 `scripts/refresh_serialization_fixtures.ps1`，串联 Rust `run_all_checks`/回归测试与 `dotnet test`，支持 `--dryRun`、`--skip*`、`--verbose` 选项，并从 `rope/src/*.rs` 的回归测试中解析 JSON 字面量后覆写 C# 夹具。
 - 更新 `AGENTS.md` Stage D 焦点与下一步行动，计划在下次会话执行脚本并记录输出。
+- 首次试跑脚本（默认参数）触发 Rust `run_all_checks` 与三项 serde 回归测试以及 `dotnet test`（96 通过），随后修复参数解析与 UTF-8 无 BOM 写入问题，验证 `-SkipRust -SkipDotnet` 模式可无副作用地刷新夹具。
+### 2025-11-14 (Stage D Exporter Integration)
+- 在 `xi-editor-ph7/rust/rope` 新增 `serde_fixtures` 模块汇总黄金 JSON，并提供 `export-serde-fixtures` CLI（`cargo run -p xi-rope --features serde --bin export-serde-fixtures`）用于输出至指定目录。
+- `scripts/refresh_serialization_fixtures.ps1` 改为调用该 CLI 覆写 `tests/xi.Core.Tests/Fixtures/*.json`，整体流程保持 `run_all_checks` 与 `dotnet test` 串联。
+- 更新 `docs/architecture/rope-serialization-fixture-playbook.md`、`AGENTS.md` 描述新的导出链路与唯一事实来源。
 ### 2025-11-14 (Stage C Engine)
 - 引入不可变 `Engine`、`Revision`、`RevisionOperation` 及 `RevisionEdit`/`RevisionUndo`，补齐 `TextSnapshot`/`TombstonesSnapshot`/`DeletesFromUnionSnapshot`/`UndoneGroupsSnapshot`/`RevisionLog()` helper 对映。
 - 实现 `EngineJson` 序列化/反序列化并添加输入校验，复用 `Subset` 镜像还原黄金结构。

@@ -35,9 +35,7 @@ function Invoke-ExternalCommand {
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
 $runAllChecks = Join-Path $rustRoot "run_all_checks"
-$rustFixturesDir = Join-Path $rustRoot "rope/tests/regressions/serde"
 $csharpFixturesDir = Join-Path $repoRoot "tests/xi.Core.Tests/Fixtures"
-$fixtureNames = @("subset_regression.json", "delta_regression.json", "engine_regression.json")
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -65,24 +63,13 @@ if (-not $SkipRust) {
 }
 
 if (-not $SkipCopy) {
-    foreach ($name in $fixtureNames) {
-        $sourcePath = Join-Path $rustFixturesDir $name
-        $destinationPath = Join-Path $csharpFixturesDir $name
-
-        Write-Host "==> copy: $name"
-        if ($Verbose) {
-            Write-Host "    $sourcePath -> $destinationPath"
-        }
-
-        if ($DryRun) {
-            continue
-        }
-
-        if (-not (Test-Path $sourcePath)) {
-            throw "Missing source fixture: $sourcePath"
-        }
-
-        Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
+    Push-Location $rustRoot
+    try {
+        $arguments = @("run", "-p", "xi-rope", "--features", "serde", "--bin", "export-serde-fixtures", "--", "--dir", $csharpFixturesDir)
+        Invoke-ExternalCommand "rust: export-serde-fixtures" "cargo" $arguments
+    }
+    finally {
+        Pop-Location
     }
 }
 
