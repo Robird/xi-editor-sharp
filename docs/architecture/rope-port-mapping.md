@@ -22,7 +22,7 @@
 | `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装已对齐，仅经 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 触碰 COW；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
 | `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 缺少多 Metric 组合测试与聚合增量刷新；需补充 `Cursor`/`Metric` 交互。 |
-| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | 规划为 `Delta/Delta.cs`, `Delta/Subset.cs`, `Delta/Transformer.cs` | Rust 重构中 | 等待 Rust 提供拆分后的 helper、`transform_expand` 无宏实现；C# 先同步骨架。 |
+| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs`（C# `Delta` / JSON helper）；`Subset`/`Transformer` 仍规划中 | 实现中 | Stage B 已完成 `Delta<TInfo, TLeaf>`/`DeltaJson` 与回归测试，`factor()` 留作后续；`Transformer` 等高级 helper 待 Stage C/D 引入。 |
 | `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
 | `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`SubsetJson` 对齐 Rust serde 输出。 |
 | `engine.rs` | 编辑命令应用、Undo/Redo 入口 | 规划为 `Engine/Engine.cs` | 未开始 | 依赖 Rope 与 Delta 实现完成后启动；Rust 正拆除宏以便移植。 |
@@ -76,6 +76,13 @@
 | 辅助模块类型 | `LeafSplit`, `Interval`, `Delta` | `LeafSplitter`, `Interval`, `Delta` | 若 Rust 使用动词/函数，可转化为 `*er` 后缀的类，强调职责。 |
 
 > **命名冲突决策**：若 C# 名称已在 BCL 或项目中占用，优先添加领域限定词（例如 `RopeInterval`），同时在映射表备注列记录原始名称，防止日后回归时产生歧义。
+
+### Delta Helper 对齐记录
+
+- `Delta::base_len()` ↔ `Delta<TInfo, TLeaf>.BaseLength`
+- `Delta::iter_elements()` ↔ `Delta<TInfo, TLeaf>.EnumerateElements()`
+- `Delta::element_triples()` ↔ `Delta<TInfo, TLeaf>.EnumerateElementTriples()`
+- Rust serde DTO `els` / `base_len` ↔ C# `DeltaJson` 输出的 `els` 数组与 `base_len` 属性（使用 `System.Text.Json`）。
 
 ## 规划动作
 1. **补齐空壳**：按照映射表对 `delta.rs`、`interval.rs` 等模块创建对应 C# 文件，声明类型但暂不实现逻辑，并在 Rust 端预留迁移友好 helper。

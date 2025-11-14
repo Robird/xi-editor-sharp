@@ -41,7 +41,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **C# 序列化镜像 Stage A**：本次会话已交付 `Subset`/`SubsetBuilder` 与 JSON 回归测试，准备转入 Stage B（Delta）落地并维持回归基线。
+- **C# 序列化镜像 Stage B → Stage C**：Delta 序列化镜像已交付（`Delta<TInfo, TLeaf>`、`DeltaJson`、黄金 fixture 与回归测试），下一步聚焦 Stage C（Engine）准备，梳理 `Engine::revision_log()`/`from_serialized_state()` 对映与依赖 helper。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -78,9 +78,9 @@
     - C# 侧新增 `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）复刻零分配查找语义，并配套 `BreaksMetricHelperTests` 验证空集、重复断点与越界行为，保持与 Rust helper 同步。
 
 ## 下一步行动（高优先级 Backlog）
-1. **C# Serde 镜像 Stage A（Subset）**
-  - 交付项：`Subset`/`SubsetBuilder` 实现、序列化/反序列化 helper、导入 Rust 黄金 JSON fixture、新增回归测试。
-  - 验收：`dotnet test`（含新增回归）与 Rust `run_all_checks` 双轨通过；更新 `rope-cs-mirror-plan.md`、`rope-port-mapping.md`、`AGENTS.md`。
+1. **C# Serde 镜像 Stage C（Engine）**
+  - 交付项：精简版 `Engine`/`Revision`/`Contents`、序列化 helper、`engine_serialization_regression` 黄金 JSON 与回归测试。
+  - 验收：`dotnet test`（含新增回归）与 Rust `run_all_checks` 保持通过；同步更新 `rope-cs-mirror-plan.md`、`rope-port-mapping.md`、`AGENTS.md` 并记录 Stage C 依赖。
 1. **Node 泛型双向同步**
   - Rust：在 `node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
   - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。
@@ -181,6 +181,7 @@
 - `xi-editor-ph7` 子模块未在 `.gitmodules` 注册，`git submodule update`/`git restore` 等命令无法回滚至索引记录的 `89213f6`；若误切至远端 `master` 最新提交（如 `f600b85`），需手动 `git -C xi-editor-ph7 checkout 89213f6` 或补齐 `.gitmodules` 才能清理“modified: xi-editor-ph7 (new commits)” 状态。
 
 ## 已完成事项
+- **C# 序列化镜像 Stage B（Delta）（2025-11-14）**：交付 `Delta<TInfo, TLeaf>`/`DeltaElement`/`CopyElement`/`InsertElement` 骨架与 helper，完成 `DeltaJson` 序列化/反序列化并引入 `delta_regression.json` 黄金串、`DeltaSerializationTests`，`dotnet test`（含新增用例）通过，文档（`rope-cs-mirror-plan.md`、`rope-port-mapping.md`、`AGENTS.md`）同步更新。
 - **工程骨架与测试基线（2025-11-11）**：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core`/`xi.Core.Tests` 并通过首轮 `dotnet test` 验证基础编译与测试链路。
 - **架构规划资产（2025-11-11）**：产出 `docs/architecture/xi-core-structure.md`、`module-migration-plan.md` 与 `api-contract.md`，梳理迁移路线、API 契约和阶段目标；同步撰写《Xi.Editor 迁移目标与路线图》确定阶段里程碑。
 - **Rope/Delta 研究成果（2025-11-11）**：整理 `reference/rust` 资料并形成 `rope-delta-notes.md`，明确 Rope/Delta 迁移要点与后续实施参考。
@@ -188,6 +189,12 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》，更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-14 (Stage B Delta)
+- 引入 `Delta<TInfo, TLeaf>`、`DeltaElement`、`CopyElement`、`InsertElement`，实现 `EnumerateElements()` 与 `EnumerateElementTriples()` helper 并预留 `Factor()` stub。
+- 新增 `DeltaJson` 序列化/反序列化入口，导入 `tests/xi.Core.Tests/Fixtures/delta_regression.json` 黄金串。
+- 编写 `DeltaSerializationTests` 覆盖序列化匹配、反序列化回写、tuple 构造与 helper 枚举，不同路径均验证 BaseLength、ElementCount 与 stub 行为。
+- 更新 `rope-cs-mirror-plan.md`、`rope-port-mapping.md`、`AGENTS.md` 记录 Stage B 完成与 Stage C 准备。
+- 执行 `dotnet test`（93 项）全部通过，含新增 Delta 回归。
 ### 2025-11-14 (Stage A 收官)
 - 实现 C# `Subset`/`SubsetBuilder` 并对齐 `SegmentTriples`、`FromSegmentTriples`、`SegmentCount` helper，确保相邻段合并与零长度防护。
 - 新增 `SubsetJson` 序列化/反序列化入口，引入 `tests/xi.Core.Tests/Fixtures/subset_regression.json` 黄金串并保证输出格式与 Rust 相同。

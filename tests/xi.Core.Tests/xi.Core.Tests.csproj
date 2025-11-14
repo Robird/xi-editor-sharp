@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <None Include="Fixtures\subset_regression.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\delta_regression.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

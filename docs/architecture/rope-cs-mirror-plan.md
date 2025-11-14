@@ -18,15 +18,15 @@
 
 ## 3. C# 镜像落地总览
 ### 3.1 阶段划分
-1. **Stage A – Subset 对映与回归**（已完成，本次会话）
+1. **Stage A – Subset 对映与回归**（已完成，2025-11-14 Session A）
    - 新建 `Subset`/`SubsetBuilder` C# 实现，围绕 `segment_triples`、`from_segment_triples` 接口构建。
    - 导入 `subset_serialization_regression` JSON 作为黄金样本，编写 xUnit 回归测试（序列化与反序列化）。
    - 复用现有 `StringLeafOperations` 与不变量检查，确保 `Subset` 在编辑路径中行为一致。
 
-2. **Stage B – Delta 对映**
-   - 引入 `Delta<TInfo, TLeaf>` 及 `DeltaElement` 的泛型骨架，与 `Delta::iter_elements()` 等 helper 对齐。
-   - 迁移 `delta_serialization_regression` 的 JSON，覆盖组合场景（复制+插入多段）。
-   - 让 `Rope` 编辑路径与新 `Delta` 汇合，维持 81 项既有测试全绿。
+2. **Stage B – Delta 对映**（已完成，本次会话）
+   - 引入 `Delta<TInfo, TLeaf>`、`DeltaElement`、`CopyElement`、`InsertElement` 与 `EnumerateElementTriples()`，对齐 Rust `Delta::base_len()`/`iter_elements()`/`element_triples()` helper。
+   - 迁移 `delta_serialization_regression` 黄金 JSON，补充序列化/反序列化验证与枚举回归测试，保持输出与 Rust 一致。
+   - 在 `delta.Factor()` 预留 stub（抛出 `NotImplementedException`），为后续 Stage C/D 组合操作做好接口准备，同时维持现有 81 项 + 新增回归测试全绿。
 
 3. **Stage C – Engine 镜像**
    - 建立精简版 `Engine`、`Revision`、`Contents`，利用 `revision_log()`/`from_serialized_state()` 对等 helper。
@@ -50,7 +50,7 @@
 | 会话序号 | 目标内容 | 主要输出 | 入场条件 |
 | --- | --- | --- | --- |
 | Session A | Stage A (Subset) 实装与测试 | C# `Subset`/`SubsetBuilder` + JSON 回归测试 + 文档同步（已完成，2025-11-14） | Rust helper 已就绪（当前状态） |
-| Session B | Stage B (Delta) 实装与测试 | C# `Delta` 泛型骨架 + `delta` 黄金回归 + 81 项测试保持通过 | Session A 完成 |
+| Session B | Stage B (Delta) 实装与测试 | C# `Delta` 泛型骨架 + `delta` 黄金回归 + 81 项测试保持通过 | Session A 完成 → **已完成（2025-11-14）** |
 | Session C | Stage C (Engine) 实装与测试 | C# `Engine`/`Revision`/`Contents` + JSON 回归 + 撤销/重做烟雾测试 | Session B 完成 |
 | Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 更新 `rope-port-mapping.md`、`run_all_checks` 集成、fixture 维护脚本 | Sessions A-C 交付稳定 |
 
