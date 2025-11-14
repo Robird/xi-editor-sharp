@@ -41,51 +41,20 @@ _草案建立：2025-11-15（最新修订同日）_
 3. 记录 C# 对应策略：在 `src/xi.Core/Rope/Tree/StringLeafOperations.cs` 与 `LeafSplitter.cs` 中摘录窗口大小（64）与代理对处理逻辑，写入本文附录。
 4. 更新 `docs/architecture/rope-port-mapping.md`：在 Base Metric 章节添加“Rust 偏移=byte、C# 偏移=char”说明，并注明参考文件。
 
-### Phase 1 — Rust Helper 落地
-1. 建立 helper 模块：
-   - 新建 `rope/src/helpers/mod.rs` 并声明 `pub(crate) mod string_leaf;`。
-   - 新建 `rope/src/helpers/string_leaf.rs`，内部定义：
-     ```rust
-     pub(crate) const MIN_LEAF: usize = 511;
-     pub(crate) const MAX_LEAF: usize = 1024;
-     pub(crate) const NEWLINE_WINDOW: usize = MAX_LEAF - MIN_LEAF;
+### Phase 1 — Rust Helper 落地 ✅（2025-11-15）
+- [x] 在 `rope/src/helpers/` 下新增 `mod.rs` 与 `string_leaf.rs`，集中 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` 常量与拆分、UTF-16 计数逻辑。
+- [x] `rope.rs` 改为通过 `helpers::string_leaf` 复用常量与函数，`TreeBuilder::push_str`、`Leaf::push_maybe_split`、`RopeInfo::compute_info` 等调用保留原行为。
+- [x] `rope/src/lib.rs` 声明 `helpers` 模块，维持 crate 内访问路径不变。
 
-     pub(crate) fn find_leaf_split_for_bulk(s: &str) -> usize { ... }
-     pub(crate) fn find_leaf_split_for_merge(s: &str) -> usize { ... }
-     pub(crate) fn find_leaf_split(s: &str, minsplit: usize) -> usize { ... }
-     pub(crate) fn count_utf16_code_units(s: &str) -> usize { ... }
-     ```
-     保持原实现逻辑，必要时抽取内部辅助函数保证模块整洁。
-2. 更新 `rope.rs`：
-   - 在模块开头新增 `pub(crate) use crate::helpers::string_leaf::{count_utf16_code_units, find_leaf_split, find_leaf_split_for_bulk, find_leaf_split_for_merge, MAX_LEAF, MIN_LEAF, NEWLINE_WINDOW};`
-   - 移除旧常量与函数定义。
-   - 确认 `Leaf for String`、`TreeBuilder::push_str`、`RopeInfo::compute_info`、`Utf16CodeUnitsMetric::from_base_units` 均引用 helper 导出的函数。
-3. 在 `rope/src/lib.rs` 增加 `pub(crate) mod helpers;`，确保编译通过且无循环引用。
-4. 重新格式化文件（`cargo fmt`）并运行 Phase 0 的测试命令，确认迁移后行为一致。
+### Phase 2 — 测试扩展 ✅（2025-11-15）
+- [x] 在 `helpers/string_leaf.rs` 引入 `#[cfg(test)]` 模块，覆盖换行优先窗口、代理对安全、容量边界与混合 BMP/SMP UTF-16 计数场景。
+- [x] 保持测试仅依赖标准库，默认与 `--no-default-features` 兼容。
+- [x] `cargo test -p xi-rope` 及携带 `serde subset_serialization_regression delta_serialization_regression engine_serialization_regression` 特性的测试均通过。
 
-### Phase 2 — 测试扩展
-1. 在 `helpers/string_leaf.rs` 添加 `#[cfg(test)] mod tests`：
-   - 添加 `split_prefers_newline`、`split_avoids_surrogate_pair`、`bulk_split_respects_capacity` 等测试用例。
-   - 为 `count_utf16_code_units` 添加涵盖 Emoji、代理对、BMP 字符的测试。
-   - 若需要属性测试，可以 `cfg(feature = "leaf-proptest")` 包裹，默认关闭，以控制编译成本。
-2. 运行测试：
-   ```powershell
-   cargo test -p xi-rope helpers::string_leaf
-   cargo test -p xi-rope
-   ```
-3. 若新增依赖（例如 `proptest`），在 `Cargo.toml` 中以 `[dev-dependencies]` 形式声明，并确认 `cargo test -p xi-rope --no-default-features` 仍成功。
-
-### Phase 3 — 文档与骨架同步
-1. 执行 skeleton 刷新：
-   ```powershell
-   python scripts/refresh_skeleton_docs.py --verbose
-   ```
-   检查 `docs/skeleton/rope.md` 中是否出现 `helpers/string_leaf.rs` 的骨架；若缺失需修改 `stub_rust_functions.py` 的过滤规则。
-2. 更新文档：
-   - `docs/architecture/rope-port-mapping.md`：新增 `helpers/string_leaf` 章节，对应 C# `StringLeafOperations` 功能。
-   - `docs/csharp-refactor/node-generic-refactor-plan.md`：补充叶片 helper 进度与 Base Metric 差异说明。
-   - `AGENTS.md`：“当前聚焦事项”中标注该阶段完成情况与依赖。
-3. 记录命令输出（截取关键行）并附在 PR 描述或工作日志。
+### Phase 3 — 文档与骨架同步 ✅（2025-11-15）
+- [x] 更新 `docs/architecture/rope-port-mapping.md`，记录 `helpers/string_leaf.rs` 映射关系与 UTF-8 byte vs UTF-16 `char` 偏移提示。
+- [x] 更新 `docs/csharp-refactor/node-generic-refactor-plan.md` 与 `AGENTS.md`，同步 helper 抽离进度及对拍注意事项。
+- [x] 运行 `python scripts/refresh_skeleton_docs.py --verbose`，确认 skeleton 文档纳入新模块（若脚本输出提示无差异亦记录结果）。
 
 ### Phase 4 — C# 策略对齐
 > 维持“BaseMetric=char”的设计，但需显式注记与 Rust 的差异。

@@ -1537,6 +1537,34 @@ pub fn is_multiline_regex(regex: &str) -> bool {...}
 fn scan_lowercase(probe: char, s: &str) -> Option<usize> {...}
 ```
 
+## xi-editor-ph7/rust/rope/src/helpers/mod.rs
+
+```rust
+pub(crate) mod string_leaf;
+```
+
+## xi-editor-ph7/rust/rope/src/helpers/string_leaf.rs
+
+```rust
+use std::cmp::{max, min};
+
+use memchr::memrchr;
+
+use crate::metrics::count_utf16_code_units_bytes;
+
+pub(crate) const MIN_LEAF: usize = 511;
+pub(crate) const MAX_LEAF: usize = 1024;
+pub(crate) const NEWLINE_WINDOW: usize = MAX_LEAF - MIN_LEAF;
+
+pub(crate) fn count_utf16_code_units(s: &str) -> usize {...}
+
+pub(crate) fn find_leaf_split_for_bulk(s: &str) -> usize {...}
+
+pub(crate) fn find_leaf_split_for_merge(s: &str) -> usize {...}
+
+pub(crate) fn find_leaf_split(s: &str, minsplit: usize) -> usize {...}
+```
+
 ## xi-editor-ph7/rust/rope/src/interval.rs
 
 ```rust
@@ -1693,6 +1721,7 @@ pub mod diff;
 pub mod engine;
 pub mod find;
 pub mod interval;
+pub(crate) mod helpers;
 pub(crate) mod metrics;
 pub mod multiset;
 pub mod rope;
@@ -2156,13 +2185,17 @@ impl<'a> Mapper<'a> {
 #![allow(clippy::needless_return)]
 
 use std::borrow::Cow;
-use std::cmp::{max, min, Ordering};
+use std::cmp::{min, Ordering};
 use std::fmt;
 use std::ops::Add;
 use std::str::FromStr;
 use std::string::ParseError;
 
 use crate::delta::{Delta, DeltaElement};
+use crate::helpers::string_leaf::{
+    count_utf16_code_units, find_leaf_split_for_bulk, find_leaf_split_for_merge, MAX_LEAF,
+    MIN_LEAF,
+};
 use crate::interval::{Interval, IntervalBounds};
 use crate::metrics::{
     count_newlines_bytes, count_utf16_code_units_bytes, find_next_newline, find_prev_newline,
@@ -2170,11 +2203,8 @@ use crate::metrics::{
 };
 use crate::tree::{Cursor, DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 
-use memchr::{memchr, memrchr};
+use memchr::memchr;
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete};
-
-const MIN_LEAF: usize = 511;
-const MAX_LEAF: usize = 1024;
 
 /// A rope data structure.
 ///
@@ -2353,14 +2383,6 @@ impl Metric<RopeInfo, String> for Utf16CodeUnitsMetric {
 
 pub fn count_newlines(s: &str) -> usize {...}
 
-fn count_utf16_code_units(s: &str) -> usize {...}
-
-fn find_leaf_split_for_bulk(s: &str) -> usize {...}
-
-fn find_leaf_split_for_merge(s: &str) -> usize {...}
-
-// Try to split at newline boundary (leaning left), if not, then split at codepoint
-fn find_leaf_split(s: &str, minsplit: usize) -> usize {...}
 
 // Additional APIs custom to strings
 

@@ -10,11 +10,12 @@
 - `Rust 重构中`：C# 侧暂缓，等待 `xi-editor-ph7` 提供迁移友好 helper 或结构调整。
 - `已实现`：关键能力与诊断均已移植，后续仅保留优化或性能工作。
 
-## 最新进展（2025-11-14）
+## 最新进展（2025-11-15）
 - SharedNode helper 重构完成，Rust `Arc::make_mut` 现由 `docs/rust-refactor/shared-node-api.md` 规范的包装层统一暴露，C# 同步采用。
 - Metric 模板化计划依 `docs/rust-refactor/breaks-metrics-templating.md` 落地，`StringLeafOperations` 与 `BreaksMetricHelper` 已承载共享字符串度量逻辑。
 - Delta/Subset 序列化经 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage A-C 镜像与 Stage D 黄金夹具流程现已打通。
 - Rust 与 C# skeleton bird’s-eye 文档同步刷新，结构与模块边界标注对齐当前实现。
+- Rust 侧字符串叶片 helper 已拆分至 `rope/src/helpers/string_leaf.rs`，统一暴露 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` 与拆分策略；C# `StringLeafOperations` 继续作为对应实现，跨语言对拍需注意偏移单位差异。
 
 ## 路径映射约定
 - `reference/rust/rope/` ↔ `src/xi.Core/Rope/`
@@ -28,6 +29,7 @@
 | `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装按照 `docs/rust-refactor/shared-node-api.md` 的 helper 完成，所有 `Arc::make_mut` 触点统一通过 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 访问；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
 | `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 字符串度量逻辑已按 `docs/rust-refactor/breaks-metrics-templating.md` 规划落地，`StringLeafOperations` 与 `BreaksMetricHelper` 现统一承载字符串 Metric；仍缺多 Metric 组合测试与聚合增量刷新，`Cursor`/`Metric` 互操作待补完。 |
+| `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | Rust helper 返回 UTF-8 字节偏移，C# helper 返回 UTF-16 code unit；对拍与文档需明确单位差异。 |
 | `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs`（C# `Delta` / JSON helper）；`Subset`/`Transformer` 仍规划中 | 实现中 | Stage B 已完成 `Delta<TInfo, TLeaf>`/`DeltaJson` 与回归测试；序列化路径依 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage C 镜像与 Stage D 夹具（参见 `docs/architecture/rope-serialization-fixture-playbook.md`）已落地；`factor()` 及 `Transformer` helper 待下一阶段补齐。 |
 | `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
 | `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`docs/rust-refactor/delta-subset-serialization.md` 的 serde 扫尾已套用，黄金夹具随 Stage D 流程刷新；后续仅跟进 Rust 端新增 builder helper。 |
@@ -42,6 +44,8 @@
 | `test_helpers.rs` | Rope 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 已封装不变量断言与调试 API；Rust 侧需输出同步 fixture。 |
 
 > 注：表格只列出首批重点模块，可在实际推进中扩充行或拆分更细粒度的子文件（例如 `tree/node.rs`、`tree/edit.rs` 等）。
+
+> 偏移单位提示：Rust `helpers/string_leaf.rs` 中的拆分函数始终返回 UTF-8 字节偏移；C# `StringLeafOperations` 与测试则以 UTF-16 `char` 计数。跨语言对拍或文档引用拆分位置时，需显式标注单位并避免混用。
 
 ## 接口与类型系统翻译范式
 

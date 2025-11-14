@@ -6,6 +6,7 @@
 - [x] Rust 侧 `NodeInfo`、`TreeBuilder`、`Delta` 已全面改造为对叶类型显式泛型，`Rope` 等别名通过特化绑定到字符串实现。
 - [ ] C# 侧主线仍使用字符串特化 `Node`；实验性 `Node<TInfo,TLeaf,TLeafOps>` 骨架已在 `Tree/Node.Generic.cs` 落地，但尚未接入 Builder/Delta 等路径。
 - [ ] 集成泛型节点、游标重构与共享节点契约规划见短期路线图 1-3 项。
+- [x] Rust 字符串叶片 helper 已抽离至 `helpers/string_leaf.rs`，统一暴露 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` 与拆分函数；C# `StringLeafOperations` 仍维持 UTF-16 `char` 计数，需要文档与测试明确偏移单位差异。
 
 ## 1. 原版参考
 - Rust 源（见 `docs/skeleton/rope.md` `tree.rs` 部分）：`Node<N>` 通过 `N::L` 访问叶类型；`NodeInfo`/`TreeBuilder`/`Delta` 现已全部以叶类型为泛型参数，在 Rust 端形成自洽链路。
@@ -55,6 +56,7 @@
   - 可将 `LeafSplitter` 抽象成策略 `ILeafSplitter<TLeaf, TLeafOps>`；字符串特化保留现有逻辑。
   - 或在 `StringLeafOperations` 内提供 `Split(string text)`，`LeafSplitter` 调用 Helper 静态方法。
 - 其他叶类型（例如基于 `ArrayPool<char>`）可能需要重新设计拆分方式，这是泛型化后的主要风险点之一。
+- Rust `helpers/string_leaf.rs` 已集中声明 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` 与 `find_leaf_split_*`，输出仍以 UTF-8 字节偏移计量；C# `StringLeafOperations` 的拆分窗口与返回值继续使用 UTF-16 `char` 单位，跨语言文档与测试需显式注记单位差异。
 
 ### 3.4 `TreeBuilder.cs`
 - 需要引入泛型参数并存储 `List<Node<TInfo,TLeaf,TLeafOps>>`。
