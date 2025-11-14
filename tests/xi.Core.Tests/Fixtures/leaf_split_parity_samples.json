@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "id": "newline_outside_char_window",
+      "segments": [
+        {"type": "repeat", "text": "a", "count": 900},
+        {"type": "literal", "text": "\n"},
+        {"type": "repeat", "text": "b", "count": 500}
+      ],
+      "utf16_expected_splits": [1024, 377],
+      "utf8_expected_splits": [890, 511],
+      "notes": "Rust window=513 bytes finds newline at 900; C# window=64 chars keeps default split."
+    },
+    {
+      "id": "surrogate_guard_post_truncation",
+      "segments": [
+        {"type": "repeat", "text": "a", "count": 1023},
+        {"type": "literal", "text": "😀"},
+        {"type": "repeat", "text": "b", "count": 100}
+      ],
+      "utf16_expected_splits": [1023, 102],
+      "utf8_expected_splits": [616, 511],
+      "notes": "Rust enforces trailing MIN bytes before adjusting char boundary; C# backs off a surrogate but allows smaller tail."
+    }
+  ]
+}

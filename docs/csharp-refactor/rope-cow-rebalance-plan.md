@@ -33,6 +33,12 @@
 - 允许特殊情况：根节点子节点数可低于 `MIN_CHILDREN`，但大于 1 时需满足其他约束。
 - 当根节点只剩单个子节点时，可将该子节点提升为根以降低树高。
 
+### 3.4 Base Metric 对齐
+- Rust 端维持 UTF-8 字节偏移作为 Base Metric；C# 端则以 UTF-16 code unit 为主，因为 `string` 的内存布局已固定。两端的 `RopeInfo::Length` 与相关 helper 在语义上需要通过 Plan G 列出的映射表互通。
+- 该差异直接影响叶节点分裂窗口的调优：Rust 按字节窗口回溯换行，C# 需按 UTF-16 单位扫描并额外处理高/低代理对，确保不会在代理对中断开。
+- newline 窗口与代理对的跨语言样例存放于 `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json`，未来调整分裂策略或窗口参数时需回放此 fixture 保障一致性。
+- Base Metric 对齐任务由 `docs/rust-refactor/rope-generic-simplification-g.md`（Plan G）追踪；任何 helper 与 metric 的后续调谐需同步更新 Plan G 记录，并在上述 parity fixture 中补充验证样例。
+
 ## 4. 工作拆解
 
 > 更新（2025-11-14）：阶段 A（节点所有权/引用管理）与阶段 B（叶片策略）已完成，并在 Rust/C# 双端落地 `SharedNode` 封装；当前聚焦阶段 C 的内部节点再平衡与 SharedNode 诊断 instrumentation。
