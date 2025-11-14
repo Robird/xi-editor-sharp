@@ -148,11 +148,11 @@
 | `delta.rs` | `Delta`, `Transformer` | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 完成泛型 `Delta` 与 JSON；`factor`/`Transformer` 待实现 |
 | `multiset.rs` | `Subset`, `SubsetBuilder` | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 完成 JSON 回归与 triple helper |
 | `engine.rs` | CRDT Engine、Undo | `Rope/Engine.cs`, `Rope/EngineJson.cs` | 已实现 | Stage C 完成不可变镜像与黄金 fixture |
-| `interval.rs` | 区间结构 | `Intervals/Interval*.cs` | 未开始 | 与 Delta/Subset 关联，预留 Span 友好实现 |
+| `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 基础半开区间 [Start, End) 结构已落地，后续可扩展 Span 友好 helper |
 | `diff.rs` / `compare.rs` | Diff 与比较 | `Diff/` 模块 | 未开始 | 评估复用现成库或逐步移植 |
 | `breaks.rs` | 段落切分 | `Tree/Breaks.cs` | 未开始 | 与 `LeafSplitter` 协同 |
 | `find.rs` / `spans.rs` | 搜索与高亮 | `Search/` 模块 | 未开始 | 依赖 Metric、Interval |
-| `serde_impls.rs` | 序列化支持 | `Serialization/RopeJsonConverters.cs` | 未开始 | 结合 Stage D 夹具刷新流程 |
+| `serde_impls.rs` | 序列化支持 | `Rope/SubsetJson.cs`、`Rope/DeltaJson.cs`、`Rope/EngineJson.cs` | 实现中 | Subset/Delta/Engine JSON 镜像已完成，其余模块待补 |
 | `test_helpers.rs` | 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 提供不变量断言与诊断输出 |
 
 **脚注**：映射表需在每次落地或 Rust helper 改造后刷新，并同步 `docs/architecture/rope-port-mapping.md`。

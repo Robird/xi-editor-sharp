@@ -197,6 +197,7 @@
 - 执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests/xi.Core.Tests/Fixtures` 并通过 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 验证 CLI 覆写路径无副作用。
 - 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，强调脚本参数与 exporter 流程，记录最新操作指引。
 - 同步 `AGENTS.md` 反映 Stage D 验证结果与后续动作。
+- 校对 `docs/architecture/port-blueprint.md` 的模块映射表，标记 `Interval` 结构与 Subset/Delta/Engine JSON 转换器已完成功能，对齐当前实现状态。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
