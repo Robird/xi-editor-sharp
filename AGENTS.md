@@ -42,7 +42,7 @@
 - M7：性能调优、文档、发布准备（未开始）。
 
 ## 当前聚焦事项（WIP）
-- **C# 序列化镜像 Stage D 筹备**：Stage C（Engine 镜像 + EngineJson + 回归资产）已交付，当前整理 Stage D 所需的文档、fixture 维护与 CI 钩子，确保 Rust/C# 映射、脚本与黄金数据保持同步。
+- **C# 序列化镜像 Stage D（进行中）**：本会话交付共享夹具刷新手册、CI 集成策略与文档同步准则，持续保持 Rust/C# 黄金资产一致，并跟踪后续自动化落地；脚本原型 `scripts/refresh_serialization_fixtures.ps1` 已新增，用于串联 Rust 校验与 `dotnet test`。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/bi-direction-port.md` 的协作清单，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -79,10 +79,10 @@
     - C# 侧新增 `BreaksMetricHelper`（`src/xi.Core/Rope/BreaksMetricHelper.cs`）复刻零分配查找语义，并配套 `BreaksMetricHelperTests` 验证空集、重复断点与越界行为，保持与 Rust helper 同步。
 
 ## 下一步行动（高优先级 Backlog）
-1. **C# Serde 镜像 Stage D（文档与资产同步）**
-  - 巩固 Stage C 产物：扩充 `rope-port-mapping.md`/`rope-cs-mirror-plan.md`、`AGENTS.md` 的追踪条目，并规划 Engine 相关 helper 的对照清单。
-  - 设计 fixture 维护流程（脚本化刷新 Rust serde 输出、增量校验）并评估纳入 `scripts/refresh_skeleton_docs.py` 或新脚本的方案。
-  - 将 Rust `run_all_checks` serde 双轨命令与 .NET 回归测试纳入统一质量门禁（本地/CI）检查表，确保黄金资产在 Stage D 长期维护。
+1. **Stage D 共享资产同步**
+  - 将 `run_all_checks` serde/无 serde 与 `dotnet test` 集成至统一 CI 节点，并补充失败回溯策略。
+  - 运行并验证 `scripts/refresh_serialization_fixtures.ps1`（当前为原型），确保复制夹具与测试链路可重放。
+  - 设定夹具更新的审核 checklist：Rust 输出确认、C# 测试、文档刷新与 AGENTS 日志同步。
 1. **Node 泛型双向同步**
   - Rust：在 `node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
   - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。
@@ -192,6 +192,14 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》，更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-14 (Stage D Planning)
+- 更新 `docs/architecture/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
+- 发布 `docs/architecture/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
+- 在 `docs/architecture/rope-port-mapping.md` 记录 Stage D 维护职责，`AGENTS.md` 同步当前聚焦与行动列表。
+- 摸底 CI 集成策略（Rust `run_all_checks` 双轨 + `dotnet test`），本次未执行新的自动化测试，仍待后续会话按流程手动触发。
+### 2025-11-14 (Stage D Automation Prototype)
+- 新增 `scripts/refresh_serialization_fixtures.ps1`，串联 Rust `run_all_checks`/回归测试与 `dotnet test`，支持 `--dryRun`、`--skip*`、`--verbose` 选项以便后续扩展。
+- 更新 `AGENTS.md` Stage D 焦点与下一步行动，计划在下次会话执行脚本并记录输出。
 ### 2025-11-14 (Stage C Engine)
 - 引入不可变 `Engine`、`Revision`、`RevisionOperation` 及 `RevisionEdit`/`RevisionUndo`，补齐 `TextSnapshot`/`TombstonesSnapshot`/`DeletesFromUnionSnapshot`/`UndoneGroupsSnapshot`/`RevisionLog()` helper 对映。
 - 实现 `EngineJson` 序列化/反序列化并添加输入校验，复用 `Subset` 镜像还原黄金结构。

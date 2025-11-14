@@ -1,7 +1,7 @@
 # Rope 文件级映射与类型翻译计划
 
 ## 目标
-建立 `reference/rust/rope` 与 `src/xi.Core/Rope` 之间的一一映射，记录每个模块的移植状态，并沉淀 Rust → C# 在接口与类型层面的翻译范式，支撑“先契约后实现 + Rust 侧迁移友好化”的移植流程。
+建立 `reference/rust/rope` 与 `src/xi.Core/Rope` 之间的一一映射，记录每个模块的移植状态，并沉淀 Rust → C# 在接口与类型层面的翻译范式，支撑“先契约后实现 + Rust 侧迁移友好化”的移植流程。Stage D 负责依托 `docs/architecture/rope-serialization-fixture-playbook.md` 维护共享 JSON 夹具与 CI 钩子，确保映射表与黄金资产保持同步。
 
 ## 状态标签
 - `未开始`：尚未在 C# 侧创建对应文件或类型。
@@ -99,6 +99,7 @@
 3. **持续更新表格**：每完成一次接口/实现迭代，更新本表状态列与备注列，同时同步 Rust 改造状态。
 4. **范式扩展**：遇到新的语言差异（如迭代器、闭包、宏）时，将翻译策略追加到范式表中，并评估是否需在 Rust 端提供替代写法。
 5. **特性同步**：记录 Rust 工作区新增的 `serde` 特性层级（`xi-core` → `xi-core-lib/serde` → `xi-rope/serde`），确保 C# 侧在需要访问 JSON helper 时显式启用对应开关并同步文档。
+6. **夹具维护**：按照 `docs/architecture/rope-serialization-fixture-playbook.md` 执行 Stage D 刷新流程，在完成复制与验证后回填本表与相关文档的状态备注。
 
 ## 主要缺口
 先对照 rope.md 走了一圈，整体感觉这份 C# skeleton 已经把“Rope + Tree + Metric”主干都列出来了，但和 Rust 原版相比仍有几块明显缺口，需要补上才能支撑后续的类型对齐和实现规划。

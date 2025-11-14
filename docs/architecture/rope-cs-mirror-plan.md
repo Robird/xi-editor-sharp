@@ -33,10 +33,19 @@
    - 新增 `EngineJson`（`System.Text.Json`）序列化器，复用 `SubsetJson` 语义还原 `engine_serialization_regression` 黄金串，并在反序列化阶段补充字段合法性校验。
    - 添加 `engine_regression.json` fixture 与 `EngineSerializationTests`（构造→序列化、反序列化回写、`RevisionLog` 验证三项），`dotnet test` 全量通过。
 
-4. **Stage D – 共享资产同步**（待启动）
-   - 梳理并记录 Engine helper 映射（`revision_log()`、`text_snapshot()` 等）至 `docs/architecture/rope-port-mapping.md`，确保 Rust/C# 对照完整。
-   - 明确黄金 JSON 维护流程（含脚本化刷新）与 CI 钩子，将 Stage A-C 产物纳入长期回归资产。
-   - 评估是否需要扩展回归样本（多 session/多 undo 组合），并规划 Stage D 会话的交付范围与依赖。
+4. **Stage D – 共享资产同步**（进行中，2025-11-14 Session D）
+    - 交付项：
+       - 建立并记录黄金 fixture 维护流程（刷新命令、审核步骤、回归验证）。
+       - 定义 Rust `run_all_checks` serde/无 serde 双轨与 `dotnet test` 组合的 CI 集成策略。
+       - 明确文档同步节奏与责任矩阵，涵盖 `rope-port-mapping.md`、`rope-cs-mirror-plan.md`、`AGENTS.md` 与新建 `rope-serialization-fixture-playbook.md`。
+    - 立即行动：
+       - 发布 fixture 刷新作业手册并链接至相关文档。
+       - 规划 CI 作业节点（Rust 双轨、.NET 测试）与本地验证顺序，形成执行 checklist。
+       - 标注 Stage D 文档同步期望，确保每次刷新/发布均触发文档更新。
+    - 验收标准：
+       - 任意协作者可依据手册在 Windows PowerShell 下刷新 fixture，并通过 `dotnet test`/`run_all_checks` 验证。
+       - CI 或本地自动化脚本具备串连 Rust 双轨测试与 .NET 回归的方案说明并可落地执行。
+       - `AGENTS.md`、`rope-port-mapping.md` 与 Stage 计划文档在刷新后均同步记录状态与输出。
 
 ### 3.2 里程碑验收标准
 - 每个 Stage 完成后：
@@ -52,7 +61,7 @@
 | Session A | Stage A (Subset) 实装与测试 | C# `Subset`/`SubsetBuilder` + JSON 回归测试 + 文档同步（已完成，2025-11-14） | Rust helper 已就绪（当前状态） |
 | Session B | Stage B (Delta) 实装与测试 | C# `Delta` 泛型骨架 + `delta` 黄金回归 + 81 项测试保持通过 | Session A 完成 → **已完成（2025-11-14）** |
 | Session C | Stage C (Engine) 实装与测试 | **已完成（2025-11-14 Session C）**：C# `Engine`/`Revision`/`RevisionOperation`、`EngineJson` 回归套件、撤销/重做 helper 验证 | Session B 完成 |
-| Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 对齐文档映射、run_all_checks 集成与 fixture 维护脚本 | Sessions A-C 交付稳定 |
+| Session D (滚动) | Stage D 文档&资产同步、CI 接入 | 文档更新、`run_all_checks` 双轨 + `dotnet test` 集成策略、fixture 刷新流程手册（进行中） | Sessions A-C 交付稳定 |
 
 ## 5. Rust 侧后续待办（与 C# 并行监控）
 - **CI 补强**：将 `run_all_checks` 纳入自动流水线，确保 serde 双轨测试自动执行。
