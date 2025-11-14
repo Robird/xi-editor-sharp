@@ -100,10 +100,10 @@
   - Rust：在 `docs/csharp-refactor/node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
   - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。
   - 文档：刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs`，确保签名与 helper 名称同步更新。
-2. **Cursor 生命周期削薄预研**
-  - 拆解 Rust `Cursor<'a, N, L>` 对生命周期的真实需求，评估以节点索引 + 共享指针重构的可行性与性能影响。
-  - 在 `docs/architecture/port-blueprint.md` 与 `docs/csharp-refactor/node-generic-refactor-plan.md` 记录设计假设、权衡与验证案例，为 C# 端提供未来接口草案。
-  - 若方案可行，准备最小 POC（含单元测试）验证向后兼容性。
+2. **Cursor 生命周期重构（Descriptor + State）**
+  - 按 `docs/rust-refactor/CursorCache.md` 的组合策略推进：Rust 先落地 `CursorDescriptor`（Phase 1），新增 round-trip 测试并在 `rope-port-mapping.md` 将游标状态调为“实现中”。
+  - 在 `cursor_state` feature gate 下试装 `CursorState` 内核（Phase 2），比较性能与行为，准备在验证通过后切换默认实现。
+  - C# 侧扩展 `NodeCursor`（Phase 3）以消费 Descriptor/State，并补充共享 JSON fixture 的回归测试；文档更新同步至 `port-blueprint` 与 `node-generic-refactor-plan.md`。
 3. **SharedNode 诊断与性能监测**
   - 设计 Rust 侧 `shared_node_diagnostics`（或等效）特性开关，统计 `ensure_unique`、`clone_with_children` 调用，并输出最小计数器用于测试与日志分析。
   - 规划 C# 侧调试计数器与 Rust instrumentation 的对齐，确保跨语言回归可比较共享节点复制开销。

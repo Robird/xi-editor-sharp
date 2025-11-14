@@ -73,6 +73,15 @@
 
 > 偏移单位提示：Rust `helpers/string_leaf.rs` 中的拆分函数始终返回 UTF-8 字节偏移；C# `StringLeafOperations` 与测试则以 UTF-16 `char` 计数。跨语言对拍或文档引用拆分位置时，需显式标注单位并避免混用。
 
+### Rust 侧可移植性改造建议（2025-11-15）
+
+- **`Cursor<'a, N, L>` 缓存**：在 `tree.rs` 增补可选的 `CursorDescriptor` helper，将缓存路径存成 `Arc<NodeBody>` + 子节点索引集合，供其他语言无生命周期约束地重建游标。
+- **字素导航**：在 `rope.rs` 中抽出 `GraphemeCursor` 交互的状态机，导出可记录的 `GraphemeStep` trace（调试/测试特性），使 C# 能按记录复刻跨叶行为。
+- **Chunk 元数据**：为现有 `iter_chunks` 补充 `iter_chunk_descriptors` 之类伴随 API，输出 `(byte_len, utf16_len)` 元信息，避免在移植侧重复 UTF-8 → UTF-16 统计。
+- **Metric/Into<Node>` 抽象**：提供面向 `RopeInfo` 的非泛型 shim（如 `rope::ops::count_lines`, `rope::ops::edit_str`），将复杂的 `Into<Node>`/静态 trait 成员留在内部，实现跨语言访问的稳定入口。
+- **叶片拆分回传**：让 `helpers/string_leaf.rs` 的 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体，减少移植侧的重复扫描。
+- **切片计划诊断**：在 `TreeBuilder::push_slice`/`Node::subseq` 增设守护特性（例如 `collect_slice_plan`），记录节点 push/pop 序列和区间变换，帮助 C# 复刻栈化策略并在测试中比对。
+
 ## 接口与类型系统翻译范式
 
 | Rust 概念 | 常用代码形态 | C# 对应形态 | 说明 |
