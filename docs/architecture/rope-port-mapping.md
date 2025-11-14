@@ -26,22 +26,48 @@
 ## 文件级映射表
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
-| `tree.rs` | `Node`, `TreeBuilder`, 节点借用/合并、再平衡、结构共享 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并与欠载修复已实现；Rust/C# `SharedNode` 封装按照 `docs/rust-refactor/shared-node-api.md` 的 helper 完成，所有 `Arc::make_mut` 触点统一通过 `EnsureUnique/CloneWithChildren/ReplaceChildRange` 访问；内部节点再平衡、聚合刷新与 SharedNode 诊断待补齐。 |
-| `tree.rs`（后续类型） | `Cursor`, `BalanceIter`, 内部辅助结构 | `Tree/`（待补充） | Rust 重构中 | 等待 Rust 将生命周期改写为索引/Arc 模式后再引入 C# 骨架。 |
-| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、Buffer API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | 字符串度量逻辑已按 `docs/rust-refactor/breaks-metrics-templating.md` 规划落地，`StringLeafOperations` 与 `BreaksMetricHelper` 现统一承载字符串 Metric；仍缺多 Metric 组合测试与聚合增量刷新，`Cursor`/`Metric` 互操作待补完。 |
-| `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | Rust helper 返回 UTF-8 字节偏移，C# helper 返回 UTF-16 code unit；对拍与文档需明确单位差异。 |
-| `delta.rs` | `Delta`, `Subset`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs`（C# `Delta` / JSON helper）；`Subset`/`Transformer` 仍规划中 | 实现中 | Stage B 已完成 `Delta<TInfo, TLeaf>`/`DeltaJson` 与回归测试；序列化路径依 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage C 镜像与 Stage D 夹具（参见 `docs/architecture/rope-serialization-fixture-playbook.md`）已落地；`factor()` 及 `Transformer` helper 待下一阶段补齐。 |
-| `interval.rs` | 区间集合、`IntervalTree` | 规划为 `Intervals/IntervalSet.cs`, `Intervals/IntervalTree.cs` | 未开始 | 与 Delta/Subset 共用，需预留 Span/Memory 友好实现。 |
-| `multiset.rs` | `Subset`/`SubsetBuilder` 多重子集 helper | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 引入 `SegmentTriples`/`FromSegmentTriples`/`SegmentCount` 映射与 JSON 回归测试；`docs/rust-refactor/delta-subset-serialization.md` 的 serde 扫尾已套用，黄金夹具随 Stage D 流程刷新；后续仅跟进 Rust 端新增 builder helper。 |
-| `engine.rs` | 编辑命令应用、Undo/Redo 入口 | `Rope/Engine.cs`, `Rope/EngineJson.cs` | 已实现 | Stage C 交付：`Engine`/`Revision` 不可变镜像、`EngineJson` 序列化器、`EngineSerializationTests` 与黄金 fixture。 |
-| `diff.rs` | 文本 diff 逻辑 | 规划为 `Diff/DiffEngine.cs` | 未开始 | 评估复用现有 diff 库或移植 Rust 算法。 |
-| `compare.rs` | Rope 比较工具 | 规划为 `Diff/Compare.cs` | 未开始 | 与 `diff.rs` 共享目录，落地后补测试。 |
-| `breaks.rs` | 换行符/段落切分逻辑 | 规划为 `Tree/Breaks.cs` | 未开始 | 与 `LeafSplitter` 结合，提供界面供 Rope/Delta 使用。 |
-| `find.rs` | Rope 搜索功能 | 规划为 `Search/Find.cs` | 未开始 | 依赖 Metric, Interval；需设计 Span 友好 API。 |
-| `spans.rs` | 高亮范围管理 | 规划为 `Search/Spans.cs` | 未开始 | 与 `find.rs` 同目录，提供 Span/Style 聚合。 |
-| `serde_impls.rs` | 序列化支持 | 规划为 `Serialization/RopeJsonConverters.cs` | 未开始 | 依据 JSON-RPC 宿主方案决定实现。 |
-| `lib.rs` | 模块导出、测试入口 | Solution 顶层 | 已实现 | 通过 `Xi.Editor.sln` 管理，对应 C# 项目已经建立。 |
-| `test_helpers.rs` | Rope 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 已封装不变量断言与调试 API；Rust 侧需输出同步 fixture。 |
+| `tree.rs` | `Node`, `SharedNode`, `TreeBuilder`，负责节点借用/合并、再平衡骨架 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 写时复制 helper 已对齐；内部再平衡与诊断计数器尚未接入，`Node.Generic.cs` 仍待并入主实现。 |
+| `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 仅骨架 | Rust 端 API 已稳定，可在 C# 侧补齐缓存字段与 Metric 钩子；需要为 lifetime → 索引的映射设计落地方案。 |
+| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代与 grapheme 接口。 |
+| `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | 注意记录 UTF-8/UTF-16 单位差异，继续扩充对拍样本。 |
+| `delta.rs` | `Delta`, `InsertDelta`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 镜像完成；`Transformer` 与 `factor()` 仍为 TODO。 |
+| `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 后续若新增 `IntervalTree` 需更新目录映射。 |
+| `multiset.rs` | `Subset`/`SubsetBuilder` | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 序列化回归已经纳入基线。 |
+| `engine.rs` | 编辑引擎、Undo/Redo | `Rope/Engine.cs`, `Rope/EngineJson.cs` | 已实现 | Stage C 完成镜像与黄金夹具。 |
+| `diff.rs` | 文本 diff 逻辑 | 规划为 `Diff/` 目录 | 未开始 | 待建立骨架，评估直接移植或复用 .NET 库。 |
+| `compare.rs` | Rope 比较工具 | 规划为 `Diff/Compare.cs` | 未开始 | 涉及 SIMD 指令，C# 需选中性实现或 `System.Runtime.Intrinsics`。 |
+| `breaks.rs` | 换行/断点索引 | 规划为 `Tree/Breaks.cs` | 未开始 | 与 `BreaksMetricHelper` 配合，需在树层打通。 |
+| `find.rs` | Rope 搜索 | 规划为 `Search/Find.cs` | 未开始 | 依赖 `Cursor` 与 `Regex`，需引入 Span 友好实现。 |
+| `spans.rs` | 样式跨度 | 规划为 `Search/Spans.cs` | 未开始 | 与搜索/高亮管线绑定。 |
+| `serde_impls.rs` | Rope serde 支撑 | 规划为 `Serialization/` | 未开始 | 根据宿主需求决定是否拆分为多个 converter。 |
+| `lib.rs` | 模块导出 | Solution 顶层 | 已实现 | 由 `Xi.Editor.sln` 统一管理。 |
+| `test_helpers.rs` | 测试支撑 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 不变量断言/诊断输出已对齐。 |
+
+## 树/绳映射准备清单（2025-11-15）
+
+### 已可直接建立 C# 骨架的符号
+
+| Rust 符号/片段 | 职责摘要 | C# 映射现状 | 后续动作 |
+|----------------|-----------|---------------|-----------|
+| `NodeInfo<L>`, `DefaultMetricProvider<L>`, `Leaf` | 约束节点聚合信息与叶片接口 | `Tree/TreeContracts.cs`, `Tree/StringLeafOperations.cs` 已提供 `ILeafOperations<string>` 与静态 helper | 继续补充文档注释阐明默认实现语义，确保后续泛型化时无需重命名 |
+| `SharedNode`, `Node`, `NodeBody`, `NodeVal` | 树节点写时复制核心 | `Tree/Node.cs`, `Tree/Node.Generic.cs` 完成封装 | 结合 `Node.Generic` 为主实现补足共享入口，并预留诊断计数器挂载点 |
+| `TreeBuilder<N, L>` | 批量构建/再平衡入口 | `Tree/TreeBuilder.cs` 现已映射 | 核对 `push_slice` 与 Rust 行为，补充多 Metric 插入测试 |
+| `Metric<N, L>` | 度量与边界查询 | `IMetric.cs`, `Metrics.cs` | 将 `LinesMetric`/`Utf16Metric` 的 helper 调用对齐 Rust `helpers/string_leaf.rs` 常量命名 |
+| `RopeInfo` 及 `Leaf for String` 实现 | 基础聚合字段与字符串叶片实现 | `RopeInfo.cs`, `StringLeafOperations.cs` | 将 Rust `count_utf16_code_units`、`find_leaf_split_for_*` 的新 helper 签名同步进 C# 记录 |
+| `Node::count`, `Node::count_base_units`, `convert_metrics` | Metric 间转换 | `Node.cs` 中已有对应占位 | 需要补上调用 `IMetric` 的桥梁方法并新增单元测试 |
+| `ChunkIter`, `LinesRaw`, `Lines`、`iter_chunks`/`lines` API | 文本块与行遍历 | C# 尚未创建对应类型 | 现可根据 Rust 定义生成骨架（建议放入 `Rope/Iterators/`），接口返回 `ReadOnlyMemory<char>` 以规避多余分配 |
+| `Cursor`, `CursorIter` | Metric 驱动的遍历游标 | `Tree/NodeCursor.cs` 已存在骨架 | 依据 Rust 缓存结构增加字段：固定大小父链缓存、当前叶引用与偏移 |
+
+### 暂需额外设计或信息的符号
+
+| Rust 符号/片段 | 当前阻碍 | 影响 | 计划 |
+|----------------|-----------|------|------|
+| `Cursor<'a, N, L>` 的缓存模型 | Rust 依赖生命周期与 `Option<&'a L>` 持久化叶引用；C# 需以索引或共享节点替代 | 游标迭代、查找与 `find.rs` 依赖 | 在 `docs/rust-refactor/cursor-lifetime-refactor.md` 基础上细化索引化方案，随后扩充 `NodeCursor` 字段与构造逻辑 |
+| `Rope::next_grapheme_offset`、`prev_grapheme_offset` 等 | Rust 借助 `unicode_segmentation::GraphemeCursor`，.NET 标准库缺乏等价实现 | 影响多语言光标、选择扩展、插件同步 | 评估引入 ICU（`System.Globalization.StringInfo` / `ICU4N`）或嵌入 Rust 预处理表，决定 C# 骨架返回类型及依赖 |
+| `Rope::iter_chunks` 返回的 `Cow<str>` | Rust 通过借用避免分配；C# 需在 `string`、`ReadOnlyMemory<char>`、`ReadOnlySpan<char>` 之间取舍 | Buffer diff、序列化与插件接口的遍历性能 | 制定跨语言块枚举协议，可能以 `ReadOnlyMemory<char>` + 池化 string 替代，骨架中需先定义抽象返回类型 |
+| `Tree::convert_metrics` 与 `Node::edit` 中的 `Into<Node>` | Rust 泛型允许零拷贝地在不同 Metric 间转换；C# 需显式限定泛型与 `ILeafOperations` | 影响 Delta/Subset 与 Rope API 的泛型一致性 | 在 `Node.Generic.cs` 引入受约束的静态抽象成员，并对 `Node` 特化实现重定向 |
+| `helpers/string_leaf.rs::find_leaf_split_for_bulk`/`for_merge` | Rust 基于 UTF-8 窗口；C# 当前仅暴露 UTF-16 版本 | 当叶片超限或 bulk 构建时会出现拆分偏差 | 扩充 `StringLeafOperations`，对拍 `leaf_split_parity_samples.json` 以验证拆分窗口 |
+| `TreeBuilder::push_slice` & `Node::subseq` | Rust 使用 `Interval` 和栈化拆分策略，涉及临时 `Vec<Node>` | 影响 Rope 编辑与 Delta 应用的性能 | 记录临时节点池策略，考虑在 C# 中使用 `ArrayPool<Node>` 以降低分配 |
 
 > 注：表格只列出首批重点模块，可在实际推进中扩充行或拆分更细粒度的子文件（例如 `tree/node.rs`、`tree/edit.rs` 等）。
 
@@ -112,47 +138,18 @@
 6. **夹具维护**：按照 `docs/architecture/rope-serialization-fixture-playbook.md` 执行 Stage D 刷新流程，在完成复制与验证后回填本表与相关文档的状态备注。
 
 ## 主要缺口
-先对照 rope.md 走了一圈，整体感觉这份 C# skeleton 已经把“Rope + Tree + Metric”主干都列出来了，但和 Rust 原版相比仍有几块明显缺口，需要补上才能支撑后续的类型对齐和实现规划。
 
-- **Delta/Subset/Transformer 整块缺席**  
-  Rust `delta.rs`、`multiset.rs` 的类型（`Delta<T>`, `InsertDelta`, `Subset`, `SubsetBuilder`, `Transformer` 等）在 C# skeleton 中完全没有。`core-lib` 与 `engine.rs` 强依赖这套接口，缺了它们我们很难往上游推进；当前等待 Rust 拆分宏与 helper 后再同步实现。
-
-- **辅助模块（Breaks/Compare/Diff/Find）未体现**  
-  Rust 的 `breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 在 C# 侧没有任何骨架，意味着行号、diff、搜索等能力还没映射，后续要补的类型和接口会不少。
-
-- **Tree 模块泛型差异未记录**  
-  Rust 的 `Node<N>`、`TreeBuilder<N>` 是泛型化设计；我们 C# 目前直接特化成 `Node`（string 叶片）。Skeleton 里最好显式备注“暂时特化 string”或“未来计划恢复泛型”，免得在设计阶段忽略这一差异；Rust 端正在将关联类型替换为显式泛型，完成后需同步更新。
-
-- **Cursor 细节空白**  
-  Rust `Cursor<'a, N>` 包含位置缓存、固定大小数组等优化。C# 的 `NodeCursor` 目前只是方法签名。Skeleton 可以添加字段/注释（例如 cache、当前 leaf 引用、偏移量等），否则后续实现时还要回头从 Rust 文档再找一次。
-
-- **RopeInfo 与 Metric 贯穿全局的契约说明不足**  
-  Rust 中 `NodeInfo::interval` 等默认方法在 C# 已抽象出来，但 skeleton 里没有标明这些契约如何被 `Node`、`TreeBuilder` 使用，也没有点出“IntervalForPrefix 仍未覆盖非默认行为”。
-
-- **命名空间层级和模块边界未凸显**  
-  Rust 按模块分层。Skeleton 里所有类型几乎都堆在一个文件里，很难看出“这是 Tree”“这是 Delta 模块”。对照时会增加认知负担。
+- **游标缓存与生命周期策略仍待定**：尽管 Rust `Cursor` 接口已经稳定，但其依赖的 `Option<&'a L>`、固定大小缓存数组需要在 C# 中重新建模，目前 `Tree/NodeCursor.cs` 仅包含最小骨架。
+- **Rope 块/行/字素迭代器尚无 C# 映射**：`ChunkIter`、`LinesRaw`、`Lines` 以及相关 `Rope::lines*` API 在 C# 中缺位，导致高层遍历、Diff/查找等功能无法接线。
+- **Grapheme 与 ICU 依赖策略未决**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 需选择 `StringInfo`/ICU4N 等替代并评估性能差异。
+- **辅助模块仍为空白**：`breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 等仍在规划阶段，无法支撑视图层和插件所需的断点、差异和搜索能力。
 
 ## 改进思路
 
-1. **补齐缺失模块骨架**  
-  - 按照 `rope-port-mapping.md` 建的映射表，把 `Delta`, `Subset`, `Transformer`, `CountMatcher`, `BreakBuilder`, `LineHashDiff`, `FindResult` 等关键类型都先放进 skeleton，并写上职责摘要。
-  - 即便暂时未实现，也能在文档中清楚列出 TODO/待对齐信息，方便设定下一阶段的编码任务；若 Rust 端已有 helper 改造，需同步方法签名。
-
-2. **强化 Tree 泛型/特化的设计说明**  
-   - 在 skeleton 的 `Node`/`TreeBuilder` 注释里写明“C# 当前特化 string 叶片，后续评估泛型化方案”，必要时给出拓展接口（例如 `ILeafOperations`）的使用方式。
-   - 如果有计划引入泛型版本，可在 skeleton 里预先定义 `Node<TInfo>`、`TreeBuilder<TInfo>` 的草稿或备注，让设计取向更明确。
-
-3. **补全 Cursor 内部状态骨架**  
-   - 给 `NodeCursor` 增加与 Rust 一致的字段：`root`, `position`, `cache`（例如固定大小数组）、`leaf`, `offsetOfLeaf`。并在注释里标出缓存策略/无分配前提。
-   - 将 Rust 中的核心方法（`descend`, `measure_leaf`, `descend_metric`, `next_leaf`, `prev_leaf` 等）以 stub 形式加进去，避免遗漏。
-
-4. **模块化视图与文档互通**  
-  - 在 skeleton 文件里按模块加标题或分段注释（例如 `// ==== Delta ====`, `// ==== Engine ==== `），对应 Rust 中的 `mod`。这样和 rope.md 对照时更直观。
-  - 新增关联文档链接注释，例如在 `Delta` 段落写“// 参考 docs/architecture/rope-delta-notes.md”，并在 Rust 端注释中标明对齐目标，方便双端定位。
-
-5. **记录跨文件依赖**  
-  - 例如在 `Rope`、`Engine` 骨架位置注明它们依赖的模块（Delta/Subset/Tree），以及任何计划使用的辅助结构（Breaks、Compare、Diff）。帮助在规划实现顺序时横向串联。
-  - 若 Rust 端在 helper 拆分后新增模块/函数，也要在此处标注，以免遗漏迁移。
+1. **补齐 Rope 迭代器与游标骨架**：按照 Rust 定义扩展 `NodeCursor` 字段与内部辅助方法，同时在 `Rope/Iterators` 新增 `ChunkIterator`, `LineIterator` 等类型，确保接口签名与 Rust 对齐。
+2. **确定 Grapheme 处理方案**：对比 `System.Globalization.StringInfo`, `Rune` API 与 ICU4N 实现，撰写设计备忘并在骨架中选定返回类型，避免后续 API 反复改动。
+3. **拉通 Metric 与 Node 泛型桥接**：在 `Node.Generic.cs` 补充静态抽象成员使用范式，明确 `convert_metrics`、`count` 等方法如何复用 `IMetric`，同时更新测试覆盖。
+4. **规划 Breaks/Diff/Search 子系统落点**：为 `Tree/Breaks.cs`, `Diff/`, `Search/` 目录生成最小骨架和 TODO，结合 Stage D 夹具制定迭代顺序。
 
 ### Metric Helper 对齐记录
 
