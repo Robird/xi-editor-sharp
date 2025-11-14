@@ -142,20 +142,22 @@
 
 | Rust 模块 | 关键职责 | C# 目标 | 状态 | 备注 |
 |-----------|----------|---------|------|------|
-| `tree.rs` | 节点借用、合并、再平衡 | `Tree/Node.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 叶片借用/合并、SharedNode helper 已对齐；内部节点再平衡与诊断待补 |
-| `tree.rs`（Cursor 等） | `Cursor`, `BalanceIter` | `Tree/`（待补类） | Rust 重构中 | 等待生命周期削薄为索引/Arc 模式 |
-| `rope.rs` | Rope API、Metric 聚合 | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `StringLeafOperations`、`BreaksMetricHelper` 已落地；聚合增量刷新未完成 |
+| `tree.rs` | 节点借用、合并、再平衡 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs`, `Tree/StringLeafOperations.cs`, `Tree/TreeContracts.cs` | 实现中 | 叶片借用/合并与 SharedNode helper 已对齐；泛型包装层尚未接入主线，内部节点再平衡与诊断待补 |
+| `tree.rs`（Cursor 等） | `Cursor`, `BalanceIter` | `Tree/NodeCursor.cs`（骨架） | Rust 重构中 | NodeCursor 骨架已创建；等待生命周期削薄为索引/Arc 模式后补齐游标与再平衡迭代器 |
+| `rope.rs` | Rope API、Metric 聚合 | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `StringLeafOperations`、`BreaksMetricHelper` 已落地；聚合增量刷新与泛型 Node 接入待完成 |
 | `delta.rs` | `Delta`, `Transformer` | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 完成泛型 `Delta` 与 JSON；`factor`/`Transformer` 待实现 |
 | `multiset.rs` | `Subset`, `SubsetBuilder` | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 完成 JSON 回归与 triple helper |
 | `engine.rs` | CRDT Engine、Undo | `Rope/Engine.cs`, `Rope/EngineJson.cs` | 已实现 | Stage C 完成不可变镜像与黄金 fixture |
 | `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 基础半开区间 [Start, End) 结构已落地，后续可扩展 Span 友好 helper |
-| `diff.rs` / `compare.rs` | Diff 与比较 | `Diff/` 模块 | 未开始 | 评估复用现成库或逐步移植 |
-| `breaks.rs` | 段落切分 | `Tree/Breaks.cs` | 未开始 | 与 `LeafSplitter` 协同 |
-| `find.rs` / `spans.rs` | 搜索与高亮 | `Search/` 模块 | 未开始 | 依赖 Metric、Interval |
-| `serde_impls.rs` | 序列化支持 | `Rope/SubsetJson.cs`、`Rope/DeltaJson.cs`、`Rope/EngineJson.cs` | 实现中 | Subset/Delta/Engine JSON 镜像已完成，其余模块待补 |
+| `diff.rs` / `compare.rs` | Diff 与比较 | `Diff/` 模块（规划中） | 未开始 | 待建立 `src/xi.Core/Diff/` 骨架，评估复用现成库或逐步移植 |
+| `breaks.rs` | 段落切分 | `Rope/BreaksMetricHelper.cs` | 已实现 | 零分配断点 helper 与测试已到位；与树结构的再平衡入口仍需整合 |
+| `find.rs` / `spans.rs` | 搜索与高亮 | `Search/` 模块（规划中） | 未开始 | 需先建 `src/xi.Core/Search/` 骨架，依赖 Metric、Interval |
+| `serde_impls.rs` | 序列化支持 | `Rope/SubsetJson.cs`、`Rope/DeltaJson.cs`、`Rope/EngineJson.cs` | 进行中 | Stage A-C JSON 镜像完成；Stage D 夹具刷新与自动化尚在推进 |
 | `test_helpers.rs` | 测试工具 | `tests/xi.Core.Tests/RopeTestHelpers.cs` | 已实现 | 提供不变量断言与诊断输出 |
 
 **脚注**：映射表需在每次落地或 Rust helper 改造后刷新，并同步 `docs/architecture/rope-port-mapping.md`。
+
+> 2025-11-14 自查：上述路径已对照仓库现状修订；`Diff/` 与 `Search/` 模块尚未建立，后续任务需先补齐骨架再对外引用。
 
 ### 5.3 Helper 对齐记录
 
@@ -167,13 +169,13 @@
 ### 5.4 缺口与改进
 - **Delta/Transformer**：C# 侧尚缺 `factor()`、`summary()`、`transform_expand()` 等核心算法；需等待 Rust helper 拆分完成。
 - **Cursor 架构**：Rust `Cursor<'a>` 需改写为索引/Arc 模式，C# 才能实现无生命周期版本。
-- **Breaks/Diff/Search**：相关模块骨架仍未建立，需先创建占位文件并写明依赖。
-- **泛型节点记录**：当前 C# `Node` 特化字符串叶片，需在骨架注释中明确计划回归泛型，配合 Rust 端泛型化成果。
+- **Breaks 整合 / Diff / Search**：`BreaksMetricHelper` 已实现并通过测试，但尚未与树的再平衡入口联动；Diff/Search 模块仍需先落地骨架再逐步移植。
+- **泛型节点记录**：`Node.Generic.cs` 骨架已存在但尚未接入主实现，需在注释中持续标注与 Rust 泛型化成果的对齐计划。
 
 ### 5.5 下一步
-1. 将 `Delta`、`Transformer` 的空壳类型补入 `Xi.Core.Rope`，写明 TODO 与 Rust 对应 helper。
+1. 在 `Xi.Core.Rope` 补全 `Transformer` 骨架并标注与 Rust helper 的对齐 TODO（`Delta.Factor` 仍保留 stub）。
 2. 刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs`，确保骨架反映最新 helper 与泛型签名。
-3. 在 `xi.Core.Tests` 添加与 Rust 测试同名的 `Skip` 用例，待功能落地后依次启用。
+3. 在 `xi.Core.Tests` 添加与 Rust 测试同名的 `Skip` 用例，为 `Transformer`/`factor` 等特性预留验证入口。
 
 ---
 
@@ -185,7 +187,7 @@
 |------|----------|----------|---------------|------|
 | **M0** 已完成 | 架构梳理、计划对齐 | 架构文档（含本文件）、`AGENTS.md` 更新 | 导出 `docs/reference/rust-skeleton.md` | Rust 代码调研 |
 | **M1** 进行中 | .NET 解决方案骨架 + Rope 原型 | `Xi.Editor.sln`、`xi.Core`、`xi.Core.Tests` 基线 | Rust 精简工作区，冻结核心 crate | M0 |
-| **M2** | Rope & Delta 最小集 | `Xi.Core.Rope` 核心结构、SharedNode helper、Stage A-C serde 镜像 | Rust 提供 SharedNode/Metric helper，继续阶段 D | M1 |
+| **M2** 进行中 | Rope & Delta 最小集 | `Xi.Core.Rope` 核心结构、SharedNode helper、Stage A-C serde 镜像 | Rust 提供 SharedNode/Metric helper，继续阶段 D（夹具刷新自动化） | M1 |
 | **M3** | 编辑命令流水线 | `Xi.Core.Editing`（Selection、Movement、Undo）、CRDT 集成测试 | Rust 拆解宏，输出编辑 helper | M2 |
 | **M4** | 视图缓存与通知 | `Xi.Core.Views`（LineCache、Style、Diff） | Rust 精简 `line_cache_shadow` helper | M3 |
 | **M5** | 插件 & Tool Call | `Xi.Core.Plugins`、JSON-RPC Host、示例插件 | Rust 统一 `trace` shim、RPC schema | M4 |
