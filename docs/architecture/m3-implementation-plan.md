@@ -36,6 +36,19 @@
 - **文档同步**：`port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md` 反映最新状态
 - **可回退性**：保留 `Node.cs` 字符串特化路径，M3 阶段不强制切换泛型
 
+### 1.5 T0 前置事项与依赖
+`T0` 定义为进入 T1-T4 子任务前必须具备的最小运行基线。外部评审确认以下事项需要写入时间线并纳入 owner/工时承诺。
+
+| 项目 | 当前状态 | Owner | 预计工时 | 备注 |
+|------|----------|-------|----------|------|
+| NodeCursor 回归修复 | ✅ 已完成（2025-11-16 通过 `dotnet test Xi.Editor.sln --filter NodeCursorTests`） | C# Implementer | 已投入 0.5 天 | 解除“游标测试全红”假设，作为 T0 完成项记录。 |
+| Rope 编辑版本计数器 | ⏳ 未开始 | C# Implementer + Architecture Mapper（文档约束） | 1 天 | `Rope` 层尚无 `editVersion`/`_versionTicket`，游标失效只能依赖 `ReferenceEquals`。需在 Node 编辑路径写入版本自增并记录到 `rope-port-mapping.md`。 |
+| `export-serde-fixtures --cursor-descriptors` CLI | ⏳ 未开始 | Rust Porter | 1.5 天 | 需扩展现有 `export-serde-fixtures` 工具，导出 10 个 CursorDescriptor JSON（见 §3.2.4）。交付到 `tests/xi.Core.Tests/Fixtures/CursorDescriptors/`。 |
+| Chunk Enumerator 骨架说明 | ⏳ 未开始 | C# Implementer | 1.5 天 | `RopeChunkEnumerator`/`RopeLineEnumerator` 仍停留在计划状态，缺少公开 skeleton 与 `IChunkEnumerator` 接口说明。 |
+| Grapheme 降级骨架 + 遥测挂点 | ⏳ 未开始 | C# Implementer + Architecture Mapper | 1 天 | 需补充 `GraphemeNavigation` skeleton 及遥测计数器定义，才能落实 §2.4 子任务。 |
+
+> **依赖完成顺序**：NodeCursor ✅ → Rope 版本计数器 → CLI/fixture → Chunk/Grapheme skeleton。后续子任务估时均假设这些依赖存在，如未按顺序满足需立即触发风险管理（见 §4）。
+
 ---
 
 ## 2. 任务分解与工作量估算
@@ -217,12 +230,15 @@
 
 ### 4.1 技术风险
 
-| 风险 ID | 描述 | 严重度 | 概率 | 缓解措施 | 应急预案 |
-|---------|------|--------|------|----------|----------|
-| R1 | 游标缓存失效检测不可靠（GC 压力） | 高 | 中 | - 优先使用 `ReferenceEquals` + 版本号双重检测<br>- 引入 instrumentation 监控假失效率 | 若 `ReferenceEquals` 不可靠，完全依赖版本号（`Rope._editVersion`）；极端情况下游标不支持编辑失效（API 注释说明限制） |
-| R2 | Chunk 迭代器分配过多（性能问题） | 中 | 高 | - 记录基准数据<br>- M4 优化时再处理 | 接受临时性能损失，M3 不优化 |
-| R3 | Grapheme 降级导致编辑行为与 Rust 不一致 | 中 | 中 | - 在 API 注释中明确说明<br>- 收集遥测数据 | 若实际触发频率高，M4 提前引入 ICU4N |
-| R4 | Rust `CursorDescriptor` Parity 样本不足 | 低 | 低 | - Rust Porter 导出 JSON fixture（含深树、多 Metric、边界用例）<br>- 使用 `cursor_descriptor.rs` 测试生成样本<br>- 提供 serde 导出工具（扩展 `export-serde-fixtures` bin） | - 若导出工具延迟，手动构造 Descriptor JSON<br>- C# 侧先用简单场景验证，复杂场景 M3 后期补充 |
+| 风险 ID | 描述 | 严重度 | 概率 | 触发条件 | 缓解措施 | 应急预案 |
+|---------|------|--------|------|----------|----------|----------|
+| R1 | 游标缓存失效检测不可靠（GC 压力） | 高 | 中 | `NodeCursorTests` 或遥测检测到假失效率 > 1% / 高频 `ReferenceEquals` 失效 | - 优先使用 `ReferenceEquals` + 版本号双重检测<br>- 引入 instrumentation 监控假失效率 | 若 `ReferenceEquals` 不可靠，完全依赖版本号（`Rope._editVersion`）；极端情况下游标不支持编辑失效（API 注释说明限制） |
+| R2 | Chunk 迭代器分配过多（性能问题） | 中 | 高 | 压测脚本显示处理 1 MB 文本分配 > 5 MB LOH | - 记录基准数据<br>- M4 优化时再处理 | 接受临时性能损失，M3 不优化 |
+| R3 | Grapheme 降级导致编辑行为与 Rust 不一致 | 中 | 中 | 遥测显示 `CodePointFallbackCount` / 交互 bug 超过 0.5% session | - 在 API 注释中明确说明<br>- 收集遥测数据 | 若实际触发频率高，M4 提前引入 ICU4N |
+| R4 | Rust `CursorDescriptor` Parity 样本不足 | 低 | 低 | T1.6 启动时 `CursorDescriptors/*.json` < 10 份或缺深树样本 | - Rust Porter 导出 JSON fixture（含深树、多 Metric、边界用例）<br>- 使用 `cursor_descriptor.rs` 测试生成样本<br>- 提供 serde 导出工具（扩展 `export-serde-fixtures` bin） | - 若导出工具延迟，手动构造 Descriptor JSON<br>- C# 侧先用简单场景验证，复杂场景 M3 后期补充 |
+| R8 | Rope 版本计数器缺失导致游标无法可靠失效 | 高 | 中 | 2025-11-18 前 `Rope` 编辑路径仍未更新 `_editVersion` | - 由 C# Implementer 在 `Rope.Edit`/`Node.Edit` 管线写入版本自增<br>- Architecture Mapper 在 `rope-port-mapping.md` 中追踪实现状态 | 临时退回到仅 `ReferenceEquals` 判定，并在 API 注释中声明编辑后需手动重建游标 |
+| R9 | `export-serde-fixtures --cursor-descriptors` CLI 未落地 | 中 | 中 | 2025-11-19 前工具未合入 `xi-editor-ph7` 主支 | - Rust Porter 先提交最小 CLI patch，并在周同步会上演示输出格式<br>- Architecture Mapper 将 CLI 作为 Stage D 资产登记 | 由 C# 实现者手写 2-3 个最小 JSON 以解锁单测，其余样本延后补全 |
+| R10 | Chunk/Grapheme 骨架缺失拖慢 T3/T4 | 中 | 中 | T3.1/T4.1 开始时仍无 `RopeChunkEnumerator` / `GraphemeNavigation` skeleton | - 在 2025-11-18 前提交 skeleton PR，并同步 `docs/skeleton/rope.md`<br>- 通过 Architecture Mapper 追踪 owner/工时 | 将 `Rope.Snapshot()` + `string` 操作作为临时实现，并推迟性能测试至 M4 |
 
 > **修改者**：Rust Porter  
 > **修改理由**：补充缓解措施细节，明确样本来源与应急预案  
@@ -293,6 +309,18 @@
 | **Chunk 完成** | - `RopeChunkEnumerator` 测试通过<br>- 性能基准记录完成 | AI 架构师 |
 | **Grapheme 完成** | - 遥测计数器验证通过<br>- API 注释完整 | AI 架构师 |
 | **M3 验收** | - 114 项 + 新增测试全部通过<br>- 10 项管控措施落实 | AI 架构师 + Architecture Mapper |
+
+### 5.3 现实基线状态（2025-11-16）
+
+**测试现状**
+- `dotnet test Xi.Editor.sln --filter NodeCursorTests` ✅，确认游标专项回归已恢复；尚未重新跑完整 114 项套件，因此“114 项 + 游标全绿”仍是目标值而非现状。
+
+**缺失组件与差距**
+1. **Rope 编辑版本计数器**：`Rope`/`Node` 编辑路径仍缺 `_editVersion` 或等效票据，M3 任务当前只能依赖 `ReferenceEquals` 检测失效。该缺口直接影响 R1、R8 风险，需要在 T0 阶段补齐。
+2. **Cursor Parity CLI**：`export-serde-fixtures` 尚无 `--cursor-descriptors` 子命令，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 为空，导致 T1.6 只能手工构造少量样本。
+3. **Chunk/Grapheme Skeleton**：`RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs`、`GraphemeNavigation` 遥测骨架仍为 TODO，计划表中的估时基于“骨架已存在”假设，与现实不符。
+
+> 本小节取代原“全量测试已绿”的假设，供后续同步与周会引用；每次重新跑完 114 项测试或补齐依赖后需更新时间戳。
 
 ---
 
@@ -459,6 +487,7 @@
 | 2025-11-16 | 1.0 | Architecture Mapper | 初始版本，基于星形会议决策创建 |
 | 2025-11-16 | 1.1 | Rust Porter | 评审修改：<br>- §3.1 细化 Rust Porter 职责（样本格式、算法咨询）<br>- §3.2.1 补充协作接口输入输出规格<br>- §3.2.4 新增 CursorDescriptor JSON 样本清单（10 个 fixture）<br>- §4.1 R4 增强缓解措施（样本导出工具、应急预案）<br>- §5.0 新增算法咨询预案（5 类疑问 + 响应时效）<br>- §5.2 游标验收补充 Parity 样本数量要求<br>- §6.2.2 细化 Rust Porter 评审触发条件<br>- §9.2 补充 Rust 测试文件引用 |
 | 2025-11-16 | 1.2 | C# Implementer | 评审修改：<br>- §2.1.1 T1.6 工作量调整（1-1.5天 → 2-2.5天，增加 JSON 解析与调试缓冲）<br>- §2.2.2 T2.2 细化（0.5天 → 1天，补充接口设计与测试要求）<br>- §4.1 R6 增强缓解措施（接口隔离 + 降级备份方案）<br>- §4.1 R1 修正应急预案（版本号降级 + 假失效监控，而非全遍历）<br>- §3.2.1 明确 C# Implementer 输出包括算法疑问提案（含自查结果） |
+| 2025-11-16 | 1.3 | Architecture Mapper | 外部评审回填：<br>- §1.5 新增 T0 依赖与 owner/工时<br>- §4.1 扩展风险表（触发条件 + R8-R10）<br>- §5.3 新增现实基线状态，澄清测试与缺失组件<br>- 变更日志同步当前版本 |
 
 ---
 

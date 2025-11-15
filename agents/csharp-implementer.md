@@ -184,6 +184,20 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - M3 T0 NodeCursor 游标遍历修复（26/26 测试通过）
+**任务背景**：`NodeCursor` 仍停留在占位实现，`MoveToPrevious_WithLinesMetric` 与 `RoundTrip_BaseMetric` 两项单测失败，外部评审认定为 M3 启动 T0 阻断项。
+
+**关键改动**：
+1. ✅ **叶片遍历补全**：实现 `PrevLeaf`/`NextLeaf`/`PeekPrevLeaf`，对齐 Rust `tree.rs` 缓存回溯策略（含 4 层 path cache、fallback descend）。
+2. ✅ **Metric 累积与跨叶导航**：重写 `Descend`/`DescendMetric`，新增 `PreviousInsideLeaf` helper，确保 Base/Lnes metric 在叶内、跨叶都能正确定位边界，并在到达 EOF 时正确失效。
+3. ✅ **EOF 语义矫正**：命中 `_root.Length` 时主动失效并允许 `MoveToPrevious` 重新 `Descend` 复位，防止测试中出现额外迭代计数。
+
+**验证**：`dotnet test Xi.Editor.sln --filter NodeCursorTests`（26/26 全绿）。
+
+**残留风险**：
+- Path cache 仍限定 4 层，极深树上会频繁回退到 `Descend()`，需后续通过 profile 评估。
+- EOF 失效后依赖 `Descend()` 复位，若未来引入“修改检测”机制需确保不会与版本号失效策略互相干扰。
+
 ### 2025-11-16 - M3 T1.1 游标结构设计（完成 80%）
 **任务背景**：架构师批准 M3 实施计划 v1.2，要求基于字符串特化 `Node.cs` 实现拥有型游标系统，支持 Base/Lines/Utf16 三类 Metric 导航。
 

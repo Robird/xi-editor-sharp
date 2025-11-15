@@ -169,6 +169,19 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - M3 现实基线与依赖补录
+#### 已完成任务
+- ✅ 重新审阅 `docs/architecture/m3-implementation-plan.md`，新增 §1.5 T0 依赖表、§5.3 现实基线以及扩展 §4.1 风险（含触发条件、R8-R10）。
+- ✅ 将 `dotnet test Xi.Editor.sln --filter NodeCursorTests` 最新通过结果记入计划，澄清“114 项+游标全绿”仍是目标值。
+- ✅ 在 `docs/architecture/rope-port-mapping.md` 的“主要缺口”中登记 `export-serde-fixtures --cursor-descriptors` CLI 依赖，确保 Cursor parity 资产被追踪。
+- ✅ 本档案“最近完成”章节记录更新，维持 Architecture Mapper 认知同步。
+
+#### 后续监控
+- ⚠️ 跟踪 `Rope` 版本计数器实现是否在 2025-11-18 前合入；若延迟需升级 R8 风险。
+- ⚠️ 每日确认 Rust Porter 对 `--cursor-descriptors` CLI 的进度，并在资产落地后刷新 `rope-port-mapping.md` 状态。
+- ⚠️ T3/T4 Skeleton 提交前检查 `RopeChunkEnumerator` 与 Grapheme 遥测骨架是否具备最小实现，必要时提前准备替代方案。
+- 🔄 待全量 114 项测试重新跑完后，回写 §5.3 时间戳并记录差异。
+
 ### 2025-11-16 - M3 实施计划创建
 #### 已完成任务
 - ✅ 阅读 `type-system-migration-log.md` 会议决策章节（星形会议结论：坚持骨架映射，方案 B）

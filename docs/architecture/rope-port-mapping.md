@@ -169,6 +169,7 @@
 - **Rope 块/行/字素迭代器尚无 C# 映射**：`ChunkIter`、`LinesRaw`、`Lines` 以及相关 `Rope::lines*` API 在 C# 中缺位，导致高层遍历、Diff/查找等功能无法接线。
 - **Grapheme 降级策略的监控**：降级实现已确认为短期方案，需持续收集跨叶补片与 code point 回退频次，供未来是否追平 Rust 版本决策参考。
 - **辅助模块仍为空白**：`breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 等仍在规划阶段，无法支撑视图层和插件所需的断点、差异和搜索能力。
+- **Cursor Parity 资产出入口缺失**：`export-serde-fixtures` 尚未提供 `--cursor-descriptors` 子命令，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 目录为空，无法支撑文档 §3.2.4 所要求的 10 份 JSON fixture。Rust Porter 需在 Stage D 资产表登记该 CLI，Architecture Mapper 在本表追踪其落地状态。
 
 ## 改进思路
 
