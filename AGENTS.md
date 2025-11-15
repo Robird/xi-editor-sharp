@@ -499,6 +499,30 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **认知提醒机制**：明确 SubAgent 也会读取本文档但缺少 `runSubagent`，确保"未来的自己"在不同会话中能识别当前身份（主 Agent / SubAgent）并采用对应工作模式。
 - **测试基线更新**：`dotnet test Xi.Editor.sln` 从 102 项增至 106 项（新增泛型 Node 诊断测试），全部通过。
 
+### 2025-11-16（晚）（星形会议：类型系统阻塞点可行性评估）
+- **会议目标**：评估 `type-system-migration-log.md` 中 4 个阻塞点是否可解决，决定是否坚持骨架映射策略。
+- **会议形式**：星形会议（AI 架构师通过 `runSubagent` 邀请 3 位核心成员发言），共 3 轮深度讨论。
+- **第 1 轮（阻塞点分类）**：
+  - Architecture Mapper：将 4 个阻塞点分类为"必须解决/可降级/已确认降级"，提出 M3 检查点（2 周）立即行动项。
+  - Rust Porter：确认当前 Rust 能力（`CursorDescriptor` + 4 个 shim）已解除核心依赖，强烈支持坚持骨架映射。
+  - C# Implementer：评估游标/泛型/Chunk/字素实现难度，建议泛型节点分两阶段（M3 接口验证，M4 完整切换）。
+- **第 2 轮（泛型节点时机分歧）**：
+  - Architecture Mapper 对比方案 A（M3 完整接入）与方案 B（M3 接口验证 + M4 切换），推荐方案 B 以降低风险、保持文档可信度、符合渐进式演进原则。
+  - 提出 10 项架构管控措施（文档/代码/进度/回退四维度）。
+- **第 3 轮（执行细节确认）**：
+  - C# Implementer 立即执行代码管控措施：新增 `TypeAliases.cs`（global using 别名）、`Node.cs` 警告注释、`TreeBuilder.Generic.cs` + 8 项泛型接口测试。
+  - 测试基线从 106 项增至 114 项全部通过（新增 8 项 `GenericNodeInterfaceTests`）。
+- **会议决策**：**✅ 一致通过方案 B（坚持骨架映射，M3 接口验证 + M4 完整切换）**
+- **阻塞点分类结果**：
+  - 游标生命周期：✅ 必须解决，M3 基于字符串特化实现（5-7 天）
+  - Metric 互操作：⚠️ 可部分降级，M3 保留动态 `IMetric` + 泛型接口验证
+  - Chunk 迭代器：⚠️ 可降级但有代价，M3 临时返回 `ReadOnlyMemory<char>`（3-4 天）
+  - 字素导航：✅ 已确认降级，M3 实现 surrogate 安全 + 遥测（2 天）
+- **M3 工作量**：15-20 天（约 2-3 周），包含游标、泛型接口验证、Chunk 骨架、字素降级。
+- **架构管控**：10 项措施已提出并部分落地（TypeAliases.cs、警告注释、泛型 Builder + 8 项测试已完成）。
+- **文档更新**：`type-system-migration-log.md` 新增会议决策章节，记录方案 B 核心要点与测试验收。
+- **下一步**：Architecture Mapper 更新 `port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`；C# Implementer 推进 M3 实施。
+
 ### 2025-11-14 及以前（摘要）
 - 与 Stage A/B/C 相关的 Subset/Delta/Engine 序列化镜像、Rope 字符串 helper 抽离与 Cursor 缓存等成果，均已在"已完成事项"对应条目中完整记录。
 - Rust 工作区瘦身、TreeBuilder Trace/Metric helper 试点以及早期文档整合等行动，详见"已完成事项"，此处仅保留概览以减轻日志冗长。

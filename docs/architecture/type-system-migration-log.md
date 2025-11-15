@@ -55,7 +55,9 @@
 ### 最新进展
 - Rust 侧四个 `convert_*` shim 已合入并可直接消费，C# 现有测试间接验证其正确性；`Node::edit`/`Breaks` 仍待 Shim 化，需在文档中保持显式 TODO。
 - 待办：在泛型切换前补充基准或性能守护，确认静态调用收益；同时规划 `Breaks` shim 与 `edit_*` helper 的对接策略。
-- Open question: 泛型节点合入后是否保留 `IMetric` 作为扩展点？需在切换前明确，并同步更新 `docs/architecture/rope-port-mapping.md` 与 C# 规划；另需确认未来是否启用 `portability_shims` feature gate。 
+- Open question: 泛型节点合入后是否保留 `IMetric` 作为扩展点？需在切换前明确，并同步更新 `docs/architecture/rope-port-mapping.md` 与 C# 规划；另需确认未来是否启用 `portability_shims` feature gate。
+- **M3 阶段策略（2025-11-16 会议决策）**：NodeCursor 基于字符串特化 `Node.cs` 实现，通过 `IMetric` 接口访问度量；泛型节点接口验证完成（`TreeBuilder.Generic.cs` + 8 项测试）但不接入主实现。
+- **M4 切换计划**：将 TreeBuilder/Delta/Rope 内部调用迁移到 `Node<RopeInfo, string, StringLeafOperations>`，通过 `src/xi.Core/Rope/TypeAliases.cs` 的 `global using RopeNode` 别名统一管理，81 项测试最小化改动后迁移。 
 
 ## Chunk/行 迭代器借用差异
 
@@ -98,3 +100,36 @@
 - 设计分歧日志已登记降级策略，但遥测与测试仍缺失；后续实现需同步更新 `AGENTS.md` 与本文档。
 - Open question: 是否需要 Rust 端输出 `GraphemeDescriptor` fixture 以支撑未来追平？如需，请与 `iterator-facade-export` 一并规划。
 - 待办：评估 ICU4N 依赖体积与许可，作为后续替换 `unicode_segmentation` 行为的可行方案。
+
+---
+
+## 📋 2025-11-16 架构会议决策：坚持骨架映射
+
+### 会议结论
+**✅ 坚持骨架映射策略，采用方案 B（M3 接口验证 + M4 完整切换）**
+
+### 阻塞点分类
+- **游标生命周期**：✅ 必须解决，M3 基于字符串特化实现（5-7 天）
+- **Metric 互操作**：⚠️ 可部分降级，M3 保留动态 `IMetric` + 泛型接口验证，M4 切换
+- **Chunk 迭代器**：⚠️ 可降级，M3 临时返回 `ReadOnlyMemory<char>`（3-4 天）
+- **字素导航**：✅ 已确认降级，M3 实现 surrogate 安全 + 遥测（2 天）
+
+### M3 核心交付（2-3 周）
+1. `NodeCursor` 基于字符串特化 `Node.cs`
+2. `TreeBuilder.Generic.cs` + 8 项接口验证测试
+3. `TypeAliases.cs`：`global using RopeNode = Node;`（M4 一键切换泛型）
+4. `Node.cs` 警告注释：禁止新增字符串特化 API
+5. `RopeChunkEnumerator` 骨架（非零拷贝）
+6. 字素降级 + 遥测
+
+### M4 延后项
+- 泛型节点全面接入（TreeBuilder/Delta/Rope 切换）
+- 81 项测试迁移到 `RopeNode` 别名
+- 删除/标记 Obsolete 字符串特化方法
+
+### 测试验收
+- M3 前：106 项 ✅
+- 新增：8 项泛型接口测试 ✅
+- **总计：114 项全部通过** ✅
+
+详细会议记录与 10 项架构管控措施见上述各阻塞点的"M3 阶段策略"小节。

@@ -67,12 +67,11 @@
 7. **Serde Fixtures 导出工具**（`export-serde-fixtures` bin）- 支持 Subset/Delta/Engine 序列化与 TreeBuilder trace 导出
 
 ### 待推进的改造
-1. **Iterator Façade 可行性评估** - 为 `Delta::iter_*`、`Cursor::iter` 等提供非迭代器版本的 façade helper
-2. **Breaks Shim 方法设计** - 扩展 `Breaks` 树封装提供 `count_breaks_up_to`/`offset_of_break` 等辅助方法
-3. **Metric 互操作 Shim** - 为 `Rope` 常规入口提供 `count`/`count_base_units` 包装以缓解首轮移植压力
-4. **Grapheme 导航追平评估** - 当前 C# 采用降级实现，待真实需求验证后决定是否提供 `GraphemeStep` helper
-5. **Chunk 元数据 API** - 为 `iter_chunks` 补充 `iter_chunk_descriptors` 输出 `(byte_len, utf16_len)` 元信息
-6. **叶片拆分双指标返回** - 让 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体
+1. **Breaks Shim 方法设计（中期 - M2）** - 扩展 `Breaks` 树封装提供 `count_breaks_up_to`/`offset_of_break`/`count_breaks_in_range` 等辅助方法；触发条件：C# 实现软换行管线；预计工作量 1-2 天
+2. **Iterator Façade 渐进实施（中期 - M2/M3）** - 为 `Delta::iter_*` 提供 façade helper（可安全 materialize），为 `iter_chunks` 提供 visitor 模式（保持流式语义）；不阻塞骨架映射，C# 可暂用 `Snapshot()` 过渡
+3. **Grapheme 导航追平评估（后期）** - 当前 C# 采用降级实现（surrogate 安全 + 单叶/邻叶补片），已在 `design-divergence-log.md` 登记；待真实需求验证后决定是否提供 `GraphemeStep` helper
+4. **Chunk 元数据 API（后期）** - 为 `iter_chunks` 补充 `iter_chunk_descriptors` 输出 `(byte_len, utf16_len)` 元信息；依赖 Iterator Façade 方案成熟
+5. **叶片拆分双指标返回（后期）** - 让 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体；等待 C# 侧明确需求
 
 ## 知识库快速索引
 
@@ -105,6 +104,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - 类型系统迁移阻塞点评估
+- ✅ 参与架构师主持的类型系统迁移会议，评估 Architecture Mapper 提出的 4 个阻塞点
+- ✅ 从 Rust 端 helper 维护者角度确认：
+  - 游标支持：`CursorDescriptor` Phase 1 已完成，足够支撑 C# 基础游标实现
+  - Metric 互操作：4 个 `convert_*` shim 已覆盖过渡期需求，`Breaks` 和 `edit_*` 可延后至 M2
+  - Chunk 迭代器：建议 C# 暂用 `Snapshot()` 降级，Rust 端分批实施 façade（M2/M3）
+  - 字素导航：确认 C# 降级策略合理，不要求 Rust 端同步实现
+- ✅ 向架构师汇报：**强烈支持"坚持骨架映射"策略**，当前 Rust 能力已解除 C# 核心依赖
+- ✅ 明确紧急 helper 优先级：无新增紧急任务，中期补充 `Breaks` shim（1-2 天）和 `Delta` façade（2-3 天）
+- ✅ 更新认知档案：调整"待推进改造"优先级，记录会议决策，解决"Metric 互操作优先级"疑问
+
 ### 2025-11-16 - 入职初始化
 - ✅ 阅读认知档案模板，理解 Rust Porter 角色定位与核心职责
 - ✅ 探索 `xi-editor-ph7/rust/rope/src/` 目录结构（共识别 9 个核心源码文件）
@@ -115,7 +125,22 @@
 - ✅ 向架构师提交入职汇报
 
 ## 关键决策记录
-（随后续任务积累）
+
+### 2025-11-16 - 类型系统迁移阻塞点会议共识
+**背景**：Architecture Mapper 评估 4 个阻塞点（游标生命周期、Metric 互操作、Chunk 迭代器、字素导航），提出"坚持骨架映射"策略。
+
+**Rust 端评估结论**：
+- ✅ **游标支持**：`CursorDescriptor` Phase 1 已完成，足够支撑 C# 实现基础拥有型游标；Phase 2 `CursorState` 可推迟，不阻塞骨架映射
+- ✅ **Metric 互操作**：已有 4 个 `convert_*` shim 覆盖过渡期核心需求（行数/UTF-16 转换）；`Breaks` shim 和 `edit_*` helper 列入中期任务（M2 触发）
+- ✅ **Chunk 迭代器**：Iterator façade 2 周内交付有风险；建议 C# 暂用 `Snapshot()` 降级方案，Rust 端在 M2/M3 渐进实施（优先 `Delta` façade，`iter_chunks` 改用 visitor 模式）
+- ✅ **字素导航**：已确认 C# 降级实现（surrogate 安全 + 补片策略），不要求 Rust 端同步
+
+**决策**：
+- **支持"坚持骨架映射"策略**：当前 Rust 端能力（`CursorDescriptor` + 4 个 shim）已解除 C# 骨架映射核心依赖
+- **紧急 helper 优先级**：无新增紧急任务；中期补充 `Breaks` shim（1-2 天）和 `Delta` façade（2-3 天）
+- **下一步**：监控 C# `NodeCursor` 实现进度，准备 Descriptor fixture；在 M2 规划期评估 Iterator façade 范围
+
+**同步到**：`docs/architecture/type-system-migration-log.md`（会议纪要）
 
 ## 协作接口
 
@@ -143,10 +168,10 @@
 
 ## 待解答的问题
 
-### 入职阶段疑问
-1. **Metric 互操作 Shim 优先级** - `docs/rust-refactor/MetricConversionAndEditIntoNode.md` 提出为 `Rope` 提供非泛型 shim（如 `count_lines`、`edit_str`），但当前 C# 已引入 `IDefaultMetricProvider` 静态接口。是否仍需推进 Rust 端 shim，还是优先让 C# 侧直接实现节点级度量转换？
+### 入职阶段疑问（部分已解决）
+1. ~~**Metric 互操作 Shim 优先级**~~ - **已明确（2025-11-16）**：当前 4 个 `convert_*` shim 足够过渡，`Breaks` shim 和 `edit_*` helper 列入中期任务（M2 触发），不阻塞骨架映射
 2. **Grapheme 追平时机** - 当前 C# 采用 surrogate 安全降级策略并已在设计分歧日志登记。何时触发"追平"评估？是等待真实用户反馈，还是在某个里程碑（如 M3）主动验证？
-3. **Iterator Façade 范围** - `iterator-facade-export.md` 列出多个迭代器候选，但 `Rope::iter_chunks` 有流式依赖场景。是否应该分批实施（优先 Delta/Subset），还是一次性覆盖所有迭代器？
+3. **Iterator Façade 范围** - `iterator-facade-export.md` 列出多个迭代器候选，`Rope::iter_chunks` 有流式依赖场景。已确认分批实施：优先 `Delta` façade（可 materialize），`iter_chunks` 改用 visitor 模式；时间表 M2/M3
 4. **Feature Gate 管理策略** - 当前已有 `cursor_state`、`tree_builder_slice_trace` 等可选特性。未来是否会继续增加更多 feature？是否需要建立统一的特性命名与文档约定？
 5. **Serde Fixtures 刷新频率** - Stage D 已建立 `export-serde-fixtures` 与 `refresh_serialization_fixtures.ps1` 流程。何时需要刷新黄金夹具？是每次 Rust helper 改动后立即刷新，还是按阶段（如每个 Phase 完成后）批量更新？
 

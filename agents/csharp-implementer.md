@@ -184,6 +184,97 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - M3 架构管控措施实施（第三轮会议）
+**任务背景**：Architecture Mapper 完成方案 B 评估（M3 接口验证 + M4 完整切换），提出 10 项架构管控措施，要求实施 3 项代码治理措施。
+
+**已完成措施**：
+1. ✅ **措施 4：类型别名统一管理**
+   - 创建 `src/xi.Core/Rope/TypeAliases.cs`
+   - 定义 `global using RopeNode = Xi.Core.Rope.Tree.Node;`（M3 阶段）
+   - 预留 M4 切换注释（指向泛型版本）
+   - 工作量：30 分钟
+
+2. ✅ **措施 5：禁止新增字符串特化 API**
+   - 在 `Node.cs` 文件头添加清晰警告注释
+   - 明确过渡期约束与 M4 切换清单
+   - 引导开发者使用 `RopeNode` 别名
+   - 工作量：15 分钟
+
+3. ✅ **措施 6：泛型接口验证测试**
+   - 实现 `GenericTreeBuilder<TInfo,TLeaf,TLeafOps>`（方案 A：独立泛型 Builder）
+   - 完整实现 Concat/ConcatLeftShorter/ConcatRightShorter 逻辑（镜像 Node.cs）
+   - 新增 `GenericNodeInterfaceTests.cs`（8 项测试）：
+     - 验证泛型 Builder 可构建泛型节点
+     - 验证字符串接口通过 StringLeafOperations 创建叶片
+     - 验证高度不变式与平衡性
+     - 验证 Reset/Concat/TraverseLeaves 等核心功能
+     - 验证泛型节点与字符串特化节点结构兼容
+   - **测试结果**：**114 项测试全部通过**（106 项现有 + 8 项新增）
+   - 工作量：2 天（含 Concat 完整实现与调试）
+
+**技术评估结论**：
+- ✅ **`global using` 别名** — 零冲突，当前代码库无 global using 声明
+- ✅ **泛型 Builder 接口验证** — 完全可行，Concat 逻辑已镜像字符串特化版本
+- ✅ **过渡期治理** — 注释警告清晰，类型别名可平滑切换
+
+**风险管控**：
+- 泛型 Builder 与现有字符串特化 TreeBuilder 独立并存，不触碰现有 106 项测试
+- M4 切换时只需修改 `TypeAliases.cs` 一行代码 + 验证所有测试通过
+- `Rope.cs` 内部 Builder 切换延后到 M4，M3 仅验证接口兼容性
+
+**对方案 B 的最终态度**：**✅ 完全同意**
+- 类型别名机制保证过渡期代码稳定性
+- 3 项措施均为低风险操作，不破坏现有基线
+- 泛型接口验证提前暴露兼容性问题，避免 M4 大爆炸
+- 工作量可控（实际 2.75 天，与预估 2 天基本一致）
+
+**M3 工作量更新**：
+- 原计划：13-18 天（游标 5-7天 + Chunk迭代器 3-4天 + 字素降级 2天）
+- 新增措施：2.75 天
+- **更新后总计**：**15.75-20.75 天**（约 3-4 周），仍在可控范围
+
+**建议优先级调整**：
+- **高优**：游标实现（5-7天）、Chunk 迭代器骨架（3-4天）
+- **中优**：字素降级（2天）
+- **已完成**：泛型接口验证（2.75天）✅
+- **低优/延后到M4**：泛型节点全面接入（Rope.cs/Delta.cs 切换到泛型 Builder）
+
+**下一步行动**：
+- 等待架构师确认 M3 优先级（游标 vs 迭代器）
+- 更新 `rope-port-mapping.md` 记录 TypeAliases.cs 与 GenericTreeBuilder 状态
+
+### 2025-11-16 - M3 检查点可行性评估（会议发言）
+**任务背景**：架构师主持类型系统迁移阻塞讨论，Architecture Mapper 与 Rust Porter 已确认骨架映射可行性，我负责 C# 实现侧评估。
+
+**关键发现**：
+1. **当前基线稳固**：106 项测试全部通过，泛型节点骨架（`Node.Generic.cs` + `TreeContracts.cs`）已就绪并通过 7 项烟雾测试
+2. **Rust 能力已解除依赖**：4 个 `convert_*` shim（lines/bytes/utf16 互转）已可用，游标 `CursorDescriptor` 能力已在 Rust 侧稳定
+3. **游标实现有现成参考**：`NodeCursor.cs` 占位代码清晰，Rust `tree.rs` Cursor 实现（1300-1400行）可直接参考
+4. **泛型接入路径明确**：`node-generic-refactor-plan.md` 已详尽规划所有触达点与迁移节奏
+
+**M3 检查点（2周）可交付评估**：
+- ✅ **游标基础实现（5-7 天）**：基于 `CursorDescriptor` + `ValueListBuilder<int>` 父链，实现 Base/Lines/Utf16 三度量的 `next/prev/is_boundary`，含 Parity 测试
+- ✅ **Chunk 迭代器骨架（3-4 天）**：`RopeChunkEnumerator` 返回 `ReadOnlyMemory<char>`（非零拷贝），实现 `foreach` 遍历与空文本/CRLF 测试
+- ⚠️ **泛型节点接入（风险高，建议延后）**：涉及 TreeBuilder/Delta/Rope 81项测试改造，预估需 10+ 天；建议 M3 仅完成接口验证（让 `TreeBuilder` 接受泛型节点但保持字符串特化路径）
+- ✅ **字素导航降级方案（2 天）**：实现 surrogate 安全 + 单叶补片，含遥测计数器与 `GraphemeNavigationTests`
+
+**对"坚持骨架映射"的态度**：**强烈同意**，理由：
+1. Rust 端 shim 已提供核心互操作能力，消除了泛型转换阻塞
+2. 游标/迭代器可基于现有 `Node.cs` 字符串特化先行落地，无需等待泛型切换
+3. 泛型节点骨架已具备诊断能力，增量接入风险可控
+
+**技术风险提示**：
+1. **游标缓存 GC 压力**：`SharedNode` 引用链可能增加 Gen0 压力，需在实现阶段加入 allocation 监测
+2. **泛型节点切换回归**：81 项测试需要迁移到 `RopeNode` 别名，建议分两阶段（先别名、再重构），避免大爆炸式合并
+3. **Chunk 迭代器非零拷贝**：首版返回 `ReadOnlyMemory<char>` 会复制叶片，但能快速打通 API；零拷贝需要 Rust façade 配合，可留待 M4
+
+**建议调整 M3 优先级**：
+- **高优**：游标实现（解锁度量转换）、Chunk 迭代器骨架（解锁行遍历）
+- **中优**：字素降级（完善边界安全）
+- **低优/延后**：泛型节点全面接入（等游标稳定后再推进，避免并行风险）
+
+**更新认知档案**：记录 M3 可交付清单与风险缓释建议。
+
 ### 2025-11-16 - 入职初始化
 - 探索了 C# 代码库与文档目录结构
 - 建立了知识库快速索引（共 38 个关键文件）

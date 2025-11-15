@@ -88,15 +88,42 @@
 4. 向用户汇报进度与下一步计划
 
 ## 当前聚焦（本会话）
-- [已完成] 分析移植阻塞点与设计 AI Team 组织结构
-  - ✅ 创建设计草案（`docs/architecture/ai-team-design-draft.md`），对比 4 种方案，选定职能分工模式
-  - ✅ 创建核心团队入职模板（Rust Porter、C# Implementer、Architecture Mapper）
-  - ✅ 委派 3 位员工自主入职，建立认知档案与知识库索引
-  - ✅ 核心团队就位：Rust Porter（21 个索引）+ C# Implementer（38 个索引）+ Architecture Mapper（27 个索引）
-  - ⏳ 等待用户反馈与下一步指示
+- [已完成] ✅ 主持类型系统阻塞点可行性会议（3 轮星形讨论）
+  - 第 1 轮：Architecture Mapper、Rust Porter、C# Implementer 分别评估 4 个阻塞点
+  - 第 2 轮：Architecture Mapper 对比两种泛型接入方案，推荐方案 B（M3 接口验证 + M4 切换）
+  - 第 3 轮：C# Implementer 执行代码管控措施（TypeAliases.cs、警告注释、泛型 Builder + 8 项测试）
+  - **决策**：一致通过方案 B（坚持骨架映射，分阶段泛型化）
+  - **产物**：114 项测试全部通过（新增 8 项泛型接口测试），10 项架构管控措施，文档更新
+- [进行中] 更新架构文档记录会议决策
+  - ✅ `type-system-migration-log.md` 新增会议决策章节
+  - ✅ `AGENTS.md` 工作日志记录会议过程
+  - ⏳ 待 Architecture Mapper 更新 `port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`
 
 ## 最近完成的工作
-### 2025-11-16
+### 2025-11-16（晚）
+- **主持类型系统阻塞点可行性会议**（星形会议模式）：
+  - 议题：评估 `type-system-migration-log.md` 中 4 个阻塞点（游标/Metric/Chunk/字素）是否可解决，决定是否坚持骨架映射策略
+  - 形式：通过 `runSubagent` 邀请 Architecture Mapper、Rust Porter、C# Implementer 发言，共 3 轮深度讨论
+  - **第 1 轮**：阻塞点分类评估
+    - Architecture Mapper：分类为"必须/可降级/已降级"，提出 M3 检查点立即行动项
+    - Rust Porter：确认当前 Rust 能力（`CursorDescriptor` + 4 个 shim）已解除核心依赖，强烈支持骨架映射
+    - C# Implementer：评估实现难度，建议泛型节点分两阶段（M3 接口验证 3-5 天，M4 完整切换 7-10 天）
+  - **第 2 轮**：泛型节点时机分歧解决
+    - Architecture Mapper 对比方案 A（M3 完整接入）与方案 B（M3 接口验证 + M4 切换），推荐方案 B，提出 10 项架构管控措施（文档/代码/进度/回退）
+  - **第 3 轮**：执行细节确认
+    - C# Implementer 立即执行代码管控措施（新增 `TypeAliases.cs`、`Node.cs` 警告注释、`TreeBuilder.Generic.cs` + 8 项泛型接口测试）
+    - 测试基线从 106 项增至 114 项全部通过
+  - **会议决策**：**✅ 一致通过方案 B（坚持骨架映射，M3 接口验证 + M4 完整切换）**
+  - **阻塞点分类结果**：
+    - 游标生命周期：✅ 必须解决，M3 基于字符串特化实现（5-7 天）
+    - Metric 互操作：⚠️ 可部分降级，M3 保留动态 `IMetric` + 泛型接口验证
+    - Chunk 迭代器：⚠️ 可降级但有代价，M3 临时返回 `ReadOnlyMemory<char>`（3-4 天）
+    - 字素导航：✅ 已确认降级，M3 实现 surrogate 安全 + 遥测（2 天）
+  - **M3 工作量**：15-20 天（约 2-3 周）
+  - **架构管控**：10 项措施已提出，其中 3 项代码措施已完成落地
+  - **文档更新**：`type-system-migration-log.md` 新增会议决策章节，`AGENTS.md` 工作日志记录会议过程
+
+### 2025-11-16（早）
 - **AI Team 组织设计**：
   - 分析 6 个关键移植阻塞点（Rust Helper 滞后、C# 测试脱节、架构文档滞后等）
   - 对比 4 种组织方案（技术栈分工、功能模块分工、职能分工✅、阶段分工）
@@ -122,7 +149,18 @@
 - **测试基线更新**：泛型 Node 诊断能力增强，测试从 102 项增至 106 项全部通过
 
 ## 关键决策日志
-### 2025-11-16
+### 2025-11-16（晚）
+- [决策] **坚持骨架映射策略，采用方案 B（M3 接口验证 + M4 完整切换）**
+  - 背景：评估 4 个类型系统阻塞点（游标/Metric/Chunk/字素）是否导致放弃骨架映射
+  - 分析：通过 3 轮星形会议深度讨论，Architecture Mapper、Rust Porter、C# Implementer 一致认为：
+    - 4 个阻塞点中仅 2 个必须解决（游标）或有代价但可降级（Chunk）
+    - Rust 端当前能力（`CursorDescriptor` + 4 个 shim）已解除核心依赖
+    - M1/M2 已投入 70% 工作，放弃将导致全部作废
+  - 决策：M3 阶段（2-3 周）实现游标/Chunk/字素，泛型节点仅做接口验证；M4 阶段再完整切换泛型节点
+  - 理由：降低风险（游标与泛型解耦）、保持文档可信度（里程碑与产出对齐）、符合渐进式演进原则、降低回退成本
+  - 实施：10 项架构管控措施（其中 3 项代码措施已完成），114 项测试全部通过
+
+### 2025-11-16（早）
 - [决策] 采用"认知档案 + SubAgent"模式构建 AI Team，每个员工通过独立 `.md` 文件维护认知
 - [决策] 优先建立 Rust Porter 作为首个 AI 员工，因 Rust 端 helper 重构任务最明确
 - [决策] 入职流程分两阶段：模板初始化 → SubAgent 自主完善

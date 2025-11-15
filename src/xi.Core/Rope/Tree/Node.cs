@@ -6,6 +6,22 @@ using Xi.Core.Rope;
 
 namespace Xi.Core.Rope.Tree;
 
+// ================================================================================
+// ⚠️ M3-M4 过渡期警告 ⚠️
+// ================================================================================
+// 本类为字符串特化实现（Node），M4 将全面切换至泛型版本 Node<TInfo,TLeaf,TLeafOps>
+//
+// 过渡期约束：
+// 1. 禁止新增字符串专属 API（如 ToString()、LeafSpan 等扩展方法）
+// 2. 新功能应在 Node.Generic.cs 实现或通过 ILeafOperations 接口提供
+// 3. 外部代码应使用 TypeAliases.cs 中的 RopeNode 别名，避免硬编码 Node 类型
+//
+// M4 切换清单：
+// - 修改 TypeAliases.cs 启用泛型版本
+// - 验证所有 106+ 项测试通过
+// - 将本类标记为 [Obsolete] 或删除
+// ================================================================================
+
 /// <summary>
 /// Immutable rope node that mirrors the xi-editor rope tree structure.
 /// Supports leaf and internal nodes, providing aggregation metadata for higher-level operations.
