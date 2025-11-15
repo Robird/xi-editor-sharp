@@ -56,6 +56,8 @@
 ## 当前聚焦事项（WIP）
 - **C# 序列化镜像 Stage D（进行中）**：本会话交付共享夹具刷新手册、CI 集成策略与文档同步准则，持续保持 Rust/C# 黄金资产一致，并跟踪后续自动化落地；`serde_fixtures` 模块集中存放黄金 JSON，`export-serde-fixtures` CLI 与 `scripts/refresh_serialization_fixtures.ps1` 串联 Rust 校验与 `dotnet test`，已验证 `-SkipRust -SkipDotnet` 流程可复写夹具而无副作用。
 - **Rope 字符串 helper 对拍筹备**：随着 Rust `helpers/string_leaf.rs` 抽离完成，需要在 C# `StringLeafOperations` 与文档中持续标注 UTF-8 byte vs UTF-16 `char` 偏移差异，并策划跨语言拆分窗口 parity 测试。
+- **Grapheme 导航降级策略**：C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；接口预留上下文抽象，待真实需求驱动再评估 Rust trace/ICU 方案。
+- **设计分歧登记**：新增 `docs/architecture/design-divergence-log.md` 统一记录与 Rust 不对齐的策略，让后续复盘、差异追踪与升级决策有据可依。
 - **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
 - **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
 - **双向协同跟踪**：维护 `docs/architecture/port-blueprint.md` 的协作章节与 `docs/architecture/rope-port-mapping.md`，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
@@ -167,6 +169,7 @@
 - [假设] 保持与 Rust 版相同的树/片段结构以便复用测试与算法描述。
 - [假设] 优先通过单一 Solution 管理所有项目，便于构建脚本与 CI。
 - [TODO] 后续记录更多架构决策（通道选型、序列化库、内存策略等）。
+- [决策-2025-11-15] Grapheme 导航初版采用“单片 + 相邻片 + code point 回退”降级策略，后续是否追平 Rust 视实际需求与安全评估而定。
 
 ## 研究 / 阅读清单
 - `reference/rust/core-lib/src`：核心编辑引擎实现。
@@ -215,6 +218,10 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-15 (Design Divergence Log)
+- 创建 `docs/architecture/design-divergence-log.md`，首批登记 UTF-16 叶片与 Grapheme 降级两项与 Rust 的刻意差异。
+- 在 `AGENTS.md` 当前聚焦事项中加入“设计分歧登记”提醒，为后续新增差异提供唯一记录入口。
+- 约定后续每次新增差异时同步更新该日志并在里程碑复盘。
 ### 2025-11-15 (Stage D Fixture Consolidation)
 - 分别运行 `cargo test -p xi-rope --features serde subset_serialization_regression`, `cargo test -p xi-rope --features serde delta_serialization_regression` 与 `cargo test -p xi-rope --features serde engine_serialization_regression`，确认 `serde_fixtures` 常量与回归预期一致。
 - 执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests/xi.Core.Tests/Fixtures` 并通过 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 验证 CLI 覆写路径无副作用。

@@ -29,6 +29,8 @@
 | `tree.rs` | `Node`, `SharedNode`, `TreeBuilder`，负责节点借用/合并、再平衡骨架 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 写时复制 helper 已对齐；内部再平衡与诊断计数器尚未接入，`Node.Generic.cs` 仍待并入主实现。 |
 | `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 实现中 | Rust `CursorDescriptor` 已完成并引入可选 `cursor_state` feature gate（借用-free `CursorState`、`Cursor::state()`）；已通过 Base/Lines/Utf16 导航对拍测试验证语义一致，后续聚焦轻量 instrumentation 与 C# 游标接入。 |
 | `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代与 grapheme 接口。 |
+| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代。Grapheme 接口首版将采用“单片 + 相邻片 + code point 回退”的降级策略，后续再评估是否追平 Rust。 |
+- **Grapheme 降级实现确认**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；后续若需要更完整行为，再评估引入 `StringInfo`/ICU4N 或 Rust trace。 
 | `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | 注意记录 UTF-8/UTF-16 单位差异，继续扩充对拍样本。 |
 | `delta.rs` | `Delta`, `InsertDelta`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 镜像完成；`Transformer` 与 `factor()` 仍为 TODO。 |
 | `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 后续若新增 `IntervalTree` 需更新目录映射。 |
@@ -63,7 +65,7 @@
 | Rust 符号/片段 | 当前阻碍 | 影响 | 计划 |
 |----------------|-----------|------|------|
 | `Cursor<'a, N, L>` 的缓存模型 | Rust 依赖生命周期与 `Option<&'a L>` 持久化叶引用；C# 需以索引或共享节点替代 | 游标迭代、查找与 `find.rs` 依赖 | 在 `docs/rust-refactor/cursor-lifetime-refactor.md` 基础上细化索引化方案，随后扩充 `NodeCursor` 字段与构造逻辑 |
-| `Rope::next_grapheme_offset`、`prev_grapheme_offset` 等 | Rust 借助 `unicode_segmentation::GraphemeCursor`，.NET 标准库缺乏等价实现 | 影响多语言光标、选择扩展、插件同步 | 评估引入 ICU（`System.Globalization.StringInfo` / `ICU4N`）或嵌入 Rust 预处理表，决定 C# 骨架返回类型及依赖 |
+| `Rope::next_grapheme_offset`、`prev_grapheme_offset` 等 | Rust 借助 `unicode_segmentation::GraphemeCursor`，.NET 标准库缺乏等价实现 | 影响多语言光标、选择扩展、插件同步 | 初版实现限定“单片 + 相邻片 + code point 回退”，并在 API 中暴露上下文抽象；待真实需求验证后再决定是否引入 ICU/trace 实现完全对齐 |
 | `Rope::iter_chunks` 返回的 `Cow<str>` | Rust 通过借用避免分配；C# 需在 `string`、`ReadOnlyMemory<char>`、`ReadOnlySpan<char>` 之间取舍 | Buffer diff、序列化与插件接口的遍历性能 | 制定跨语言块枚举协议，可能以 `ReadOnlyMemory<char>` + 池化 string 替代，骨架中需先定义抽象返回类型 |
 | `Tree::convert_metrics` 与 `Node::edit` 中的 `Into<Node>` | Rust 泛型允许零拷贝地在不同 Metric 间转换；C# 需显式限定泛型与 `ILeafOperations` | 影响 Delta/Subset 与 Rope API 的泛型一致性 | 在 `Node.Generic.cs` 引入受约束的静态抽象成员，并对 `Node` 特化实现重定向 |
 | `helpers/string_leaf.rs::find_leaf_split_for_bulk`/`for_merge` | Rust 基于 UTF-8 窗口；C# 当前仅暴露 UTF-16 版本 | 当叶片超限或 bulk 构建时会出现拆分偏差 | 扩充 `StringLeafOperations`，对拍 `leaf_split_parity_samples.json` 以验证拆分窗口 |
@@ -76,7 +78,7 @@
 ### Rust 侧可移植性改造建议（2025-11-15）
 
 - **`Cursor<'a, N, L>` 缓存**：在 `tree.rs` 增补可选的 `CursorDescriptor` helper，将缓存路径存成 `Arc<NodeBody>` + 子节点索引集合，供其他语言无生命周期约束地重建游标。
-- **字素导航**：在 `rope.rs` 中抽出 `GraphemeCursor` 交互的状态机，导出可记录的 `GraphemeStep` trace（调试/测试特性），使 C# 能按记录复刻跨叶行为。
+- **字素导航**：长期仍建议在 `rope.rs` 中抽出 `GraphemeCursor` 状态机并导出可记录的 `GraphemeStep` trace，以备 C# 后续升级；短期 C# 先以降级策略上线，必要时通过 trace 驱动回归差异。
 - **Chunk 元数据**：为现有 `iter_chunks` 补充 `iter_chunk_descriptors` 之类伴随 API，输出 `(byte_len, utf16_len)` 元信息，避免在移植侧重复 UTF-8 → UTF-16 统计。
 - **Metric/Into<Node>` 抽象**：提供面向 `RopeInfo` 的非泛型 shim（如 `rope::ops::count_lines`, `rope::ops::edit_str`），将复杂的 `Into<Node>`/静态 trait 成员留在内部，实现跨语言访问的稳定入口。
 - **叶片拆分回传**：让 `helpers/string_leaf.rs` 的 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体，减少移植侧的重复扫描。
