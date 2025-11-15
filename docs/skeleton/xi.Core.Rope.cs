@@ -16,7 +16,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+8e70694a288359017e8225e799769d324e901489")]
+[assembly: AssemblyInformationalVersion("1.0.0+06088d128675c4d5a2d8852a4a3fa65e263f4e6f")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -522,8 +522,26 @@ namespace Xi.Core.Rope {
 		public string GetSlice(int start, int length) {
 			// Extracted a substring by slicing the underlying rope structure.
 		}
+		public int ConvertLinesFromBytes(int offset) {
+			// Converted a byte offset into a zero-based line index using the Lines metric.
+		}
+		public int ConvertBytesFromLines(int line) {
+			// Converted a line index into a byte offset, handling the sentinel end-of-buffer line.
+		}
+		public int ConvertUtf16FromBytes(int offset) {
+			// Converted a byte offset into a UTF-16 code unit count via stored rope metrics.
+		}
+		public int ConvertBytesFromUtf16(int units) {
+			// Converted a UTF-16 code unit count back into a byte offset using the Utf16 metric.
+		}
 		private static void ValidateRange(int start, int length, int totalLength) {
 			// Ensured index and length arguments were within the rope's bounds.
+		}
+		private static void ValidateOffset(int offset, int totalLength, string parameterName) {
+			// Guarded against offset arguments that exceeded the rope's bounds.
+		}
+		private static void ValidateMetricCoordinate(int value, int maxInclusive, string parameterName) {
+			// Validated metric coordinates before delegating to conversion helpers.
 		}
 	}
 	public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric> {
@@ -707,6 +725,15 @@ namespace Xi.Core.Rope.Tree {
 		}
 		private static Node FromShared(SharedNode shared) {
 			// Constructed a Node façade around an existing SharedNode instance.
+		}
+		internal int ConvertFromDefaultMetric(IMetric metric, int offset) {
+			// Converted a default-metric offset into the requested metric coordinate for this node.
+		}
+		internal int ConvertToDefaultMetric(IMetric metric, int value) {
+			// Converted a metric coordinate into the rope's default metric using stored aggregates.
+		}
+		private static int ConvertMetrics(Node node, int value, IMetric fromMetric, IMetric toMetric) {
+			// Translated a coordinate between metrics while traversing the rope hierarchy.
 		}
 		public static Node FromLeaf(string? text) {
 			// Created a leaf node from raw text, computing rope metadata along the way.

@@ -47,6 +47,7 @@ use crate::metrics::{
 use crate::tree::{DefaultMetricProvider, Leaf, Metric, Node, NodeInfo, TreeBuilder};
 use std::cmp::min;
 use std::mem;
+use std::ops::Range;
 
 /// A set of indexes. A motivating use is storing line breaks.
 pub type Breaks = Node<BreaksInfo, BreaksLeaf>;
@@ -126,6 +127,18 @@ impl Breaks {
     // a length with no break, useful in edit operations; for
     // other use cases, use the builder.
     pub fn new_no_break(len: usize) -> Breaks {...}
+
+    /// Interop shim that counts soft breaks before or at `offset` without exposing metrics.
+    #[inline]
+    pub fn count_breaks_up_to(&self, offset: usize) -> usize {...}
+
+    /// Interop shim that returns the base-unit offset for the `index`th soft break.
+    #[inline]
+    pub fn offset_of_break(&self, index: usize) -> usize {...}
+
+    /// Interop shim that reports how many soft breaks lie within `range`.
+    #[inline]
+    pub fn count_breaks_in_range(&self, range: Range<usize>) -> usize {...}
 }
 
 pub struct BreakBuilder {
@@ -2450,6 +2463,34 @@ impl Rope {
     /// This function will panic if `line > self.measure::<LinesMetric>() + 1`.
     /// Callers are expected to validate their input.
     pub fn offset_of_line(&self, line: usize) -> usize {...}
+
+    /// Converts a UTF-8 byte offset into a zero-based line count.
+    ///
+    /// This portability shim mirrors `count::<LinesMetric>` for consumers in
+    /// other languages that cannot call the generic metric APIs directly.
+    #[inline]
+    pub fn convert_lines_from_bytes(&self, offset: usize) -> usize {...}
+
+    /// Converts a zero-based line index into a UTF-8 byte offset.
+    ///
+    /// This portability shim mirrors `count_base_units::<LinesMetric>` for
+    /// language bindings that require concrete method names.
+    #[inline]
+    pub fn convert_bytes_from_lines(&self, line: usize) -> usize {...}
+
+    /// Converts a UTF-8 byte offset into a UTF-16 code unit count.
+    ///
+    /// This portability shim mirrors `count::<Utf16CodeUnitsMetric>` to make
+    /// cross-language consumers independent of the generic metric plumbing.
+    #[inline]
+    pub fn convert_utf16_from_bytes(&self, offset: usize) -> usize {...}
+
+    /// Converts a UTF-16 code unit count into a UTF-8 byte offset.
+    ///
+    /// This portability shim mirrors `count_base_units::<Utf16CodeUnitsMetric>`
+    /// for language bindings that prefer dedicated helper names.
+    #[inline]
+    pub fn convert_bytes_from_utf16(&self, units: usize) -> usize {...}
 
     /// Returns an iterator over chunks of the rope.
     ///
