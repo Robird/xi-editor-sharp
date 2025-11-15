@@ -22,6 +22,16 @@ public sealed class Rope : ITextBuffer
     /// </summary>
     public long EditVersion => Interlocked.Read(ref _editVersion);
 
+    /// <summary>
+    /// Iterates the rope leaf-by-leaf, copying content into temporary buffers (per design-divergence-log.md 2025-11-16) until zero-copy chunk views are wired up.
+    /// </summary>
+    public RopeChunkEnumerator EnumerateChunks() => new(this);
+
+    /// <summary>
+    /// Iterates logical lines, including newline terminators when present. This first-pass implementation streams through chunk copies (see design-divergence-log.md 2025-11-16) and will be replaced by zero-copy spans later.
+    /// </summary>
+    public RopeLineEnumerator EnumerateLines() => new(this);
+
     public void Append(string? text)
     {
         Replace(Length, 0, text);

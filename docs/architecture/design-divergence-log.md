@@ -6,6 +6,7 @@
 |------|------|-----------|-----------|-----------|-------------|
 | 2025-11-13 | Rope 叶片存储 | 继续使用 UTF-16 `string` 作为叶片介质，不复刻 Rust 的 UTF-8 `Arc<String>` 存储；`StringLeafOperations` 以 UTF-16 计量，必要时在 helper 中做 UTF-8 对拍 | Rust 叶片以 UTF-8 字节为主，所有偏移与容量计算依赖字节单位 | 影响 `StringLeafOperations`, `LeafSplitter`, Rope 度量及所有以 `char` 为单位的 API；跨语言对拍需额外转换偏移单位 | 监控：若未来需要 byte-level 精准度（如外部 protocol），评估引入 UTF-8 存储或双轨 helper；保持 `leaf_split_parity_samples.json` 用于捕获偏差 |
 | 2025-11-15 | Grapheme 导航 | C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；暂不实现完整 `GraphemeCursor` 状态机 | Rust 使用 `unicode_segmentation::GraphemeCursor`，可跨多叶拼接上下文并遵循 UAX #29 | 影响所有基于 grapheme 的光标/退格/选择操作；Stage D 若引入 grapheme fixtures 需条件标注 | 监控：收集实际场景中 grapheme 降级的触发频率；待明确需求后，再评估引入 ICU/trace 或自建状态机的可行性 |
+| 2025-11-16 | Rope Chunk/Line 枚举与 Grapheme Telemetry | 首版 `EnumerateChunks/EnumerateLines` 通过复制叶片/拼接字符串暴露 `ReadOnlyMemory<char>`；`DegradedGraphemeNavigator` 使用 .NET `StringInfo` + 单邻叶上下文 + code point 回退，并记录遥测计数 | Rust 端 chunk/line 迭代器均零拷贝返回叶片切片，Grapheme 依赖 `GraphemeCursor` 完整算法且无需遥测 | 影响 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、对应单测；性能暂不达标 | TODO：Telemetry 数据供 Architecture Mapper 评估升级，未来改用零拷贝 chunk view 与 Rust trace 驱动的 grapheme 实现 |
 
 ## 维护指引
 - 仅记录“明确选择与 Rust 差异化且短期不会追平”的决策；临时 workaround 或 Bug 待办不在此列。

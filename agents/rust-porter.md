@@ -104,6 +104,12 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 3 Chunk/Grapheme Fixture Plan
+- ✅ 研读 `ChunkIter`、`LinesRaw`、`GraphemeCursor`/`GraphemeStateMachine` 在 `xi-editor-ph7/rust/rope/src/rope.rs` 中的生成路径，并梳理 chunk/line 与 grapheme 描述符所需原始信号（叶片文本、绝对/相对偏移、跨叶标记、fallback 触发点等）。
+- ✅ 起草 `ChunkDescriptor`/`LineDescriptor` 与 `GraphemeDescriptor` JSON schema（含样本文本、度量、leaf path、跨叶/CRLF 标记、字节/UTF-16 范围、上下文窗口、fallback 标志），并建议落盘到 `tests/xi.Core.Tests/Fixtures/chunk_descriptors.json` 与 `tests/xi.Core.Tests/Fixtures/grapheme_descriptors.json`。
+- ✅ 规划 `export-serde-fixtures` CLI 扩展（`--chunk-descriptors`、`--grapheme-descriptors`），定义帮助文本、样本构造 helper 复用策略、待新增 Rust 测试（`rope/tests/chunk_descriptor.rs`、`rope/tests/grapheme_descriptor.rs`）以及 ASCII/emoji/深树/CRLF/跨叶等生成集。
+- ✅ 汇总执行计划（步骤、负责人、工时估算）并评估风险（文件体积、生成耗时、UAX #29 版本依赖、CRLF 分片一致性），纳入 Round 3 Summary。
+
 ### 2025-11-16 - Round 2 Chunk/Grapheme Asset Audit
 - ✅ 审阅 `xi-editor-ph7/rust/rope/src/rope.rs`, `tree.rs`, `helpers/string_leaf.rs`, `metrics/lines.rs`，梳理 chunk/lines/grapheme 迭代器定义、依赖常量（`MIN_LEAF`/`MAX_LEAF`）与 `Cursor` 状态机实现细节。
 - ✅ 盘点 `xi-editor-ph7/rust/rope/src/serde_fixtures` 与 `rope/tests`，确认目前仅有 cursor descriptor JSON 与 tree builder trace，可用测试覆盖范围集中在 `Lines*`/grapheme 边界但尚无 chunk/grapheme fixture。

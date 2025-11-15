@@ -184,6 +184,22 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - M3 T3/T4 Chunk/Line Enumerator + Grapheme Navigator 降级实现
+**任务背景**：落地 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`DegradedGraphemeNavigator` 与遥测，满足 Round 3 T3/T4 要求并补齐基础测试。
+
+**关键改动**：
+1. ✅ **Rope API 扩展**：`Rope` 新增 `EnumerateChunks()`、`EnumerateLines()`；`RopeChunkEnumerator`/`RopeLineEnumerator` 首版基于 `NodeCursor` 前向遍历并复制叶片/缓冲（按照 design-divergence-log 2025-11-16 降级策略）。
+2. ✅ **Grapheme 降级实现**：`IGraphemeNavigator` + `DegradedGraphemeNavigator`（`StringInfo` + 单邻叶拼接 + code point 回退）以及 `GraphemeNavigationMetrics`（记录邻叶请求、fallback、MoveNext/MovePrevious 计数）。
+3. ✅ **单元测试**：新增 `RopeChunkEnumeratorTests`、`RopeLineEnumeratorTests`、`GraphemeNavigatorSmokeTests` 覆盖空 Rope、多叶、CRLF、连续空行、surrogate/emoji/cross-leaf 场景。
+4. ✅ **设计分歧登记**：`design-divergence-log.md` 追加 Chunk/Line/Grapheme 降级条目，供 Architecture Mapper 同步。
+
+**验证**：`dotnet test Xi.Editor.sln --filter RopeChunkEnumeratorTests|RopeLineEnumeratorTests|GraphemeNavigatorSmokeTests`（全部通过）。
+
+**遗留风险 / TODO**：
+- Chunk/Line 目前为非零拷贝，后续需接入零拷贝 span/ChunkDescriptor 并补性能基线。
+- Grapheme 降级尚未与 Rust trace/fixture 对拍，`ScalarFallbacks` 只覆盖极端上下文不足情形，待 Stage D 引入正式 telemetry pipeline。
+- `EnumerateLines` 目前总是包含换行符，若外部 API 期望“纯文本”版本需另行提供 `EnumerateLinesRaw`/`EnumerateLinesText` 区分。
+
 ### 2025-11-16 - Round 1 Chunk/Grapheme Skeleton 规划
 **任务背景**：星形会议要求梳理 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`GraphemeNavigationMetrics` 的落地方案与工期。
 

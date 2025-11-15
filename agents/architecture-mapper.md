@@ -169,6 +169,18 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 3 Chunk/Grapheme Skeleton 协调
+#### 已完成任务
+- ✅ 整理 Round 1（C# Implementer）与 Round 2（Rust Porter）对 Chunk/Grapheme 的拆解，形成覆盖实现、测试、CLI 夹具、遥测与降级记录的任务矩阵（T3.x/T4.x）。
+- ✅ 明确每项子任务的 owner、估算工时与依赖顺序，补充 Chunk 需要的 `NodeCursor`/`MAX_LEAF`、Grapheme 需要的 surrogate helper、遥测挂点等前置条件。
+- ✅ 归档需要更新的文档章节（`m3-implementation-plan.md` §2.3/§2.4、`rope-port-mapping.md` Chunk/Grapheme 行、`design-divergence-log.md` Grapheme 降级段落、`type-system-migration-log.md` 阻塞表）并撰写摘要，等待正式编辑。
+- ✅ 记录未决事项（Chunk parity CLI 交付节奏、Grapheme 遥测阈值、QA benchmark 触发条件）供架构师确认。
+
+#### 后续监控
+- ⚠️ 关注 Rust Porter 是否在 11/18 前扩展 `export-serde-fixtures` 支持 Chunk/Grapheme 描述符；若延误需在 `m3-implementation-plan.md` 调整依赖顺序并更新风险 R10。
+- ⚠️ 跟进 C# Implementer 交付 `RopeChunkEnumerator` skeleton 的进度，确保 T3.1/T3.2 在游标收敛后 1 天内启动。
+- 🔄 等待架构师确认 Grapheme 遥测阈值（0.5% 仍沿用还是提升），以便在 `design-divergence-log.md` 中补充分歧监控项。
+
 ### 2025-11-16 - M3 现实基线与依赖补录
 #### 已完成任务
 - ✅ 重新审阅 `docs/architecture/m3-implementation-plan.md`，新增 §1.5 T0 依赖表、§5.3 现实基线以及扩展 §4.1 风险（含触发条件、R8-R10）。
