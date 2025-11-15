@@ -30,7 +30,10 @@ fn print_usage() {...}
 fn list_fixtures() {...}
 
 #[cfg(feature = "serde")]
-fn export_to_directory(dir: &std::path::Path, fixtures: &[Fixture]) -> Result<(), Box<dyn std::error::Error>> {...}
+fn export_to_directory(
+    dir: &std::path::Path,
+    fixtures: &[Fixture],
+) -> Result<(), Box<dyn std::error::Error>> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/breaks.rs
@@ -965,7 +968,11 @@ impl Contents {
 
 impl RevisionOwned {
     #[cfg_attr(not(feature = "serde"), allow(dead_code))]
-    pub(crate) fn new(rev_id: RevId, max_undo_so_far: usize, contents: RevisionContentsOwned) -> Self {...}
+    pub(crate) fn new(
+        rev_id: RevId,
+        max_undo_so_far: usize,
+        contents: RevisionContentsOwned,
+    ) -> Self {...}
 }
 
 impl Engine {
@@ -1238,9 +1245,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeSet;
 
 use super::{
-    default_session, initial_revision_counter, Contents, EditContentsOwned, EditContentsRef, Engine,
-    Revision, RevisionContentsOwned, RevisionContentsRef, RevisionOwned, RevisionRef, RevId,
-    SessionId, UndoContentsOwned, UndoContentsRef,
+    default_session, initial_revision_counter, Contents, EditContentsOwned, EditContentsRef,
+    Engine, RevId, Revision, RevisionContentsOwned, RevisionContentsRef, RevisionOwned,
+    RevisionRef, SessionId, UndoContentsOwned, UndoContentsRef,
 };
 use crate::multiset::Subset;
 use crate::rope::Rope;
@@ -1313,16 +1320,8 @@ struct RevisionDeserialize {
 
 #[derive(Deserialize)]
 enum RevisionContentsDeserialize {
-    Edit {
-        priority: usize,
-        undo_group: usize,
-        inserts: Subset,
-        deletes: Subset,
-    },
-    Undo {
-        toggled_groups: BTreeSet<usize>,
-        deletes_bitxor: Subset,
-    },
+    Edit { priority: usize, undo_group: usize, inserts: Subset, deletes: Subset },
+    Undo { toggled_groups: BTreeSet<usize>, deletes_bitxor: Subset },
 }
 
 impl From<RevisionContentsDeserialize> for RevisionContentsOwned {
@@ -1720,8 +1719,8 @@ pub mod delta;
 pub mod diff;
 pub mod engine;
 pub mod find;
-pub mod interval;
 pub(crate) mod helpers;
+pub mod interval;
 pub(crate) mod metrics;
 pub mod multiset;
 pub mod rope;
@@ -1735,7 +1734,9 @@ pub mod tree;
 pub use crate::delta::{Builder as DeltaBuilder, Delta, DeltaElement, Transformer};
 pub use crate::interval::Interval;
 pub use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
-pub use crate::tree::{Cursor, Metric};
+#[cfg(feature = "cursor_state")]
+pub use crate::tree::CursorState;
+pub use crate::tree::{Cursor, CursorDescriptor, Metric};
 ```
 
 ## xi-editor-ph7/rust/rope/src/metrics/break_indices.rs
@@ -2193,8 +2194,7 @@ use std::string::ParseError;
 
 use crate::delta::{Delta, DeltaElement};
 use crate::helpers::string_leaf::{
-    count_utf16_code_units, find_leaf_split_for_bulk, find_leaf_split_for_merge, MAX_LEAF,
-    MIN_LEAF,
+    count_utf16_code_units, find_leaf_split_for_bulk, find_leaf_split_for_merge, MAX_LEAF, MIN_LEAF,
 };
 use crate::interval::{Interval, IntervalBounds};
 use crate::metrics::{
@@ -2382,7 +2382,6 @@ impl Metric<RopeInfo, String> for Utf16CodeUnitsMetric {
 // Low level functions
 
 pub fn count_newlines(s: &str) -> usize {...}
-
 
 // Additional APIs custom to strings
 
@@ -2944,6 +2943,8 @@ use std::marker::PhantomData;
 use std::ops::Range;
 use std::sync::Arc;
 
+use smallvec::SmallVec;
+
 use crate::interval::{Interval, IntervalBounds};
 
 const MIN_CHILDREN: usize = 4;
@@ -3302,6 +3303,77 @@ impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
 
 const CURSOR_CACHE_SIZE: usize = 4;
 
+/// A cached frame representing the relationship between a parent node and the
+/// child traversed by the cursor when descending the tree.
+///
+/// Frames are stored from root to leaf and keep enough information to rebuild
+/// cached offsets without walking sibling lengths again.
+#[derive(Clone)]
+pub struct PathFrame<N: NodeInfo<L>, L: Leaf> {
+    node: Arc<NodeBody<N, L>>,
+    child_index: usize,
+    child_offset: usize,
+}
+
+impl<N: NodeInfo<L>, L: Leaf> PathFrame<N, L> {
+    fn new(node: &Node<N, L>, child_index: usize, child_offset: usize) -> Self {...}
+
+    pub fn ptr_eq(&self, other: &Node<N, L>) -> bool {...}
+
+    pub fn child_index(&self) -> usize {...}
+
+    pub fn child_offset(&self) -> usize {...}
+}
+
+/// A borrow-free snapshot of a cursor's cached state.
+///
+/// The descriptor can be used to rebuild a [`Cursor`] at the same position, as
+/// long as the underlying nodes are still valid (checked with `Arc::ptr_eq`).
+pub struct CursorDescriptor<N: NodeInfo<L>, L: Leaf> {
+    position: usize,
+    offset_of_leaf: usize,
+    leaf: Option<Arc<NodeBody<N, L>>>,
+    frames: SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>,
+}
+
+impl<N: NodeInfo<L>, L: Leaf> CursorDescriptor<N, L> {
+    fn new_invalid(position: usize) -> Self {...}
+
+    fn new(
+        position: usize,
+        offset_of_leaf: usize,
+        leaf: Arc<NodeBody<N, L>>,
+        frames: SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>,
+    ) -> Self {...}
+
+    /// Returns the cached depth (number of parent frames) stored in the descriptor.
+    pub fn depth(&self) -> usize {...}
+
+    /// Returns whether the descriptor holds a valid leaf reference.
+    pub fn is_valid(&self) -> bool {...}
+
+    /// Returns the absolute cursor position captured by this descriptor.
+    pub fn position(&self) -> usize {...}
+
+    /// Returns the absolute offset of the current leaf within the tree.
+    pub fn offset_of_leaf(&self) -> usize {...}
+
+    /// Returns the frames describing the cached path from root to leaf.
+    pub fn frames(&self) -> &[PathFrame<N, L>] {...}
+
+    /// Restores a [`Cursor`] from this descriptor if the cached nodes still belong to `root`.
+    pub fn restore<'a>(&self, root: &'a Node<N, L>) -> Option<Cursor<'a, N, L>> {...}
+}
+
+#[cfg(feature = "cursor_state")]
+#[derive(Clone)]
+pub struct CursorState<N: NodeInfo<L>, L: Leaf> {
+    position: usize,
+    offset_of_leaf: usize,
+    leaf: Option<Arc<NodeBody<N, L>>>,
+    frames: SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>,
+}
+
 /// A data structure for traversing boundaries in a tree.
 ///
 /// It is designed to be efficient both for random access and for iteration. The
@@ -3335,6 +3407,8 @@ pub struct Cursor<'a, N: NodeInfo<L> + 'a, L: Leaf> {
     leaf: Option<&'a L>,
     /// The offset of `leaf` within the tree.
     offset_of_leaf: usize,
+    #[cfg(feature = "cursor_state")]
+    state: CursorState<N, L>,
 }
 
 impl<'a, N: NodeInfo<L>, L: Leaf> Cursor<'a, N, L> {
@@ -3346,6 +3420,9 @@ impl<'a, N: NodeInfo<L>, L: Leaf> Cursor<'a, N, L> {
 
     /// Return a reference to the root node of the tree.
     pub fn root(&self) -> &'a Node<N, L> {...}
+
+    #[cfg(feature = "cursor_state")]
+    pub fn state(&self) -> CursorState<N, L> {...}
 
     /// Get the current leaf of the cursor.
     ///
@@ -3363,6 +3440,21 @@ impl<'a, N: NodeInfo<L>, L: Leaf> Cursor<'a, N, L> {
 
     /// Get the position of the cursor.
     pub fn pos(&self) -> usize {...}
+
+    /// Creates a [`CursorDescriptor`] snapshot of the current cursor state.
+    ///
+    /// The descriptor owns all cached path information, allowing the cursor to
+    /// be reconstructed later without holding borrows into the tree. When the
+    /// cursor is invalid, the returned descriptor will also be marked invalid
+    /// and `restore`/`apply_descriptor` will return failure.
+    pub fn to_descriptor(&self) -> CursorDescriptor<N, L> {...}
+
+    /// Attempts to repopulate the cursor's cache from a descriptor.
+    ///
+    /// Returns `true` if the descriptor was still valid for the current tree and
+    /// the cursor was updated. On failure the cursor is left unchanged so the
+    /// caller can fall back to a fresh descent.
+    pub fn apply_descriptor(&mut self, descriptor: &CursorDescriptor<N, L>) -> bool {...}
 
     /// Determine whether the current position is a boundary.
     ///
@@ -3453,6 +3545,17 @@ impl<'a, N: NodeInfo<L>, L: Leaf> Cursor<'a, N, L> {
     /// If `measure` is greater than the measure of the whole tree, then moves
     /// to the last node.
     fn descend_metric<M: Metric<N, L>>(&mut self, mut measure: usize) {...}
+    #[inline]
+    fn set_leaf_from_node(&mut self, leaf_node: &'a Node<N, L>, offset: usize) {...}
+
+    #[cfg(feature = "cursor_state")]
+    fn rebuild_state(&mut self) {...}
+
+    #[cfg(feature = "cursor_state")]
+    fn update_state_position(&mut self) {...}
+
+    #[cfg(feature = "cursor_state")]
+    fn invalidate_state(&mut self) {...}
 }
 
 /// An iterator generated by a [`Cursor`], for some [`Metric`].
@@ -3486,5 +3589,79 @@ where
     /// [`Cursor`]: struct.Cursor.html
     pub fn pos(&self) -> usize {...}
 }
+
+#[cfg(feature = "cursor_state")]
+impl<N: NodeInfo<L>, L: Leaf> CursorState<N, L> {
+    fn new(
+        position: usize,
+        offset_of_leaf: usize,
+        leaf: Arc<NodeBody<N, L>>,
+        frames: SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>,
+    ) -> Self {...}
+
+    fn new_invalid(position: usize, offset_of_leaf: usize) -> Self {...}
+
+    pub fn is_valid(&self) -> bool {...}
+
+    pub fn position(&self) -> usize {...}
+
+    pub fn offset_of_leaf(&self) -> usize {...}
+
+    pub fn frames(&self) -> &[PathFrame<N, L>] {...}
+
+    pub fn to_descriptor(&self) -> CursorDescriptor<N, L> {...}
+
+    pub fn from_descriptor(descriptor: &CursorDescriptor<N, L>) -> Self {...}
+
+    pub fn restore<'a>(&self, root: &'a Node<N, L>) -> Option<Cursor<'a, N, L>> {...}
+
+    pub fn from_cursor<'a>(cursor: &Cursor<'a, N, L>) -> Self {...}
+
+    fn set_position(&mut self, position: usize) {...}
+
+    fn invalidate(&mut self, position: usize, offset_of_leaf: usize) {...}
+}
+
+fn build_descriptor_components<N: NodeInfo<L>, L: Leaf>(
+    root: &Node<N, L>,
+    position: usize,
+) -> (SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>, Arc<NodeBody<N, L>>, usize, usize) {...}
+
+fn clone_node_arc<N: NodeInfo<L>, L: Leaf>(node: &Node<N, L>) -> Arc<NodeBody<N, L>> {...}
+```
+
+## xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs
+
+```rust
+use std::ptr;
+
+use xi_rope::tree::{Cursor, TreeBuilder};
+use xi_rope::{LinesMetric, Rope, RopeInfo};
+
+fn build_deep_rope() -> Rope {...}
+
+#[cfg(feature = "cursor_state")]
+mod cursor_state_tests {
+    use super::*;
+    use std::any::type_name;
+
+    use xi_rope::rope::{BaseMetric, Utf16CodeUnitsMetric};
+    use xi_rope::tree::{CursorState, Metric};
+
+    const SAMPLE_TEXT: &str = "zero\none\u{1F600}two\nthree\u{1F4A9}four\nlast line";
+
+    fn sample_rope() -> Rope {...}
+
+    fn collect_test_positions<M>(rope: &Rope) -> Vec<usize>
+    where
+        M: Metric<RopeInfo, String>,
+    {...}
+
+    fn assert_state_navigation_parity<M>(rope: &Rope, metric_name: &str)
+    where
+        M: Metric<RopeInfo, String>,
+    {...}
+
+    }
 ```
 

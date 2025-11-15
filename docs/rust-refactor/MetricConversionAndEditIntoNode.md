@@ -1,42 +1,72 @@
-**Metric Conversion & Edit Into<Node>**
-- **Current Rust design**:  and  (see ) rely on  trait static methods, while  accepts any , letting callers pass , , or .
-- **Portability blocker**: C# cannot express Rust’s “trait with static methods” pattern or generic  without heavy reflection; translating it demands extra wrapper types or duplicated overloads just to reach the concrete string-backed rope.
-- **Potential Rust-side action**: Provide non-generic shims such as  and  free functions specialized for `RopeInfo`. These can delegate to the existing generics, so Rust callers keep ergonomics while other languages target the explicit entry points.
-- **Resulting C# implication**: The port can implement the simpler concrete methods directly (e.g., `EditNode`, `ConvertFromDefaultLines`) without re-creating Rust’s `Into`/default-metric abstraction layer, yet remain spec-compatible with the original behavior.
 
-- `tree.rs` keeps all edit/metric flow in `Node<N, L>`: `edit` accepts `T: Into<Node<N, L>>`, `convert_metrics` drives `DefaultMetricProvider`, and wrappers like `count`/`count_base_units` rely on those static trait methods.
-- `rope.rs`’s `RopeInfo` and `Breaks`’ `BreaksInfo` (`breaks.rs`) are the only in-tree `DefaultMetricProvider` impls today, and each just delegates to `Node::convert_metrics`, underscoring the portability gap without changing the zero-cost generic core.
-- Runtime users are overwhelmingly `Rope = Node<RopeInfo, String>` (`rope.rs`, `engine.rs`, `delta.rs`), while more exotic metric consumers stay inside the crate; the prior `Rope::edit_str` shim (now deprecated) shows a precedent for ergonomic wrappers without touching inner algorithms.
+# Metric Conversion & Edit Into `Node`
 
-**Key Findings**  
-- `xi-editor-ph7/rust/rope/src/tree.rs`: `Node::edit` and `Node::convert_metrics` are the sole abstraction points; everything else (e.g., `TreeBuilder::push_slice`) already consumes concrete `Node<N, L>` values, so shims can wrap these without bypassing invariants.  
-- `xi-editor-ph7/rust/rope/src/rope.rs`: `RopeInfo`’s `DefaultMetricProvider` impl merely calls `node.convert_metrics::<BaseMetric, _>`; similar logic would sit in a shim like `convert_lines_from_bytes`.  
-- `xi-editor-ph7/rust/rope/src/breaks.rs`: Another `NodeInfo`/`DefaultMetricProvider` pair (`BreaksInfo`, `BreaksBaseMetric`) proves the generic machinery is reused beyond text; shims must remain additive to avoid starving these consumers.  
-- `xi-editor-ph7/rust/rope/src/delta.rs` & `.../engine.rs`: External APIs already pass fully materialized `Rope`/`Node` values; no call sites require higher-order generic tricks beyond what a thin wrapper would forward.  
-- Documentation (`docs/architecture/rope-port-mapping.md`) lists metric conversion/edit abstractions as current blockers for the C# mirror, suggesting the shims would directly unblock those TODOs.
+## 调研结论（2025-11-15 实地核对）
+- `tree.rs` 保留了核心入口：`Node::convert_metrics`（行 540-576）、`Node::count`（行 584-600）、`Node::count_base_units`（行 604-619），以及泛型 `Node::edit`（行 525-538），全部位于 `xi-editor-ph7/rust/rope/src/tree.rs` 并复用 `DefaultMetricProvider` 的静态方法调度。
+- 当前仅有两组 `DefaultMetricProvider` 实现：`RopeInfo`（`rope.rs` 行 138-173）与 `BreaksInfo`（`breaks.rs` 行 74-117），均直接调用 `Node::convert_metrics`，没有额外逻辑。
+- 主要运行时调用集中在：`Rope::line_of_offset`/`offset_of_line`（`rope.rs` 401-438）、`Breaks` 软换行管线（`core-lib/src/linewrap.rs` 158-417, 768-781）以及 `LineOffset for Breaks`（`core-lib/src/line_offset.rs` 96-107）。测试覆盖来自 `rope.rs` 1030-1085 与 `breaks.rs` 270-285 的默认度量对拍。
+- 仓库未发现第三方 `NodeInfo`/`DefaultMetricProvider` 实现；外部模块都通过 `Rope` 或 `Breaks` 别名持有 `Node`。
 
-**Risks & Unknowns**  
-- Wrapper drift: duplicating public APIs (generic + shim) risks inconsistent fixes unless tests enforce parity.  
-- Scope creep: once `Rope` gains shims, pressure may rise to mirror them for `Breaks`, `Subset`, etc., expanding maintenance.  
-- Discoverability: exposing both generic and specialized entry points can confuse Rust users unless docs clarify intent.  
-- External crates might have implemented their own `NodeInfo`; they would not benefit from `RopeInfo`-only helpers, so expectations must be set.
+## 迁移痛点
+- C# 虽已引入 `IDefaultMetricProvider`/`ITreeNodeInfo` 等 *static abstract* 契约，但尚无与 `Node::count`/`count_base_units` 等价的节点级包装；直接移植 Rust 泛型层需要额外类型参数与约束，样板成本高。
+- `Node::edit<T: Into<Node>>` 的多态在 C# 中没有一手镜像方案；目前的实现只需要消费已构建的 `Node`，但缺少等价的具象入口。
+- 软换行依赖的 `Breaks::count::<BreaksMetric>` 与 `count_base_units::<BreaksMetric>` 没有非泛型替代品，阻塞了 `Breaks` 在 C# 侧的规划。
 
-**Proposed Implementation Steps in Rust**  
-- Add a new `rope::ops` (or inherent `impl Rope`) module with `#[inline]` wrappers such as `pub fn edit_node(&mut self, iv, new: Rope)` and `pub fn convert_lines_from_bytes(&self, offset: usize) -> usize`, each delegating to existing generic methods.  
-- Re-export shims behind an `#[cfg(feature = "portability_shims")]` (optional) flag if we want to keep the default surface lean.  
-- Document the wrappers in `rope.rs` rustdoc as “interop helpers” and cross-reference the generic APIs.  
-- Extend unit tests in `xi-editor-ph7/rust/rope/src/rope.rs` to assert shim outputs match the generic metric/count/edit paths.  
-- Update `docs/architecture/rope-port-mapping.md` to record the shim availability and intended use by the C# layer.
+## 重构目标
+1. 在 Rust 侧提供面向 `Rope` 与 `Breaks` 的“互操作 shim”，让 C# 可以直接调用具象方法（如 `Rope::convert_lines_from_bytes`），而无需复刻泛型调度。
+2. 在 C# 侧对接 shim，暴露 `Rope.ConvertLinesFromBytes`、`Rope.ConvertBytesFromLines`、`Rope.ConvertUtf16FromBytes` 等 API，并为即将落地的 `Breaks` 骨架保留同名接口。
+3. 通过 parity 测试与黄金夹具，确保 shim 与泛型实现结果一致，防止未来漂移。
 
-**Validation Strategy**  
-- Run existing rope, delta, and breaks test suites; add targeted tests that exercise shim vs generic parity (e.g., property test comparing `count::<LinesMetric>` and `convert_lines_from_bytes`).  
-- If feature-gated, ensure CI runs both with and without the shim feature enabled to guard against conditional compilation regressions.  
-- For edit shims, reuse current fixtures (`DeltaSerializationTests` equivalents) to confirm structural invariants remain intact.
+## 交付蓝图
 
-**C# Port Implications**  
-- Shims map neatly onto `Xi.Core.Rope.Rope` needs: C# can call `rope.ConvertLinesFromBytes(offset)` instead of re-implementing metric traversal, keeping parity while skipping static generic traits.  
-- They do not immediately solve `Breaks` or multi-metric scenarios; the port will still need either additional shims or a plan to mimic the generic machinery for those modules.  
-- Wrappers reduce pressure to port `Into<Node>` semantics; C# can bind to explicit `EditNode`, `EditStr`, etc., while the Rust side keeps the generic API as the authoritative implementation.
+### Phase 0：防错与基线
+- Rust：为 `Node::convert_metrics`、`Node::count`、`Node::count_base_units` 添加单元测试注释链接，以利后续 shim 对齐；校验现有测试覆盖是否涉及 UTF-16、换行、软换行等关键场景。
+- 文档：在 `docs/architecture/rope-port-mapping.md` 标记当前阻塞点。
 
-**Recommendation**  
-Proceed with a tightly scoped set of `Rope`-focused shims that delegate to the existing generic machinery, backed by documentation and parity tests, to unblock the C# port without sacrificing Rust ergonomics.
+### Phase 1：Rope Shim（Rust）
+- 新增 `impl Rope` 方法：
+	- `convert_lines_from_bytes(offset: usize) -> usize`
+	- `convert_bytes_from_lines(line: usize) -> usize`
+	- `convert_utf16_from_bytes(offset: usize) -> usize`
+	- `convert_bytes_from_utf16(units: usize) -> usize`
+- 每个方法内部仅调用 `self.count::<Metric>` 或 `self.count_base_units::<Metric>`，并以 `#[inline]` 暴露。
+- 为避免 API 膨胀，可选通过 `#[cfg(feature = "portability_shims")]` 暴露；默认开启以支持 C# 镜像。
+- 在 `rope/src/tests` 增加 parity 用例：对比 shim 与泛型调用、覆盖 surrogate、混合换行、空文本等情形。
+
+### Phase 2：Breaks Shim（Rust）
+- 在 `impl Breaks` 中新增：
+	- `count_breaks_up_to(offset: usize) -> usize`
+	- `offset_of_break(index: usize) -> usize`
+	- `count_soft_breaks(range: Range<usize>) -> usize`（可选，用于 wrap 管线）
+- 与 Phase 1 同样走 `count::<BreaksMetric>` / `count_base_units::<BreaksMetric>`。
+- 增补 `breaks.rs` 现有测试，验证 shim/泛型一致；在 `core-lib` wrap 流程中追加最小黄金案例（如 80 列软换行）。
+
+### Phase 3：C# 对接
+- 在 `Rope` 与后续的 `Breaks` 封装上添加同名方法，内部调用现有 `Node` 泛型助手或直接委派至 Rust shim 生成的黄金数据。
+- 为 `Rope` 引入针对 `ConvertLinesFromBytes` 等方法的单元测试，复用 serde 黄金串与 parity fixture（如 `leaf_split_parity_samples.json`）。
+- 规划 `Breaks` 类型骨架：`Node<BreaksInfo, BreakLeaf>` + `BreaksMetricHelper`，并绑定 Phase 2 shim 约定的 API。
+
+### Phase 4：文档 & 自动化
+- 更新 `docs/architecture/rope-port-mapping.md`、`docs/csharp-refactor/rope-cow-rebalance-plan.md` 反映 shim 状态。
+- 在 Stage D 共享夹具脚本中加入 shim 验证步骤（Rust `cargo test -p xi-rope portability_shims` + C# `dotnet test`）。
+- 将 shim 行为纳入 `design-divergence-log.md`，明确其“仅为互操作提供”的定位。
+
+## 验证策略
+- **Rust**：`cargo test -p xi-rope`（默认 + `--features portability_shims`）；`cargo test -p xi-core-lib --lib` 覆盖 wrap 管线。
+- **C#**：`dotnet test tests/xi.Core.Tests --filter RopeMetricInterops`（新增分类）以及 `BreaksMetricHelperTests` 扩展。
+- **差异检测**：为关键测试记录黄金输出（如 UTF-16 ↔ UTF-8 偏移）并在脚本中比对。
+
+## 风险与缓解
+- **API 漫延**：限定 shim 在文档与命名上标注为“interop helper”；任何新 `NodeInfo` 需求需走评审流程。
+- **测试缺口**：在 parity 用例中覆盖 surrogate、mixed newline、wrap 边缘等场景；一旦 shim 行为偏离泛型实现，测试将立即失败。
+- **特性开关复杂度**：若引入 `portability_shims` 特性，CI 需同时运行启用/禁用模式；脚本中明确执行命令，避免遗漏。
+
+## 未决问题
+- 是否需要额外 shim（如 `Subset`/`Delta`）以匹配后续 C# 阶段需求？
+- `Breaks` 在 C# 侧的叶片类型与存储策略（字符串 vs 索引列表）尚未定稿，可能影响 shim 的最终签名。
+- 若未来出现第三方 `NodeInfo` 扩展，如何向外部消费者说明 shim 的可用性范围？
+
+## 下一步建议
+1. 在 Rust 原仓执行 Phase 1，实现 `Rope` shim 并补充 parity 测试。
+2. 并行准备 Phase 2 设计草稿，确认 `Breaks` shim 需要的最小 API。
+3. 在 C# 侧预留 `RopeMetricInteropTests` 测试骨架，待 Rust shim 落地后快速接入。

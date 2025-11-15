@@ -245,6 +245,18 @@
 - 针对 `diff::tests::test_larger_diff` 触发的 `MAX_LEAF` 超限 panic，收紧 `find_leaf_split` 的上下界并保留换行优先策略，重跑 `cargo test -p xi-rope` 与 serde 回归全部通过。
 - 更新 `docs/architecture/rope-port-mapping.md`、`docs/csharp-refactor/node-generic-refactor-plan.md`、`docs/rust-refactor/rope-generic-simplification-g.md` 与 `AGENTS.md`，强调 Rust helper 与 C# `StringLeafOperations` 在 UTF-8 byte / UTF-16 `char` 偏移上的差异，并记录新常量与测试落地。
 - C# 侧新增 `StringLeafOperations.NewlinePreferenceWindow` 以转发 `LeafSplitter` 常量，并在 docstring 注明 UTF-16 vs UTF-8 偏移；`StringLeafOperationsTests` 增补窗口转发断言，`dotnet test tests/xi.Core.Tests --filter StringLeafOperations` 通过。
+
+### 2025-11-15 (Metric Conversion Doc Repair)
+- 修复 `docs/rust-refactor/MetricConversionAndEditIntoNode.md` 中因未转义泛型导致的缺失段落，补回 `Node::count`/`DefaultMetricProvider` 等关键引用，并明确 C#/Rust 间的 shim 方案。
+- 二次调整 `docs/rust-refactor/MetricConversionAndEditIntoNode.md`，梳理调研结论、四阶段 shim 计划（Rope → Breaks → C# 对接 → 文档自动化）、验证策略与风险，确保跨语言互操作路径更清晰可执行。
+### 2025-11-15 (Metric Shim Feasibility Review)
+- 评估 `docs/rust-refactor/MetricConversionAndEditIntoNode.md` 中提出的 `Rope` 互操作 shim 动议，逐项核对 `xi-editor-ph7/rust/rope/src/tree.rs`、`rope.rs` 与 `core-lib/src/linewrap.rs` 的实际调用，确认 `count`/`count_base_units` 主要聚焦在 `Rope` 与 `Breaks` 两条路径。
+- 校验 C# 端当前已引入 `IDefaultMetricProvider` 静态接口但尚未落地节点级度量转换 API，记录 shim 能缓解首轮移植压力，却无法直接覆盖 `Breaks` 系列需求。
+- 建议若推进 shim，应限制在 `Rope` 常规入口并补充 parity 测试，同时预留是否为 `Breaks` 提供对等包装的后续决策项；一旦落地需同步更新 `docs/architecture/rope-port-mapping.md`。
+### 2025-11-15 (Breaks Shim Scoping Research)
+- 复盘 `xi-editor-ph7/rust/core-lib/src/linewrap.rs`、`line_offset.rs` 以及 `rope/src/breaks.rs`，确认软换行与可视行逻辑广泛调用 `Breaks::count::<BreaksMetric>` 与 `count_base_units::<BreaksMetric>`，说明若 C# 需实现 wrap 相关功能，等价 shim 为必要依赖。
+- runSubAgent 检索表明调用主要集中在 LineWrap 管线（`Lines::visual_line_of_offset`、`Lines::after_edit`、`MergedBreaks::offset_of_line` 等）和 Breaks 模块自测，范围可控；外部 crate 未直接暴露 Breaks 度量转换。
+- 记录后续评估方向：在 Rust 端添加 `Breaks::count_breaks_up_to`/`Breaks::offset_of_break` 等辅助方法，以及 C# 侧规划 `Breaks` 树封装与 parity 测试，确保 shim 扩展保持与 wrap 流程一致。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
