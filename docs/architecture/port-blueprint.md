@@ -244,8 +244,8 @@
    - 刷新 `docs/skeleton/rope.md`/`xi.Core.Rope.cs`，标注泛型签名与 helper 对齐。
 2. **Cursor 生命周期筹备**：
    - Phase 1 `CursorDescriptor` 已交付并通过 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`，可在诊断会议上通报命中率与失效路径。
-   - Rust 侧已上线可选 `cursor_state` feature gate（`Cursor::state()`, `CursorState::restore`/`from_cursor` 等），默认关闭；需要收集启用/禁用下的性能基线并定义默认策略。
-   - 在 Rust/C# 双端扩展共享夹具：新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 测试，C# `NodeCursor` 需准备对应实现与验证入口。
+   - Rust 侧已上线可选 `cursor_state` feature gate（`Cursor::state()`, `CursorState::restore`/`from_cursor` 等），默认关闭；现已补充 Base/Lines/Utf16 三类 Metric 的导航对拍测试，确认启用/禁用模式下语义一致，后续仅在需要时通过轻量 instrumentation 观察热点，再评估默认策略。
+   - 在 Rust/C# 双端扩展共享夹具：新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 及 `cursor_state_preserves_navigation_*` 系列测试；C# `NodeCursor` 需准备对应实现与验证入口以复用同一套样本。
 3. **SharedNode 诊断计划**：
    - 设计计数器与 ptr_eq 校验，明确 Rust/C# instrumentation 输出格式与测试入口。
 4. **Stage D 自动化完善**：

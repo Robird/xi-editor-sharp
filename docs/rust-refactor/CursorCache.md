@@ -14,7 +14,7 @@
 | Phase 2 | `CursorState` 内核与 Feature Gate | 进行中 | Phase 1 稳定报告、`port-blueprint` §9 | 在启用/禁用模式下确认语义一致性，按需通过轻量 instrumentation 观察热点路径，无需额外基准 |
 | Phase 3 | C# `NodeCursor` 落地与共享夹具 | 规划中 | Phase 2 主分支可用、`rope-port-mapping` C# 行 | 宣告 `Tree/NodeCursor.cs` 从“仅骨架”晋级到“实现中/已实现” 并刷新 `AGENTS.md` |
 
-> **2025-11-15 更新**：`xi-rope` 新增可选 `cursor_state` feature gate，提供借用-free `CursorState` (`Cursor::state()`, `CursorState::from_cursor`/`restore`/`to_descriptor`) 并在启用时保持与 `Cursor` 同步；未启用时沿用原缓存路径。新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 测试确保在默认/feature 模式下均可往返、穿越深树并在结构变动后失效。
+> **2025-11-15 更新**：`xi-rope` 新增可选 `cursor_state` feature gate，提供借用-free `CursorState` (`Cursor::state()`, `CursorState::from_cursor`/`restore`/`to_descriptor`) 并在启用时保持与 `Cursor` 同步；未启用时沿用原缓存路径。新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 及 `cursor_state_preserves_navigation_*`（Base/Lines/Utf16）系列测试，确保在默认/feature 模式下均可往返、穿越深树并在多 Metric 场景维持语义一致。
 
 ## 问题现状
 - 游标缓存使用固定长度数组保存自底向上的父链，命中时可零分配前进/后退；树高度超过缓存时会自动回退到 `descend`，行为正确但有额外扫描成本。
@@ -102,7 +102,7 @@
 - Metric 辅助：将 `IMetric` 扩展为 `bool CanFragment`/`bool IsBoundary(string leaf, int leafOffset)`，配合 `StringLeafOperations` 与 `BreaksMetricHelper` 的现有 helper。
 
 ## 验证策略
-- **双端测试**：Rust 加入 `cursor_descriptor_roundtrip`、`cursor_state_randomized`；C# 添加镜像 `NodeCursorDescriptorTests`、`NodeCursorTraversalTests`。
+- **双端测试**：Rust 侧覆盖 `cursor_descriptor_roundtrip`、`cursor_state_randomized`、`cursor_state_preserves_navigation_*`（Base/Lines/Utf16）；C# 添加镜像 `NodeCursorDescriptorTests`、`NodeCursorTraversalTests`。
 - **随机编辑序列**：复用现有 Rope 随机测试框架（81 项）生成编辑操作，序列化为共享 JSON，在 Rust/C# 之间交叉验证。
 - **性能监控**：通过 opt-in 的调试计数器或日志临时记录 `Cursor::to_descriptor`/`apply_descriptor` 的 `Arc` 克隆次数、缓存命中率；验证完成后移除 instrumentation，维持编译与单元测试作为主要验证手段。
 - **文档同步**：完成阶段后刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs`，并在 `AGENTS.md` “当前聚焦事项”/“下一步行动”更新状态。
