@@ -51,3 +51,10 @@
 - `src/xi.Core/Rope/Tree/TreeBuilder.cs`: current C# implementation that lacks the stack discipline.
 - `docs/architecture/rope-port-mapping.md`: records the planned `collect_slice_plan` guard this tracer would satisfy.
 - `scripts/refresh_serialization_fixtures.ps1`: Stage D export script that can be extended to collect slice plans.
+
+## Status (2025-11-15)
+- 已在 `xi-editor-ph7/rust/rope` 中新增 `tree_builder_slice_trace` feature，包含 `TreeBuilderEvent{Kind}`、`TreeBuilderTracer` 及默认 `NullTreeBuilderTracer`。
+- `TreeBuilder::push`/`push_slice`/`push_leaf_slice`/`pop` 现会在启用该 feature 时发出 `PushFrame`、`ExtendFrame`、`LeafSlice`、`EnterChild` 与 `MergePop` 事件，事件记录栈深、节点高度/长度、节点指针与重用标记。
+- 新增测试 `rope/tests/tree_builder_slice_trace.rs`，在启用 feature 时验证至少触发 `PushFrame` 与 `LeafSlice` 事件；默认构建不受影响，`cargo test -p xi-rope` 以及 `cargo test -p xi-rope --features tree_builder_slice_trace` 均通过。
+- `export-serde-fixtures` 现支持 `--tree-builder-trace` 参数，在启用 `tree_builder_slice_trace` 时会生成 `basic_slice_plan.json`（稳定节点 ID 与区间元数据）以供 C# 消费；若未启用该 feature 会提示明确错误。
+- `scripts/refresh_serialization_fixtures.ps1` 提供 `-ExportTreeTrace` 选项，可在刷新 Stage D 黄金夹具的同时导出 slice plan JSON。

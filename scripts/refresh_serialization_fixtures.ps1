@@ -3,7 +3,8 @@ param(
     [switch]$SkipCopy,
     [switch]$SkipDotnet,
     [switch]$DryRun,
-    [switch]$Verbose
+    [switch]$Verbose,
+    [switch]$ExportTreeTrace
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,6 +37,7 @@ $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
 $runAllChecks = Join-Path $rustRoot "run_all_checks"
 $csharpFixturesDir = Join-Path $repoRoot "tests/xi.Core.Tests/Fixtures"
+$treeTraceDir = Join-Path $csharpFixturesDir "tree_builder_slice"
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -67,6 +69,22 @@ if (-not $SkipCopy) {
     try {
         $arguments = @("run", "-p", "xi-rope", "--features", "serde", "--bin", "export-serde-fixtures", "--", "--dir", $csharpFixturesDir)
         Invoke-ExternalCommand "rust: export-serde-fixtures" "cargo" $arguments
+
+        if ($ExportTreeTrace) {
+            $treeArgs = @(
+                "run",
+                "-p",
+                "xi-rope",
+                "--features",
+                "serde,tree_builder_slice_trace",
+                "--bin",
+                "export-serde-fixtures",
+                "--",
+                "--tree-builder-trace",
+                $treeTraceDir
+            )
+            Invoke-ExternalCommand "rust: export-serde-fixtures (tree builder trace)" "cargo" $treeArgs
+        }
     }
     finally {
         Pop-Location

@@ -266,6 +266,15 @@
 - 深度审阅 `TreeBuilder::push`/`push_slice`/`pop` 与区间 helper 的栈行为，并确认 C# `TreeBuilder` 当前缺失复用/平衡语义。
 - 在 `docs/rust-refactor/TreeBuilderSliceStack.md` 补充价值、合理性、可行性评估；提出 `tree_builder_slice_trace` feature gate、事件模型与导出流程。
 - 建议将 slice trace 与 Stage D 导出链路结合，追加 `scripts/refresh_serialization_fixtures.ps1` 的采集开关，并规划 C# 消费测试。
+### 2025-11-15 (TreeBuilder Slice Trace Implementation)
+- 完成 Rust 端 `tree_builder_slice_trace` feature：新增 `TreeBuilderEvent{Kind}`、`TreeBuilderTracer` 与 `TreeBuilder::with_tracer`，在 `push`/`push_slice`/`push_leaf_slice`/`pop` 发出 `PushFrame`、`ExtendFrame`、`LeafSlice`、`EnterChild`、`MergePop` 事件。
+- 更新 `TreeBuilderSliceStack.md` 记录落地情况，并新增测试 `rope/tests/tree_builder_slice_trace.rs` 验证 feature 启用时能捕获事件。
+- 运行 `cargo test -p xi-rope` 及 `cargo test --features tree_builder_slice_trace`（在 `xi-editor-ph7/rust/rope` 下）确认默认/启用模式均通过。
+### 2025-11-15 (TreeBuilder Trace Exporter)
+- 扩展 `export-serde-fixtures` 支持 `--tree-builder-trace` / `--tree-builder-dir` 参数，启用新 feature 时可输出 `basic_slice_plan.json`（稳定节点 ID + 区间元数据）。
+- 若未启用 `tree_builder_slice_trace`，CLI 会提示缺少 feature；默认序列化导出逻辑保持不变，可同时指定 `--dir` 与 `--tree-builder-trace`。
+- `Cargo.toml` 引入常规依赖 `serde_json`，并在 `cargo check`, `cargo check --features serde,tree_builder_slice_trace` 下验证通过。
+- `scripts/refresh_serialization_fixtures.ps1` 新增 `-ExportTreeTrace` 开关，可在刷新黄金夹具时同时调用 CLI 生成 `tree_builder_slice` 目录下的 trace 资产。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
