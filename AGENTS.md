@@ -9,7 +9,7 @@
 请主要用简体中文与用户交流，对于术语/标识符等实体名称则不不受限制。
 
 ## 项目概览
-- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 81 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations` 及泛型 Node 验证，确保 Leaf Helper 抽象的回归基线稳定。
+- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 102 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`、Rope Metric 互操作等路径，确保 Leaf Helper 抽象与度量转换回归基线稳定。
 - C# 序列化镜像 Stage C 现已交付：`Engine`/`Revision`/`RevisionOperation` 不可变镜像与 `EngineJson` 序列化器落地，`engine_regression.json` 黄金串与 `EngineSerializationTests` 纳入基线并通过全量 `dotnet test` 验证。
 - Rust/C# 双端已通过 `SharedNode` 封装收敛写时复制触点，`tree.rs` 与 `Tree/Node.cs` 现统一委托 `EnsureUnique/CloneWithChildren/ReplaceChildRange`；`cargo test -p xi-rope` 与 `dotnet test tests/xi.Core.Tests` 保持通过。
 - `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 81 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
@@ -257,6 +257,11 @@
 - 复盘 `xi-editor-ph7/rust/core-lib/src/linewrap.rs`、`line_offset.rs` 以及 `rope/src/breaks.rs`，确认软换行与可视行逻辑广泛调用 `Breaks::count::<BreaksMetric>` 与 `count_base_units::<BreaksMetric>`，说明若 C# 需实现 wrap 相关功能，等价 shim 为必要依赖。
 - runSubAgent 检索表明调用主要集中在 LineWrap 管线（`Lines::visual_line_of_offset`、`Lines::after_edit`、`MergedBreaks::offset_of_line` 等）和 Breaks 模块自测，范围可控；外部 crate 未直接暴露 Breaks 度量转换。
 - 记录后续评估方向：在 Rust 端添加 `Breaks::count_breaks_up_to`/`Breaks::offset_of_break` 等辅助方法，以及 C# 侧规划 `Breaks` 树封装与 parity 测试，确保 shim 扩展保持与 wrap 流程一致。
+
+### 2025-11-15 (Rope Metric Interop Tests)
+- C# `Rope.ConvertBytesFromLines` 现对末尾 sentinel 行返回整段长度，对齐 Rust `offset_of_line` 的 `line == lines + 1` 情况。
+- 扩充 `RopeMetricInteropTests`，在 UTF-16 边界上校验行计数与 UTF-16/默认度量互换，并引入辅助方法生成行起点与代码单元边界。
+- `dotnet test Xi.Editor.sln`（102 项）验证通过，确认新的互操作 API 与测试基线稳定。
 ### 2025-11-14 (Stage D Planning)
 - 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
 - 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。

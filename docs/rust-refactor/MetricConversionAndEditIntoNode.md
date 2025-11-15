@@ -32,14 +32,16 @@
 - 每个方法内部仅调用 `self.count::<Metric>` 或 `self.count_base_units::<Metric>`，并以 `#[inline]` 暴露。
 - 为避免 API 膨胀，可选通过 `#[cfg(feature = "portability_shims")]` 暴露；默认开启以支持 C# 镜像。
 - 在 `rope/src/tests` 增加 parity 用例：对比 shim 与泛型调用、覆盖 surrogate、混合换行、空文本等情形。
+- _Status update (2025-11-15)_: `Rope::convert_lines_from_bytes`, `Rope::convert_bytes_from_lines`, `Rope::convert_utf16_from_bytes`, and `Rope::convert_bytes_from_utf16` now live in `xi-editor-ph7/rust/rope/src/rope.rs` as portability shims for downstream bindings。
 
 ### Phase 2：Breaks Shim（Rust）
 - 在 `impl Breaks` 中新增：
 	- `count_breaks_up_to(offset: usize) -> usize`
 	- `offset_of_break(index: usize) -> usize`
-	- `count_soft_breaks(range: Range<usize>) -> usize`（可选，用于 wrap 管线）
+	- `count_breaks_in_range(range: Range<usize>) -> usize`
 - 与 Phase 1 同样走 `count::<BreaksMetric>` / `count_base_units::<BreaksMetric>`。
 - 增补 `breaks.rs` 现有测试，验证 shim/泛型一致；在 `core-lib` wrap 流程中追加最小黄金案例（如 80 列软换行）。
+- _Status update (2025-11-15)_: `Breaks::count_breaks_up_to`, `Breaks::offset_of_break`, and `Breaks::count_breaks_in_range` now wrap the generic metric helpers with rustdoc-shim documentation, with parity tests living in `xi-editor-ph7/rust/rope/src/breaks.rs` and `Lines::visual_line_of_offset` updated to consume the new shim.
 
 ### Phase 3：C# 对接
 - 在 `Rope` 与后续的 `Breaks` 封装上添加同名方法，内部调用现有 `Node` 泛型助手或直接委派至 Rust shim 生成的黄金数据。

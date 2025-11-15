@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using Xi.Core.Rope;
+
 namespace Xi.Core.Rope.Tree;
 
 /// <summary>
@@ -234,6 +236,96 @@ public sealed class Node
     public IReadOnlyList<Node> Children => Body.Children ?? Array.Empty<Node>();
 
     public ReadOnlySpan<char> LeafSpan => Body.Leaf is null ? ReadOnlySpan<char>.Empty : Body.Leaf.AsSpan();
+
+    internal int ConvertFromDefaultMetric(IMetric metric, int offset)
+    {
+        if (metric is null)
+        {
+            throw new ArgumentNullException(nameof(metric));
+        }
+
+        if ((uint)offset > (uint)Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), offset, "Offset must be within node bounds.");
+        }
+
+        if (offset == 0 || Length == 0)
+        {
+            return 0;
+        }
+
+        return ConvertMetrics(this, offset, BaseMetric.Instance, metric);
+    }
+
+    internal int ConvertToDefaultMetric(IMetric metric, int value)
+    {
+        if (metric is null)
+        {
+            throw new ArgumentNullException(nameof(metric));
+        }
+
+        if (value < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), value, "Metric coordinate must be non-negative.");
+        }
+
+        if (value == 0 || Length == 0)
+        {
+            return 0;
+        }
+
+        return ConvertMetrics(this, value, metric, BaseMetric.Instance);
+    }
+
+    private static int ConvertMetrics(Node node, int value, IMetric fromMetric, IMetric toMetric)
+    {
+        if (value == 0)
+        {
+            return 0;
+        }
+
+        var remaining = value;
+        var accumulated = 0;
+        var current = node;
+        var fudge = fromMetric.CanFragment ? 1 : 0;
+
+        while (!current.IsLeaf)
+        {
+            var children = current.RequireChildren();
+            var foundChild = false;
+
+            foreach (var child in children)
+            {
+                var childFrom = fromMetric.Measure(child.Info, child.Length);
+                if (remaining < childFrom + fudge)
+                {
+                    current = child;
+                    foundChild = true;
+                    break;
+                }
+
+                accumulated = checked(accumulated + toMetric.Measure(child.Info, child.Length));
+                remaining -= childFrom;
+            }
+
+            if (!foundChild)
+            {
+                current = children[^1];
+                remaining = 0;
+            }
+        }
+
+        var leafMeasure = fromMetric.Measure(current.Info, current.Length);
+        if (remaining > leafMeasure)
+        {
+            remaining = leafMeasure;
+        }
+
+        var leafText = GetLeafText(current);
+        var baseUnits = fromMetric.ToBaseUnits(leafText, remaining);
+        var measured = toMetric.FromBaseUnits(leafText, baseUnits);
+        return checked(accumulated + measured);
+    }
 
     public static Node FromLeaf(string? text)
     {
