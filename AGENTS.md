@@ -9,16 +9,12 @@
 请主要用简体中文与用户交流，对于术语/标识符等实体名称则不不受限制。
 
 ## 项目概览
-- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 102 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`、Rope Metric 互操作等路径，确保 Leaf Helper 抽象与度量转换回归基线稳定。
-- C# 序列化镜像 Stage C 现已交付：`Engine`/`Revision`/`RevisionOperation` 不可变镜像与 `EngineJson` 序列化器落地，`engine_regression.json` 黄金串与 `EngineSerializationTests` 纳入基线并通过全量 `dotnet test` 验证。
-- Rust/C# 双端已通过 `SharedNode` 封装收敛写时复制触点，`tree.rs` 与 `Tree/Node.cs` 现统一委托 `EnsureUnique/CloneWithChildren/ReplaceChildRange`；`cargo test -p xi-rope` 与 `dotnet test tests/xi.Core.Tests` 保持通过。
-- `StringLeafOperations` 已抽离叶片编辑、合并与再平衡所需的字符串逻辑，并配套 81 项测试基线，正在为泛型 `Node` 铺设叶操作 Helper；同时重构为实现 `ILeafOperations<string>` 的静态抽象 Helper，为后续泛型节点直接复用。
-- `docs/architecture/port-blueprint.md` 与 `docs/architecture/rope-port-mapping.md` 已整合原架构/协同草案；配套的 C#/Rust 专题方案现分别归档于 `docs/csharp-refactor/` 与 `docs/rust-refactor/`，持续记录互锁里程碑、协同 helper 清单与风险登记。
-- 已在 `ref-outline/rust/rope` 中通过脚本 `scripts/stub_rust_functions.py` 批量移除函数实现，仅保留类型与方法签名骨架，降低上下文压力以支撑接口映射阶段。
-- `scripts/stub_rust_functions.py` 现支持递归遍历并输出 Markdown 骨架（方法体以 `...` 占位），默认写入 `docs/reference/rust-skeleton.md`，便于集中查阅 Rust 原始接口。
-- Markdown 骨架在生成前会自动移除 `#[cfg(test)]` / `#[test]` 标记的测试项以及文件头/行级注释，当前 `docs/reference/rust-skeleton.md` 缩减至约 2k 行，便于快速检索关键信息。
-- 引入 `src/xi.Core/Rope/Interval.cs` 以及 `TreeContracts.cs` 中的 `ILeafOperations`、`ITreeNodeInfo`、`ITreeMetric` 等接口，完成 rope/tree 模块的核心契约映射；`RopeInfo` 与三种 Metric 已对齐新接口，`IMetric` 成为 `ITreeMetric<string, RopeInfo>` 的特化别名，并新增 `NodeCursor` 骨架为后续游标实现预留结构。
-  - 与 Rust 侧同步 `transform_expand`/`factor` 等 helper 的拆分节奏，在 `docs/architecture/port-blueprint.md` 中追踪依赖状态，必要时以临时 stub 解锁 C# 侧验证。
+- 最新一次 `dotnet test` 针对 `Xi.Editor.sln` 运行 102 项测试全部通过，涵盖 Rope/TextBuffer/`StringLeafOperations`、Rope Metric 互操作等路径，当前回归基线稳定。
+- Stage A-C（Subset/Delta/Engine）已完成不可变镜像与 JSON 黄金串，Stage D 正把 `export-serde-fixtures` CLI、`refresh_serialization_fixtures.ps1` 脚本与回归测试串成统一刷新手册。
+- 迁移策略已从“先写 C# 独立实现”转向“Rust/C# 类型骨架对拍 + 局部移植”：`docs/architecture/port-blueprint.md`、`docs/architecture/rope-port-mapping.md`、`docs/architecture/type-system-migration-log.md` 成为唯一事实来源，记录映射关系、阻塞项与降级方案。
+- Rust/C# 双端通过 `SharedNode` helper 收敛写时复制触点，并在 Rust 侧引入 `CursorDescriptor`、`cursor_state` feature gate 等迁移友好的辅助接口；C# 侧维持 `Node` 字符串特化实现，并用 `Node.Generic.cs`/`StringLeafOperations` 骨架为泛型化与困难模块做准备。
+- `StringLeafOperations` 抽离叶片拆分/合并/再平衡逻辑并实现 `ILeafOperations<string>`，配套 81 项测试；`leaf_split_parity_samples.json` 与 Rust helper 对拍样本持续扩充 UTF-8/UTF-16 差异记录。
+- `scripts/stub_rust_functions.py` 保持 Rust skeleton 文档同步，支持增量刷新 `docs/reference/rust-skeleton.md`，减少上下文迭代成本。
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 ## 工作节奏建议
@@ -53,28 +49,14 @@
 - M6：JSON-RPC/插件宿主实现与互操作测试（未开始）。
 - M7：性能调优、文档、发布准备（未开始）。
 
-## 当前聚焦事项（WIP）
-- **C# 序列化镜像 Stage D（进行中）**：本会话交付共享夹具刷新手册、CI 集成策略与文档同步准则，持续保持 Rust/C# 黄金资产一致，并跟踪后续自动化落地；`serde_fixtures` 模块集中存放黄金 JSON，`export-serde-fixtures` CLI 与 `scripts/refresh_serialization_fixtures.ps1` 串联 Rust 校验与 `dotnet test`，已验证 `-SkipRust -SkipDotnet` 流程可复写夹具而无副作用。
-- **Rope 字符串 helper 对拍筹备**：随着 Rust `helpers/string_leaf.rs` 抽离完成，需要在 C# `StringLeafOperations` 与文档中持续标注 UTF-8 byte vs UTF-16 `char` 偏移差异，并策划跨语言拆分窗口 parity 测试。
-- **Grapheme 导航降级策略**：C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；接口预留上下文抽象，待真实需求驱动再评估 Rust trace/ICU 方案。
-- **设计分歧登记**：新增 `docs/architecture/design-divergence-log.md` 统一记录与 Rust 不对齐的策略，让后续复盘、差异追踪与升级决策有据可依。
-- **Rust Workspace 精简**：全局 MSRV 已提升至 1.75，Criterion bench 与 legacy crate 已迁出，`xi-core-lib` 引入可禁用的 `trace` 特性用于未来脱离 `xi-trace`；`PluginLoadError` dead code、硬链接告警与 `serde_test` future incompat 已清零（新增 `.cargo/config.toml` 禁用增量编译并将 `serde_test` 升级至 1.0.177），接下来关注 trace shim 覆盖。
-- **Skeleton 对齐与计划固化**：基于 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs` 逐项比对类型与接口，补齐差异并把最新目标写入外部文档，确保上下文压缩后仍能快速恢复全局视图。
-- **双向协同跟踪**：维护 `docs/architecture/port-blueprint.md` 的协作章节与 `docs/architecture/rope-port-mapping.md`，实时同步 Rust 端 helper 拆分、测试夹具导出与脚本资产状态，确保文档与实现双向更新。
-- **叶操作抽象过渡**：依托 `StringLeafOperations` 梳理叶片合并、再平衡、`NormalizeLeafMinimum()` 等路径，为泛型 `Node` 需要的 Helper 能力与测试覆盖做前置验证。
-  - 新增 `ILeafOperations.SplitByCapacity()` 静态抽象方法并由 `StringLeafOperations` 实现，`LeafSplitter` 现委托 Helper，便于泛型节点直接调用统一的叶片拆分逻辑。
-- **Rope COW 阶段推进**：启动阶段 C，聚焦内部节点借用/合并与再平衡设计，实现跨层编辑后仍保持树高与聚合信息稳定。
-- **SharedNode 诊断筹备**：在 Rust/C# `SharedNode` 封装完成后，评估调试计数器与性能探针的可行性，为跨语言共享节点回归提供 instrumentation。
-- **再平衡策略筹备**：收集 `Concat`、`TreeBuilder` 等入口的失衡案例，梳理需要调整的 API 与数据刷新路径，为阶段 C/D 做准备。
-- **Delta/Subset 原型**：依据 `docs/csharp-refactor/rope-delta-notes.md` 制定 C# 迁移步骤，先实现最小 `Delta`/`Subset` 类型与 `factor()`、`summary()`、坐标重映射流程，为撤销与插件同步奠定基础。
-  - `docs/rust-refactor/delta-subset-serialization.md` 已细化 serde 拆分四阶段计划（基线采样、`Subset` 模块化、`Delta` helper、`Engine` ledger serde），并约定 golden fixture、双轨 CI 与 Fuchsia ledger 校验作为成功标准。
-  - Stage 0/1 已完成 Subset 拆分试点：`subset_serialization_regression` 锁定 JSON 基线，核心实现新增 `Subset::segment_triples()`/`from_segment_triples()` helper 并将 serde 实现在 gated 模块，`cargo test -p xi-rope --features serde` 与 `--no-default-features` 均通过。
-  - Stage 2 已完成 Delta 重构：新增 `Delta::base_len()`/`iter_elements()` 等 helper，`serde_impls.rs` 改为手写序列化并复用新 helper，同时 `delta_serialization_regression` 固化 JSON 产物；当前准备进入 Stage 4 的 feature flag 与文档收尾。
-  - Stage 3（Engine）现已落地：核心类型移除 serde derive，新增 `Engine::revision_log()`、`Engine::from_serialized_state()`、`RevisionRef` 等 `pub(crate)` helper，并在 `engine::serde_impl` 内手写 `Serialize/Deserialize`。`engine_serialization_regression` 锁定 JSON 基线（fixture 与文档同步），`cargo test --manifest-path rope/Cargo.toml --features serde` 与 `--no-default-features` 均通过。
-  - Stage 4（Feature flags & docs）正在收尾：`xi-core-lib` 新增显式 `serde` 特性将 `xi-rope/serde` 设为按需启用，工作区顶层提供对应开关；`rust/run_all_checks` 追加 `cargo test -p xi-rope` 在 `--no-default-features` 与 `--features serde` 两种模式的运行。后续需关注 CI 流水线是否同步采用新命令。
-- **行为对照与测试资产**：整理 `reference/rust/core-lib` 中的经典操作序列，规划引入 xUnit 测试或 trace，支撑 Rope 与 Delta 行为比对。
-- **Trait 泛型化延伸**：`NodeInfo`、`TreeBuilder`、`Delta` 等核心模块已完成显式叶类型泛型化并通过 `cargo test -p xi-rope`，当前聚焦在 Rust 端梳理 Cursor/Iterator 的生命周期依赖，同时指导 C# `Node<TInfo, TLeaf, TLeafOps>` 的落地与测试补位。
-- **C# 泛型 Node 对齐准备**：根据最新骨架与 `docs/csharp-refactor/node-generic-refactor-plan.md`，规划将实验版泛型节点迁入主实现并串联 81 项 Rope 测试，记录仍依赖字符串特化的调用点与阻塞。
+- **Stage D 共享资产维护**：继续串联 `export-serde-fixtures` CLI、`scripts/refresh_serialization_fixtures.ps1` 与 Rust/C# 回归测试，收敛黄金 JSON 更新流程，并在文档中记录每次刷新条件与验证步骤。
+- **骨架映射与文档同步**：确保 `docs/architecture/port-blueprint.md`、`docs/architecture/rope-port-mapping.md`、`docs/architecture/type-system-migration-log.md` 持续反映代码现状与开放问题，任何 Rust helper 或 C# stub 变更需第一时间回填文档。
+- **困难模块拆分策略**：围绕游标生命周期、Metric/Node 泛型、Chunk/Lines 迭代器等难以直接移植的模块，推进“三路并行”方案：优先推动 Rust helper 重构，其次在 C# 侧实现近似逻辑，最终保留降级实现并记录监控指标。
+- **Rope 字符串 helper 与偏移对拍**：维护 `StringLeafOperations` 与 Rust `helpers/string_leaf.rs` 的常量/拆分策略一致性，扩充 `leaf_split_parity_samples.json` 并补充测试注释，持续提醒 UTF-8 byte 与 UTF-16 `char` 计量差异。
+- **Grapheme 导航降级监控**：执行 surrogate 安全的降级实现并记录触发频率；待数据表明需要追平时，再评估引入 Rust trace 或 ICU4N。
+- **SharedNode 与诊断 instrumentation**：在 Rust/C# 两端探索写时复制计数、`ptr_eq` 校验等 instrumentation，确保后续性能或正确性问题可追溯。
+- **Node 泛型与测试衔接**：梳理 `Node.Generic.cs` 接入主实现的阻塞项，规划把 81 项 Rope 测试与泛型节点串联，同时记录仍依赖字符串特化的路径以便后续跟进。
+- **Diff/Search/Breaks 骨架筹备**：根据映射表在 C# 侧建立待移植模块骨架，先标注 TODO 与依赖 helper，再按 Rust 端改造节奏补充实现。
 
 ## 已完成行动
 1. **阶段 A：节点所有权与引用复用**
@@ -98,58 +80,29 @@
     - `Cargo.toml`、`lib.rs` 条目与文档同步更新，并在下一阶段为轻量 instrumentation 与 C# 侧接入预留待办。
 
 ## 下一步行动（高优先级 Backlog）
-1. **Stage D 共享资产同步**
-  - 将 `run_all_checks` serde/无 serde 与 `dotnet test` 集成至统一 CI 节点，并补充失败回溯策略。
-  - 定期运行 `scripts/refresh_serialization_fixtures.ps1`（现接入 `export-serde-fixtures`）验证 CLI 导出与测试链路；最新一次以 `-SkipRust -SkipDotnet` 方式确认覆写流程稳定。
-  - 设定夹具更新的审核 checklist：Rust 输出确认、C# 测试、文档刷新与 AGENTS 日志同步。
-1. **Node 泛型双向同步**
-  - Rust：在 `docs/csharp-refactor/node-generic-refactor-plan.md` 标注已完成的 NodeInfo/TreeBuilder/Delta 泛型化成果，梳理剩余 API 差异并补充对照表。
-  - C#：将实验版 `Node<TInfo, TLeaf, TLeafOps>` 包装层接入主实现，串联 81 项 Rope 测试并记录尚需字符串特化的调用点与阻塞。
-  - 文档：刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs`，确保签名与 helper 名称同步更新。
-2. **Cursor 生命周期重构（Descriptor + State）**
-  - 按 `docs/rust-refactor/CursorCache.md` 的组合策略推进：Rust `CursorDescriptor`（Phase 1）已完成并配套 round-trip 测试，文档标记为“已完成”。
-  - `cursor_state` 可选特性现已提供借用-free `CursorState` 与 `Cursor::state()`（Phase 2），新增 Base/Lines/Utf16 导航对拍测试验证启用/禁用模式语义一致；后续按需以轻量 instrumentation 观察热点，再评估默认启用时机。
-  - C# 侧扩展 `NodeCursor`（Phase 3）以消费 Descriptor/State，并补充共享 JSON fixture 的回归测试；文档更新同步至 `port-blueprint` 与 `node-generic-refactor-plan.md`。
-3. **SharedNode 诊断与性能监测**
-  - 设计 Rust 侧 `shared_node_diagnostics`（或等效）特性开关，统计 `ensure_unique`、`clone_with_children` 调用，并输出最小计数器用于测试与日志分析。
-  - 规划 C# 侧调试计数器与 Rust instrumentation 的对齐，确保跨语言回归可比较共享节点复制开销。
-  - 在 `docs/rust-refactor/shared-node-api.md`、`docs/architecture/rope-port-mapping.md` 记录诊断字段、命名与测试入口，防止后续 helper 演化偏离对齐目标。
-  - 评估 instrumentation 对性能的影响，必要时增加微基准验证开关前后差异。
-4. **Rust 基线瘦身后续（后 MSRV）**
-  - 阶段 1（bench 停靠、非核心 crate 削减、文档与脚本更新）已完成，当前聚焦 trace shim 覆盖与 `.cargo/config` 配置的后续影响监测。
-  - 为未来在 C# 端复刻的测试/示例列出映射清单，并在 docs 中记录 Rust 仅存资产的作用。
-  - 逐步为 `xi-plugin-lib` 等仍引用 `xi-trace` 的 crate 添加可选特性或 shim，确保核心子集可在无 trace 依赖下编译。
-5. **叶操作抽象巩固**
-  - 已将叶片合并与再平衡所需的字符串处理迁移至 `StringLeafOperations`，并让其实现静态抽象 `ILeafOperations<string>` 接口；继续盘点剩余 string 特化（诊断、快照等），并规划泛型 Helper 最终接口。
-  - 盘点 `Node` 中仍直接操作 `string` 的调用点，映射到未来 `ILeafOperations` 所需的接口能力，并同步更新 `docs/csharp-refactor/node-generic-refactor-plan.md`。
-  - 扩展现有单元测试覆盖（合并、拆分、借用）以及异常路径，确保 Helper 行为可独立验证。
-6. **阶段 C 启动：内部节点再平衡设计与实现**
-  - 梳理 `Concat`、`CreateInternal`、`TreeBuilder` 产生的高度失衡案例，定义借用/合并/分裂的触发条件与算法草案。
-  - 在 Node 层实现最小可用的内部节点 re-balance 操作，并配套顺序/随机大文本编辑测试验证树高与聚合信息正确性。
-  - 评估并规划沿父链的最小聚合刷新策略，为后续增量更新打基础。
-  - 参考 `docs/architecture/rope-port-mapping.md` 的映射表与翻译范式，优先补齐 `tree.rs` 相关接口占位并对照 Rust 逻辑拆分具体实现任务。
-7. **阶段 D 准备：聚合信息增量更新**
-  - 设计 `RefreshInfoUpwards` 或等效机制，确保局部编辑后无需整棵树重算聚合。
-  - 针对 Base/Lines/Utf16 三种 Metric 增加断言与差分测试，锁定潜在的聚合偏差。
-8. **测试与诊断扩展**
-  - 引入属性测试或随机编辑序列（可考虑 FsCheck）覆盖更多组合场景，并将不变量断言纳入测试基线。
-  - 继续扩展诊断输出（现已包含路径上下文、叶片预览与子节点长度摘要），后续评估记录更精细的片段快照以缩短定位时间。
-9. **性能与基准体系搭建**
-  - 搭建 `BenchmarkDotNet` 基准，覆盖顺序插入、跨叶替换、大范围删除等典型场景。
-  - 建立阶段性性能回归表，记录 COW/再平衡前后的延迟与内存占用，指导后续优化。
-10. **Delta/Subset 原型推进**
-  - 按 `docs/architecture/rope-port-mapping.md` 中的映射表与翻译范式，先完成 `delta.rs` 类型/接口壳子移植，再实现 `factor()`、`summary()`、`apply()` 并与 Rope 缓冲区对接。
-  - 构建端到端单元测试，验证 Delta 的应用结果与 Rope 文本状态保持一致。
-  - 与 Rust 侧同步 `transform_expand`、`factor` 等 helper 拆分节奏，在 `docs/architecture/port-blueprint.md` 中追踪依赖状态，必要时以临时 stub 解锁 C# 验证。
-11. **文档与风险跟踪**
-  - 随阶段推进更新 `docs/csharp-refactor/rope-cow-rebalance-plan.md` 与 `docs/architecture/port-blueprint.md` 的风险/任务章节，记录参数调整与新假设。
-  - 将新的诊断/基准结果同步到文档，保持团队对现状的统一认知。
-12. **文档外部记忆与计划维护**
-  - 定期同步 `docs/skeleton/xi.Core.Rope.cs` 与 Rust skeleton 的差异标注，形成最新的对照清单。
-  - 在 `AGENTS.md` 与架构文档中记录阶段目标、开放问题与请求协作的事项，避免上下文压缩造成的信息丢失。
-  13. **Rope 泛型瘦身蓝图执行**
-    - 依据 `docs/rust-refactor/rope-generic-simplification.md` 制定的 Phase 0-6 路线推进 trait 合并、Metric 瘦身与 Delta/Cursor 重构。
-    - 每完成阶段需刷新 skeleton 文档并同步 C# 计划，必要时更新黄金夹具与测试脚本。
+1. **Stage D 自动化落地**
+  - 将 `run_all_checks`（含 serde/无 serde）与 `dotnet test` 整合为单一脚本或 CI 节点，并记录失败回溯策略。
+  - 固化夹具刷新 checklist：Rust 导出、C# 验证、文档更新与 `AGENTS.md` 记载缺一不可。
+2. **骨架映射实时维护**
+  - 每次调整 `xi.Core.Rope` 或 Rust helper 后，立即刷新 `docs/architecture/rope-port-mapping.md`、`docs/architecture/type-system-migration-log.md` 与 skeleton 文档。
+  - 对标困难模块新增/关闭的阻塞项，确保日志准确反映当前状态与负责方。
+3. **Cursor/Metric/Chunk 难题解法验证**
+  - Rust 侧：跟进 `CursorDescriptor`、`cursor_state`、`iterator-facade-export` 的后续改造，记录 helper 预期。
+  - C# 侧：起草 NodeCursor 原型、Metric shim/Adapter、Chunk/Lines 枚举器方案，并补充相应 parity/性能测试计划。
+  - 降级实现：对无法立即追平的路径记录监控指标与 TODO，维持行为可用。
+4. **Node 泛型接入计划**
+  - 补齐 `Node.Generic.cs` 与现有字符串特化之间的桥梁，筹备在主实现上线前的测试、性能与诊断验证。
+  - 在 `docs/csharp-refactor/node-generic-refactor-plan.md` 更新推进路线，并与 Rust 泛型化成果保持映射。
+5. **Diff/Search/Breaks 骨架与依赖梳理**
+  - 在 C# 中创建模块骨架并标注 Rust 依赖 helper。
+  - 同步 `port-blueprint`/`rope-port-mapping` 中的状态，避免后续忘记接线。
+6. **Grapheme 降级与 Leaf parity 监控**
+  - 为降级实现补充遥测或测试统计，记录触发频次。
+  - 维护 `leaf_split_parity_samples.json` 与相关测试，捕捉 UTF-8/UTF-16 偏差并及时回填文档。
+7. **SharedNode instrumentation**
+  - 拟定 Rust/C# 共同的调用计数与 ptr_eq 校验策略，准备在调试阶段引入可控开关。
+8. **文档与外部记忆同步**
+  - 会话结束前检查 `AGENTS.md`、`docs/architecture/design-divergence-log.md` 与各专题文档是否一致，确保跨会话记忆准确。
 
 ## 未来候选事项（Backlog）
 - 导入参考仓库中的黄金编辑 trace，构建跨语言对照测试套件。
@@ -218,6 +171,12 @@
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-16 (Rope Port Mapping Divergence Sync)
+- 对照 `docs/architecture/design-divergence-log.md` 更新 `docs/architecture/rope-port-mapping.md`，将 Grapheme 降级策略标记为既定方案，撤除对 Rust 端新增 helper 的阻塞描述，并调整 C# 侧设计建议为监控型任务。
+- 在文档的改造建议、阻塞评估与主要缺口章节补充“设计分歧”引用，确保跨文档叙述一致。
+- 进一步依据 `docs/rust-refactor/CursorCache.md` 梳理 `cursor_state` feature gate 作用域，明确 `CursorDescriptor` 为移植必需、`CursorState` 为可选增强，并同步更新 `docs/architecture/rope-port-mapping.md` 与 `docs/architecture/type-system-migration-log.md` 的游标章节。
+- 复用 runSubAgent 对 Metric shim 与 Chunk/Lines 迭代器做深度调研，将具体函数列表、现有 shim 现状与 C# 动态实现差异写回 `docs/architecture/type-system-migration-log.md`，形成后续移植的行动项与降级策略。
+
 ### 2025-11-15 (Design Divergence Log)
 - 创建 `docs/architecture/design-divergence-log.md`，首批登记 UTF-16 叶片与 Grapheme 降级两项与 Rust 的刻意差异。
 - 在 `AGENTS.md` 当前聚焦事项中加入“设计分歧登记”提醒，为后续新增差异提供唯一记录入口。
@@ -275,116 +234,6 @@
 - 若未启用 `tree_builder_slice_trace`，CLI 会提示缺少 feature；默认序列化导出逻辑保持不变，可同时指定 `--dir` 与 `--tree-builder-trace`。
 - `Cargo.toml` 引入常规依赖 `serde_json`，并在 `cargo check`, `cargo check --features serde,tree_builder_slice_trace` 下验证通过。
 - `scripts/refresh_serialization_fixtures.ps1` 新增 `-ExportTreeTrace` 开关，可在刷新黄金夹具时同时调用 CLI 生成 `tree_builder_slice` 目录下的 trace 资产。
-### 2025-11-14 (Stage D Planning)
-- 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`，标记 Stage D 进行中并列出交付项、下一步与验收标准。
-- 发布 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，定义黄金夹具来源、刷新步骤、验证清单与自动化方向。
-- 在 `docs/architecture/rope-port-mapping.md` 记录 Stage D 维护职责，`AGENTS.md` 同步当前聚焦与行动列表。
-- 摸底 CI 集成策略（Rust `run_all_checks` 双轨 + `dotnet test`），本次未执行新的自动化测试，仍待后续会话按流程手动触发。
-### 2025-11-14 (Architecture Docs Consolidation)
-- 将原 `docs/architecture` 多文档草案合并为 `docs/architecture/port-blueprint.md` 与 `docs/architecture/rope-port-mapping.md`，统一架构与协同视图。
-- 将 C#/Rust 具体重构方案归档至 `docs/csharp-refactor/` 与 `docs/rust-refactor/`，按语言维护阶段计划与技术笔记。
-- 更新 `AGENTS.md` 及相关引用，确保描述与新的文档目录结构保持一致。
-### 2025-11-14 (Stage D Automation Prototype)
-- 新增并迭代 `scripts/refresh_serialization_fixtures.ps1`，串联 Rust `run_all_checks`/回归测试与 `dotnet test`，支持 `--dryRun`、`--skip*`、`--verbose` 选项，并从 `rope/src/*.rs` 的回归测试中解析 JSON 字面量后覆写 C# 夹具。
-- 更新 `AGENTS.md` Stage D 焦点与下一步行动，计划在下次会话执行脚本并记录输出。
-- 首次试跑脚本（默认参数）触发 Rust `run_all_checks` 与三项 serde 回归测试以及 `dotnet test`（96 通过），随后修复参数解析与 UTF-8 无 BOM 写入问题，验证 `-SkipRust -SkipDotnet` 模式可无副作用地刷新夹具。
-### 2025-11-14 (Stage D Exporter Integration)
-- 在 `xi-editor-ph7/rust/rope` 新增 `serde_fixtures` 模块汇总黄金 JSON，并提供 `export-serde-fixtures` CLI（`cargo run -p xi-rope --features serde --bin export-serde-fixtures`）用于输出至指定目录。
-- `scripts/refresh_serialization_fixtures.ps1` 改为调用该 CLI 覆写 `tests/xi.Core.Tests/Fixtures/*.json`，整体流程保持 `run_all_checks` 与 `dotnet test` 串联。
-- 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`、`AGENTS.md` 描述新的导出链路与唯一事实来源。
-### 2025-11-14 (Stage C Engine)
-- 引入不可变 `Engine`、`Revision`、`RevisionOperation` 及 `RevisionEdit`/`RevisionUndo`，补齐 `TextSnapshot`/`TombstonesSnapshot`/`DeletesFromUnionSnapshot`/`UndoneGroupsSnapshot`/`RevisionLog()` helper 对映。
-- 实现 `EngineJson` 序列化/反序列化并添加输入校验，复用 `Subset` 镜像还原黄金结构。
-- 导入 `tests/xi.Core.Tests/Fixtures/engine_regression.json` 与 `EngineSerializationTests`（序列化匹配、反序列化回写、`RevisionLog` 顺序验证）。
-- 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md`、`AGENTS.md` 记录 Stage C 完成状态与 Stage D 筹备事项。
-- 执行 `dotnet test Xi.Editor.sln`（96 通过，0 失败，耗时 1.5s），确认新增回归纳入基线。
-### 2025-11-14 (Stage B Delta)
-- 引入 `Delta<TInfo, TLeaf>`、`DeltaElement`、`CopyElement`、`InsertElement`，实现 `EnumerateElements()` 与 `EnumerateElementTriples()` helper 并预留 `Factor()` stub。
-- 新增 `DeltaJson` 序列化/反序列化入口，导入 `tests/xi.Core.Tests/Fixtures/delta_regression.json` 黄金串。
-- 编写 `DeltaSerializationTests` 覆盖序列化匹配、反序列化回写、tuple 构造与 helper 枚举，不同路径均验证 BaseLength、ElementCount 与 stub 行为。
-- 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md`、`AGENTS.md` 记录 Stage B 完成与 Stage C 准备。
-- 执行 `dotnet test`（93 项）全部通过，含新增 Delta 回归。
-### 2025-11-14 (Stage A 收官)
-- 实现 C# `Subset`/`SubsetBuilder` 并对齐 `SegmentTriples`、`FromSegmentTriples`、`SegmentCount` helper，确保相邻段合并与零长度防护。
-- 新增 `SubsetJson` 序列化/反序列化入口，引入 `tests/xi.Core.Tests/Fixtures/subset_regression.json` 黄金串并保证输出格式与 Rust 相同。
-- 编写 `SubsetSerializationTests` 覆盖序列化、反序列化与 triple round-trip，`dotnet test`（89 项）通过验证。
-- 更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md` 记录 Stage A 完成状态，并同步 AGENTS 进度。
-### 2025-11-11
-- 初始化跨会话文档框架，整理目标与初步计划。
-- 搭建 .NET 解决方案骨架，创建核心/测试项目，编写 `TextBuffer` 占位实现与基础测试并验证通过。
-- 阅读 `reference/rust/core-lib` 与 `reference/rust/rope` 关键入口文件，编写架构梳理文档初稿。
-- 解析 `editor.rs`、`tabs.rs` 并在架构文档中补充编辑命令、插件消息与 idle 调度流程描述。
-- 编写模块级迁移路线图草案，梳理阶段任务、完成判据与风险策略。
-- 整理命令/通知/插件交互契约并形成 `api-contract` 文档（后并入 `docs/architecture/port-blueprint.md`）。
-- 调研 `reference/rust/rope` 与 `rope_science` 文档，沉淀 Rope/Delta 迁移要点并成文。
-- 实现 `ITextBuffer` 接口与 `TextBuffer` 更新，补充长度/切片测试并验证通过。
-- 实现 `RopeInfo`、Metric 抽象与对应测试，建立 Rope 迁移所需的基础类型。
- - 实现 `Node`/`TreeBuilder` 初版与单元测试，验证叶节点拼接、长文本拆分及遍历正确性。
- - 实现 `Rope`并通过接口级单元测试，奠定以 Rope 替换占位实现的基础。
- - 扩展 `Node`/`Rope`替换与插入/删除操作，完善 `ITextBuffer` 契约并新增跨叶编辑测试。
-- 执行 `dotnet test`（34 项 Rope/TextBuffer 测试）确认最新 Rope 编辑实现保持通过。
-- 实现 `Node.SplitAt` 并重构 `Slice`/`Insert`/`Delete`，让编辑操作复用写时拆分路径以减少冗余构建。
-- 执行 `dotnet test`（35 项 Rope/TextBuffer 测试）确认最新实现保持通过。
-- 更新 `AGENTS.md` 并补充 Next Steps，保持测试基线与文档一致。
-- 设定本次会话阶段目标：产出 Rope 写时复制（COW）与再平衡实施方案草案，并列出对应的代码与测试拆解步骤。
-- 撰写并提交《Rope 写时复制与再平衡实施方案草案》（现为 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），梳理阶段拆解与关键 API 变更。
-- 实现 `Node.WithChildReplaced` 及对应单元测试，启动阶段 A（节点局部更新能力）的编码工作。
-- 实现 `Node.CloneWithChildren` 并补充叶节点防御性测试，推进阶段 A 的节点引用复用能力。
-- 强化 `TreeBuilder` 切片策略，优先在换行处分段并保持 UTF-16 代理对完整，新增相关单元测试。
-- 实现 `LeafSplitter`、`EnsureWritableLeaf` 与 `SplitLeafByBounds`，补齐叶节点复制/拆分测试，推进阶段 B 的叶片策略。
-- 重构 `Node.Insert`，在叶片容量满足条件时直接写时复制单叶并更新聚合信息，超限时回退到结构共享路径。
-- 扩展 `Node.Delete`，支持单叶/单子节点写时复制与子节点折叠，并新增覆盖测试。
-- 实现 `Node.Replace` 快速路径并将 `Rope.Replace` 切换为单次编辑流程，新增叶片编辑测试。
-- 为 Insert/Replace 添加叶片拆分回退，局部替换父节点子数组并验证单元测试通过。
-- 新增叶片溢出拆分回归测试，确保局部拆分策略在根节点与内部节点场景下表现稳定。
-- 实现删除后叶片合并，以维持 `MinLeafSize` 约束，并补充相应单元测试验证合并与不合并分支。
-- 实现替换后叶片合并，并新增对应的合并/非合并单元测试覆盖。
-- 引入叶片借用（重新分配）逻辑，确保无法合并时仍可满足容量约束，并新增删除/替换/代理对齐测试。
-- 新增 `ValidateInvariants` API 与复合编辑测试，用于校验 Rope 树高度、聚合信息与叶片容量的一致性。
-- 执行 `dotnet test`（60 项 Rope/TextBuffer 测试）确认删除/替换合并与借用逻辑与现有功能兼容。
-- 执行 `dotnet test`（61 项 Rope/TextBuffer 测试）确认新增不变量校验与单元测试通过。
-- Node 单元测试新增 `AssertInvariants` 帮助方法，在核心编辑路径自动验证结构不变量，以提高回归侦测能力。
-- `RopeTestHelpers.AssertInvariants` 现基于 `CollectInvariantIssues` 输出详细诊断信息，失败时直接在断言消息中呈现路径与预览，便于定位问题。
-- `Rope` 测试更新为默认断言不变量，并新增混合编辑序列回归用例；当前 `dotnet test` 总数提升至 62 项。
-- 将 `Rope` 暴露的 `DebugRoot` 纳入测试，并新增混合编辑序列回归用例，默认断言不变量。
-- `Rope` 测试引入默认不变量校验与混合编辑序列回归，验证缓冲区层的写时复制行为。
-
-### 2025-11-12
-- `ref-outline/rust/rope` 复制源码已使用脚本化方式统一替换函数体为 `todo!()` 占位，便于后续聚焦类型对齐；新增 `scripts/stub_rust_functions.py` 用于批量化处理。
-- 扩展 `scripts/stub_rust_functions.py` 支持 Markdown 导出与递归路径处理，并首次生成 `docs/reference/rust-skeleton.md` 汇总 Rope 模块骨架。
-- 修复脚本在遇到生命周期标识（如 `impl<'a>`）时误判为字符字面量的问题，现已重新批量 stub Rope 模块并刷新骨架文档，确保 Markdown 输出统一为 `...`。 
-- 调整 Markdown 骨架中函数体展示为紧凑 `{...}` 风格，大幅缩短文档行数并保持可读性。
-- 进一步优化 `scripts/stub_rust_functions.py`，在文档模式下跳过测试模块/函数并剥离注释，同时保留签名以生成轻量骨架（约 2003 行）。
-- 修复 `scripts/stub_rust_functions.py` 在文档模式下处理 `#[cfg(test)]` 区块时误删主体的 bug，现已完整跳过测试模块与带 `#[test]` 标记的函数并保持周围语法结构完整。
-- `scripts/stub_rust_functions.py` 新增文件头注释预处理，可在导出 Markdown 骨架时自动移除许可证等连续注释行，便于聚焦核心结构。
-- 将 `docs/skeleton/xi.Core.Rope.cs` 转换为注释化骨架，保留类型与方法签名并添加功能摘要，供 C# 端快速 Birdview 查阅。
-- 梳理原版 `Node<N>` 的使用场景并更新 `docs/csharp-refactor/node-generic-refactor-plan.md`，以 tree/rope/delta/serde 等模块分类指导 C# 泛型化落地。
-- 回顾并强化 `docs/csharp-refactor/node-generic-refactor-plan.md`，补充接口能力映射、迁移节奏与风险缓释建议，为泛型 Node 实施提供更细致的执行清单。
-- 利用 `runSubagent` 预研 Metric 关联类型改造范围，为后续自动化执行奠定模板。
-
-### 2025-11-13
-- 以 `runSubagent` 收集 `Metric` 实现与调用点，并驱动自动化补丁完成 `Metric<N, L>` 显式叶类型重构，`cargo test -p xi-rope` 通过验证。
-- 记录 SubAgent 协作模式收益，确立后续 trait 泛型化任务沿用该流程，以降低上下文占用并强化质量把控。
-- 提取字符串叶片操作至 `StringLeafOperations`，并调整 `Node` 及 `LeafSplitter` 复用公共 Helper，同时补充单元测试验证插入/删除/替换等基础行为。
-- 将叶片合并与再平衡路径所需的字符串操作下沉到 `StringLeafOperations`，并新增针对合并、换行优先与代理对边界的测试用例，测试总数提升至 81 项；`ILeafOperations<T>` 现采用 static abstract 成员，`StringLeafOperations` 以结构体形式实现该契约，供泛型 `Node` 直接使用。
-- 起草 `Node<TInfo, TLeaf, TLeafOps>` 骨架，实现叶节点/内部节点构造与遍历能力，并补充 `GenericNodeSmokeTests` 验证长度与聚合信息；现有字符串特化实现未受影响，可作为后续迁移的对照基准。
-- 在 `rpc/src/lib.rs` 中移除未使用的 `IdleProc` trait 与其 `impl`，以减少构建警告噪音（dead_code）。
-
-### 2025-11-13
-- Rust 工作区 `rust-version` 已统一至 1.75，`cargo test --workspace` 全量运行通过但仍存在若干警告；开始筹划移除 Criterion 基准与多余 crate，以便为 C# 移植阶段清理依赖面。
-- 清理 `PluginLoadError` dead code 警告并为 `.cargo/config.toml` 关闭增量编译，`cargo check --workspace` 现已 0 warning；记录变更以便未来评估构建时间影响。
-- 将 `serde_test` 升级至 1.0.177，future incompat 报告消失；`cargo test -p xi-rope` 验证通过。
-- 捕获 `cargo check/test --workspace` 基线日志至 `xi-editor-ph7/rust/logs/20251113-*`，并整理《docs/rust-refactor/rust-workspace-slimming.md》记录警告现状。
-- 将 `experimental/lang`、`core-lib`、`rope`、`trace`、`unicode` 的 `benches/` 目录已删除，并用 `cargo check -p xi-rope`、`cargo check -p xi-core-lib` 验证删除后构建稳定。
-- 将 `experimental/lang`、`lsp-lib`、`sample-plugin`、`syntect-plugin` 删除，`rust/Cargo.toml` 仅保留核心 crate 并移除了 `[patch.onig]`；`cargo check --workspace` 现仅剩硬链接与 `PluginLoadError` dead code 告警。
-- 为 `xi-core-lib` 新增 `trace` 可选特性：`xi-trace` 依赖默认启用但可关闭，trace API 统一经 `crate::trace` shim 输出并在禁用时回退为 no-op；`cargo check -p xi-core-lib` 验证通过。
-- 将 `xi-plugin-lib`、`xi-rpc` 接入 `crate::trace` shim 并默认开启可禁用的 `trace` 特性，`rpc/src/parse.rs` 现复用 shim 的 `trace_block`；`cargo check -p xi-rpc` 验证通过，仅保留既有警告。
-- 更新 `xi-editor-ph7/README.md`、`docs/rust-refactor/rust-workspace-slimming.md` 以及 `rust/run_all_checks`，同步记录瘦身后的核心工作区与运行指引（原 `module-migration-plan.md` 内容已并入 `docs/architecture/port-blueprint.md`）。
-- 将 `tree::DefaultMetric` 关联类型重构为 `DefaultMetricProvider` 泛型接口，`RopeInfo` 与 `BreaksInfo` 提供显式转换实现；`cargo test -p xi-rope` 通过验证，作为泛型化移植的首个试点。
-- 新增 `scripts/refresh_skeleton_docs.py`，可无参一键调用 `stub_rust_functions.py` 刷新 `docs/skeleton/*.md`，确保骨架文档随源码同步更新。
-- 完成 `NodeInfo<L>`、`TreeBuilder<N, L>` 与 `Delta<N, L>` 泛型改造，`xi-rope` 及依赖模块（`breaks`/`spans`/`diff`/`engine` 等）已对齐新的叶片类型参数，并通过 `cargo test -p xi-rope`（149 项）与 `cargo check --workspace` 验证。
-
-### 2025-11-14
-- 深度盘点 `xi-editor-ph7/rust/rope/src` 内各 `Metric` 实现的重复逻辑，形成 UTF-8/换行/断点 helper 候选集，并在 `docs/rust-refactor/breaks-metrics-templating.md` 写入可行的 helper 模块设计与迁移计划，为 Rust/C# 对照迁移提供依据。
-- 通过 `git rm --cached xi-editor-ph7` 将外部参考仓库从索引移除，依托 `.gitignore` 保持其与主仓库彼此独立；如需恢复子模块模式，需补齐 `.gitmodules` 并重新执行 `git submodule add`。
-- 将 `docs/skeleton/xi.Core.Rope.cs` 中各方法体替换为摘要注释，生成适合鸟瞰的 C# Rope 骨架视图，便于对照 Rust 文档快速定位接口差异。
+### 2025-11-14 及以前（摘要）
+- 与 Stage A/B/C 相关的 Subset/Delta/Engine 序列化镜像、Rope 字符串 helper 抽离与 Cursor 缓存等成果，均已在“已完成事项”对应条目中完整记录。
+- Rust 工作区瘦身、TreeBuilder Trace/Metric helper 试点以及早期文档整合等行动，详见“已完成事项”，此处仅保留概览以减轻日志冗长。

@@ -11,11 +11,6 @@
 - `已实现`：关键能力与诊断均已移植，后续仅保留优化或性能工作。
 
 ## 最新进展（2025-11-15）
-- SharedNode helper 重构完成，Rust `Arc::make_mut` 现由 `docs/rust-refactor/shared-node-api.md` 规范的包装层统一暴露，C# 同步采用。
-- Metric 模板化计划依 `docs/rust-refactor/breaks-metrics-templating.md` 落地，`StringLeafOperations` 与 `BreaksMetricHelper` 已承载共享字符串度量逻辑。
-- Delta/Subset 序列化经 `docs/rust-refactor/delta-subset-serialization.md` 清理，Stage A-C 镜像与 Stage D 黄金夹具流程现已打通。
-- Rust 与 C# skeleton bird’s-eye 文档同步刷新，结构与模块边界标注对齐当前实现。
-- Rust 侧字符串叶片 helper 已拆分至 `rope/src/helpers/string_leaf.rs`，统一暴露 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` 与拆分策略；C# `StringLeafOperations` 继续作为对应实现，跨语言对拍需注意偏移单位差异。
 
 ## 路径映射约定
 - `reference/rust/rope/` ↔ `src/xi.Core/Rope/`
@@ -27,10 +22,8 @@
 | Rust 模块 | 关键类型/职责 | C# 目标文件/目录 | 当前状态 | 备注 |
 |-----------|---------------|-------------------|----------|------|
 | `tree.rs` | `Node`, `SharedNode`, `TreeBuilder`，负责节点借用/合并、再平衡骨架 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 写时复制 helper 已对齐；内部再平衡与诊断计数器尚未接入，`Node.Generic.cs` 仍待并入主实现。 |
-| `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 实现中 | Rust `CursorDescriptor` 已完成并引入可选 `cursor_state` feature gate（借用-free `CursorState`、`Cursor::state()`）；已通过 Base/Lines/Utf16 导航对拍测试验证语义一致，后续聚焦轻量 instrumentation 与 C# 游标接入。 |
-| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代与 grapheme 接口。 |
-| `rope.rs` | `Rope`, `RopeInfo`, Metric 适配、文本 API | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `RopeInfo`/`Metrics` 已实现；`Rope` 仍是最小占位，缺少 chunk/line 迭代。Grapheme 接口首版将采用“单片 + 相邻片 + code point 回退”的降级策略，后续再评估是否追平 Rust。 |
-- **Grapheme 降级实现确认**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；后续若需要更完整行为，再评估引入 `StringInfo`/ICU4N 或 Rust trace。 
+| `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 实现中 | `CursorDescriptor` 为移植必需能力，C# 需实现等效的拥有型描述符；`cursor_state` feature gate 仅在 Rust 侧提供可选持久化快照（`Cursor::state()`/`CursorState`），可作为 C# 设计参考但无需一比一复刻 gate。 |
+- **Grapheme 降级实现确认**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；该策略已在 2025-11-15 设计分歧日志登记，后续若需要更完整行为，再评估引入 `StringInfo`/ICU4N 或 Rust trace。 
 | `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | 注意记录 UTF-8/UTF-16 单位差异，继续扩充对拍样本。 |
 | `delta.rs` | `Delta`, `InsertDelta`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 镜像完成；`Transformer` 与 `factor()` 仍为 TODO。 |
 | `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 后续若新增 `IntervalTree` 需更新目录映射。 |
@@ -51,25 +44,25 @@
 
 | Rust 符号/片段 | 职责摘要 | C# 映射现状 | 后续动作 |
 |----------------|-----------|---------------|-----------|
-| `NodeInfo<L>`, `DefaultMetricProvider<L>`, `Leaf` | 约束节点聚合信息与叶片接口 | `Tree/TreeContracts.cs`, `Tree/StringLeafOperations.cs` 已提供 `ILeafOperations<string>` 与静态 helper | 继续补充文档注释阐明默认实现语义，确保后续泛型化时无需重命名 |
-| `SharedNode`, `Node`, `NodeBody`, `NodeVal` | 树节点写时复制核心 | `Tree/Node.cs`, `Tree/Node.Generic.cs` 完成封装 | 结合 `Node.Generic` 为主实现补足共享入口，并预留诊断计数器挂载点 |
-| `TreeBuilder<N, L>` | 批量构建/再平衡入口 | `Tree/TreeBuilder.cs` 现已映射 | 核对 `push_slice` 与 Rust 行为，补充多 Metric 插入测试 |
-| `Metric<N, L>` | 度量与边界查询 | `IMetric.cs`, `Metrics.cs` | 将 `LinesMetric`/`Utf16Metric` 的 helper 调用对齐 Rust `helpers/string_leaf.rs` 常量命名 |
-| `RopeInfo` 及 `Leaf for String` 实现 | 基础聚合字段与字符串叶片实现 | `RopeInfo.cs`, `StringLeafOperations.cs` | 将 Rust `count_utf16_code_units`、`find_leaf_split_for_*` 的新 helper 签名同步进 C# 记录 |
-| `Node::count`, `Node::count_base_units`, `convert_metrics` | Metric 间转换 | `Node.cs` 中已有对应占位 | 需要补上调用 `IMetric` 的桥梁方法并新增单元测试 |
-| `ChunkIter`, `LinesRaw`, `Lines`、`iter_chunks`/`lines` API | 文本块与行遍历 | C# 尚未创建对应类型 | 现可根据 Rust 定义生成骨架（建议放入 `Rope/Iterators/`），接口返回 `ReadOnlyMemory<char>` 以规避多余分配 |
-| `Cursor`, `CursorIter` | Metric 驱动的遍历游标 | `Tree/NodeCursor.cs` 已存在骨架 | 依据 Rust 缓存结构增加字段：固定大小父链缓存、当前叶引用与偏移 |
+| `NodeInfo<L>`, `DefaultMetricProvider<L>`, `Leaf` | 约束节点聚合信息与叶片接口 | `Tree/TreeContracts.cs`, `Tree/StringLeafOperations.cs` 已提供 `ILeafOperations<string>` 与静态 helper | 补充默认实现注释与契约说明，避免泛型化时再命名 |
+| `SharedNode`, `Node`, `NodeBody`, `NodeVal` | 树节点写时复制核心 | `Tree/Node.cs`, `Tree/Node.Generic.cs` 已接入 `SharedNode` 包装 | 在主实现补齐诊断计数器与 COW instrumentation |
+| `TreeBuilder<N, L>` | 批量构建/再平衡入口 | `Tree/TreeBuilder.cs` 已落地 | 校对 `push_slice` 与 Rust 栈策略，补多 Metric 插入测试 |
+| `TreeBuilderEventKind`, `TreeBuilderEvent`, `TreeBuilderTracer<N, L>` | 构建阶段事件追踪与可选 tracer | C# 未实现 tracer | 直接映射为枚举 + 接口，并用调试开关模拟 feature gate |
+| `PathFrame`, `CursorDescriptor`, `CursorState`（feature gate） | 游标缓存的无借用快照入口 | `Tree/NodeCursor.cs` 尚未引入描述符 | 首要任务是对齐 `CursorDescriptor`/`PathFrame`；`cursor_state` 属 Rust 端可选持久化实现，C# 可自定义拥有型缓存结构，无需实现同名 feature gate |
+| `Metric<N, L>` 及 `helpers/string_leaf.rs` 提供的度量 helper | 度量与边界查询统一依赖 helper 常量 | `IMetric.cs`, `Metrics.cs`、`StringLeafOperations.cs` 已引用常量 | 对齐常量命名并增加共享文档，避免重复实现 |
+| `RopeInfo`, `Leaf for String`, `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW` | 聚合信息与字符串叶片拆分策略 | `RopeInfo.cs`, `StringLeafOperations.cs` 已同步常量 | 将 Rust 新增 helper（UTF-16 计数、bulk/merge 拆分）函数签名补全记录 |
+| `Node::count`, `Node::count_base_units`, `convert_metrics` | Metric 间互相转换 | `Node.cs` 中已有占位实现 | 接入 `IMetric` 桥梁方法并补单元测试 |
 
 ### 暂需额外设计或信息的符号
 
 | Rust 符号/片段 | 当前阻碍 | 影响 | 计划 |
 |----------------|-----------|------|------|
-| `Cursor<'a, N, L>` 的缓存模型 | Rust 依赖生命周期与 `Option<&'a L>` 持久化叶引用；C# 需以索引或共享节点替代 | 游标迭代、查找与 `find.rs` 依赖 | 在 `docs/rust-refactor/cursor-lifetime-refactor.md` 基础上细化索引化方案，随后扩充 `NodeCursor` 字段与构造逻辑 |
-| `Rope::next_grapheme_offset`、`prev_grapheme_offset` 等 | Rust 借助 `unicode_segmentation::GraphemeCursor`，.NET 标准库缺乏等价实现 | 影响多语言光标、选择扩展、插件同步 | 初版实现限定“单片 + 相邻片 + code point 回退”，并在 API 中暴露上下文抽象；待真实需求验证后再决定是否引入 ICU/trace 实现完全对齐 |
-| `Rope::iter_chunks` 返回的 `Cow<str>` | Rust 通过借用避免分配；C# 需在 `string`、`ReadOnlyMemory<char>`、`ReadOnlySpan<char>` 之间取舍 | Buffer diff、序列化与插件接口的遍历性能 | 制定跨语言块枚举协议，可能以 `ReadOnlyMemory<char>` + 池化 string 替代，骨架中需先定义抽象返回类型 |
-| `Tree::convert_metrics` 与 `Node::edit` 中的 `Into<Node>` | Rust 泛型允许零拷贝地在不同 Metric 间转换；C# 需显式限定泛型与 `ILeafOperations` | 影响 Delta/Subset 与 Rope API 的泛型一致性 | 在 `Node.Generic.cs` 引入受约束的静态抽象成员，并对 `Node` 特化实现重定向 |
-| `helpers/string_leaf.rs::find_leaf_split_for_bulk`/`for_merge` | Rust 基于 UTF-8 窗口；C# 当前仅暴露 UTF-16 版本 | 当叶片超限或 bulk 构建时会出现拆分偏差 | 扩充 `StringLeafOperations`，对拍 `leaf_split_parity_samples.json` 以验证拆分窗口 |
-| `TreeBuilder::push_slice` & `Node::subseq` | Rust 使用 `Interval` 和栈化拆分策略，涉及临时 `Vec<Node>` | 影响 Rope 编辑与 Delta 应用的性能 | 记录临时节点池策略，考虑在 C# 中使用 `ArrayPool<Node>` 以降低分配 |
+| `Cursor<'a, N, L>`, `CursorIter<'a, …>` | 仍依赖借用生命周期与 `Option<&'a L>` 缓存叶片；`CursorDescriptor` 已对外稳定，`cursor_state` 作为可选 gate 扩展持久化状态 | 游标遍历、查找、Diff/Find 等都取决于游标语义 | C# 必须实现 `CursorDescriptor` 等效路径，并根据需要引入拥有型缓存（不要求复刻 feature gate）；通过 `SharedNode` + 索引缓存替代生命周期 |
+| `Rope::prev_grapheme_offset`, `next_grapheme_offset`, `Cursor::prev_grapheme`, `Cursor::next_grapheme` | 用 `unicode_segmentation::GraphemeCursor` 及 `GraphemeIncomplete` 驱动跨叶状态机，C# 无直接库可复刻 | 多语言光标、删除、插件同步需精准 grapheme 语义 | 降级实现已在 2025-11-15 设计分歧中确认（单片 + 相邻片 + code point备用），视为当前既定策略；若真实需求出现，再评估 ICU4N 或 Rust trace 挂钩 |
+| `Rope::iter_chunks`, `LinesRaw`, `Lines`, `ChunkIter` | 迭代器返回借用的 `&str`/`Cow<str>`，依赖 Rust 借用与 `SmallVec` | Rope diff、序列化、插件 API 需要零拷贝块访问 | 设计 `ReadOnlyMemory<char>` 或 `ChunkDescriptor` 返回类型，并评估是否落地 `Span`-based 枚举器 |
+| `Tree::convert_metrics`, `Node::edit` 的 `Into<Node>` 管道 | Rust 静态分发支持零拷贝转换，C# 需静态抽象接口配合泛型节点 | 影响 Delta/Subset、Rope 编辑互转路径 | 在 `Node.Generic.cs` 明确静态抽象成员与 helper 入口，必要时提供专用 shim |
+| `helpers/string_leaf.rs::find_leaf_split_for_bulk`/`for_merge` | 返回值仍为 UTF-8 字节偏移，C# 叶片以 UTF-16 计量 | Bulk 构建与合并路径仍需额外扫描二次换算 | 评估 Rust 侧能否返回 byte + utf16 双指标；短期依赖 `leaf_split_parity_samples.json` 做对拍 |
+| `TreeBuilder::push_slice`, `Node::subseq` | 大量使用临时 `Vec<Node>` 及栈式拆分，需在 C# 中重建批量拼接策略 | Rope 编辑与 Delta 应用的性能关键路径 | 整理 Rust slice trace（`tree_builder_slice_trace`）为对照，C# 侧考虑 `ArrayPool<Node>` 或结构体栈缓冲 |
 
 > 注：表格只列出首批重点模块，可在实际推进中扩充行或拆分更细粒度的子文件（例如 `tree/node.rs`、`tree/edit.rs` 等）。
 
@@ -77,12 +70,34 @@
 
 ### Rust 侧可移植性改造建议（2025-11-15）
 
-- **`Cursor<'a, N, L>` 缓存**：在 `tree.rs` 增补可选的 `CursorDescriptor` helper，将缓存路径存成 `Arc<NodeBody>` + 子节点索引集合，供其他语言无生命周期约束地重建游标。
-- **字素导航**：长期仍建议在 `rope.rs` 中抽出 `GraphemeCursor` 状态机并导出可记录的 `GraphemeStep` trace，以备 C# 后续升级；短期 C# 先以降级策略上线，必要时通过 trace 驱动回归差异。
+- **`Cursor<'a, N, L>` 缓存**：`CursorDescriptor` 已常驻导出并应视为移植基线，负责将缓存路径存成 `Arc<NodeBody>` + 子节点索引集合，供其他语言无生命周期约束地重建游标；`cursor_state` feature gate 额外提供拥有型快照，可供 C# 设计参考但不要求同步 gate。 
+- **字素导航（已记录设计分歧）**：C# 已确认采用 surrogate 安全的降级策略（见 2025-11-15 设计分歧日志），Rust 侧短期无需额外导出 `GraphemeCursor` trace；仅在后续确有追平需求时，再评估 `GraphemeStep` 助手的公开形态。
 - **Chunk 元数据**：为现有 `iter_chunks` 补充 `iter_chunk_descriptors` 之类伴随 API，输出 `(byte_len, utf16_len)` 元信息，避免在移植侧重复 UTF-8 → UTF-16 统计。
 - **Metric/Into<Node>` 抽象**：提供面向 `RopeInfo` 的非泛型 shim（如 `rope::ops::count_lines`, `rope::ops::edit_str`），将复杂的 `Into<Node>`/静态 trait 成员留在内部，实现跨语言访问的稳定入口。
 - **叶片拆分回传**：让 `helpers/string_leaf.rs` 的 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体，减少移植侧的重复扫描。
 - **切片计划诊断**：在 `TreeBuilder::push_slice`/`Node::subseq` 增设守护特性（例如 `collect_slice_plan`），记录节点 push/pop 序列和区间变换，帮助 C# 复刻栈化策略并在测试中比对。
+
+#### 阻塞项的 Rust 端重构评估（2025-11-15）
+
+| Rust 符号/模块 | 当前阻塞模式 | 建议的 Rust 重构/Helper | 可行性评估 | 风险与依赖 |
+|----------------|--------------|--------------------------|-------------|-------------|
+| `Cursor<'a, N, L>`, `CursorIter<'a, …>` | 游标缓存依赖生命周期与 `Option<&'a L>`，绑定侧难以镜像 | 强化 `CursorDescriptor`（必需）并在需要时提供拥有型 `CursorState` 辅助：导出 `Cursor::from_descriptor_owned`, `CursorState::restore` 等 helper，统一返回 `Arc<NodeBody>` + 子索引路径 | 中等：核心逻辑已存在于 `to_descriptor`/`apply_descriptor`，`cursor_state` 已以 feature gate 形式提供可选实现 | 需保证 `Arc::ptr_eq` 的稳定语义；公开额外状态时注意与 feature gate 默认策略的一致性 |
+| `Rope::prev_grapheme_offset`、`Cursor::prev_grapheme` 等 | 依赖 `unicode_segmentation::GraphemeCursor` 驱动跨叶状态机 | （已撤回）C# 侧通过 2025-11-15 设计分歧采用降级策略，Rust 暂不需新增 helper；仅保留未来可选的 trace 研究方向 | 不适用（当前策略已定） | 后续若恢复追平需求，再重新评估 helper 发布与兼容性 |
+| `Rope::iter_chunks`、`LinesRaw`、`Lines`、`ChunkIter` | 迭代器返回借用 `&str`/`Cow<str>`，移植方需复制或重写 | 提供 `ChunkDescriptorIter`/`LineDescriptorIter` 返回 `(byte_range, utf16_units, newline_flag)` 等元信息，并附 `to_cow_owned` 辅助 | 较易：可复用现有游标与 helper，只需包装层 | 需关注 UTF-16 计数性能；API 需与现有 iterator 共存避免破坏现有调用 |
+| `Tree::convert_metrics`、`Node::edit` + `Into<Node>` | 泛型 trait 约束难以在 C# 表达 | 发布 `Rope` 专用 shim（`convert_bytes_to_lines`, `convert_lines_to_bytes`, `edit_interval_str` 等）隐藏泛型 | 容易：已有类似 `convert_utf16_from_bytes` 先例，新增函数即可 | 必须与泛型实现保持同步；若未来泛型更换叶类型需更新文档 |
+| `helpers/string_leaf.rs::find_leaf_split_for_*` | 仅返回 UTF-8 偏移，C# 需重新计算 UTF-16 | 返回 `LeafSplit { byte_offset, utf16_units }` 或新增双指标版本，内部复用一次扫描 | 容易：变更范围局限 helper 与调用点；可保留旧 API 兼容 | 需同步更新测试/fixture，若对 FFI 暴露需考虑 `repr` 和兼容性 |
+| `TreeBuilder::push_slice`、`Node::subseq` | 栈式 `Vec<Node>` 与复用策略黑箱，难以做等价实现 | 把 `tree_builder_slice_trace` 提升为运行时开关或提供 `plan_slice` helper 输出确定性事件流 | 中等：trace 框架已存在，主要工作是整理为稳定 API | 需验证 trace 开销；若默认启用需评估性能与二进制尺寸影响 |
+
+### C# 侧创造性重新设计建议（2025-11-15）
+
+| C# 对应问题 | 设计思路 | 测试 / 依赖 | 风险 / 权衡 |
+|---------------|-----------|--------------|--------------|
+| `NodeCursor` 与遍历迭代器 | 将游标实现为基于 `ValueListBuilder<int>`（或等效栈结构）的 `struct` 状态机，复用 `SharedNode` 与 `Node.Generic` 聚合信息，通过 `SpanStack`/池化数组缓存父链；对外提供 `CursorBoundaryIterator`/`CursorMetricEnumerator`，以 `ReadOnlyMemory<char>` 暴露叶片并与现有 `ILeafOperations` 对齐 | 依赖 `NodeCursor` 新增的单元测试与 parity fixture，对比 Rust `CursorDescriptor` 输出；若参考 `CursorState` 思路，可在 C# 侧实现拥有型缓存而不必提供 feature gate | 增加实现复杂度并限制异步使用场景；池化缓冲若滞留可能造成泄露，需约束 API 生命周期与调试工具 |
+| Grapheme 导航 API | 维持 surrogate 安全的降级实现，并在 `NodeCursor` 暴露可观测钩子记录跨叶补片次数；预留可插拔接口以便未来切换到 ICU4N 或 Rust trace | 扩展降级版单元测试与 parity fixture（确认不会拆分 surrogate 对），并收集 telemetry 统计降级命中率 | 与 Rust 语义仍存在差异，需要在文档与 API 注释中强调；过度补片可能影响极端文本下性能 |
+| `Rope` 块/行迭代器 | 构建 `RopeChunkEnumerator`/`RopeLineEnumerator` 结构体，直接迭代叶节点并返回 `ReadOnlyMemory<char>` 或轻量 `ChunkView`，`Lines` 接口在其上完成换行拆分并复用 `StringLeafOperations` 的 newline helper | 扩展现有 Rope 测试，确保拼接 chunk/line 结果还原原始文本；添加诊断计数（chunk 数量、最大长度）辅助性能回归分析 | 结构化枚举器实现较复杂，消费方若依赖 `string` 仍需转换；若不慎使用 `yield` 将引入额外分配 |
+| Metric 转换与 `Node::edit` | 引入 `MetricAdapter` 与 `NodeEditor` 辅助类型，围绕 `Node<TInfo,TLeaf,TLeafOps>` 将 `convert_metrics`、`count`、`edit` 封装成声明式 API，并通过 `INodeConvertible` 接口统一 string/span/node 输入 | 需复用 Stage A-C 的 JSON fixture 与新增单元测试比较 Adapter 输出；Instrumentation 记录编辑路径与 COW 命中率，确保复用 `SharedNode` | 增加接口层可能带来委托分配；若未来泛型节点并入主实现，需谨慎避免重复封装导致栈深增长 |
+| 叶片拆分策略 | 扩展 `StringLeafOperations` 引入 `LeafSplitStrategy`/`FindSplitResult`（含 UTF-8 与 UTF-16 偏移），由 `TreeBuilder` 与 `Node` 编辑路径选择策略（bulk/merge/diagnostic）以掩蔽 Rust 偏移差异 | 依赖 `leaf_split_parity_samples.json` 与新增 bulk/merge 覆盖测试记录拆分结果；可在调试模式下记录策略选择频次 | 策略枚举若不断扩张需维护一致性；额外分支可能影响热路径性能，需结合基准确认影响可控 |
+| `TreeBuilder::push_slice` / `Node::subseq` | 引入 `TreeSlice` 视图结构，延迟物化 subseq 结果并允许使用 `ArrayPool<char>` 聚合片段；`TreeBuilder` 针对 slice 操作产出 `SlicePlan`（事件流）供诊断与 parity 使用 | 扩展 `TreeBuilder` 单元测试验证 `TreeSlice` 在编辑后的有效性；结合现有 slice trace fixture 检查 `SlicePlan` 输出 | `TreeSlice` 持有引用可能延长节点生命周期导致内存占用上涨；池化缓冲需要严格释放策略，避免泄露或多线程争用 |
 
 ## 接口与类型系统翻译范式
 
@@ -150,15 +165,15 @@
 
 ## 主要缺口
 
-- **游标缓存与生命周期策略更新**：Rust `CursorDescriptor` 已发布，可用于跨语言恢复缓存；后续仍需完成 Phase 2 `CursorState` 以去除生命周期约束，C# `Tree/NodeCursor.cs` 正等待该内核落地后填充实现。
+- **游标缓存与生命周期策略更新**：Rust `CursorDescriptor` 已发布并作为移植基线，C# `Tree/NodeCursor.cs` 需基于此实现拥有型描述符；`cursor_state` feature gate 提供的 `CursorState` 属可选增强，可在评估成本后决定是否在 C# 侧提供等效持久化缓存。
 - **Rope 块/行/字素迭代器尚无 C# 映射**：`ChunkIter`、`LinesRaw`、`Lines` 以及相关 `Rope::lines*` API 在 C# 中缺位，导致高层遍历、Diff/查找等功能无法接线。
-- **Grapheme 与 ICU 依赖策略未决**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 需选择 `StringInfo`/ICU4N 等替代并评估性能差异。
+- **Grapheme 降级策略的监控**：降级实现已确认为短期方案，需持续收集跨叶补片与 code point 回退频次，供未来是否追平 Rust 版本决策参考。
 - **辅助模块仍为空白**：`breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 等仍在规划阶段，无法支撑视图层和插件所需的断点、差异和搜索能力。
 
 ## 改进思路
 
 1. **补齐 Rope 迭代器与游标骨架**：按照 Rust 定义扩展 `NodeCursor` 字段与内部辅助方法，同时在 `Rope/Iterators` 新增 `ChunkIterator`, `LineIterator` 等类型，确保接口签名与 Rust 对齐。
-2. **确定 Grapheme 处理方案**：对比 `System.Globalization.StringInfo`, `Rune` API 与 ICU4N 实现，撰写设计备忘并在骨架中选定返回类型，避免后续 API 反复改动。
+2. **监控 Grapheme 降级命中情况**：保留当前降级实现并通过 telemetry/测试样本记录触发频率，待数据表明需追平时再评估 ICU4N 或 Rust trace 方案。
 3. **拉通 Metric 与 Node 泛型桥接**：在 `Node.Generic.cs` 补充静态抽象成员使用范式，明确 `convert_metrics`、`count` 等方法如何复用 `IMetric`，同时更新测试覆盖。
 4. **规划 Breaks/Diff/Search 子系统落点**：为 `Tree/Breaks.cs`, `Diff/`, `Search/` 目录生成最小骨架和 TODO，结合 Stage D 夹具制定迭代顺序。
 
