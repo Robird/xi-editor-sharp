@@ -104,6 +104,25 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - M3 实施计划评审
+- ✅ 读取并理解 `docs/architecture/m3-implementation-plan.md`（M3 游标系统与泛型接口验证计划）
+- ✅ 从 Rust Porter 视角评审四个关注点：
+  - **§3.3 职责可行性**：确认可提供 10 个 CursorDescriptor JSON fixture、覆盖深树/多 Metric/失效检测等场景
+  - **§2.1.5 游标 Parity 测试**：样本来源为 `cursor_descriptor.rs` 测试用例，格式为 JSON fixture
+  - **§4.1 R4 风险缓解**：补充样本导出工具方案（扩展 `export-serde-fixtures` bin）与应急预案
+  - **§5.2 算法疑问预估**：识别 5 类预期疑问（游标缓存、Metric 转换、导航语义、失效检测、序列化），承诺响应时效
+- ✅ 修改计划文档（7 处增强）：
+  1. §3.1：细化 Rust Porter 职责描述，明确样本为 JSON 格式、增加算法咨询范围
+  2. §3.2.1：补充协作接口输入输出规格（fixture 数量、场景覆盖）
+  3. §3.2.4：新增 CursorDescriptor JSON 样本清单（10 个 fixture 规格表）
+  4. §4.1 R4：增强缓解措施（样本导出工具、手动构造应急预案）
+  5. §5.0：新增算法咨询预案（5 类疑问分类 + 响应时效承诺）
+  6. §5.2 游标验收：补充 Parity 样本数量要求（≥10 个）并增加 Rust Porter 验收角色
+  7. §6.2.2：细化 Rust Porter 评审触发条件（Parity 失败、偏移疑问、缓存策略）
+  8. §9.2：补充 Rust 测试文件引用（`cursor_descriptor.rs` 作为样本来源）
+- ✅ 更新变更日志（版本 1.1）记录 Rust Porter 评审贡献
+- ✅ 向架构师汇报评审结论与承诺
+
 ### 2025-11-16 - 类型系统迁移阻塞点评估
 - ✅ 参与架构师主持的类型系统迁移会议，评估 Architecture Mapper 提出的 4 个阻塞点
 - ✅ 从 Rust 端 helper 维护者角度确认：

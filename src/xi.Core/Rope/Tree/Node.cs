@@ -253,6 +253,14 @@ public sealed class Node
 
     public ReadOnlySpan<char> LeafSpan => Body.Leaf is null ? ReadOnlySpan<char>.Empty : Body.Leaf.AsSpan();
 
+    /// <summary>Gets the leaf string content. Only valid when IsLeaf is true.</summary>
+    /// <returns>The leaf text, or null if this is not a leaf node.</returns>
+    public string? GetLeaf() => IsLeaf ? (Body.Leaf ?? string.Empty) : null;
+
+    /// <summary>Gets the children array. Only valid when IsLeaf is false.</summary>
+    /// <returns>Array of child nodes, or null if this is a leaf node.</returns>
+    public Node[]? GetChildren() => IsLeaf ? null : Body.Children;
+
     internal int ConvertFromDefaultMetric(IMetric metric, int offset)
     {
         if (metric is null)

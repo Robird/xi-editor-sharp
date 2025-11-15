@@ -328,28 +328,36 @@ AI 架构师（主 Agent，拥有 runSubagent）
     - `Cargo.toml`、`lib.rs` 条目与文档同步更新，并在下一阶段为轻量 instrumentation 与 C# 侧接入预留待办。
 
 ## 下一步行动（高优先级 Backlog）
+
+### 🚀 M3 实施已启动（2025-11-16）
+详见 `docs/architecture/m3-implementation-plan.md` v1.2 与 `docs/architecture/m3-architect-decision.md`。
+
+**当前状态**：✅ 计划已批准，C# Implementer 开始 T1.1（游标结构设计）
+
+**关键任务**：
+1. **游标系统实现**（6-8.5 天）：`NodeCursor` 基于字符串特化，通过 81 项 Rope 测试 + 10 个 CursorDescriptor JSON Parity 样本
+2. **泛型接口挂钩**（1 天）：设计 `INodeCursor<TInfo,TLeaf>` 接口，在 `NodeCursor` 中预留适配器
+3. **Chunk 迭代器骨架**（3-4 天）：临时返回 `ReadOnlyMemory<char>`，记录性能基准
+4. **Grapheme 降级实现**（2 天）：Surrogate 安全 + 遥测计数器
+
+**监控机制**：
+- 日常：C# Implementer 每日更新认知档案，Architecture Mapper 每 2-3 天检查文档同步
+- 周会：每 5-7 天星形会议（进度对齐、阻塞讨论、优先级调整）
+- 里程碑：游标完成（第 10 天）、Chunk 完成（第 15 天）、M3 验收（第 20 天）
+
+### 其他待办事项
 1. **Stage D 自动化落地**
   - 将 `run_all_checks`（含 serde/无 serde）与 `dotnet test` 整合为单一脚本或 CI 节点，并记录失败回溯策略。
   - 固化夹具刷新 checklist：Rust 导出、C# 验证、文档更新与 `AGENTS.md` 记载缺一不可。
 2. **骨架映射实时维护**
   - 每次调整 `xi.Core.Rope` 或 Rust helper 后，立即刷新 `docs/architecture/rope-port-mapping.md`、`docs/architecture/type-system-migration-log.md` 与 skeleton 文档。
   - 对标困难模块新增/关闭的阻塞项，确保日志准确反映当前状态与负责方。
-3. **Cursor/Metric/Chunk 难题解法验证**
-  - Rust 侧：跟进 `CursorDescriptor`、`cursor_state`、`iterator-facade-export` 的后续改造，记录 helper 预期。
-  - C# 侧：起草 NodeCursor 原型、Metric shim/Adapter、Chunk/Lines 枚举器方案，并补充相应 parity/性能测试计划。
-  - 降级实现：对无法立即追平的路径记录监控指标与 TODO，维持行为可用。
-4. **Node 泛型接入计划**
-  - 补齐 `Node.Generic.cs` 与现有字符串特化之间的桥梁，筹备在主实现上线前的测试、性能与诊断验证。
-  - 在 `docs/csharp-refactor/node-generic-refactor-plan.md` 更新推进路线，并与 Rust 泛型化成果保持映射。
-5. **Diff/Search/Breaks 骨架与依赖梳理**
+3. **Diff/Search/Breaks 骨架与依赖梳理**
   - 在 C# 中创建模块骨架并标注 Rust 依赖 helper。
   - 同步 `port-blueprint`/`rope-port-mapping` 中的状态，避免后续忘记接线。
-6. **Grapheme 降级与 Leaf parity 监控**
-  - 为降级实现补充遥测或测试统计，记录触发频次。
-  - 维护 `leaf_split_parity_samples.json` 与相关测试，捕捉 UTF-8/UTF-16 偏差并及时回填文档。
-7. **SharedNode instrumentation**
+4. **SharedNode instrumentation**
   - 拟定 Rust/C# 共同的调用计数与 ptr_eq 校验策略，准备在调试阶段引入可控开关。
-8. **文档与外部记忆同步**
+5. **文档与外部记忆同步**
   - 会话结束前检查 `AGENTS.md`、`docs/architecture/design-divergence-log.md` 与各专题文档是否一致，确保跨会话记忆准确。
 
 ## 未来候选事项（Backlog）
@@ -420,6 +428,28 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-16 (晚) (M3 Implementation Plan Creation)
+- **Architecture Mapper 履职**：作为架构映射维护者，基于星形会议决策（`type-system-migration-log.md` 会议章节）创建 `docs/architecture/m3-implementation-plan.md`。
+- **计划要点**：
+  1. **目标**：4 大任务（游标 5-7 天、泛型接口维护、Chunk 3-4 天、Grapheme 2 天），总工期 15-20 天，测试基线 114 项
+  2. **任务分解**：游标 6 个子任务、泛型 2 个维护项、Chunk 5 个子任务、Grapheme 5 个子任务，每项含工作量/依赖/风险评估
+  3. **分工**：C# Implementer（实现）、Rust Porter（Parity 样本）、Architecture Mapper（文档同步）、架构师（质量把关）
+  4. **风险**：7 项风险（R1-R7）含技术 + 进度维度，每项有缓解措施 + 应急预案
+  5. **评审机制**：4 类文档修改权限明确，代码评审分 3 级（自主/交叉/里程碑），评审要点覆盖正确性/性能/可维护性/测试
+  6. **同步机制**：4 类认知档案日常更新 + 周会（5-7 天）+ 里程碑同步，通过 `AGENTS.md` + 映射表协调
+  7. **回退策略**：3 类触发条件（超期/测试低/性能退化），部分回退（削减功能）+ 全面回退（25 天超期门槛）
+- **关键决策记录**：
+  - 游标基于字符串特化 `Node.cs`，M4 前不强制泛型切换
+  - Chunk 枚举器临时非零拷贝（`ReadOnlyMemory<char>`）
+  - Grapheme 降级已确认，需遥测监控
+  - 10 项架构管控措施（文档/代码/进度/回退四维度）
+- **需全员评审的关键点**：
+  1. **游标缓存失效检测**：版本号 vs `ReferenceEquals`，GC 压力监控
+  2. **Chunk 性能基准**：M3 接受临时性能损失，M4 优化，需记录基准数据
+  3. **回退触发条件**：游标 > 10 天、测试通过率 < 80%、性能慢 5 倍，是否合理？
+  4. **周会频率**：5-7 天一次是否足够？是否需要更频繁的日常同步？
+- **文档同步**：更新 `AGENTS.md` "下一步行动"章节，增加 M3 实施计划引用。
+
 ### 2025-11-16 (Rope Port Mapping Divergence Sync)
 - 对照 `docs/architecture/design-divergence-log.md` 更新 `docs/architecture/rope-port-mapping.md`，将 Grapheme 降级策略标记为既定方案，撤除对 Rust 端新增 helper 的阻塞描述，并调整 C# 侧设计建议为监控型任务。
 - 在文档的改造建议、阻塞评估与主要缺口章节补充“设计分歧”引用，确保跨文档叙述一致。
