@@ -11,7 +11,7 @@
 |-------|-------------|--------|--------------|-----------------|
 | Phase 0 | 游标调用基线与缓存诊断报告 | 进行中 | `port-blueprint` §5.2（诊断基线） | 将命中率指标回填到 `port-blueprint` 附录 |
 | Phase 1 | `CursorDescriptor` API 与往返测试 | 已完成 | Rust `tree.rs`、`rope-port-mapping` 状态列 | 推动 `rope-port-mapping` 将 `Tree/NodeCursor.cs` 标记为“实现中”并准备 Phase 2 `CursorState` 草案 |
-| Phase 2 | `CursorState` 内核与 Feature Gate | 进行中 | Phase 1 稳定报告、`port-blueprint` §9 | 收集启用 `cursor_state` 的性能基线，推进 C# `NodeCursor` 对齐 |
+| Phase 2 | `CursorState` 内核与 Feature Gate | 进行中 | Phase 1 稳定报告、`port-blueprint` §9 | 在启用/禁用模式下确认语义一致性，按需通过轻量 instrumentation 观察热点路径，无需额外基准 |
 | Phase 3 | C# `NodeCursor` 落地与共享夹具 | 规划中 | Phase 2 主分支可用、`rope-port-mapping` C# 行 | 宣告 `Tree/NodeCursor.cs` 从“仅骨架”晋级到“实现中/已实现” 并刷新 `AGENTS.md` |
 
 > **2025-11-15 更新**：`xi-rope` 新增可选 `cursor_state` feature gate，提供借用-free `CursorState` (`Cursor::state()`, `CursorState::from_cursor`/`restore`/`to_descriptor`) 并在启用时保持与 `Cursor` 同步；未启用时沿用原缓存路径。新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 测试确保在默认/feature 模式下均可往返、穿越深树并在结构变动后失效。
@@ -40,7 +40,7 @@
 ## 推荐路线（组合策略）
 1. **Phase 0 – 基线与诊断**
 	- 审核现有游标调用点（`list_code_usages` 结果约 95 处）并按模块归档，确认必须保持零分配的路径。
-	- 为 `Cursor` 增加调试守卫（命令行 feature）记录缓存命中率、重新下钻次数，为后续性能比对提供基线。
+	- 如需记录缓存命中率、重新下钻次数，可为 `Cursor` 增加调试守卫（命令行 feature），数据仅用于迁移过程中的可移植性验证，无需构建长期性能基线。
 
 	**跨文档对齐**
 	- 在 `docs/architecture/port-blueprint.md` §5.2 记录缓存命中率基线，标记“Cursor 生命周期诊断”为“已完成”。
@@ -62,8 +62,8 @@
 	- 引入内部 `CursorState<N, L>`（拥有根 `Arc<NodeBody>`，记录 `position`、`offset_of_leaf`、路径 `SmallVec<PathFrame>`、`leaf_handle`）。
 	- 将 `Cursor<'a>` 作为轻量 wrapper：持有 `&'a Node` 与 `CursorState` 的借用视图；原方法转调 `CursorState`。
 	- 替换 `next_leaf`/`prev_leaf`/`descend_metric` 等内部方法为状态版本；确认 `CURSOR_CACHE_SIZE` 仍可固定为 4，路径超过 4 时 `CursorState` 自动保留完整 `SmallVec`（防止 Descriptor 信息不足）。
-	- 新增 `#[cfg(feature = "cursor_state")]` gate，初期通过 feature flag 供测试验证；性能稳定后默认启用并保留旧实现 behind feature fallback。
-	- 将核心模块（`find.rs`, `compare.rs`, `spans.rs`, `breaks.rs`, `core-lib` 游标调用）引导到 `CursorState` API，确保后续可直接镜像至 C#。
+	- 新增 `#[cfg(feature = "cursor_state")]` gate，初期通过 feature flag 聚焦语义与移植验证；在确认行为与现有实现一致后，再评估是否切换默认开关。
+	- 将核心模块（`find.rs`, `compare.rs`, `spans.rs`, `breaks.rs`, `core-lib` 游标调用）引导到 `CursorState` API，确保后续可直接镜像至 C#；如需观察热点，可临时开启 instrumentation，而非构建专门基准。
 
 	**跨文档对齐**
 	- 在 `docs/architecture/port-blueprint.md` §9 更新“CursorState 内核”任务的状态，从“规划中”提升为“进行中/已完成”，同时标注 C# 依赖解除时间点。
@@ -88,9 +88,7 @@
 - `Cursor::descend()` 改造为可接受 `PathFrame` 迭代器，使恢复流程与首次定位复用代码。
 - 通过 `SmallVec<[PathFrame; CURSOR_CACHE_SIZE]>` 默认容纳 4 层缓存；超过时自动分配堆内存，但即便在最坏情况下也仅复制深度条目。
 - 提供 `descriptor.depth()` 与 `descriptor.valid()` 方法，方便 C# 端调试与日志。
-- 性能验证建议：
-  - `cargo bench -p xi-rope -- benches::cursor_scan`（新增）比较启用/禁用 descriptor 恢复的耗时。
-  - 在 `rope::find` 快速扫描中加入可选统计（`debug_assert!(state.cache_hits >= ...)`）验证命中率。
+- 性能观察策略：保持编译与现有测试即可验证功能；若需了解热点路径，可通过可选 instrumentation（临时计数器、调试日志）收集粗粒度数据，采集后立即移除，避免引入额外依赖或跨语言难以复刻的基准。
 
 ## C# 实施细节
 - `NodeCursor` 需依赖 `SharedNode`/`Node.CloneWithChildren` 已完成的写时复制封装（参见 `docs/architecture/port-blueprint.md` §5.3）。
@@ -106,24 +104,24 @@
 ## 验证策略
 - **双端测试**：Rust 加入 `cursor_descriptor_roundtrip`、`cursor_state_randomized`；C# 添加镜像 `NodeCursorDescriptorTests`、`NodeCursorTraversalTests`。
 - **随机编辑序列**：复用现有 Rope 随机测试框架（81 项）生成编辑操作，序列化为共享 JSON，在 Rust/C# 之间交叉验证。
-- **性能监控**：收集 `Cursor::to_descriptor` 与 `apply_descriptor` 的 `Arc` 克隆次数、缓存命中率（调试日志或 `metrics` feature）。
+- **性能监控**：通过 opt-in 的调试计数器或日志临时记录 `Cursor::to_descriptor`/`apply_descriptor` 的 `Arc` 克隆次数、缓存命中率；验证完成后移除 instrumentation，维持编译与单元测试作为主要验证手段。
 - **文档同步**：完成阶段后刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs`，并在 `AGENTS.md` “当前聚焦事项”/“下一步行动”更新状态。
 
 ## 风险与缓解
 - **过期描述符导致错误恢复**：通过 `Arc::ptr_eq` + rope 版本号验证，并在失败时强制 `descend`。同时在 C# 端对 `SharedNode` 引用做引用相等检查。
 - **`Arc` 克隆导致内存保持时间延长**：Descriptor 需文档化“短期持有”预期；提供 `drop_leaf()` 帮助器或调试计数以分析泄漏。
-- **性能回退**：保持 Descriptor API 为 opt-in，并在默认路径继续使用原缓存；待 `CursorState` 稳定后再切换默认实现。
+- **性能回退**：保持 Descriptor API 为 opt-in，并在默认路径继续使用原缓存；如需评估趋势，使用短期 instrumentation 收集指标即可；待 `CursorState` 稳定后再考虑调整默认实现。
 - **双实现漂移**：共享测试 + skeleton 文档 + `runSubAgent` 自动对照（计划中）防止 Rust/C# 行为偏差。
 
 ## 下一步行动
 1. Rust：实现 `CursorDescriptor` 与基础测试（Phase 1），在 `rope-port-mapping.md` 将游标条目标记为“实现中”。
-2. Rust：使用 feature flag 引入 `CursorState` 草案，并邀请性能测试验证（Phase 2）。
+2. Rust：使用 feature flag 引入 `CursorState` 草案，优先确认语义对齐；如需观测热点，采用轻量 instrumentation，而非单独的性能测试流程（Phase 2）。
 3. C#：扩展 `NodeCursor` 数据结构以接收 Descriptor，编写最小 round-trip 测试。
 4. 文档：更新 `cursor-lifetime-refactor.md` 说明组合策略，并在 `AGENTS.md` 记录阶段性里程碑。
 5. 工具链：考虑在 `scripts/refresh_skeleton_docs.py` 中追加游标相关结构的自动摘要，保持跨语言骨架同步。
 
 ## 达成标准
-- Descriptor API 已在 Rust 主分支落地并通过 cursor 相关测试；`CursorState` feature 在 CI 中启用试跑，无性能回退超 5%。
+- Descriptor API 已在 Rust 主分支落地并通过 cursor 相关测试；`CursorState` feature 在 CI 中启用试跑，与默认实现语义一致且全部单元测试通过。
 - C# `NodeCursor` 能够在 81 项 Rope 测试基础上新增游标回归用例并全部通过。
 - `docs/architecture/rope-port-mapping.md`、`docs/architecture/port-blueprint.md` 与 `AGENTS.md` 均同步描述新的游标策略。
 - 双端共享的 Descriptor 示例（JSON）可 round-trip 并被测试覆盖，确保跨语言恢复行为一致。
@@ -131,5 +129,5 @@
 ## 文档与协同更新
 - [ ] Phase 0：在 `docs/architecture/port-blueprint.md` §5.2 回填缓存命中率基线，同时在 `docs/architecture/rope-port-mapping.md` 备注“Phase 0 基线完成，等待 Descriptor 支持”。
 - [x] Phase 1：更新 `docs/architecture/port-blueprint.md` §5.2/§9 的 Descriptor 任务为“已完成”，并将 `docs/architecture/rope-port-mapping.md` 中 `Tree/NodeCursor.cs` 调整为“实现中”；同步在 `AGENTS.md` 记录往返测试链接（新增 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`）。
-- [ ] Phase 2：`cursor_state` feature gate 已上线（Rust 侧进行中），待性能评估通过后再将 `docs/architecture/port-blueprint.md` §9 与 `docs/architecture/rope-port-mapping.md` 标记为“已完成”，并在 `AGENTS.md` 回填性能基线。
+- [ ] Phase 2：`cursor_state` feature gate 已上线（Rust 侧进行中），待语义与测试对齐确认后，再将 `docs/architecture/port-blueprint.md` §9 与 `docs/architecture/rope-port-mapping.md` 标记为“已完成”；若需要补充数据，可记录一次轻量 instrumentation 结果并在 `AGENTS.md` 留存。 
 - [ ] Phase 3：把 `docs/architecture/port-blueprint.md` M3 游标里程碑与 `docs/architecture/rope-port-mapping.md` C# 映射表同时标记为“已实现”，并在 `AGENTS.md` 与 `docs/skeleton/rope.md` 发布最终实现说明。
