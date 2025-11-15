@@ -143,7 +143,7 @@
 | Rust 模块 | 关键职责 | C# 目标 | 状态 | 备注 |
 |-----------|----------|---------|------|------|
 | `tree.rs` | 节点借用、合并、再平衡 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs`, `Tree/StringLeafOperations.cs`, `Tree/TreeContracts.cs` | 实现中 | 叶片借用/合并与 SharedNode helper 已对齐；泛型包装层尚未接入主线，内部节点再平衡与诊断待补 |
-| `tree.rs`（Cursor 等） | `Cursor`, `BalanceIter` | `Tree/NodeCursor.cs`（骨架） | 进行中 | Rust 侧 `CursorDescriptor` 已就绪（`xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs` 覆盖往返），等待 Phase 2 `CursorState` 落地后再补齐 C# 游标与迭代器 |
+| `tree.rs`（Cursor 等） | `Cursor`, `BalanceIter` | `Tree/NodeCursor.cs`（骨架） | 进行中 | Rust 侧 `CursorDescriptor` 已就绪并新增可选 `cursor_state` feature gate（`Cursor::state()`, `CursorState::restore` 等借用-free API），后续需采集性能数据并引导 C# 游标实现对齐 |
 | `rope.rs` | Rope API、Metric 聚合 | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | 实现中 | `StringLeafOperations`、`BreaksMetricHelper` 已落地；聚合增量刷新与泛型 Node 接入待完成 |
 | `delta.rs` | `Delta`, `Transformer` | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 完成泛型 `Delta` 与 JSON；`factor`/`Transformer` 待实现 |
 | `multiset.rs` | `Subset`, `SubsetBuilder` | `Rope/Subset.cs`, `Rope/SubsetJson.cs` | 已实现 | Stage A 完成 JSON 回归与 triple helper |
@@ -244,8 +244,8 @@
    - 刷新 `docs/skeleton/rope.md`/`xi.Core.Rope.cs`，标注泛型签名与 helper 对齐。
 2. **Cursor 生命周期筹备**：
    - Phase 1 `CursorDescriptor` 已交付并通过 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`，可在诊断会议上通报命中率与失效路径。
-   - 启动 Phase 2 `CursorState` 设计：提炼借用-free 内核草案、性能对比基线与迁移 plan。
-   - 在 Rust/C# 双端记录 descriptor 使用范式，为后续共享夹具做输入。
+   - Rust 侧已上线可选 `cursor_state` feature gate（`Cursor::state()`, `CursorState::restore`/`from_cursor` 等），默认关闭；需要收集启用/禁用下的性能基线并定义默认策略。
+   - 在 Rust/C# 双端扩展共享夹具：新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 测试，C# `NodeCursor` 需准备对应实现与验证入口。
 3. **SharedNode 诊断计划**：
    - 设计计数器与 ptr_eq 校验，明确 Rust/C# instrumentation 输出格式与测试入口。
 4. **Stage D 自动化完善**：

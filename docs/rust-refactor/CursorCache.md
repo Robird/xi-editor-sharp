@@ -11,8 +11,10 @@
 |-------|-------------|--------|--------------|-----------------|
 | Phase 0 | 游标调用基线与缓存诊断报告 | 进行中 | `port-blueprint` §5.2（诊断基线） | 将命中率指标回填到 `port-blueprint` 附录 |
 | Phase 1 | `CursorDescriptor` API 与往返测试 | 已完成 | Rust `tree.rs`、`rope-port-mapping` 状态列 | 推动 `rope-port-mapping` 将 `Tree/NodeCursor.cs` 标记为“实现中”并准备 Phase 2 `CursorState` 草案 |
-| Phase 2 | `CursorState` 内核与 Feature Gate | 规划中 | Phase 1 稳定报告、`port-blueprint` §9 | 在 `port-blueprint` 更新 M3 进度并协调性能评估会 |
+| Phase 2 | `CursorState` 内核与 Feature Gate | 进行中 | Phase 1 稳定报告、`port-blueprint` §9 | 收集启用 `cursor_state` 的性能基线，推进 C# `NodeCursor` 对齐 |
 | Phase 3 | C# `NodeCursor` 落地与共享夹具 | 规划中 | Phase 2 主分支可用、`rope-port-mapping` C# 行 | 宣告 `Tree/NodeCursor.cs` 从“仅骨架”晋级到“实现中/已实现” 并刷新 `AGENTS.md` |
+
+> **2025-11-15 更新**：`xi-rope` 新增可选 `cursor_state` feature gate，提供借用-free `CursorState` (`Cursor::state()`, `CursorState::from_cursor`/`restore`/`to_descriptor`) 并在启用时保持与 `Cursor` 同步；未启用时沿用原缓存路径。新增 `cursor_state_round_trip_basic`、`cursor_state_handles_deep_paths`、`cursor_state_invalidates_after_edit` 测试确保在默认/feature 模式下均可往返、穿越深树并在结构变动后失效。
 
 ## 问题现状
 - 游标缓存使用固定长度数组保存自底向上的父链，命中时可零分配前进/后退；树高度超过缓存时会自动回退到 `descend`，行为正确但有额外扫描成本。
@@ -129,5 +131,5 @@
 ## 文档与协同更新
 - [ ] Phase 0：在 `docs/architecture/port-blueprint.md` §5.2 回填缓存命中率基线，同时在 `docs/architecture/rope-port-mapping.md` 备注“Phase 0 基线完成，等待 Descriptor 支持”。
 - [x] Phase 1：更新 `docs/architecture/port-blueprint.md` §5.2/§9 的 Descriptor 任务为“已完成”，并将 `docs/architecture/rope-port-mapping.md` 中 `Tree/NodeCursor.cs` 调整为“实现中”；同步在 `AGENTS.md` 记录往返测试链接（新增 `xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs`）。
-- [ ] Phase 2：将 `docs/architecture/port-blueprint.md` §9 的 `CursorState` 内核标记为“已完成”，把 `docs/architecture/rope-port-mapping.md` Rust 部分改为“已实现”，并在 `AGENTS.md` 更新性能验证摘要。
+- [ ] Phase 2：`cursor_state` feature gate 已上线（Rust 侧进行中），待性能评估通过后再将 `docs/architecture/port-blueprint.md` §9 与 `docs/architecture/rope-port-mapping.md` 标记为“已完成”，并在 `AGENTS.md` 回填性能基线。
 - [ ] Phase 3：把 `docs/architecture/port-blueprint.md` M3 游标里程碑与 `docs/architecture/rope-port-mapping.md` C# 映射表同时标记为“已实现”，并在 `AGENTS.md` 与 `docs/skeleton/rope.md` 发布最终实现说明。
