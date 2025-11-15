@@ -24,7 +24,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use serde::Serialize;
 
 #[cfg(feature = "serde")]
-use xi_rope::serde_fixtures::{fixtures, Fixture};
+use xi_rope::serde_fixtures::{export_cursor_descriptor_fixtures, fixtures, Fixture};
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 use xi_rope::{
@@ -2726,6 +2726,14 @@ impl<'a> Iterator for Lines<'a> {
 ```rust
 #![cfg(feature = "serde")]
 
+pub mod cursor_descriptors;
+
+pub use cursor_descriptors::{
+    cursor_descriptor_samples, export_cursor_descriptor_fixtures, CursorDescriptorExportReport,
+    CursorDescriptorFixture, CursorDescriptorFrame, CursorDescriptorOffsets, DescriptorMetric,
+    CURSOR_DESCRIPTOR_FILENAME,
+};
+
 /// Describes a single serde regression fixture.
 #[derive(Copy, Clone, Debug)]
 pub struct Fixture {
@@ -2755,6 +2763,118 @@ pub const fn fixtures() -> &'static [Fixture] {...}
 
 /// Attempts to lookup a fixture by file name.
 pub fn get_fixture(name: &str) -> Option<&'static Fixture> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/cursor_descriptors.rs
+
+```rust
+use std::path::{Path, PathBuf};
+
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    helpers::string_leaf::{MAX_LEAF, MIN_LEAF},
+    rope::{LinesMetric, Rope, RopeInfo, Utf16CodeUnitsMetric},
+    tree::{Cursor, CursorDescriptor, TreeBuilder},
+};
+
+pub const CURSOR_DESCRIPTOR_FILENAME: &str = "cursor_descriptors.json";
+const DEEP_TREE_LEAF_COUNT_EXP: u32 = 5;
+const MIN_DEEP_PATH_DEPTH: usize = 5;
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DescriptorMetric {
+    Base,
+    Lines,
+    Utf16,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CursorDescriptorOffsets {
+    pub offset_of_leaf: usize,
+    pub offset_in_leaf: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub leaf_len: Option<usize>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CursorDescriptorFrame {
+    pub node_height: usize,
+    pub node_len: usize,
+    pub child_index: usize,
+    pub child_offset: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CursorDescriptorFixture {
+    pub name: String,
+    pub text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edited_text: Option<String>,
+    #[serde(default = "default_true")]
+    pub expect_apply: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expect_apply_after_edit: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    pub metric: DescriptorMetric,
+    pub position: usize,
+    pub is_valid: bool,
+    pub offsets: CursorDescriptorOffsets,
+    pub leaf_path: Vec<CursorDescriptorFrame>,
+}
+
+fn default_true() -> bool {...}
+
+#[derive(Clone, Debug)]
+pub struct CursorDescriptorExportReport {
+    pub file_path: PathBuf,
+    pub sample_count: usize,
+}
+
+pub fn export_cursor_descriptor_fixtures(
+    dir: &Path,
+) -> Result<CursorDescriptorExportReport, Box<dyn std::error::Error>> {...}
+
+pub fn cursor_descriptor_samples() -> Vec<CursorDescriptorFixture> {...}
+
+fn sample_empty_base() -> CursorDescriptorFixture {...}
+
+fn sample_single_leaf_midpoint() -> CursorDescriptorFixture {...}
+
+fn sample_single_leaf_end() -> CursorDescriptorFixture {...}
+
+fn sample_lines_middle() -> CursorDescriptorFixture {...}
+
+fn sample_lines_tail_boundary() -> CursorDescriptorFixture {...}
+
+fn sample_utf16_surrogate_midpoint() -> CursorDescriptorFixture {...}
+
+fn sample_utf16_cluster_tail() -> CursorDescriptorFixture {...}
+
+fn sample_split_leaf_boundary() -> CursorDescriptorFixture {...}
+
+fn sample_deep_tree_midpoint() -> CursorDescriptorFixture {...}
+
+fn sample_post_edit_invalidates() -> CursorDescriptorFixture {...}
+
+fn sample_invalid_descriptor() -> CursorDescriptorFixture {...}
+
+fn fixture_from_descriptor(
+    name: &str,
+    rope: &Rope,
+    descriptor: CursorDescriptor<RopeInfo, String>,
+    metric: DescriptorMetric,
+    notes: &str,
+    expect_apply: bool,
+    edited_text: Option<String>,
+    expect_apply_after_edit: Option<bool>,
+) -> CursorDescriptorFixture {...}
+
+fn build_deep_rope() -> Rope {...}
+
+fn generate_leaf_payload() -> String {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_impls.rs
@@ -3544,6 +3664,10 @@ impl<N: NodeInfo<L>, L: Leaf> PathFrame<N, L> {
     pub fn child_index(&self) -> usize {...}
 
     pub fn child_offset(&self) -> usize {...}
+
+    pub fn node_height(&self) -> usize {...}
+
+    pub fn node_len(&self) -> usize {...}
 }
 
 /// A borrow-free snapshot of a cursor's cached state.
@@ -3581,6 +3705,9 @@ impl<N: NodeInfo<L>, L: Leaf> CursorDescriptor<N, L> {
 
     /// Returns the frames describing the cached path from root to leaf.
     pub fn frames(&self) -> &[PathFrame<N, L>] {...}
+
+    /// Returns the length of the cached leaf, if the descriptor is valid.
+    pub fn leaf_len(&self) -> Option<usize> {...}
 
     /// Restores a [`Cursor`] from this descriptor if the cached nodes still belong to `root`.
     pub fn restore<'a>(&self, root: &'a Node<N, L>) -> Option<Cursor<'a, N, L>> {...}
@@ -3861,6 +3988,7 @@ use xi_rope::{LinesMetric, Rope, RopeInfo};
 
 fn build_deep_rope() -> Rope {...}
 
+#[cfg(feature = "serde")]
 #[cfg(feature = "cursor_state")]
 mod cursor_state_tests {
     use super::*;

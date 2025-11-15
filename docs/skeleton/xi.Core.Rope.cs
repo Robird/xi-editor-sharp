@@ -7,6 +7,7 @@
 // This assembly was compiled using the /deterministic option.
 // Hash algorithm: SHA1
 // Debug info: Loaded from portable PDB: E:\repos\Atelia-org\xi-editor-sharp\src\xi.Core\bin\Debug\net9.0\xi.Core.pdb
+#define DEBUG
 using Xi.Core.Rope.Tree;
 [assembly: CompilationRelaxations(8)]
 [assembly: RuntimeCompatibility(WrapNonExceptionThrows = true)]
@@ -16,7 +17,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+06088d128675c4d5a2d8852a4a3fa65e263f4e6f")]
+[assembly: AssemblyInformationalVersion("1.0.0+5c040c7b42db088e5f3879848a0ef9cf51f3824e")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -502,8 +503,10 @@ namespace Xi.Core.Rope {
 	}
 	public sealed class Rope : ITextBuffer {
 		private Node _root = Node.Empty;
+		private long _editVersion;
 		public int Length => _root.Length;
 		internal Node DebugRoot => _root;
+		public long EditVersion => Interlocked.Read(in _editVersion);
 		public void Append(string? text) {
 			// Appended text by delegating to the core Replace pipeline at the tail.
 		}
@@ -542,6 +545,18 @@ namespace Xi.Core.Rope {
 		}
 		private static void ValidateMetricCoordinate(int value, int maxInclusive, string parameterName) {
 			// Validated metric coordinates before delegating to conversion helpers.
+		}
+		private void UpdateRoot(Node newRoot) {
+			if (newRoot == null) {
+				throw new ArgumentNullException("newRoot");
+			}
+			if (_root != newRoot) {
+				_root = newRoot;
+				BumpEditVersion();
+			}
+		}
+		private void BumpEditVersion() {
+			Interlocked.Increment(ref _editVersion);
 		}
 	}
 	public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric> {
@@ -648,6 +663,125 @@ namespace Xi.Core.Rope {
 	}
 }
 namespace Xi.Core.Rope.Tree {
+	public sealed class GenericTreeBuilder<TInfo, TLeaf, TLeafOps> where TInfo : struct, ITreeNodeInfo<TInfo, TLeaf> where TLeafOps : ILeafOperations<TLeaf> {
+		private readonly List<Node<TInfo, TLeaf, TLeafOps>> _pending = new List<Node<TInfo, TLeaf, TLeafOps>>();
+		public void PushString(string? text) {
+			if (string.IsNullOrEmpty(text)) {
+				return;
+			}
+			foreach (string item in LeafSplitter.Split(text)) {
+				TLeaf leaf = ConvertStringToLeaf(item);
+				AppendNode(Node<TInfo, TLeaf, TLeafOps>.FromLeaf(leaf));
+			}
+		}
+		public void PushNode(Node<TInfo, TLeaf, TLeafOps> node) {
+			if (node == null) {
+				throw new ArgumentNullException("node");
+			}
+			if (!node.IsEmpty) {
+				AppendNode(node);
+			}
+		}
+		public Node<TInfo, TLeaf, TLeafOps> Build() {
+			if (_pending.Count == 0) {
+				return Node<TInfo, TLeaf, TLeafOps>.Empty;
+			}
+			Node<TInfo, TLeaf, TLeafOps> node = _pending[0];
+			for (int i = 1; i < _pending.Count; i++) {
+				node = Concat(node, _pending[i]);
+			}
+			return node;
+		}
+		public void Reset() {
+			_pending.Clear();
+		}
+		private void AppendNode(Node<TInfo, TLeaf, TLeafOps> node) {
+			Node<TInfo, TLeaf, TLeafOps> node2 = node;
+			int num = _pending.Count - 1;
+			while (num >= 0) {
+				Node<TInfo, TLeaf, TLeafOps> node3 = _pending[num];
+				if (node3.Height == node2.Height) {
+					node2 = Concat(node3, node2);
+					_pending.RemoveAt(num);
+					num--;
+					continue;
+				}
+				break;
+			}
+			_pending.Add(node2);
+		}
+		private static Node<TInfo, TLeaf, TLeafOps> Concat(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
+			if (left.IsEmpty) {
+				return right;
+			}
+			if (right.IsEmpty) {
+				return left;
+			}
+			if (left.Height == right.Height) {
+				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(new Node<TInfo, TLeaf, TLeafOps>[2] { left, right });
+			}
+			if (left.Height < right.Height) {
+				return ConcatLeftShorter(left, right);
+			}
+			return ConcatRightShorter(left, right);
+		}
+		private static Node<TInfo, TLeaf, TLeafOps> ConcatLeftShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
+			IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children = right.Children;
+			Node<TInfo, TLeaf, TLeafOps> right2 = children[0];
+			Node<TInfo, TLeaf, TLeafOps> node = Concat(left, right2);
+			if (node.Height == right.Height - 1) {
+				Node<TInfo, TLeaf, TLeafOps>[] array = new Node<TInfo, TLeaf, TLeafOps>[children.Count];
+				array[0] = node;
+				for (int i = 1; i < children.Count; i++) {
+					array[i] = children[i];
+				}
+				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array);
+			}
+			if (node.Height == right.Height) {
+				IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children2 = node.Children;
+				Node<TInfo, TLeaf, TLeafOps>[] array2 = new Node<TInfo, TLeaf, TLeafOps>[children2.Count + children.Count - 1];
+				for (int j = 0; j < children2.Count; j++) {
+					array2[j] = children2[j];
+				}
+				for (int k = 1; k < children.Count; k++) {
+					array2[children2.Count + k - 1] = children[k];
+				}
+				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array2);
+			}
+			throw new InvalidOperationException($"Unexpected height relationship during concatenation: left={left.Height}, right={right.Height}, merged={node.Height}");
+		}
+		private static Node<TInfo, TLeaf, TLeafOps> ConcatRightShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
+			IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children = left.Children;
+			Node<TInfo, TLeaf, TLeafOps> left2 = children[children.Count - 1];
+			Node<TInfo, TLeaf, TLeafOps> node = Concat(left2, right);
+			if (node.Height == left.Height - 1) {
+				Node<TInfo, TLeaf, TLeafOps>[] array = new Node<TInfo, TLeaf, TLeafOps>[children.Count];
+				for (int i = 0; i < children.Count - 1; i++) {
+					array[i] = children[i];
+				}
+				array[children.Count - 1] = node;
+				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array);
+			}
+			if (node.Height == left.Height) {
+				IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children2 = node.Children;
+				Node<TInfo, TLeaf, TLeafOps>[] array2 = new Node<TInfo, TLeaf, TLeafOps>[children.Count - 1 + children2.Count];
+				for (int j = 0; j < children.Count - 1; j++) {
+					array2[j] = children[j];
+				}
+				for (int k = 0; k < children2.Count; k++) {
+					array2[children.Count - 1 + k] = children2[k];
+				}
+				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array2);
+			}
+			throw new InvalidOperationException($"Unexpected height relationship during concatenation: left={left.Height}, right={right.Height}, merged={node.Height}");
+		}
+		private static TLeaf ConvertStringToLeaf(string segment) {
+			if (typeof(TLeaf) == typeof(string)) {
+				return (TLeaf)(object)segment;
+			}
+			throw new NotSupportedException("GenericTreeBuilder.PushString only supports TLeaf = string. For custom leaf types, use PushNode with pre-constructed leaves.");
+		}
+	}
 	internal static class LeafSplitter {
 		internal const int NewlinePreferenceWindow = 64;
 		internal static IEnumerable<string> Split(string leaf) {
@@ -725,6 +859,12 @@ namespace Xi.Core.Rope.Tree {
 		}
 		private static Node FromShared(SharedNode shared) {
 			// Constructed a Node façade around an existing SharedNode instance.
+		}
+		public string? GetLeaf() {
+			return IsLeaf ? (Body.Leaf ?? string.Empty) : null;
+		}
+		public Node[]? GetChildren() {
+			return IsLeaf ? null : Body.Children;
 		}
 		internal int ConvertFromDefaultMetric(IMetric metric, int offset) {
 			// Converted a default-metric offset into the requested metric coordinate for this node.
@@ -872,13 +1012,184 @@ namespace Xi.Core.Rope.Tree {
 		public IEnumerable<Node<TInfo, TLeaf, TLeafOps>> TraverseLeaves() {
 			// Enumerated generic leaf nodes recursively.
 		}
+		public List<string> ValidateInvariants(bool enforceLeafMinimum = false) {
+			List<string> list = new List<string>();
+			ValidateNode(this, isRoot: true, enforceLeafMinimum, list, "root");
+			return list;
+		}
+		public string ToDebugString() {
+			StringBuilder stringBuilder = new StringBuilder();
+			AppendDebugString(stringBuilder, 0);
+			return stringBuilder.ToString();
+		}
+		private void AppendDebugString(StringBuilder builder, int depth) {
+			string value = new string(' ', depth * 2);
+			if (IsLeaf) {
+				builder.Append(value);
+				builder.Append("Leaf[len=");
+				builder.Append(Length);
+				builder.Append("]");
+				builder.AppendLine();
+				return;
+			}
+			builder.Append(value);
+			builder.Append("Internal[h=");
+			builder.Append(Height);
+			builder.Append(", len=");
+			builder.Append(Length);
+			builder.Append(", children=");
+			Node<TInfo, TLeaf, TLeafOps>[]? children = _body.Children;
+			builder.Append((children != null) ? children.Length : 0);
+			builder.Append("]");
+			builder.AppendLine();
+			if (_body.Children != null) {
+				Node<TInfo, TLeaf, TLeafOps>[] children2 = _body.Children;
+				foreach (Node<TInfo, TLeaf, TLeafOps> node in children2) {
+					node.AppendDebugString(builder, depth + 1);
+				}
+			}
+		}
+		private static void ValidateNode(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
+			if (node.IsLeaf) {
+				ValidateLeaf(node, isRoot, enforceLeafMinimum, issues, path);
+			}
+			else {
+				ValidateInternal(node, isRoot, enforceLeafMinimum, issues, path);
+			}
+		}
+		private static void ValidateLeaf(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
+			int length = node.Length;
+			if (length > TLeafOps.MaxLeafSize) {
+				issues.Add($"[{path}] Leaf exceeds MaxLeafSize: length={length}, max={TLeafOps.MaxLeafSize}");
+			}
+			if (enforceLeafMinimum && !isRoot && length > 0 && length < TLeafOps.MinLeafSize) {
+				issues.Add($"[{path}] Leaf below MinLeafSize: length={length}, min={TLeafOps.MinLeafSize}");
+			}
+			if (!isRoot && length > 0 && !TLeafOps.IsValidChild(node.Leaf)) {
+				issues.Add($"[{path}] Leaf fails IsValidChild check: length={length}");
+			}
+		}
+		private static void ValidateInternal(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
+			Node<TInfo, TLeaf, TLeafOps>[] children = node._body.Children;
+			if (children == null || children.Length == 0) {
+				issues.Add($"[{path}] Internal node has no children (height={node.Height})");
+				return;
+			}
+			int num = node.Height - 1;
+			if (num < 0) {
+				issues.Add($"[{path}] Internal node has invalid height: {node.Height}");
+				return;
+			}
+			int num2 = 0;
+			TInfo val = TInfo.Identity;
+			for (int i = 0; i < children.Length; i++) {
+				Node<TInfo, TLeaf, TLeafOps> node2 = children[i];
+				string text = $"{path}/{i}";
+				if (node2.Height != num) {
+					issues.Add($"[{text}] Height mismatch: expected={num}, actual={node2.Height}, length={node2.Length}");
+				}
+				ValidateNode(node2, isRoot: false, enforceLeafMinimum, issues, text);
+				num2 = checked(num2 + node2.Length);
+				val = val.Accumulate(node2.Info);
+			}
+			if (num2 != node.Length) {
+				string value = FormatChildLengths(children);
+				issues.Add($"[{path}] Length aggregate mismatch: expected={node.Length}, actual={num2}; children={value}");
+			}
+		}
+		private static string FormatChildLengths(Node<TInfo, TLeaf, TLeafOps>[] children) {
+			if (children.Length == 0) {
+				return "[](count=0)";
+			}
+			StringBuilder stringBuilder = new StringBuilder();
+			stringBuilder.Append('[');
+			int num = Math.Min(children.Length, 6);
+			for (int i = 0; i < num; i++) {
+				if (i > 0) {
+					stringBuilder.Append(", ");
+				}
+				stringBuilder.Append(children[i].Length);
+			}
+			if (children.Length > 6) {
+				stringBuilder.Append(", …");
+			}
+			stringBuilder.Append("](count=");
+			stringBuilder.Append(children.Length);
+			stringBuilder.Append(')');
+			return stringBuilder.ToString();
+		}
 	}
 	public sealed class NodeCursor {
-		public Node Root { get; }
-		public int Position { get; private set; }
-		public int TotalLength => Root.Length;
-		public NodeCursor(Node root, int position) {
-			// Intended to couple a traversal cursor with a rope root and position.
+		private readonly struct PathFrame {
+			public Node Node { get; }
+			public int ChildIndex { get; }
+			public PathFrame(Node node, int childIndex) {
+				Node = node ?? throw new ArgumentNullException("node");
+				ChildIndex = childIndex;
+			}
+			public PathFrame WithChildIndex(int childIndex) {
+				return new PathFrame(Node, childIndex);
+			}
+		}
+		private readonly struct CursorSnapshot {
+			public int Position { get; }
+			public int OffsetOfLeaf { get; }
+			public string? CurrentLeaf { get; }
+			public bool IsValid { get; }
+			public PathFrame?[] Cache { get; }
+			public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, bool isValid, PathFrame?[] cache) {
+				Position = position;
+				OffsetOfLeaf = offsetOfLeaf;
+				CurrentLeaf = currentLeaf;
+				IsValid = isValid;
+				Cache = cache;
+			}
+		}
+		private const int CacheSizeLimit = 4;
+		private readonly Node _root;
+		private readonly Node _rootSharedNode;
+		private readonly Rope? _owner;
+		private readonly long _capturedEditVersion;
+		private bool _ownerVersionMismatch;
+		private int _position;
+		private readonly PathFrame?[] _pathCache;
+		private string? _currentLeaf;
+		private int _offsetOfLeaf;
+		private bool _isValid;
+		public Node Root => _root;
+		public int Position => _position;
+		public int TotalLength => _root.Length;
+		public bool IsValid => _isValid;
+		public NodeCursor(Node root, int position)
+			: this(root, position, null, -1L)
+        {
+            // Intended to couple a traversal cursor with a rope root and position.
+        }
+		public NodeCursor(Rope owner, int position)
+			: this((owner ?? throw new ArgumentNullException("owner")).DebugRoot, position, owner, owner.EditVersion) {
+		}
+		private NodeCursor(Node root, int position, Rope? owner, long ownerVersionSnapshot) {
+			_root = root ?? throw new ArgumentNullException("root");
+			_rootSharedNode = root;
+			_owner = owner;
+			_capturedEditVersion = ownerVersionSnapshot;
+			if (position < 0 || position > root.Length) {
+				throw new ArgumentOutOfRangeException("position", $"Position {position} is out of range [0, {root.Length}].");
+			}
+			_position = position;
+			_pathCache = new PathFrame?[4];
+			Descend();
+		}
+		private bool EnsureOwnerVersionMatches() {
+			if (_owner == null || _ownerVersionMismatch) {
+				return !_ownerVersionMismatch;
+			}
+			if (_owner.EditVersion == _capturedEditVersion) {
+				return true;
+			}
+			_ownerVersionMismatch = true;
+			Invalidate();
+			return false;
 		}
 		public (string Leaf, int Offset)? GetLeaf() {
 			// Would expose the current leaf text and offset under the cursor.
@@ -900,6 +1211,267 @@ namespace Xi.Core.Rope.Tree {
 		}
 		public int? AtOrPrevious(IMetric metric) {
 			// Intended to snap to the current or previous boundary defined by the metric.
+		}
+		private void Descend() {
+			if (!EnsureOwnerVersionMatches()) {
+				return;
+			}
+			AssertRootStable();
+			_position = Math.Min(_position, _root.Length);
+			ClearCache();
+			_currentLeaf = null;
+			_isValid = false;
+			Node node = _root;
+			int num = 0;
+			int position = _position;
+			while (!node.IsLeaf) {
+				Node[] array = RequireChildren(node);
+				int i;
+				for (i = 0; i + 1 < array.Length; i++) {
+					int num2 = num + array[i].Length;
+					if (num2 > position) {
+						break;
+					}
+					num = num2;
+				}
+				int num3 = node.Height - 1;
+				if (num3 < 4) {
+					_pathCache[num3] = new PathFrame(node, i);
+				}
+				node = array[i];
+			}
+			SetLeafFromNode(node, num);
+		}
+		private bool PrevLeaf() {
+			if (!_isValid || _currentLeaf == null) {
+				return false;
+			}
+			if (_offsetOfLeaf == 0) {
+				InvalidateToStart();
+				return false;
+			}
+			for (int i = 0; i < 4 && _pathCache[i].HasValue; i++) {
+				PathFrame value = _pathCache[i].Value;
+				if (value.ChildIndex > 0) {
+					PathFrame value2 = value.WithChildIndex(value.ChildIndex - 1);
+					_pathCache[i] = value2;
+					Node node = RequireChildren(value.Node)[value2.ChildIndex];
+					for (int num = i - 1; num >= 0; num--) {
+						Node[] array = RequireChildren(node);
+						int num2 = array.Length - 1;
+						_pathCache[num] = new PathFrame(node, num2);
+						node = array[num2];
+					}
+					SetLeafFromNode(node, _position = _offsetOfLeaf - node.Length);
+					return true;
+				}
+			}
+			_position = _offsetOfLeaf - 1;
+			Descend();
+			_position = _offsetOfLeaf;
+			return _isValid;
+		}
+		private bool NextLeaf() {
+			if (!_isValid || _currentLeaf == null) {
+				return false;
+			}
+			int num = (_position = _offsetOfLeaf + _currentLeaf.Length);
+			for (int i = 0; i < 4 && _pathCache[i].HasValue; i++) {
+				PathFrame value = _pathCache[i].Value;
+				Node[] array = RequireChildren(value.Node);
+				if (value.ChildIndex + 1 < array.Length) {
+					PathFrame value2 = value.WithChildIndex(value.ChildIndex + 1);
+					_pathCache[i] = value2;
+					Node node = array[value2.ChildIndex];
+					for (int num2 = i - 1; num2 >= 0; num2--) {
+						Node[] array2 = RequireChildren(node);
+						_pathCache[num2] = new PathFrame(node, 0);
+						node = array2[0];
+					}
+					SetLeafFromNode(node, num);
+					return true;
+				}
+			}
+			if (num == _root.Length) {
+				InvalidateToEnd();
+				return false;
+			}
+			Descend();
+			return _isValid;
+		}
+		private string? PeekPrevLeaf() {
+			if (!_isValid || _currentLeaf == null) {
+				return null;
+			}
+			CursorSnapshot snapshot = CaptureSnapshot();
+			if (!PrevLeaf()) {
+				RestoreSnapshot(snapshot);
+				return null;
+			}
+			string currentLeaf = _currentLeaf;
+			RestoreSnapshot(snapshot);
+			return currentLeaf;
+		}
+		private int? LastInsideLeaf(IMetric metric, int originalPosition) {
+			if (!_isValid || _currentLeaf == null) {
+				return null;
+			}
+			int length = _currentLeaf.Length;
+			int num = _offsetOfLeaf + length;
+			if (num < originalPosition && metric.IsBoundary(_currentLeaf, length)) {
+				if (NextLeaf()) {
+					return _position;
+				}
+				return null;
+			}
+			int? previousBoundary = metric.GetPreviousBoundary(_currentLeaf, length);
+			if (!previousBoundary.HasValue) {
+				return null;
+			}
+			_position = _offsetOfLeaf + previousBoundary.Value;
+			return _position;
+		}
+		private int? NextInsideLeaf(IMetric metric) {
+			if (!_isValid || _currentLeaf == null) {
+				return null;
+			}
+			int offset = _position - _offsetOfLeaf;
+			int? nextBoundary = metric.GetNextBoundary(_currentLeaf, offset);
+			if (!nextBoundary.HasValue) {
+				return null;
+			}
+			int value = nextBoundary.Value;
+			int num = _offsetOfLeaf + value;
+			if (value == _currentLeaf.Length && num != _root.Length) {
+				return NextLeaf() ? new int?(_position) : ((int?)null);
+			}
+			_position = num;
+			if (_position == _root.Length) {
+				InvalidateToEnd();
+			}
+			return _position;
+		}
+		private int? PreviousInsideLeaf(IMetric metric, int offsetInLeaf) {
+			if (!_isValid || _currentLeaf == null || offsetInLeaf <= 0) {
+				return null;
+			}
+			int num;
+			for (num = offsetInLeaf; num > 0; num--) {
+				int? previousBoundary = metric.GetPreviousBoundary(_currentLeaf, num);
+				if (!previousBoundary.HasValue) {
+					return null;
+				}
+				int num2 = _offsetOfLeaf + previousBoundary.Value;
+				if (num2 < _position) {
+					_position = num2;
+					return _position;
+				}
+				num = previousBoundary.Value;
+				if (num == 0) {
+					break;
+				}
+			}
+			return null;
+		}
+		private int MeasureLeaf(IMetric metric, int position) {
+			Node node = _root;
+			int num = 0;
+			int num2 = Math.Min(position, _root.Length);
+			while (!node.IsLeaf) {
+				Node[] array = RequireChildren(node);
+				Node[] array2 = array;
+				foreach (Node node2 in array2) {
+					int length = node2.Length;
+					if (num2 < length) {
+						node = node2;
+						break;
+					}
+					num2 -= length;
+					num = checked(num + metric.Measure(node2.Info, node2.Length));
+				}
+			}
+			return num;
+		}
+		private void DescendMetric(IMetric metric, int measure) {
+			if (!EnsureOwnerVersionMatches()) {
+				return;
+			}
+			AssertRootStable();
+			if (measure < 0) {
+				measure = 0;
+			}
+			ClearCache();
+			Node node = _root;
+			int num = 0;
+			int num2 = measure;
+			while (!node.IsLeaf) {
+				Node[] array = RequireChildren(node);
+				int i = 0;
+				for (int num3 = array.Length - 1; i < num3; i++) {
+					Node node2 = array[i];
+					int num4 = metric.Measure(node2.Info, node2.Length);
+					if (num4 >= num2) {
+						break;
+					}
+					num = checked(num + node2.Length);
+					num2 -= num4;
+				}
+				int num5 = node.Height - 1;
+				if (num5 < 4) {
+					_pathCache[num5] = new PathFrame(node, i);
+				}
+				node = array[i];
+			}
+			_position = num;
+			SetLeafFromNode(node, num);
+		}
+		private CursorSnapshot CaptureSnapshot() {
+			PathFrame?[] array = new PathFrame?[4];
+			Array.Copy(_pathCache, array, 4);
+			return new CursorSnapshot(_position, _offsetOfLeaf, _currentLeaf, _isValid, array);
+		}
+		private void RestoreSnapshot(CursorSnapshot snapshot) {
+			_position = snapshot.Position;
+			_offsetOfLeaf = snapshot.OffsetOfLeaf;
+			_currentLeaf = snapshot.CurrentLeaf;
+			_isValid = snapshot.IsValid;
+			Array.Copy(snapshot.Cache, _pathCache, 4);
+		}
+		private void SetLeafFromNode(Node leafNode, int offset) {
+			_currentLeaf = leafNode.GetLeaf() ?? string.Empty;
+			_offsetOfLeaf = offset;
+			_isValid = true;
+		}
+		private static Node[] RequireChildren(Node node) {
+			Node[] children = node.GetChildren();
+			if (children == null || children.Length == 0) {
+				throw new InvalidOperationException("Internal node must have children.");
+			}
+			return children;
+		}
+		private void ClearCache() {
+			for (int i = 0; i < _pathCache.Length; i++) {
+				_pathCache[i] = null;
+			}
+		}
+		private void Invalidate() {
+			_isValid = false;
+			_currentLeaf = null;
+			ClearCache();
+		}
+		private void InvalidateToStart() {
+			_position = 0;
+			_offsetOfLeaf = 0;
+			Invalidate();
+		}
+		private void InvalidateToEnd() {
+			_position = Math.Min(_position, _root.Length);
+			_offsetOfLeaf = _position;
+			Invalidate();
+		}
+		[Conditional("DEBUG")]
+		private void AssertRootStable() {
+			Debug.Assert(_rootSharedNode == _root, "Cursor root reference changed unexpectedly.");
 		}
 	}
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
