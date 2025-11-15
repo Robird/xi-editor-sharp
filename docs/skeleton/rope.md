@@ -17,8 +17,20 @@ fn main() {...}
 #[cfg(feature = "serde")]
 use std::{env, path::PathBuf};
 
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+use serde::Serialize;
+
 #[cfg(feature = "serde")]
 use xi_rope::serde_fixtures::{fixtures, Fixture};
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+use xi_rope::{
+    tree::{TreeBuilder, TreeBuilderEvent, TreeBuilderEventKind, TreeBuilderTracer},
+    Interval, Rope, RopeInfo,
+};
 
 #[cfg(feature = "serde")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {...}
@@ -34,6 +46,90 @@ fn export_to_directory(
     dir: &std::path::Path,
     fixtures: &[Fixture],
 ) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+fn handle_tree_builder_trace(dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(all(feature = "serde", not(feature = "tree_builder_slice_trace")))]
+fn handle_tree_builder_trace(_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+fn export_tree_builder_trace(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+fn convert_events(events: &[TreeBuilderEvent]) -> Vec<SerializableEvent> {...}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+struct NodeIdMapper {
+    next: u64,
+    map: HashMap<usize, u64>,
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl NodeIdMapper {
+    fn new() -> Self {...}
+
+    fn map(&mut self, ptr: usize) -> u64 {...}
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+#[derive(Serialize)]
+struct SerializableEvent {
+    kind: SerializableEventKind,
+    depth: usize,
+    node_height: usize,
+    node_len: usize,
+    node_id: u64,
+    reuse: bool,
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl SerializableEvent {
+    fn from_event(event: &TreeBuilderEvent, mapper: &mut NodeIdMapper) -> Self {...}
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+#[derive(Serialize)]
+#[serde(tag = "kind")]
+enum SerializableEventKind {
+    PushFrame,
+    ExtendFrame,
+    MergePop { merged_children: usize },
+    LeafSlice { interval: SerializableInterval },
+    EnterChild { requested: SerializableInterval, translated: SerializableInterval },
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl From<&TreeBuilderEventKind> for SerializableEventKind {
+    fn from(kind: &TreeBuilderEventKind) -> Self {...}
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+#[derive(Serialize)]
+struct SerializableInterval {
+    start: usize,
+    end: usize,
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl From<Interval> for SerializableInterval {
+    fn from(interval: Interval) -> Self {...}
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+struct RecordingTracer {
+    events: Rc<RefCell<Vec<TreeBuilderEvent>>>,
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl RecordingTracer {
+    fn new(events: Rc<RefCell<Vec<TreeBuilderEvent>>>) -> Self {...}
+}
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+impl TreeBuilderTracer<RopeInfo, String> for RecordingTracer {
+    fn record(&mut self, event: TreeBuilderEvent) {...}
+}
 ```
 
 ## xi-editor-ph7/rust/rope/src/breaks.rs
@@ -1750,6 +1846,10 @@ pub use crate::rope::{LinesMetric, Rope, RopeDelta, RopeInfo};
 #[cfg(feature = "cursor_state")]
 pub use crate::tree::CursorState;
 pub use crate::tree::{Cursor, CursorDescriptor, Metric};
+#[cfg(feature = "tree_builder_slice_trace")]
+pub use crate::tree::{
+    NullTreeBuilderTracer, TreeBuilderEvent, TreeBuilderEventKind, TreeBuilderTracer,
+};
 ```
 
 ## xi-editor-ph7/rust/rope/src/metrics/break_indices.rs
@@ -3295,6 +3395,41 @@ impl<N: NodeInfo<L>, L: Leaf> Default for Node<N, L> {
     fn default() -> Node<N, L> {...}
 }
 
+#[cfg(feature = "tree_builder_slice_trace")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TreeBuilderEventKind {
+    PushFrame,
+    ExtendFrame,
+    MergePop { merged_children: usize },
+    LeafSlice { interval: Interval },
+    EnterChild { requested: Interval, translated: Interval },
+}
+
+#[cfg(feature = "tree_builder_slice_trace")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TreeBuilderEvent {
+    pub kind: TreeBuilderEventKind,
+    pub depth: usize,
+    pub node_height: usize,
+    pub node_len: usize,
+    pub node_ptr: usize,
+    pub reuse: bool,
+}
+
+#[cfg(feature = "tree_builder_slice_trace")]
+pub trait TreeBuilderTracer<N: NodeInfo<L>, L: Leaf> {
+    fn record(&mut self, event: TreeBuilderEvent);
+}
+
+#[cfg(feature = "tree_builder_slice_trace")]
+#[derive(Default)]
+pub struct NullTreeBuilderTracer;
+
+#[cfg(feature = "tree_builder_slice_trace")]
+impl<N: NodeInfo<L>, L: Leaf> TreeBuilderTracer<N, L> for NullTreeBuilderTracer {
+    fn record(&mut self, _event: TreeBuilderEvent) {...}
+}
+
 /// A builder for creating new trees.
 pub struct TreeBuilder<N: NodeInfo<L>, L: Leaf> {
     // A stack of partially built trees. These are kept in order of
@@ -3304,14 +3439,59 @@ pub struct TreeBuilder<N: NodeInfo<L>, L: Leaf> {
     // In addition, there is a balancing invariant: for each vector
     // of length greater than one, all elements satisfy `is_ok_child`.
     stack: Vec<Vec<Node<N, L>>>,
+    #[cfg(feature = "tree_builder_slice_trace")]
+    tracer: Option<Box<dyn TreeBuilderTracer<N, L>>>,
 }
 
 impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
     /// A new, empty builder.
     pub fn new() -> TreeBuilder<N, L> {...}
 
+    #[cfg(feature = "tree_builder_slice_trace")]
+    /// Create a builder configured with a tracer.
+    pub fn with_tracer(tracer: Box<dyn TreeBuilderTracer<N, L>>) -> TreeBuilder<N, L> {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    /// Replace the tracer used by this builder.
+    pub fn set_tracer(&mut self, tracer: Option<Box<dyn TreeBuilderTracer<N, L>>>) {...}
+
     /// Append a node to the tree being built.
-    pub fn push(&mut self, mut n: Node<N, L>) {...}
+    pub fn push(&mut self, n: Node<N, L>) {...}
+
+    fn push_with_hint(&mut self, mut n: Node<N, L>, reuse_hint: bool) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_push_frame(
+        &mut self,
+        node_height: usize,
+        node_len: usize,
+        node_ptr: usize,
+        reuse: bool,
+    ) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_extend_frame(
+        &mut self,
+        node_height: usize,
+        node_len: usize,
+        node_ptr: usize,
+        reuse: bool,
+    ) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_merge_pop(&mut self, node: &Node<N, L>, merged_children: usize) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_leaf_slice(&mut self, node: &Node<N, L>, interval: Interval) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_enter_child(&mut self, child: &Node<N, L>, requested: Interval, translated: Interval) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn trace_event(&mut self, event: TreeBuilderEvent) {...}
+
+    #[cfg(feature = "tree_builder_slice_trace")]
+    fn node_identity(node: &Node<N, L>) -> usize {...}
 
     /// Push a subsequence of a rope.
     ///
@@ -3704,5 +3884,29 @@ mod cursor_state_tests {
     {...}
 
     }
+```
+
+## xi-editor-ph7/rust/rope/tests/tree_builder_slice_trace.rs
+
+```rust
+#![cfg(feature = "tree_builder_slice_trace")]
+
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use xi_rope::tree::{TreeBuilder, TreeBuilderEvent, TreeBuilderEventKind, TreeBuilderTracer};
+use xi_rope::{Interval, Rope, RopeInfo};
+
+struct RecordingTracer {
+    events: Rc<RefCell<Vec<TreeBuilderEvent>>>,
+}
+
+impl RecordingTracer {
+    fn new(store: Rc<RefCell<Vec<TreeBuilderEvent>>>) -> Self {...}
+}
+
+impl TreeBuilderTracer<RopeInfo, String> for RecordingTracer {
+    fn record(&mut self, event: TreeBuilderEvent) {...}
+}
 ```
 
