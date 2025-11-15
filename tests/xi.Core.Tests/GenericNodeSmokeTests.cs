@@ -50,4 +50,58 @@ public class GenericNodeSmokeTests
         var leaves = parent.TraverseLeaves().ToList();
         Assert.Equal(new[] { left, right }, leaves);
     }
+
+    [Fact]
+    public void ValidateInvariants_Detects_Leaf_Over_MaxSize()
+    {
+        // Create a leaf that exceeds MaxLeafSize (1024 for strings)
+        var oversizedLeaf = Leaf(new string('x', 2000));
+
+        var issues = oversizedLeaf.ValidateInvariants(enforceLeafMinimum: false);
+
+        Assert.NotEmpty(issues);
+        Assert.Contains(issues, issue => issue.Contains("exceeds MaxLeafSize"));
+    }
+
+    [Fact]
+    public void ValidateInvariants_Detects_Leaf_Under_MinSize()
+    {
+        // Create a small leaf (below MinLeafSize of 511)
+        var smallLeaf = Leaf(new string('x', 100));
+
+        // Wrap it in an internal node so it's not root
+        var parent = Node<RopeInfo, string, StringLeafOperations>.CreateInternal(new[] { smallLeaf });
+
+        var issues = parent.ValidateInvariants(enforceLeafMinimum: true);
+
+        Assert.NotEmpty(issues);
+        Assert.Contains(issues, issue => issue.Contains("below MinLeafSize"));
+    }
+
+    [Fact]
+    public void ValidateInvariants_Accepts_Valid_Tree()
+    {
+        // Create leaves within valid size range [511, 1024]
+        var leaf1 = Leaf(new string('a', 600));
+        var leaf2 = Leaf(new string('b', 700));
+
+        var parent = Node<RopeInfo, string, StringLeafOperations>.CreateInternal(new[] { leaf1, leaf2 });
+
+        var issues = parent.ValidateInvariants(enforceLeafMinimum: true);
+
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void ToDebugString_Shows_Tree_Structure()
+    {
+        var leaf1 = Leaf("Hello");
+        var leaf2 = Leaf("World");
+        var parent = Node<RopeInfo, string, StringLeafOperations>.CreateInternal(new[] { leaf1, leaf2 });
+
+        var debug = parent.ToDebugString();
+
+        Assert.Contains("Internal[h=1", debug);
+        Assert.Contains("Leaf[len=5]", debug);
+    }
 }

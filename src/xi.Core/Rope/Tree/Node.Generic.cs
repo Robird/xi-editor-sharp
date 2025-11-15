@@ -142,5 +142,194 @@ public sealed class Node<TInfo, TLeaf, TLeafOps>
         }
     }
 
+    /// <summary>
+    /// Validates tree invariants and returns a list of issues found.
+    /// </summary>
+    /// <param name="enforceLeafMinimum">If true, also checks that leaves meet minimum size requirements.</param>
+    /// <returns>A list of invariant violation messages, or empty if all invariants are satisfied.</returns>
+    public List<string> ValidateInvariants(bool enforceLeafMinimum = false)
+    {
+        var issues = new List<string>();
+        ValidateNode(this, isRoot: true, enforceLeafMinimum, issues, "root");
+        return issues;
+    }
+
+    /// <summary>
+    /// Generates a debug string representation showing the tree structure.
+    /// </summary>
+    public string ToDebugString()
+    {
+        var builder = new System.Text.StringBuilder();
+        AppendDebugString(builder, depth: 0);
+        return builder.ToString();
+    }
+
+    private void AppendDebugString(System.Text.StringBuilder builder, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        
+        if (IsLeaf)
+        {
+            builder.Append(indent);
+            builder.Append("Leaf[len=");
+            builder.Append(Length);
+            builder.Append("]");
+            builder.AppendLine();
+        }
+        else
+        {
+            builder.Append(indent);
+            builder.Append("Internal[h=");
+            builder.Append(Height);
+            builder.Append(", len=");
+            builder.Append(Length);
+            builder.Append(", children=");
+            builder.Append(_body.Children?.Length ?? 0);
+            builder.Append("]");
+            builder.AppendLine();
+
+            if (_body.Children is not null)
+            {
+                foreach (var child in _body.Children)
+                {
+                    child.AppendDebugString(builder, depth + 1);
+                }
+            }
+        }
+    }
+
+    private static void ValidateNode(
+        Node<TInfo, TLeaf, TLeafOps> node,
+        bool isRoot,
+        bool enforceLeafMinimum,
+        List<string> issues,
+        string path)
+    {
+        if (node.IsLeaf)
+        {
+            ValidateLeaf(node, isRoot, enforceLeafMinimum, issues, path);
+            return;
+        }
+
+        ValidateInternal(node, isRoot, enforceLeafMinimum, issues, path);
+    }
+
+    private static void ValidateLeaf(
+        Node<TInfo, TLeaf, TLeafOps> node,
+        bool isRoot,
+        bool enforceLeafMinimum,
+        List<string> issues,
+        string path)
+    {
+        var leafLength = node.Length;
+
+        // Check maximum size
+        if (leafLength > TLeafOps.MaxLeafSize)
+        {
+            issues.Add($"[{path}] Leaf exceeds MaxLeafSize: length={leafLength}, max={TLeafOps.MaxLeafSize}");
+        }
+
+        // Check minimum size (except for root or empty leaves)
+        if (enforceLeafMinimum && !isRoot && leafLength > 0 && leafLength < TLeafOps.MinLeafSize)
+        {
+            issues.Add($"[{path}] Leaf below MinLeafSize: length={leafLength}, min={TLeafOps.MinLeafSize}");
+        }
+
+        // Validate leaf is a valid child according to operations
+        if (!isRoot && leafLength > 0 && !TLeafOps.IsValidChild(node.Leaf))
+        {
+            issues.Add($"[{path}] Leaf fails IsValidChild check: length={leafLength}");
+        }
+    }
+
+    private static void ValidateInternal(
+        Node<TInfo, TLeaf, TLeafOps> node,
+        bool isRoot,
+        bool enforceLeafMinimum,
+        List<string> issues,
+        string path)
+    {
+        var children = node._body.Children;
+
+        if (children is null || children.Length == 0)
+        {
+            issues.Add($"[{path}] Internal node has no children (height={node.Height})");
+            return;
+        }
+
+        var expectedChildHeight = node.Height - 1;
+        if (expectedChildHeight < 0)
+        {
+            issues.Add($"[{path}] Internal node has invalid height: {node.Height}");
+            return;
+        }
+
+        var totalLength = 0;
+        var aggregateInfo = TInfo.Identity;
+
+        for (var i = 0; i < children.Length; i++)
+        {
+            var child = children[i];
+            var childPath = $"{path}/{i}";
+
+            // Validate child height
+            if (child.Height != expectedChildHeight)
+            {
+                issues.Add($"[{childPath}] Height mismatch: expected={expectedChildHeight}, actual={child.Height}, length={child.Length}");
+            }
+
+            // Recursively validate child
+            ValidateNode(child, isRoot: false, enforceLeafMinimum, issues, childPath);
+
+            // Accumulate metrics
+            totalLength = checked(totalLength + child.Length);
+            aggregateInfo = aggregateInfo.Accumulate(child.Info);
+        }
+
+        // Validate length aggregation
+        if (totalLength != node.Length)
+        {
+            var childLengths = FormatChildLengths(children);
+            issues.Add($"[{path}] Length aggregate mismatch: expected={node.Length}, actual={totalLength}; children={childLengths}");
+        }
+
+        // Note: We can't easily validate TInfo aggregation without knowing its equality semantics,
+        // but we've accumulated it above to ensure the operation itself doesn't throw
+    }
+
+    private static string FormatChildLengths(Node<TInfo, TLeaf, TLeafOps>[] children)
+    {
+        if (children.Length == 0)
+        {
+            return "[](count=0)";
+        }
+
+        var builder = new System.Text.StringBuilder();
+        builder.Append('[');
+
+        const int maxDisplay = 6;
+        var displayCount = Math.Min(children.Length, maxDisplay);
+
+        for (var i = 0; i < displayCount; i++)
+        {
+            if (i > 0)
+            {
+                builder.Append(", ");
+            }
+            builder.Append(children[i].Length);
+        }
+
+        if (children.Length > maxDisplay)
+        {
+            builder.Append(", …");
+        }
+
+        builder.Append("](count=");
+        builder.Append(children.Length);
+        builder.Append(')');
+
+        return builder.ToString();
+    }
+
     private sealed record NodeBody(int Height, int Length, TInfo Info, TLeaf Leaf, Node<TInfo, TLeaf, TLeafOps>[]? Children);
 }
