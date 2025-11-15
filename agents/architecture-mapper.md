@@ -169,6 +169,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Chunk/Grapheme 文档回填与 checkpoint 立项
+#### 已完成任务
+- ✅ 更新 `docs/architecture/m3-implementation-plan.md`：补入 Round 3 Chunk/Grapheme 子任务 T3.6-T3.8、T4.6-T4.8，新增 CLI/Telemetry 里程碑检查点，并在 §5.3 标注“骨架已提交 + 12 项测试通过、等待 parity fixtures 与基准”的现实基线。
+- ✅ 更新 `docs/architecture/rope-port-mapping.md`：在 Chunk/Lines、Grapheme 行标注 “Skeleton available, waiting for parity fixtures / Rust CLI export in progress”，引用 `RopeChunkEnumeratorTests.cs`、`RopeLineEnumeratorTests.cs`、`GraphemeNavigatorSmokeTests.cs` 以及 2025-11-16 设计分歧 entry。
+- ✅ 更新 `docs/architecture/type-system-migration-log.md`：分别为 Chunk/行迭代器与字素导航章节补充“当前阶段 + 阻塞项 + 缓解动作”，明确 CLI fixture、Telemetry 阈值与基准测试的待办。
+
+#### 后续监控
+- ⚠️ Rust Porter 需在 2025-11-19 前交付 `export-serde-fixtures --chunk-descriptors/--grapheme-windows` JSON；若延期须升级 R9/R10 风险并在 checkpoint 表中回写。
+- 🔄 C# Implementer 需在 T3.7/T4.6 内提交 Chunk/Line Diagnostics 与 Grapheme 遥测阈值提案，Architecture Mapper 负责追踪文档引用。
+- 🧪 QA Engineer 待排期 1 MB Chunk/Line 基准与 Grapheme fallback 采样（T3.8/T4.8），完成后回写 §5.3 与 `rope-port-mapping.md`。
+
 ### 2025-11-16 - Round 3 Chunk/Grapheme Skeleton 协调
 #### 已完成任务
 - ✅ 整理 Round 1（C# Implementer）与 Round 2（Rust Porter）对 Chunk/Grapheme 的拆解，形成覆盖实现、测试、CLI 夹具、遥测与降级记录的任务矩阵（T3.x/T4.x）。

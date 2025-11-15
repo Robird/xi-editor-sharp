@@ -34,6 +34,16 @@ public sealed class GraphemeNavigationMetrics
 
     public void RecordMovePrevious() => Interlocked.Increment(ref _movePreviousCalls);
 
+    /// <summary>Resets all counters to zero so parity tests can gather per-descriptor telemetry.</summary>
+    public void Reset()
+    {
+        Interlocked.Exchange(ref _forwardNeighborRequests, 0);
+        Interlocked.Exchange(ref _backwardNeighborRequests, 0);
+        Interlocked.Exchange(ref _scalarFallbacks, 0);
+        Interlocked.Exchange(ref _moveNextCalls, 0);
+        Interlocked.Exchange(ref _movePreviousCalls, 0);
+    }
+
     /// <summary>Returns a stable snapshot of the telemetry counters.</summary>
     public Snapshot GetSnapshot() => new(
         ForwardNeighborRequests: Interlocked.Read(ref _forwardNeighborRequests),

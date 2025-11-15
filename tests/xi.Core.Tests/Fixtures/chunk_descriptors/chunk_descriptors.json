@@ -1,0 +1,511 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "19368a01dad98d48f41dbc525e0ccd88e981845d",
+    "generated_at_unix_millis": 1763249488886,
+    "chunk_descriptor_count": 9,
+    "line_descriptor_count": 11
+  },
+  "chunk_descriptors": [
+    {
+      "sample": "empty_document",
+      "chunk_index": 0,
+      "text": "",
+      "byte_range": {
+        "start": 0,
+        "end": 0
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 0
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 0
+      },
+      "contains_crlf": false,
+      "is_empty": true,
+      "tags": [
+        "chunk",
+        "empty"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "ascii_sketch",
+      "chunk_index": 0,
+      "text": "Chunk iterator baseline\nspans ascii text.",
+      "byte_range": {
+        "start": 0,
+        "end": 41
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 41
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 41
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "ascii",
+        "chunk",
+        "lf"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "crlf_mixed_log",
+      "chunk_index": 0,
+      "text": "zero\r\none\r\ntwo\r\nthree\r\n",
+      "byte_range": {
+        "start": 0,
+        "end": 23
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 23
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 23
+      },
+      "contains_crlf": true,
+      "is_empty": false,
+      "tags": [
+        "chunk",
+        "crlf"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "emoji_cluster_block",
+      "chunk_index": 0,
+      "text": "😀 emoji block 😁🚀✨\nnext line 😀😃😄",
+      "byte_range": {
+        "start": 0,
+        "end": 51
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 37
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 51
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "chunk",
+        "emoji",
+        "lf",
+        "surrogate"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "surrogate_phrase",
+      "chunk_index": 0,
+      "text": "Music 𝄞 motif and math 𝟘 sample.",
+      "byte_range": {
+        "start": 0,
+        "end": 38
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 34
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 38
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "chunk",
+        "surrogate"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "zwj_family_story",
+      "chunk_index": 0,
+      "text": "Family 👩‍👩‍👧‍👦 lounge\nCrew 👨‍🚀 ties",
+      "byte_range": {
+        "start": 0,
+        "end": 61
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 41
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 61
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "chunk",
+        "emoji",
+        "lf",
+        "surrogate",
+        "zwj"
+      ],
+      "path": [],
+      "context": {
+        "before": "",
+        "after": ""
+      }
+    },
+    {
+      "sample": "deep_tree_payload",
+      "chunk_index": 0,
+      "text": "deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tr[leaf-00]",
+      "byte_range": {
+        "start": 0,
+        "end": 544
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 544
+      },
+      "leaf_range": {
+        "start": 0,
+        "end": 544
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "builder",
+        "chunk",
+        "deep_tree"
+      ],
+      "path": [
+        {
+          "node_height": 1,
+          "node_len": 2176,
+          "child_index": 0,
+          "child_offset": 0
+        }
+      ],
+      "context": {
+        "before": "",
+        "after": "deep-tree-chunk-"
+      }
+    },
+    {
+      "sample": "deep_tree_payload",
+      "chunk_index": 1,
+      "text": "deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tr[leaf-01]",
+      "byte_range": {
+        "start": 544,
+        "end": 1088
+      },
+      "utf16_range": {
+        "start": 544,
+        "end": 1088
+      },
+      "leaf_range": {
+        "start": 544,
+        "end": 1088
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "builder",
+        "chunk",
+        "deep_tree"
+      ],
+      "path": [
+        {
+          "node_height": 1,
+          "node_len": 2176,
+          "child_index": 1,
+          "child_offset": 544
+        }
+      ],
+      "context": {
+        "before": "deep-tr[leaf-00]",
+        "after": "deep-tree-chunk-"
+      }
+    },
+    {
+      "sample": "deep_tree_payload",
+      "chunk_index": 2,
+      "text": "deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tree-chunk-deep-tr[leaf-02]",
+      "byte_range": {
+        "start": 1088,
+        "end": 1632
+      },
+      "utf16_range": {
+        "start": 1088,
+        "end": 1632
+      },
+      "leaf_range": {
+        "start": 1088,
+        "end": 1632
+      },
+      "contains_crlf": false,
+      "is_empty": false,
+      "tags": [
+        "builder",
+        "chunk",
+        "deep_tree"
+      ],
+      "path": [
+        {
+          "node_height": 1,
+          "node_len": 2176,
+          "child_index": 2,
+          "child_offset": 1088
+        }
+      ],
+      "context": {
+        "before": "deep-tr[leaf-01]",
+        "after": "deep-tree-chunk-"
+      }
+    }
+  ],
+  "line_descriptors": [
+    {
+      "sample": "ascii_sketch",
+      "line_index": 0,
+      "raw": "Chunk iterator baseline\n",
+      "logical": "Chunk iterator baseline",
+      "byte_range": {
+        "start": 0,
+        "end": 24
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 24
+      },
+      "newline_kind": "lf",
+      "tags": [
+        "ascii",
+        "lf",
+        "line"
+      ]
+    },
+    {
+      "sample": "ascii_sketch",
+      "line_index": 1,
+      "raw": "spans ascii text.",
+      "logical": "spans ascii text.",
+      "byte_range": {
+        "start": 24,
+        "end": 41
+      },
+      "utf16_range": {
+        "start": 24,
+        "end": 41
+      },
+      "newline_kind": "none",
+      "tags": [
+        "ascii",
+        "line"
+      ]
+    },
+    {
+      "sample": "crlf_mixed_log",
+      "line_index": 0,
+      "raw": "zero\r\n",
+      "logical": "zero",
+      "byte_range": {
+        "start": 0,
+        "end": 6
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 6
+      },
+      "newline_kind": "cr_lf",
+      "tags": [
+        "crlf",
+        "line"
+      ]
+    },
+    {
+      "sample": "crlf_mixed_log",
+      "line_index": 1,
+      "raw": "one\r\n",
+      "logical": "one",
+      "byte_range": {
+        "start": 6,
+        "end": 11
+      },
+      "utf16_range": {
+        "start": 6,
+        "end": 11
+      },
+      "newline_kind": "cr_lf",
+      "tags": [
+        "crlf",
+        "line"
+      ]
+    },
+    {
+      "sample": "crlf_mixed_log",
+      "line_index": 2,
+      "raw": "two\r\n",
+      "logical": "two",
+      "byte_range": {
+        "start": 11,
+        "end": 16
+      },
+      "utf16_range": {
+        "start": 11,
+        "end": 16
+      },
+      "newline_kind": "cr_lf",
+      "tags": [
+        "crlf",
+        "line"
+      ]
+    },
+    {
+      "sample": "crlf_mixed_log",
+      "line_index": 3,
+      "raw": "three\r\n",
+      "logical": "three",
+      "byte_range": {
+        "start": 16,
+        "end": 23
+      },
+      "utf16_range": {
+        "start": 16,
+        "end": 23
+      },
+      "newline_kind": "cr_lf",
+      "tags": [
+        "crlf",
+        "line"
+      ]
+    },
+    {
+      "sample": "emoji_cluster_block",
+      "line_index": 0,
+      "raw": "😀 emoji block 😁🚀✨\n",
+      "logical": "😀 emoji block 😁🚀✨",
+      "byte_range": {
+        "start": 0,
+        "end": 29
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 21
+      },
+      "newline_kind": "lf",
+      "tags": [
+        "emoji",
+        "lf",
+        "line",
+        "surrogate"
+      ]
+    },
+    {
+      "sample": "emoji_cluster_block",
+      "line_index": 1,
+      "raw": "next line 😀😃😄",
+      "logical": "next line 😀😃😄",
+      "byte_range": {
+        "start": 29,
+        "end": 51
+      },
+      "utf16_range": {
+        "start": 21,
+        "end": 37
+      },
+      "newline_kind": "none",
+      "tags": [
+        "emoji",
+        "line",
+        "surrogate"
+      ]
+    },
+    {
+      "sample": "surrogate_phrase",
+      "line_index": 0,
+      "raw": "Music 𝄞 motif and math 𝟘 sample.",
+      "logical": "Music 𝄞 motif and math 𝟘 sample.",
+      "byte_range": {
+        "start": 0,
+        "end": 38
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 34
+      },
+      "newline_kind": "none",
+      "tags": [
+        "line",
+        "surrogate"
+      ]
+    },
+    {
+      "sample": "zwj_family_story",
+      "line_index": 0,
+      "raw": "Family 👩‍👩‍👧‍👦 lounge\n",
+      "logical": "Family 👩‍👩‍👧‍👦 lounge",
+      "byte_range": {
+        "start": 0,
+        "end": 40
+      },
+      "utf16_range": {
+        "start": 0,
+        "end": 26
+      },
+      "newline_kind": "lf",
+      "tags": [
+        "emoji",
+        "lf",
+        "line",
+        "zwj"
+      ]
+    },
+    {
+      "sample": "zwj_family_story",
+      "line_index": 1,
+      "raw": "Crew 👨‍🚀 ties",
+      "logical": "Crew 👨‍🚀 ties",
+      "byte_range": {
+        "start": 40,
+        "end": 61
+      },
+      "utf16_range": {
+        "start": 26,
+        "end": 41
+      },
+      "newline_kind": "none",
+      "tags": [
+        "emoji",
+        "line",
+        "zwj"
+      ]
+    }
+  ]
+}

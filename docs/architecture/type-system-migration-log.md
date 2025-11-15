@@ -75,6 +75,15 @@
 - 当前继续使用 `Snapshot()` 或 `EnumerateLeaves()` 作为遍历入口，并在文档中标注性能风险；必要时提供 `IEnumerable<string>`/`ReadOnlyMemory<char>` 的包装 API 作为临时替代。
 - 分块差异检测等性能敏感场景，可在 C# 侧调用 Rust façade（待提供）或通过临时 P/Invoke 获取 chunk 描述，确保功能可用但接受跨语言调用成本。
 
+### 当前阶段（2025-11-16）
+- **C# 状态**：`RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs` 骨架与 12 项单测已合入（`RopeChunkEnumeratorTests`、`RopeLineEnumeratorTests`、`GraphemeNavigatorSmokeTests` 中的 chunk/line 断言），实现遵循 2025-11-16 设计分歧（复制叶片 + Diagnostics）。
+- **Rust 状态**：`iterator-facade-export` 仍在评审，`export-serde-fixtures --chunk-descriptors` CLI 尚未导出 JSON，对拍样本缺失；`ChunkDescriptorIter` façade仍处“in progress”。
+- **阻塞项**：缺少 CLI fixture、Telemetry 阈值、1 MB 文本微基准，导致 T3.6-T3.8 工作无法完全验收，风险 R9/R10 仍开放。
+
+### 缓解/后续动作
+- Rust Porter 需在 2025-11-19 前 demo CLI 输出并提交 JSON 至 `tests/xi.Core.Tests/Fixtures/Chunks/`，Architecture Mapper 在 `rope-port-mapping.md` 跟踪状态。
+- C# Implementer 提交 `RopeChunkEnumeratorDiagnostics` telemetry，并向 QA 提供基线脚本，确保 T3.7/T3.8 可在 M3 内完成。
+
 ### 最新进展
 - `iterator-facade-export.md` 给出了 owned descriptor/visitor 风格指引，但尚未有具体实现；需跟进 Rust 侧是否计划导出 `(byte_len, utf16_len)` 元数据或 `visit_chunks` façade。
 - Open question: C# 是否采用 `ArrayPool<char>`/`MemoryOwner<char>` 来减少桥接成本？需在原型阶段收集基准后决策。
@@ -95,6 +104,15 @@
 ### 降级方案
 - 在完整字素导航落地前，延续 surrogate 安全 + 单叶/邻叶补片方案；对需要严格 UAX #29 语义的功能保持禁用或回退到 Rust 结果。
 - 文档中强调“字素支持暂不完全”，并要求上层调用在遇到失败时提供备用路径或明确错误提示。
+
+### 当前阶段（2025-11-16）
+- **C# 状态**：`Navigation/DegradedGraphemeNavigator.cs` 与 `GraphemeNavigationMetrics.cs` 已落地，`GraphemeNavigatorSmokeTests.cs` 覆盖常见 surrogate/emoji 场景并保持绿灯；遥测计数器记入 `docs/architecture/design-divergence-log.md`。
+- **Rust 状态**：仍依赖 `unicode_segmentation::GraphemeCursor`，暂未输出 trace/fixture；`export-serde-fixtures --grapheme-windows` CLI 需求排队中，需在 Round 3 T4.7 前完成。
+- **阻塞项**：遥测阈值（沿用 0.5% 还是提升）尚待架构师确认；无共享 fixtures 导致跨语言 parity 无法执行。
+
+### 缓解/后续动作
+- Architecture Mapper + AI 架构师在 T4.6 内重新确认 telemetry 阈值并记录到 `design-divergence-log.md`；若阈值调高需同步风险章节。
+- Rust Porter 评估是否能输出 `GraphemeStep` trace 或最小 JSON，以便 QA 后续运行 fallback 统计（T4.7/T4.8）。
 
 ### 最新进展
 - 设计分歧日志已登记降级策略，但遥测与测试仍缺失；后续实现需同步更新 `AGENTS.md` 与本文档。

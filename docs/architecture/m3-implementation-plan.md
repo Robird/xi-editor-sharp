@@ -109,6 +109,9 @@
 | T3.3 | 实现分块逻辑（按 `MAX_LEAF` 上限拆分） | C# Implementer | 1 天 | T3.2 |
 | T3.4 | 设计 `RopeLineEnumerator`（基于 `RopeChunkEnumerator`） | C# Implementer | 1 天 | T3.3 |
 | T3.5 | 编写 Chunk/Line 迭代器单元测试 | C# Implementer | 0.5-1 天 | T3.4 |
+| T3.6 | 导入 Round 3 chunk parity fixture（`export-serde-fixtures --chunk-descriptors` 输出 JSON → `tests/xi.Core.Tests/Fixtures/Chunks/`） | Rust Porter + Architecture Mapper | 1 天 | T0 CLI 子任务、T3.5 |
+| T3.7 | 记录 Chunk/Line telemetry（分块次数、最大 chunk 长度、`ReadOnlyMemory<char>` 分配）并在 `RopeChunkEnumeratorDiagnostics` 中暴露 | C# Implementer | 0.5 天 | T3.3 |
+| T3.8 | 运行 Chunk/Line 微基准（1 MB 文本）并在 Round 3 风险表登记基线 | QA Engineer + Architecture Mapper | 1 天 | T3.7 |
 
 **工作量小计**：3-4 天  
 **降级说明**：
@@ -133,6 +136,9 @@
 | T4.3 | Code Point 回退逻辑（跨叶失败时降级） | C# Implementer | 0.5 天 | T4.2 |
 | T4.4 | 添加遥测计数器（补片命中、code point 回退） | C# Implementer | 0.5 天 | T4.3 |
 | T4.5 | 编写 Grapheme 导航测试（surrogate、emoji、跨叶） | C# Implementer | 0.5 天 | T4.4 |
+| T4.6 | 确认 Grapheme 遥测阈值（沿用 0.5% 还是升级）并在 `design-divergence-log.md` 标注监控策略 | Architecture Mapper + AI 架构师 | 0.5 天 | T4.4 |
+| T4.7 | 导入 Grapheme parity/trace fixture（`export-serde-fixtures` CLI 扩展）并链接到 `tests/xi.Core.Tests/GraphemeNavigatorSmokeTests.cs` | Rust Porter + QA Engineer | 1 天 | Round 3 CLI 依赖、T4.5 |
+| T4.8 | 运行 Grapheme 回归基准（复杂 emoji/ZWJ 序列）并记录 fallback 命中率 | QA Engineer + Architecture Mapper | 1 天 | T4.6 |
 
 **工作量小计**：2 天  
 **降级风险**：
@@ -254,6 +260,20 @@
 
 ---
 
+### 4.3 Chunk/Line/Grapheme 检查点
+
+| Checkpoint | 内容 | Owner | 截止/触发 | 依赖 |
+|------------|------|-------|-------------|------|
+| CP-C1 | Rust Porter 演示 `export-serde-fixtures --chunk-descriptors` 输出 10 份 JSON，并同步到 `tests/xi.Core.Tests/Fixtures/Chunks/` | Rust Porter | 2025-11-19（T3.6 启动前） | R9, Round 3 Chunk CLI 依赖 |
+| CP-C2 | `RopeChunkEnumeratorDiagnostics` 记录 chunk 数量/最大长度/分配次数，并在 Architecture Mapper 周报中复盘 | C# Implementer + Architecture Mapper | 2025-11-21 或首次 chunk 基准前 | T3.7 |
+| CP-G1 | 确认 Grapheme 遥测阈值（0.5% 继续 or 提升），并在 `design-divergence-log.md` 引用降级条目 | Architecture Mapper + AI 架构师 | 2025-11-20（T4.6 完成前） | T4.6 |
+| CP-G2 | `export-serde-fixtures --grapheme-windows`（命名暂定）导出复杂 emoji/ZWJ trace，供 `GraphemeNavigatorSmokeTests` 对拍 | Rust Porter + QA Engineer | 2025-11-21（T4.7 启动前） | Round 3 Grapheme CLI 依赖 |
+| CP-G3 | Grapheme fallback 命中率基准（≥10k 操作）记录在 telemetry dashboard，若 > 阈值触发升级讨论 | QA Engineer + Architecture Mapper | 2025-11-24 或首次 fallback > 阈值 | T4.8 |
+
+> 若任一 checkpoint 逾期或未满足数据质量要求，需立即在风险台账中升级对应条目（R8/R9/R10）。
+
+---
+
 ## 5. 架构管控机制
 
 ### 5.0 Rust Porter 算法咨询预案
@@ -314,13 +334,18 @@
 
 **测试现状**
 - `dotnet test Xi.Editor.sln --filter NodeCursorTests` ✅，确认游标专项回归已恢复；尚未重新跑完整 114 项套件，因此“114 项 + 游标全绿”仍是目标值而非现状。
+- `dotnet test Xi.Editor.sln --filter "RopeChunkEnumeratorTests|RopeLineEnumeratorTests|GraphemeNavigatorSmokeTests"` ✅，12 项 Chunk/Line/Grapheme 骨架测试全部通过，覆盖 `tests/xi.Core.Tests/{RopeChunkEnumeratorTests,RopeLineEnumeratorTests,GraphemeNavigatorSmokeTests}.cs`。
+
+**现实基线**
+1. **Chunk/Line/Grapheme 骨架已提交**：`src/xi.Core/Rope/RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs` 与 `Rope/Navigation/DegradedGraphemeNavigator.cs`/`GraphemeNavigationMetrics.cs` 已在主干；实现遵循 2025-11-16 设计分歧记录（复制叶片 + 遥测降级），并通过上述 12 项测试验证。
+2. **Parity fixture & Benchmark 待落地**：Chunk/Grapheme CLI（`export-serde-fixtures --chunk-descriptors/--grapheme-windows`）尚未输出 JSON，`tests/xi.Core.Tests/Fixtures/Chunks/`、`.../Graphemes/` 仍为空；QA 也未记录 1 MB 文本微基准或 Grapheme fallback 命中率基线。
 
 **缺失组件与差距**
-1. **Rope 编辑版本计数器**：`Rope`/`Node` 编辑路径仍缺 `_editVersion` 或等效票据，M3 任务当前只能依赖 `ReferenceEquals` 检测失效。该缺口直接影响 R1、R8 风险，需要在 T0 阶段补齐。
-2. **Cursor Parity CLI**：`export-serde-fixtures` 尚无 `--cursor-descriptors` 子命令，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 为空，导致 T1.6 只能手工构造少量样本。
-3. **Chunk/Grapheme Skeleton**：`RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs`、`GraphemeNavigation` 遥测骨架仍为 TODO，计划表中的估时基于“骨架已存在”假设，与现实不符。
+1. **Rope 编辑版本计数器**：`Rope`/`Node` 编辑路径仍缺 `_editVersion` 或等效票据，当前只能依赖 `ReferenceEquals` 检测失效（影响 R1/R8）。
+2. **Cursor Parity CLI**：`export-serde-fixtures` 尚未提供 `--cursor-descriptors`，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 为空，T1.6 仍需手工构造样本。
+3. **Chunk/Grapheme 数据资产**：虽有骨架与测试，但 CLI fixture、Telemetry 阈值、性能基线尚未记录，T3.6-T3.8/T4.6-T4.8 需投入额外 2-3 天完成。
 
-> 本小节取代原“全量测试已绿”的假设，供后续同步与周会引用；每次重新跑完 114 项测试或补齐依赖后需更新时间戳。
+> 本小节取代原“全量测试已绿”的假设，供后续同步与周会引用；每次重新跑完 114 项测试、落地 CLI 夹具或补齐基准后需更新时间戳。
 
 ---
 

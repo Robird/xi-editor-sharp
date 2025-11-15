@@ -184,6 +184,23 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Rust Parity Fixtures (Chunk/Line/Grapheme) 对拍通道
+**任务背景**：Rust Porter 交付 chunk/line/grapheme JSON 夹具，需要在 C# 端落地 loader + parity 单测验证 `RopeChunkEnumerator`、`RopeLineEnumerator`、`DegradedGraphemeNavigator` 的序列化输出。
+
+**关键改动**：
+1. ✅ `tests/xi.Core.Tests/Fixtures/ParityFixtures/ParityFixtureLoader.cs` 引入 `ChunkDescriptor`/`LineDescriptor`/`GraphemeDescriptor` record 与懒加载器，自动锁定 JSON 路径并在缺失时提示重新运行 Rust exporter。
+2. ✅ 新增 `RopeChunkParityTests` 校验 chunk/line 文本、UTF-16/UTF-8 偏移与 CRLF info，大体样本逐条对拍，`deep_tree_payload` 仅核对 chunk 计数以控制开销。
+3. ✅ 新增 `GraphemeNavigatorParityTests`，使用 fixture 推导叶片切分构造 Rope，逐 descriptor 验证 cluster 文本、`MoveNext/MovePrevious` 结果、非跨叶/非 fallback 不变式；`requires_fallback`/`crosses_leaf` 目前只做“不得意外触发”校验，记 TODO 等 Rust 端 schema 扩展。
+4. ✅ `GraphemeNavigationMetrics` 暴露 `Reset()` 便于 per-descriptor 计数，`design-divergence-log.md` 记录“Parity 仍基于复制型迭代器 + 降级 navigator”。
+
+**验证**：
+- `dotnet test Xi.Editor.sln --filter "RopeChunkParityTests|GraphemeNavigatorParityTests"`
+- `dotnet test Xi.Editor.sln`
+
+**遗留风险 / TODO**：
+- Parity 测试尚未覆盖零拷贝 chunk span 与 ICU 级 grapheme 行为；`requires_fallback`、`crosses_leaf` 仅用于防止额外退化，待 Rust Porter 提供 leaf/chunk schema 才能做强断言。
+- `cross_leaf_flag`/`zwj_family` 等样本暴露 fixture 与实际 C# 叶片布局不完全一致，已在测试内注释说明，后续需联合 Architecture Mapper 更新 schema。
+
 ### 2025-11-16 - M3 T3/T4 Chunk/Line Enumerator + Grapheme Navigator 降级实现
 **任务背景**：落地 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`DegradedGraphemeNavigator` 与遥测，满足 Round 3 T3/T4 要求并补齐基础测试。
 

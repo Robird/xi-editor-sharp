@@ -10,7 +10,10 @@
 - `Rust 重构中`：C# 侧暂缓，等待 `xi-editor-ph7` 提供迁移友好 helper 或结构调整。
 - `已实现`：关键能力与诊断均已移植，后续仅保留优化或性能工作。
 
-## 最新进展（2025-11-15）
+## 最新进展（2025-11-16）
+
+- C# 已提交 Chunk/Line 枚举器与 Grapheme 降级骨架，12 项新测试全部通过；对应状态更新为“Skeleton available, waiting for parity fixtures”。
+- Rust Porter 已扩展 `export-serde-fixtures` CLI（`--chunk-descriptors` / `--grapheme-descriptors`），首批 parity JSON 已同步到 `tests/xi.Core.Tests/Fixtures/chunk_descriptors/` 与 `.../grapheme_descriptors/`，后续仅需 C# 接入。
 
 ## 路径映射约定
 - `reference/rust/rope/` ↔ `src/xi.Core/Rope/`
@@ -23,7 +26,9 @@
 |-----------|---------------|-------------------|----------|------|
 | `tree.rs` | `Node`, `SharedNode`, `TreeBuilder`，负责节点借用/合并、再平衡骨架 | `Tree/Node.cs`, `Tree/Node.Generic.cs`, `Tree/TreeBuilder.cs`, `Tree/LeafSplitter.cs` | 实现中 | 写时复制 helper 已对齐；内部再平衡与诊断计数器尚未接入，`Node.Generic.cs` 仍待并入主实现。 |
 | `tree.rs`（游标相关） | `Cursor`, `CursorIter`, `BalanceIter` 等遍历结构 | `Tree/NodeCursor.cs`（骨架） | 实现中 | `CursorDescriptor` 为移植必需能力，C# 需实现等效的拥有型描述符；`cursor_state` feature gate 仅在 Rust 侧提供可选持久化快照（`Cursor::state()`/`CursorState`），可作为 C# 设计参考但无需一比一复刻 gate。 |
-- **Grapheme 降级实现确认**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；该策略已在 2025-11-15 设计分歧日志登记，后续若需要更完整行为，再评估引入 `StringInfo`/ICU4N 或 Rust trace。 
+| `rope.rs`（Chunk/Lines） | `ChunkIter`, `LinesRaw`, `Lines`，零拷贝块/行遍历 | `Rope/RopeChunkEnumerator.cs`, `Rope/RopeLineEnumerator.cs` | 仅骨架（Fixtures ready, pending ingestion） | Rust 侧 `export-serde-fixtures --chunk-descriptors` 已导出 `chunk_descriptors.json`/`line_descriptors` 至 `tests/xi.Core.Tests/Fixtures/chunk_descriptors/`；C# 端 12 项测试覆盖 `RopeChunkEnumeratorTests.cs`、`RopeLineEnumeratorTests.cs`，下一步需消费 JSON 对拍并记录 Telemetry。 |
+| `rope.rs`（Grapheme 导航） | `prev_grapheme_offset`, `next_grapheme_offset`, `GraphemeCursor` | `Rope/Navigation/DegradedGraphemeNavigator.cs`, `Rope/Navigation/GraphemeNavigationMetrics.cs` | 仅骨架（Fixtures ready, pending ingestion） | Rust 侧 `export-serde-fixtures --grapheme-descriptors` 已写入 `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json`；C# 降级策略已在 `GraphemeNavigatorSmokeTests.cs` 验证，待利用 JSON 校验跨叶/ZWJ/fallback 场景。 |
+> **Grapheme 降级实现确认**：Rust 通过 `unicode_segmentation::GraphemeCursor` 完成字素粒度移动，C# 初版仅保证不拆分 surrogate，对上下文最多补一片并在不足时退回 code point；该策略已在 2025-11-15 设计分歧日志登记，后续若需要更完整行为，再评估引入 `StringInfo`/ICU4N 或 Rust trace。 
 | `helpers/string_leaf.rs` | 字符串叶片容量常量、拆分策略与 UTF-16 计数 helper | `Tree/StringLeafOperations.cs` | 已实现 | 注意记录 UTF-8/UTF-16 单位差异，继续扩充对拍样本。 |
 | `delta.rs` | `Delta`, `InsertDelta`, `Transformer` 协作算法 | `Rope/Delta.cs`, `Rope/DeltaJson.cs` | 实现中 | Stage B 镜像完成；`Transformer` 与 `factor()` 仍为 TODO。 |
 | `interval.rs` | 区间结构 | `Rope/Interval.cs` | 已实现 | 后续若新增 `IntervalTree` 需更新目录映射。 |
@@ -166,10 +171,10 @@
 ## 主要缺口
 
 - **游标缓存与生命周期策略更新**：Rust `CursorDescriptor` 已发布并作为移植基线，C# `Tree/NodeCursor.cs` 需基于此实现拥有型描述符；`cursor_state` feature gate 提供的 `CursorState` 属可选增强，可在评估成本后决定是否在 C# 侧提供等效持久化缓存。
-- **Rope 块/行/字素迭代器尚无 C# 映射**：`ChunkIter`、`LinesRaw`、`Lines` 以及相关 `Rope::lines*` API 在 C# 中缺位，导致高层遍历、Diff/查找等功能无法接线。
+- **Rope 块/行/字素迭代器 parity 校验未落地**：`chunk_descriptors.json` 与 `grapheme_descriptors.json` 已由 `export-serde-fixtures` 导出到 `tests/xi.Core.Tests/Fixtures/chunk_descriptors/`、`.../grapheme_descriptors/`，但 C# 单测尚未消费这些黄金资产，也缺少 Telemetry 阈值与性能基线。
 - **Grapheme 降级策略的监控**：降级实现已确认为短期方案，需持续收集跨叶补片与 code point 回退频次，供未来是否追平 Rust 版本决策参考。
 - **辅助模块仍为空白**：`breaks.rs`、`compare.rs`、`diff.rs`、`find.rs` 等仍在规划阶段，无法支撑视图层和插件所需的断点、差异和搜索能力。
-- **Cursor Parity 资产出入口缺失**：`export-serde-fixtures` 尚未提供 `--cursor-descriptors` 子命令，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 目录为空，无法支撑文档 §3.2.4 所要求的 10 份 JSON fixture。Rust Porter 需在 Stage D 资产表登记该 CLI，Architecture Mapper 在本表追踪其落地状态。
+- **Cursor Parity 资产接入待跟进**：`export-serde-fixtures --cursor-descriptors` 已提供 11 份样本（`tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json`），需在 Stage D 资产表与 §3.2.4 验收表中回写状态，并推动 `NodeCursor` 单测消费这些 fixture。
 
 ## 改进思路
 
