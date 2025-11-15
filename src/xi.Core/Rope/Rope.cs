@@ -1,19 +1,26 @@
 using System;
+using System.Threading;
 using Xi.Core.Rope.Tree;
 
 namespace Xi.Core.Rope;
 
 /// <summary>
 /// Rope-backed implementation of <see cref="ITextBuffer"/> built on top of <see cref="Node"/>.
-/// Provides the same surface semantics as the placeholder buffer while preparing for advanced rope features.
+/// Provides the same surface semantics as the placeholder buffer while preparing for advanced rope features and exposing edit-version tracking for cursors.
 /// </summary>
 public sealed class Rope : ITextBuffer
 {
     private Node _root = Node.Empty;
+    private long _editVersion;
 
     public int Length => _root.Length;
 
     internal Node DebugRoot => _root;
+
+    /// <summary>
+    /// Monotonically increasing version that bumps after each structural edit so dependent components can detect mutations.
+    /// </summary>
+    public long EditVersion => Interlocked.Read(ref _editVersion);
 
     public void Append(string? text)
     {
@@ -32,13 +39,14 @@ public sealed class Rope : ITextBuffer
 
     public void Clear()
     {
-        _root = Node.Empty;
+        UpdateRoot(Node.Empty);
     }
 
     public void Replace(int start, int length, string? text)
     {
         ValidateRange(start, length, _root.Length);
-        _root = _root.Replace(start, length, text);
+        var updated = _root.Replace(start, length, text);
+        UpdateRoot(updated);
     }
 
     public string Snapshot() => _root.ToString();
@@ -119,5 +127,26 @@ public sealed class Rope : ITextBuffer
         {
             throw new ArgumentOutOfRangeException(parameterName, value, $"Value must be between 0 and {maxInclusive}.");
         }
+    }
+
+    private void UpdateRoot(Node newRoot)
+    {
+        if (newRoot is null)
+        {
+            throw new ArgumentNullException(nameof(newRoot));
+        }
+
+        if (ReferenceEquals(_root, newRoot))
+        {
+            return;
+        }
+
+        _root = newRoot;
+        BumpEditVersion();
+    }
+
+    private void BumpEditVersion()
+    {
+        Interlocked.Increment(ref _editVersion);
     }
 }

@@ -14,7 +14,7 @@ public sealed class NodeCursorTests
     [Fact]
     public void Constructor_WithNullRoot_ThrowsArgumentNullException()
     {
-        Assert.Throws<ArgumentNullException>(() => new NodeCursor(null!, 0));
+        Assert.Throws<ArgumentNullException>(() => new NodeCursor((Node)null!, 0));
     }
 
     [Fact]
@@ -307,5 +307,35 @@ public sealed class NodeCursorTests
         }
         
         Assert.Equal(3, lineCount); // 3 newlines
+    }
+
+    [Fact]
+    public void CursorBoundToRope_InvalidatesAfterEdit()
+    {
+        var rope = new Rope.Rope();
+        rope.Append("abc");
+        var cursor = new NodeCursor(rope, 0);
+
+        var first = cursor.MoveToNext(BaseMetric.Instance);
+        Assert.NotNull(first);
+        Assert.Equal(1, first.Value);
+
+        rope.Append("def");
+
+        var afterEdit = cursor.MoveToNext(BaseMetric.Instance);
+        Assert.Null(afterEdit);
+        Assert.False(cursor.IsValid);
+    }
+
+    [Fact]
+    public void CursorBoundToRope_SetPositionAfterEditThrows()
+    {
+        var rope = new Rope.Rope();
+        rope.Append("abc");
+        var cursor = new NodeCursor(rope, 1);
+
+        rope.Replace(0, 1, "z");
+
+        Assert.Throws<InvalidOperationException>(() => cursor.SetPosition(0));
     }
 }

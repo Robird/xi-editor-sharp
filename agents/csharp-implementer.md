@@ -184,6 +184,35 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 1 Chunk/Grapheme Skeleton 规划
+**任务背景**：星形会议要求梳理 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`GraphemeNavigationMetrics` 的落地方案与工期。
+
+**关键结论**：
+1. ✅ **缺口梳理**：上述类型/测试在 `src/xi.Core/Rope/` 与 `tests/xi.Core.Tests/` 中完全缺失，需新建 `RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs`、`IGraphemeNavigator.cs`、`GraphemeNavigationMetrics.cs` 及对应测试夹具目录。
+2. ✅ **实现策略**：Chunk/Line 迭代器首版基于 `NodeCursor`/`TraverseLeaves` 返回 `ReadOnlyMemory<char>`，保留 TODO 记录“暂不零拷贝”；Grapheme 走“单片 + 邻片 + code point 回退”降级，暴露可替换接口并挂接遥测计数器。
+3. ✅ **测试规划**：拆分 Smoke（本地拼接、CRLF、emoji）与 Parity（Rust fixture/基准），Chunk 与 Line 共享 helper，Grapheme 需要 surrogate/多叶/遥测计数断言。
+4. ✅ **时间估算**：T3 骨架与最小实现约 3-4 天，Grapheme 降级与遥测约 2 天，Benchmark/Telemetry 另计 0.5-1 天，依赖 `NodeCursor` 稳定与 Rust Porter 导出的样本/基准脚本。
+5. ✅ **风险输入**：列出游标依赖、Rust fixture 空缺、性能基准缺失等需 Architecture Mapper/Rust Porter 协助的阻塞点。
+
+**验证**：规划任务，无需运行测试。
+
+
+### 2025-11-16 - M3 T0.2 Rope EditVersion 计数器落地（NodeCursor 感知）
+**任务背景**：评审要求为 Rope 引入版本号，确保 NodeCursor 能够在共享节点引用保持不变时检测到树被重建，从而解除 m3-implementation-plan.md 风险 R8。
+
+**关键改动**：
+1. ✅ **Rope.EditVersion**：`Rope` 新增 `long EditVersion` 以及私有 `UpdateRoot/BumpEditVersion`，在 `Replace`/`Clear` 等结构变更后严格递增，并在文档注释中说明用途。
+2. ✅ **NodeCursor 版本检测**：新增 `NodeCursor(Rope owner, int position)` 构造器，捕获并缓存 `Rope.EditVersion`，所有导航 API 调用 `EnsureOwnerVersionMatches` 以在版本漂移时自动失效；`SetPosition` 在检测到漂移后抛出 `InvalidOperationException`，其余导航 API 返回 `null` 并清空缓存状态。
+3. ✅ **测试覆盖**：扩展 `NodeCursorTests` 覆盖版本失效行为；在 `RopeTests` 新增 `EditVersion_IncrementsOnStructuralMutation`，验证只在真实结构变更时递增。
+
+**验证**：
+- `dotnet test Xi.Editor.sln --filter NodeCursorTests`
+- `dotnet test Xi.Editor.sln --filter RopeTests`
+
+**残留风险**：
+- Rope 目前仅有 `Replace/Clear` 写路径；未来若引入 `ApplyDelta` / Builder 直接赋值，需要记得调用 `UpdateRoot` 以维护版本号。
+- NodeCursor 遇到版本漂移后需要由调用方重建实例（暂未提供自动重置 API），Architecture Mapper 后续若要求自动重建需新增设计。
+
 ### 2025-11-16 - M3 T0 NodeCursor 游标遍历修复（26/26 测试通过）
 **任务背景**：`NodeCursor` 仍停留在占位实现，`MoveToPrevious_WithLinesMetric` 与 `RoundTrip_BaseMetric` 两项单测失败，外部评审认定为 M3 启动 T0 阻断项。
 

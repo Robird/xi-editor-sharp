@@ -104,6 +104,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 2 Chunk/Grapheme Asset Audit
+- ✅ 审阅 `xi-editor-ph7/rust/rope/src/rope.rs`, `tree.rs`, `helpers/string_leaf.rs`, `metrics/lines.rs`，梳理 chunk/lines/grapheme 迭代器定义、依赖常量（`MIN_LEAF`/`MAX_LEAF`）与 `Cursor` 状态机实现细节。
+- ✅ 盘点 `xi-editor-ph7/rust/rope/src/serde_fixtures` 与 `rope/tests`，确认目前仅有 cursor descriptor JSON 与 tree builder trace，可用测试覆盖范围集中在 `Lines*`/grapheme 边界但尚无 chunk/grapheme fixture。
+- ✅ 评估扩展 `export-serde-fixtures` 以导出 chunk/grapheme parity 资产的可行方案（追加子命令或利用 `tree_builder_slice_trace`/新 CLI），并记录字段需求、依赖工作量供 Round 2 星形会议汇报。
+
+### 2025-11-16 - Cursor Descriptor Fixture Exporter
+- ✅ 扩展 `export-serde-fixtures` CLI 新增 `--cursor-descriptors`，调用共享 helper 将 11 个样本写入 `cursor_descriptors.json` 并打印导出日志。
+- ✅ 在 `serde_fixtures::cursor_descriptors` 中定义 `CursorDescriptorFixture` schema，包含 `text`、`metric`、`position`、`offsets`、`leaf_path` 及编辑期期望，覆盖 Base/Lines/Utf16、跨叶、深树 (>cache) 及失效场景。
+- ✅ 新增 `cursor_descriptors` exporter 测试（tempdir + `CARGO_BIN_EXE_export-serde-fixtures`），并运行 `cargo test -p xi-rope --features serde` 验证；生成的 JSON 已同步到 `tests/xi.Core.Tests/Fixtures/cursor_descriptors/` 供 C# 消费。
+- ✅ 记录 CLI 帮助与 `rust-porter.md`，确保 parity 夹具更新在案。
+
 ### 2025-11-16 - M3 实施计划评审
 - ✅ 读取并理解 `docs/architecture/m3-implementation-plan.md`（M3 游标系统与泛型接口验证计划）
 - ✅ 从 Rust Porter 视角评审四个关注点：

@@ -6,7 +6,7 @@ namespace Xi.Core.Rope.Tree;
 
 /// <summary>
 /// Cursor for efficient traversal of rope nodes with path caching.
-/// Aligns with xi-editor's <c>Cursor</c> implementation (rust tree.rs ~1129-1450).
+/// Aligns with xi-editor's <c>Cursor</c> implementation (rust tree.rs ~1129-1450) and can optionally tie to a <see cref="Rope"/> to detect edit-version changes.
 /// </summary>
 public sealed class NodeCursor
 {
@@ -14,6 +14,9 @@ public sealed class NodeCursor
 
     private readonly Node _root;
     private readonly Node _rootSharedNode; // Reference snapshot for invalidation detection
+    private readonly Rope? _owner;
+    private readonly long _capturedEditVersion;
+    private bool _ownerVersionMismatch;
     private int _position;
     private readonly PathFrame?[] _pathCache;
     private string? _currentLeaf;
@@ -21,9 +24,21 @@ public sealed class NodeCursor
     private bool _isValid;
 
     public NodeCursor(Node root, int position)
+        : this(root, position, owner: null, ownerVersionSnapshot: -1)
+    {
+    }
+
+    public NodeCursor(Rope owner, int position)
+        : this((owner ?? throw new ArgumentNullException(nameof(owner))).DebugRoot, position, owner, owner.EditVersion)
+    {
+    }
+
+    private NodeCursor(Node root, int position, Rope? owner, long ownerVersionSnapshot)
     {
         _root = root ?? throw new ArgumentNullException(nameof(root));
         _rootSharedNode = root;
+        _owner = owner;
+        _capturedEditVersion = ownerVersionSnapshot;
 
         if (position < 0 || position > root.Length)
         {
@@ -44,8 +59,30 @@ public sealed class NodeCursor
 
     public bool IsValid => _isValid;
 
+    private bool EnsureOwnerVersionMatches()
+    {
+        if (_owner is null || _ownerVersionMismatch)
+        {
+            return !_ownerVersionMismatch;
+        }
+
+        if (_owner.EditVersion == _capturedEditVersion)
+        {
+            return true;
+        }
+
+        _ownerVersionMismatch = true;
+        Invalidate();
+        return false;
+    }
+
     public (string Leaf, int Offset)? GetLeaf()
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return null;
+        }
+
         if (!_isValid || _currentLeaf == null)
         {
             return null;
@@ -56,6 +93,11 @@ public sealed class NodeCursor
 
     public void SetPosition(int position)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            throw new InvalidOperationException("Rope has changed since the cursor was constructed. Create a new cursor to continue.");
+        }
+
         AssertRootStable();
 
         if (position < 0 || position > _root.Length)
@@ -78,6 +120,11 @@ public sealed class NodeCursor
 
     public bool IsBoundary(IMetric metric)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return false;
+        }
+
         AssertRootStable();
 
         if (metric == null)
@@ -106,6 +153,11 @@ public sealed class NodeCursor
 
     public int? MoveToPrevious(IMetric metric)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return null;
+        }
+
         AssertRootStable();
 
         if (metric == null)
@@ -170,6 +222,11 @@ public sealed class NodeCursor
 
     public int? MoveToNext(IMetric metric)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return null;
+        }
+
         AssertRootStable();
 
         if (metric == null)
@@ -216,16 +273,31 @@ public sealed class NodeCursor
 
     public int? AtOrNext(IMetric metric)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return null;
+        }
+
         return IsBoundary(metric) ? _position : MoveToNext(metric);
     }
 
     public int? AtOrPrevious(IMetric metric)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return null;
+        }
+
         return IsBoundary(metric) ? _position : MoveToPrevious(metric);
     }
 
     private void Descend()
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return;
+        }
+
         AssertRootStable();
 
         _position = Math.Min(_position, _root.Length);
@@ -507,6 +579,11 @@ public sealed class NodeCursor
 
     private void DescendMetric(IMetric metric, int measure)
     {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return;
+        }
+
         AssertRootStable();
 
         if (measure < 0)

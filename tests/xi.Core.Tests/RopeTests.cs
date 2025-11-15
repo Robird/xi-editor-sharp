@@ -146,6 +146,28 @@ public class RopeTests
     Assert.True(snapshot.Length > Node.MaxLeafSize * 2);
     }
 
+    [Fact]
+    public void EditVersion_IncrementsOnStructuralMutation()
+    {
+        var buffer = Create();
+        var initial = buffer.EditVersion;
+
+        buffer.Append("abc");
+        var afterAppend = buffer.EditVersion;
+        Assert.True(afterAppend > initial);
+
+        buffer.Replace(0, 3, "xyz");
+        var afterReplace = buffer.EditVersion;
+        Assert.True(afterReplace > afterAppend);
+
+        buffer.Clear();
+        var afterClear = buffer.EditVersion;
+        Assert.True(afterClear > afterReplace);
+
+        buffer.Replace(0, 0, string.Empty);
+        Assert.Equal(afterClear, buffer.EditVersion);
+    }
+
     [Theory]
     [InlineData(-1, 1)]
     [InlineData(1, -1)]
