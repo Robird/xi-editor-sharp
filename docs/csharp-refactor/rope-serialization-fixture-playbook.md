@@ -1,6 +1,6 @@
 # Rope 序列化夹具维护手册 (Stage D)
 
-> 本手册服务于 Stage D “共享资产同步”，指导协作者在 Windows PowerShell 环境下刷新 Rust → C# 的黄金 JSON 夹具，并对接测试与文档流程。所有命令均假定仓库根目录为 `E:\repos\Atelia-org\xi-editor-sharp`。
+> 本手册服务于 Stage D “共享资产同步”，指导协作者在 Windows PowerShell 环境下刷新 Rust → C# 的黄金 JSON 夹具，并对接测试与文档流程。为了兼容 WSL/Linux/macOS，文中示例统一使用 `XI_EDITOR_SHARP_ROOT` 环境变量指向仓库根目录（PowerShell: `$env:XI_EDITOR_SHARP_ROOT = 'E:\repos\Atelia-org\xi-editor-sharp'`; Bash/WSL: `export XI_EDITOR_SHARP_ROOT=/mnt/e/repos/Atelia-org/xi-editor-sharp`）。如未显式设置，可使用 `git rev-parse --show-toplevel` 获取当前根路径后赋值。
 
 ## 1. 黄金夹具来源
 - 基准产物来自 Rust `xi-editor-ph7` 工作区内的回归测试：`subset_serialization_regression`、`delta_serialization_regression`、`engine_serialization_regression`。
@@ -11,18 +11,18 @@
 > 推荐使用 `scripts/refresh_serialization_fixtures.ps1` 统一驱动 Rust 校验、夹具导出与 `dotnet test`；脚本已内置 `-SkipRust`、`-SkipDotnet`、`-DryRun`、`-Verbose` 等开关以适配不同需求。
 1. **同步 Rust 子仓库（按需）**
   ```powershell
-  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" fetch origin;
-  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" checkout feature/generic-node-refactor-experiment;
-  git -C "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7" pull --ff-only
+  git -C "$env:XI_EDITOR_SHARP_ROOT\xi-editor-ph7" fetch origin;
+  git -C "$env:XI_EDITOR_SHARP_ROOT\xi-editor-ph7" checkout feature/generic-node-refactor-experiment;
+  git -C "$env:XI_EDITOR_SHARP_ROOT\xi-editor-ph7" pull --ff-only
   ```
 2. **验证 Rust 基线（建议）**
   ```powershell
-  Set-Location "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust";
+  Set-Location "$env:XI_EDITOR_SHARP_ROOT\xi-editor-ph7\rust";
   .\run_all_checks.ps1 -Filter serde-fixtures;
   cargo test -p xi-rope --features serde subset_serialization_regression -- --nocapture;
   cargo test -p xi-rope --features serde delta_serialization_regression -- --nocapture;
   cargo test -p xi-rope --features serde engine_serialization_regression -- --nocapture;
-  Set-Location "E:\repos\Atelia-org\xi-editor-sharp"
+  Set-Location "$env:XI_EDITOR_SHARP_ROOT"
   ```
   - Windows PowerShell 7 需调用 `run_all_checks.ps1` 并使用 `-Filter` 传参；在 Bash 环境中可继续执行 `./run_all_checks --filter serde-fixtures`，两者输出保持一致。
   - 三个 `cargo test` 入口直接对比 `serde_fixtures` 常量，与 exporter 共用唯一来源；若想更新 JSON 结构，请先修改这些测试的断言与常量。
@@ -52,7 +52,7 @@
 - **Rust**：
   - `cargo test -p xi-rope --features serde subset_serialization_regression delta_serialization_regression engine_serialization_regression`
   - `cargo test -p xi-rope --no-default-features`
-  - `E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust\run_all_checks`
+  - `$env:XI_EDITOR_SHARP_ROOT\xi-editor-ph7\rust\run_all_checks.ps1`（PowerShell）或 `$XI_EDITOR_SHARP_ROOT/xi-editor-ph7/rust/run_all_checks`（Bash/WSL）
 - **C#**：
   - `dotnet test Xi.Editor.sln`
 - **Diff 审核要点**：

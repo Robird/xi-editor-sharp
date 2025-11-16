@@ -264,8 +264,8 @@ git --no-pager status && git --no-pager diff
 - 或使用异步模式 + `read_powershell` 轮询
 
 ### 问题 3：路径错误
-**原因**：Windows 上使用 Unix 风格路径  
-**解决**：统一用反斜杠（`e:\repos\...`）
+**原因**：在不同 shell 间混用路径风格或在文档中硬编码特定盘符  
+**解决**：优先使用相对路径或仓库根环境变量（如 PowerShell 中 `$env:XI_EDITOR_SHARP_ROOT`, Bash/WSL 中 `$XI_EDITOR_SHARP_ROOT`），按需在 Windows 使用反斜杠、在 WSL/Linux/macOS 使用正斜杠；若必须示例绝对路径，使用占位符（`<repo>`）而非固定 `e:\` 驱动器
 
 ### 问题 4：编辑冲突
 **原因**：`str_replace` 的 `old_str` 不唯一  
