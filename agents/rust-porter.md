@@ -104,6 +104,11 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 2 Rust Asset Audit (Star Meeting)
+- ✅ 复核 `docs/skeleton/rope.md` 与 `docs/architecture/rope-port-mapping.md`，梳理 CursorState、Breaks/Find/Diff、Iterator façade、Chunk/Grapheme helper 等核心模块在代码/测试/fixture/CLI 维度的成熟度，并标注已映射到 C# 骨架或 JSON 资产的范围。
+- ✅ 盘点仍缺失的 parity 夹具（Breaks、LineHashDiff trace、Search/Find trace 等）与文档信号，提出扩展 `export-serde-fixtures` 的可行参数（如 `--breaks-descriptors`, `--diff-regions`, `--search-trace`）与 schema 草案、估算工作量与 gate。
+- ✅ 汇总对 C# Implementer 与 Architecture Mapper 的依赖（schema 字段选择、性能/降级容忍度、Telemetry 需求），并给出 11 月内可交付的导出/重构项与超出范围的降级计划，准备 Round 2 星形会议汇报材料。
+
 ### 2025-11-16 - Round 3 Chunk/Grapheme Fixture Plan
 - ✅ 研读 `ChunkIter`、`LinesRaw`、`GraphemeCursor`/`GraphemeStateMachine` 在 `xi-editor-ph7/rust/rope/src/rope.rs` 中的生成路径，并梳理 chunk/line 与 grapheme 描述符所需原始信号（叶片文本、绝对/相对偏移、跨叶标记、fallback 触发点等）。
 - ✅ 起草 `ChunkDescriptor`/`LineDescriptor` 与 `GraphemeDescriptor` JSON schema（含样本文本、度量、leaf path、跨叶/CRLF 标记、字节/UTF-16 范围、上下文窗口、fallback 标志），并建议落盘到 `tests/xi.Core.Tests/Fixtures/chunk_descriptors.json` 与 `tests/xi.Core.Tests/Fixtures/grapheme_descriptors.json`。

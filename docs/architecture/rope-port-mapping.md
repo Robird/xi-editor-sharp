@@ -15,6 +15,14 @@
 - C# 已提交 Chunk/Line 枚举器与 Grapheme 降级骨架，12 项新测试全部通过；对应状态更新为“Skeleton available, waiting for parity fixtures”。
 - Rust Porter 已扩展 `export-serde-fixtures` CLI（`--chunk-descriptors` / `--grapheme-descriptors`），首批 parity JSON 已同步到 `tests/xi.Core.Tests/Fixtures/chunk_descriptors/` 与 `.../grapheme_descriptors/`，后续仅需 C# 接入。
 
+### 类型骨架映射差距（G1-G6 摘要）
+- **G1 NodeCursor 描述符**：M3 必须完成字符串特化实现 + 10 份 descriptor parity JSON；Rust 端负责固定 schema 并暴露 `CursorDescriptor` 生成脚本。
+- **G2 泛型别名与警示**：`TypeAliases.cs` 已引入 `global using RopeNode`，`Node.cs` 加警告注释；待在 `rope-port-mapping.md` 持续提醒仅可在 M4 切换泛型实现。
+- **G3 TreeBuilder.Generic 接线**：骨架与 8 项测试已落地，但仍处“仅接口验证”，需在 M4 将 `TreeBuilder` 主路径切换到 `RopeNode`。
+- **G4 Chunk/Line CLI ↔ C#**：CLI 已能产出 descriptors，C# 需在 T3.7 前引入 JSON 摄入与 Telemetry；缺口记录在 `tests/xi.Core.Tests/Fixtures/chunk_descriptors/`。
+- **G5 Grapheme 遥测与 fixtures**：降级策略已实现，但 CLI 仍缺共享 trace；Architecture Mapper 需跟进 `GraphemeDescriptor` schema 以支撑 T4.7/T4.8。
+- **G6 Breaks/Find/Diff 骨架**：尚未建立目录或 fixtures，需在 M3 记录设计依赖并在 M4 之后的阶段补齐；相关 TODO 已写入 `m3-implementation-plan.md` 的 Gap 表。
+
 ## 路径映射约定
 - `reference/rust/rope/` ↔ `src/xi.Core/Rope/`
 - `reference/rust/rope/tree.rs` ↔ `src/xi.Core/Rope/Tree/` （当前包含 `Node.cs`、`TreeBuilder.cs`、`LeafSplitter.cs`，后续 Tree 相关类型统一进入该子目录与命名空间 `Xi.Core.Rope.Tree`）

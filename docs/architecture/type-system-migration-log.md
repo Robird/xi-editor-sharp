@@ -151,3 +151,40 @@
 - **总计：114 项全部通过** ✅
 
 详细会议记录与 10 项架构管控措施见上述各阻塞点的"M3 阶段策略"小节。
+
+### 类型骨架映射差距（G1-G6 状态）
+- **G1 游标描述符**：要求 10 份 `CursorDescriptor` parity JSON + 字符串特化实现；Rust Porter 需锁定 schema，C# 实现在 M3 内完成。
+- **G2 泛型别名与警示**：`TypeAliases.cs` + `Node.cs` 警告已合入，用于 M4 一键切换；禁在 M3 添加新字符串特化入口。
+- **G3 TreeBuilder.Generic 钩子**：接口与 8 项测试已可用，但仍未接入主实现；需在 M4 切换 `TreeBuilder`/`Rope` 主路径至 `RopeNode`。
+- **G4 Chunk/Line CLI 与遥测**：CLI descriptors 已生成，C# 仍待实现 JSON 摄入与 Telemetry（T3.7）；缺口与依赖记录于 `m3-implementation-plan.md`。
+- **G5 Grapheme fixtures / telemetry**：降级行为已实现，仍缺 CLI trace 与遥测阈值决议；Architecture Mapper 负责在 `design-divergence-log.md` 维护指标。
+- **G6 Breaks/Search/Diff 骨架**：尚未建目录或导出 JSON，需在 M3 文档中保持显式 TODO，并排入 M4+ backlog。
+
+## 星形会议（2025-11-16 晚）：下一阶段方案
+
+### 参会角色
+- AI 架构师（主持）
+- C# Implementer（实现 owner）
+- Rust Porter（Rust 侧支援 + CLI 导出）
+- Architecture Mapper（文档与阻塞追踪）
+
+### 核心共识
+1. 以 11/17-11/27 为“Round 2” 冲刺窗口，逐项清零 G1-G6，确保 M4 能无缝切换泛型与高阶模块。
+2. 将 `Rope` 版本票据、`export-serde-fixtures` CLI 扩展与 Chunk/Grapheme 遥测列为提前触发的解堵任务，禁止在依赖未具备时进入下一子任务。
+3. Breaks/Diff/Search 仍属 M4 范畴，但需在本轮会期内完成骨架与 CLI schema 设计，并将所有新依赖登记在 `m3-implementation-plan.md` 与 `port-blueprint.md`。
+
+### 11/17-11/27 交付排期
+| 编号 | 截止 | Owner | 交付物 | 依赖 / 验收 |
+|------|------|-------|--------|--------------|
+| G1 | 11/22 | C# Implementer + Rust Porter | `Rope`/`Node` 版本票据、`NodeCursor` 失效检测、10 份 `CursorDescriptor` JSON + parity 测试 | 11/18 前合入版本计数器，11/19 前 CLI 输出样本；验收以 `NodeCursorTests` parity 通过为准 |
+| G2 | 11/23 | C# Implementer + QA | Chunk/Line JSON 摄入、`RopeChunkEnumeratorDiagnostics` 遥测、1 MB 微基准脚本 | 依赖 G1 完成；验收需在 `tests/xi.Core.Tests` 新增 parity/diagnostics 断言并记录基准表 |
+| G3 | 11/26 | C# Implementer + Rust Porter + Architecture Mapper | Breaks Tree skeleton 草案、`--breaks-descriptors` CLI 规格、`type-system-migration-log.md` 阻塞条目更新 | 依赖 CLI schema 评审通过；验收为草案 + CLI 输出最少 3 份样本 |
+| G4 | 11/28 | AI 架构师 + C# Implementer | Diff/Search/Find 骨架路线（文档 + 目录占位），含阶段化里程碑 | 依赖 G3 评审结果；验收为 `docs/architecture/diff-search-plan.md`（暂名）+ 目录 stub 提交 |
+| G5 | 11/27 | Rust Porter + Architecture Mapper | Iterator façade/CLI 收敛方案，`refresh_serialization_fixtures.ps1` 接口对齐 | 依赖 Stage D 工具评审；验收为 CLI 参数矩阵 + 脚本更新 PR 草案 |
+| G6 | 11/24 | C# Implementer + Architecture Mapper | `MetricAdapter` 设计草案 + `MetricAdapterTests` 雏形，记录在文档与测试中 | 依赖 G1（游标调用）可用；验收为草案合入并在测试集中新增 smoke case |
+
+### 后续行动项
+- C# Implementer：11/18 前提交 `Rope` 版本票据 PR，并在 `NodeCursorTests` 增加基于 JSON 的 parity helper。
+- Rust Porter：11/19 前扩展 `export-serde-fixtures` 完成 `--cursor-descriptors/--chunk-descriptors/--grapheme-windows` flag，对 Breaks CLI 给出原型。
+- Architecture Mapper：同步更新 `m3-implementation-plan.md` §1.7、`port-blueprint.md` 与 `design-divergence-log.md`，追踪上述截止日期与遥测指标。
+- AI 架构师：在 11/21 前确认 iterator façade 收敛方案，11/24 周会复盘 G1-G3 交付，必要时触发回退策略。

@@ -49,6 +49,38 @@
 
 > **依赖完成顺序**：NodeCursor ✅ → Rope 版本计数器 → CLI/fixture → Chunk/Grapheme skeleton。后续子任务估时均假设这些依赖存在，如未按顺序满足需立即触发风险管理（见 §4）。
 
+### 1.6 类型骨架映射差距（2025-11-16 星形会议新增）
+为达成“Rust ↔ C# 类型体系骨架映射完整”的阶段目标，Round 1/2 评审识别出以下 6 项关键差距，需在 11 月内依照任务编号推进：
+
+| 编号 | 差距描述 | 当前状态 | 所属任务 | 负责人 | 依赖/说明 |
+|------|----------|----------|----------|--------|-----------|
+| **G1** | `CursorDescriptor`/`CursorState` 与版本票据缺失，C# 无法消费 Rust fixture | C# 仅有 `NodeCursor` 骨架，Rust CLI 已输出 JSON | 衔接 T1.1-T1.6 并新增 T1.7（版本票据） | C# Implementer + Architecture Mapper | 需冻结 schema（AI 架构师 11/18 前决策）并在 `NodeCursorTests` 添加 Parity 覆盖 |
+| **G2** | Chunk/Line 迭代器虽有骨架，但 parity/telemetry/benchmark 未落地 | C# skeleton ✅、Rust CLI ✅、测试 12 项通过；尚未消费 JSON | T3.1-T3.8（保留） | C# Implementer + QA + Rust Porter | `tests/…/chunk_descriptors.json` 已就绪，需加载并在 §5.3 记录基线 |
+| **G3** | Breaks 树/Builder/Metric Shim 缺席，`rope-port-mapping` 长期为“未开始” | Rust helper +测试 ✅，CLI/schema 未有 | 新增 T5.x「Breaks Tree Integration」 | C# Implementer + Rust Porter | 需 `--breaks-descriptors` 导出方案 + `BreaksMetricInteropTests` 扩展 |
+| **G4** | Diff/Search/Find API 无 C# 骨架、无 parity 资产 | Rust `diff.rs/find.rs` 成熟，C# 空白 | 在 §2新增 “Diff/Search Pipeline” 里程碑并于 M4 开启 | AI 架构师 + C# Implementer + Rust Porter | 依赖 G1-G3、Rust `--diff-regions/--search-trace` 计划 |
+| **G5** | Iterator Façade 仍为设计稿，CLI flag 分散且无统一 schema | Rust 端仅有 `iterator-facade-export.md` 研究稿 | 追加 “Iterator Façade Export” 子任务（并入 Stage D） | Rust Porter + Architecture Mapper | 需决定 CLI 收敛策略（AI 架构师 11/21 前拍板）与 Stage D `refresh_serialization_fixtures.ps1` 对接 |
+| **G6** | Metric conversion/edit shim 仍依赖动态 `IMetric`，阻塞 `Node.Generic` 与 Breaks/Find | Rust 垫片部分完成，C# 尚未接线 | 扩展 T1 维护项 “MetricAdapter Bridge” | C# Implementer + Architecture Mapper | 需在 `type-system-migration-log.md` 记录进度，并新增 `EditShimParityTests` |
+
+> **同步要求**：每项差距在推进/完成时，必须同步更新 `docs/architecture/rope-port-mapping.md` 与 `docs/architecture/type-system-migration-log.md` 对应行，并在 `AGENTS.md`「当前聚焦」中记录状态变化。
+
+### 1.7 下一阶段（11/17-11/27）排期
+
+> **Round 2 目标**：在 11 天窗口内逐项清零 G1-G6，确保 M4 可直接切换泛型节点并启动 Breaks/Diff/Search 骨架。
+
+| 编号 | 截止 | Owner | 交付物 | 验收 / 依赖 |
+|------|------|-------|--------|--------------|
+| G1 | 11/22 | C# Implementer + Rust Porter | `Rope`/`Node` 版本票据、`NodeCursor` 失效检测、≥10 份 `CursorDescriptor` JSON + parity helper | 11/18 前版本票据 PR，11/19 前 CLI 样本；`NodeCursorTests` 引入 JSON 驱动用例并全部通过 |
+| G2 | 11/23 | C# Implementer + QA Engineer | Chunk/Line JSON 摄入、`RopeChunkEnumeratorDiagnostics`、1 MB 微基准脚本 | 依赖 G1 完成；新增 parity/telemetry 测试与基准记录入 `m3-implementation-plan.md` §5.3 |
+| G3 | 11/26 | C# Implementer + Rust Porter + Architecture Mapper | Breaks Tree skeleton 草案、`--breaks-descriptors` CLI 规格、阻塞条目更新 | 需在 `type-system-migration-log.md` 追加条目；验收以草案 + 至少 3 份 Breaks 样本为准 |
+| G4 | 11/28 | AI 架构师 + C# Implementer | Diff/Search/Find 骨架路线（文档 + 目录 stub） | 依赖 G3 评审；验收以新文档（暂命 `docs/architecture/diff-search-plan.md`）+ 目录占位提交 |
+| G5 | 11/27 | Rust Porter + Architecture Mapper | Iterator façade/CLI 收敛方案，`refresh_serialization_fixtures.ps1` 脚本同步 | 依赖 Stage D 工具评审；验收以 CLI 参数矩阵 + 脚本更新 PR 草案 |
+| G6 | 11/24 | C# Implementer + Architecture Mapper | `MetricAdapter` 设计草案 + `MetricAdapterTests` 雏形 | 依赖 G1（游标调用）可用；验收以草案合入并在测试集中新增 smoke case |
+
+**执行要点**：
+- 任何子任务若未满足依赖即进入开发，立即触发风险 R8/R9/R10 并汇报至架构师。
+- Architecture Mapper 负责每日在认知档案与 `AGENTS.md` 更新上述表格的完成度，周会（11/21、11/24）复盘 G1-G3 进度。
+- 交付完成后同步刷新 `port-blueprint.md`、`rope-port-mapping.md` 与 `design-divergence-log.md`，避免 Round 3 文档漂移。
+
 ---
 
 ## 2. 任务分解与工作量估算

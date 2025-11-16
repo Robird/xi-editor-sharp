@@ -169,6 +169,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 3 跨端骨架映射整合
+#### 已完成任务
+- ✅ 汇总 Round 1（C#）与 Round 2（Rust）反馈，提炼 6 项类型体系骨架缺口（CursorState、Chunk/Line parity、Breaks tree、Diff/Search、Iterator façade、Metric shim）并标注双方依赖。
+- ✅ 为每个缺口拟定修订计划：指定 owner/前置依赖/测试资产，映射到 `docs/architecture/m3-implementation-plan.md` §2.1/§2.3/§5.3、`docs/architecture/rope-port-mapping.md` 对应表行与 `docs/architecture/type-system-migration-log.md` 的阻塞章节。
+- ✅ 归档需架构师拍板的决策点（Cursor 版本字段、Chunk/Grapheme telemetry 阈值、Breaks schema、Diff/Search feature flag）并输出 11 月内完成的时间窗及执行顺序建议。
+
+#### 后续监控
+- ⚠️ 2025-11-18 前等待架构师确认遥测阈值与 CLI schema；若延迟需在 `m3-implementation-plan.md` 调整 T3/T4 里程碑。
+- 🔄 持续跟进 Rust Porter 的 `iterator-facade-export` 与 CLI fixture 交付，按约定回写 `rope-port-mapping.md` / `type-system-migration-log.md` 状态行。
+- 🧪 与 C# Implementer 协调 NodeCursor 版本票据与 Chunk/Line telemetry 的测试落地，准备在 Stage D 夹具刷新脚本追加新资产。
+
 ### 2025-11-16 - Chunk/Grapheme 文档回填与 checkpoint 立项
 #### 已完成任务
 - ✅ 更新 `docs/architecture/m3-implementation-plan.md`：补入 Round 3 Chunk/Grapheme 子任务 T3.6-T3.8、T4.6-T4.8，新增 CLI/Telemetry 里程碑检查点，并在 §5.3 标注“骨架已提交 + 12 项测试通过、等待 parity fixtures 与基准”的现实基线。

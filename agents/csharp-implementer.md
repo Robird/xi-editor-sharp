@@ -184,6 +184,16 @@
 
 ## 最近完成的工作
 
+### 2025-11-16 - Round 1 Skeleton Gap Report（星形会议输入）
+**任务背景**：星形会议 Round 1 要求我从 `docs/skeleton/xi.Core.Rope.cs` 对照 `docs/skeleton/rope.md` 盘点 C# 端缺口、阻塞与后续计划，以便 11 月内补齐 “Rust ↔ C# 类型骨架映射”。
+
+**关键结论**：
+1. ✅ **游标生态缺口**——C# 仅有 `NodeCursor`，尚未实现 `CursorDescriptor`、`CursorState` 以及相关 serde fixture loader，导致 Rust `cursor_descriptors.rs`（`rope.md` §2972-3050）无法对拍。
+2. ✅ **Breaks/Diff/Search 模块缺失**——目前只有 `BreaksMetricHelper` 与序列化镜像；Rust `breaks.rs`、`diff.rs`、`find.rs` 对应类型在 C# 中完全缺席，阻塞 soft-wrap、LineHashDiff 以及正则搜索骨架映射。
+3. ⚠️ **迭代器与 Rope API 未对齐**——C# `RopeChunkEnumerator`/`RopeLineEnumerator` 仅支持整棵树、复制型遍历，而 Rust `Rope::iter_chunks/lines_raw`（`rope.md` §2580-2720）暴露区间、零拷贝 `ChunkIter`/`LinesRaw`，需要新增 range/descriptor 能力并完善 parity 夹具。
+
+**验证**：规划任务，无需运行测试。
+
 ### 2025-11-16 - Rust Parity Fixtures (Chunk/Line/Grapheme) 对拍通道
 **任务背景**：Rust Porter 交付 chunk/line/grapheme JSON 夹具，需要在 C# 端落地 loader + parity 单测验证 `RopeChunkEnumerator`、`RopeLineEnumerator`、`DegradedGraphemeNavigator` 的序列化输出。
 
