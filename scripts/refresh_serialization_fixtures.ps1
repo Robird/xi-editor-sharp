@@ -36,7 +36,14 @@ function Invoke-ExternalCommand {
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
-$runAllChecks = Join-Path $rustRoot "run_all_checks"
+$runAllChecksBase = Join-Path $rustRoot "run_all_checks"
+$runAllChecksWindows = "$runAllChecksBase.ps1"
+$runAllChecks = if ($IsWindows -and (Test-Path $runAllChecksWindows)) {
+    $runAllChecksWindows
+}
+else {
+    $runAllChecksBase
+}
 $csharpFixturesDir = Join-Path $repoRoot "tests/xi.Core.Tests/Fixtures"
 $treeTraceDir = Join-Path $csharpFixturesDir "tree_builder_slice"
 $cursorFixturesDir = Join-Path $csharpFixturesDir "cursor_descriptors"
@@ -58,7 +65,12 @@ if (-not $SkipRust) {
 
     Push-Location $rustRoot
     try {
-        Invoke-ExternalCommand "rust: run_all_checks --filter serde-fixtures" $runAllChecks @("--filter", "serde-fixtures")
+        $runAllChecksArgs = @("--filter", "serde-fixtures")
+        if ($runAllChecks -like "*.ps1") {
+            $runAllChecksArgs = @("-Filter", "serde-fixtures")
+        }
+
+        Invoke-ExternalCommand "rust: run_all_checks --filter serde-fixtures" $runAllChecks $runAllChecksArgs
         Invoke-ExternalCommand "rust: cargo subset_serialization_regression" "cargo" @("test", "-p", "xi-rope", "--features", "serde", "subset_serialization_regression", "--", "--nocapture")
         Invoke-ExternalCommand "rust: cargo delta_serialization_regression" "cargo" @("test", "-p", "xi-rope", "--features", "serde", "delta_serialization_regression", "--", "--nocapture")
         Invoke-ExternalCommand "rust: cargo engine_serialization_regression" "cargo" @("test", "-p", "xi-rope", "--features", "serde", "engine_serialization_regression", "--", "--nocapture")

@@ -68,7 +68,7 @@
 - `dotnet test -v m`：✅ 169/169，通过耗时 **3.2s**（终端记录，2025-11-17，含 Cursor/Chunk/Grapheme 套件）。
 - `dotnet test --filter CursorDescriptor|Grapheme|RopeChunkEnumerator`：✅ 目标筛选在 2025-11-17 `CursorDescriptorParityTests` 复查中复用（来源：`AGENTS.md` 工作日志）。
 - `cargo test -p xi-rope --features serde subset|delta|engine_serialization_regression`：✅ 最近运行于 2025-11-15（见 `AGENTS.md`「Stage D Fixture Consolidation」），当前会话未重跑。
-- `run_all_checks --filter serde-fixtures`：✅ 2025-11-15 随 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 执行（同上来源）。
+- `run_all_checks.ps1 -Filter serde-fixtures`（Windows PowerShell）/`./run_all_checks --filter serde-fixtures`（Bash）：✅ 2025-11-15 随 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 执行（同上来源）。
 - `scripts/refresh_serialization_fixtures.ps1`：最近一次 2025-11-15（AGENTS 记录），参数 `-SkipRust -SkipDotnet -Verbose`，`-ExportParityFixtures` 保持默认 **true**（因此 `cursor/chunk/grapheme` 目录已刷新到手工 JSON 版本）。
 - Stage D：等待 Rust Porter 发布正式 CLI schema，当前依赖手工 JSON；需在下次刷新时记录 CLI 提供的 `metadata.rust_commit` 与生成时间。
 

@@ -466,6 +466,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **深树夹具重建**：`CursorDescriptorParityTests` 新增 `BuildDeepTreeRope`，复刻 `build_deep_rope()`（511 字符叶片 + 8^5 计数标记），确保 `deep_tree_midpoint` 与 JSON 夹具的层级/leaf path 完全一致。
 - **验证**：执行 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter CursorDescriptor`，11 项用例全部通过，`deep_tree_midpoint` 现与 Rust 描述符帧完全对齐。
 
+### 2025-11-17 (run_all_checks Windows Shim)
+- **问题复盘**：在 Windows + PowerShell 7 中直接调用 `xi-editor-ph7/rust/run_all_checks`（无扩展名的 Bash 脚本）会触发文件关联器而非执行脚本，导致自动化（含 `scripts/refresh_serialization_fixtures.ps1`）在 `Invoke-ExternalCommand` 阶段弹出“打开方式”对话框。
+- **落地修复**：新增 `xi-editor-ph7/rust/run_all_checks.ps1`，完整复刻 Bash 版本的 clippy/rustfmt/check/test 流程，并支持 `-Filter`（PowerShell）/`--filter`（通过 `pwsh -File`）参数直传到 `cargo test`；脚本自动 `Push-Location` 到 Rust 工作区并恢复 `RUSTFLAGS`。
+- **脚本接线**：`scripts/refresh_serialization_fixtures.ps1` 会在 Windows 优先调用 `.ps1` 版本并自动切换至 `-Filter` 语法，非 Windows 平台继续执行原 Bash 脚本；QA 手册（`docs/csharp-refactor/rope-serialization-fixture-playbook.md`）与 `agents/qa-engineer.md` 已同步指令差异。
+- **验证现状**：在 PowerShell 7 直接执行 `run_all_checks.ps1 -Filter serde-fixtures` 现可正常串行 clippy/rustfmt/cargo 流程，当前失败来自既有 `cargo clippy` 告警（`xi-trace` doc comment 与 `xi-rope` `iter().cloned().collect()`），与本次改动无关，需后续单独整改。
+
 ### 2025-11-16 (晚) (C# Rope Skeleton 清理)
 - **Skeletonizer 工具**：在 `tools/Skeletonizer` 下创建 Roslyn 小工具，自动定位方法/构造函数/访问器的 `BlockSyntax` 并输出占位注释，避免手工逐块编辑造成 diff 噪音。
 - **批量替换**：执行 `dotnet run -- tools/Skeletonizer ..\\..\\docs\\skeleton\\xi.Core.Rope.cs`，共 293 个函数体被替换为 `// Body removed for skeleton view.` 注释，保留了原始签名与结构层级。

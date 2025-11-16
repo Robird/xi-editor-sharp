@@ -18,13 +18,13 @@
 2. **验证 Rust 基线（建议）**
   ```powershell
   Set-Location "E:\repos\Atelia-org\xi-editor-sharp\xi-editor-ph7\rust";
-  .\run_all_checks --filter serde-fixtures;
+  .\run_all_checks.ps1 -Filter serde-fixtures;
   cargo test -p xi-rope --features serde subset_serialization_regression -- --nocapture;
   cargo test -p xi-rope --features serde delta_serialization_regression -- --nocapture;
   cargo test -p xi-rope --features serde engine_serialization_regression -- --nocapture;
   Set-Location "E:\repos\Atelia-org\xi-editor-sharp"
   ```
-  - `run_all_checks --filter serde-fixtures` 复用现有脚本缓存，覆盖 serde/非 serde 双轨测试。
+  - Windows PowerShell 7 需调用 `run_all_checks.ps1` 并使用 `-Filter` 传参；在 Bash 环境中可继续执行 `./run_all_checks --filter serde-fixtures`，两者输出保持一致。
   - 三个 `cargo test` 入口直接对比 `serde_fixtures` 常量，与 exporter 共用唯一来源；若想更新 JSON 结构，请先修改这些测试的断言与常量。
 3. **导出并覆写 C# 夹具**
   - **推荐**：运行 `scripts/refresh_serialization_fixtures.ps1`（例如 `.\\scripts\\refresh_serialization_fixtures.ps1 -Verbose`）。脚本现默认启用 `-ExportParityFixtures`，即在刷新 `subset/delta/engine` 三个 serde 基线文件的同时，通过同一次 `cargo run -p xi-rope --features serde --bin export-serde-fixtures` 调用更新以下目录：
