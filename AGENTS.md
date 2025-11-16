@@ -454,6 +454,20 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (晚) (Architecture Docs Refactor Complete)
+- **目标达成**：基于 `document-structure-template.md` 完成 7 个核心文档重构，所有文档符合生产标准。
+- **质量验证**：
+  - 第 1 轮审计发现  缺少 6 个关键锚点（`[MP-T1]`/`[MP-T3]`/`[MP-T4]`/`[MP-R8]`/`[MP-R9]`/`[MP-R10]`），导致 60+ 跨文档引用失效
+  - 立即修复：在章节标题下/风险表内添加 `<a id="...">` 锚点标记
+  - 第 2 轮验证确认：所有锚点存在，82 处 `[MP-*]` 引用全部可达，P0 阻塞解除 ✅
+- **交付成果**：
+  - ✅ Front-matter 完整性（7/7 文档）
+  - ✅ Goal Tree 同步（`port-blueprint.md` ↔ `m3-implementation-plan.md`）
+  - ✅ QA/Stage D 锚点验证（8 个锚点全部定义）
+  - ✅ 架构文档锚点系统（60+ 跨文档链接可跳转）
+- **PDCA 循环实战**：首次应用 v3.0 迭代推进模式，单次会话内完成"启动 → Plan(差距分析) → Do(委派验证) → Check(发现阻塞) → Act(立即修复) → 再次 Check(验证通过) → 收尾"完整流程，无需多次用户输入。
+- **AI Team 协作**：Architecture Mapper 承担两轮验证任务，生成详细审计报告（锚点清单/修复建议/影响分析），协作高效。
+
 ### 2025-11-17 (User Prompt Upgrade v3.0 - 迭代循环模式)
 - **核心突破**：从"瀑布式单次执行"转变为"持续迭代推进"模式
   - **问题识别**：用户指出"所有设想都是瀑布式的（启动→执行一次→收尾→等待下次输入），而非迭代与动态的{目标-差距-思考-委派}循环，工具调用无限制为何要陷入等待？"

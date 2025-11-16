@@ -173,7 +173,73 @@
 
 ## 最近完成的工作
 
-### 2025-11-19 - Template Rollout Round 2（Decision & Stage D & Org Docs）
+### 2025-11-17 - Goal Tree YAML 草案 + 字段缺口梳理
+#### 已完成任务
+- ✅ 复查 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]`，确认 G1-G6 字段一致并提取 ID/Title/Status/Due/Owner/Next/QA+Stage D 链路作为脚本输入基线。
+- ✅ 对照 `document-structure-template.md` §2.2-2.5，起草包含 14 个必填字段 + 3 个可选字段的 YAML（Rust/Dotnet commit、CLI 版本、feature gates、assetRefs、QA/Stage D anchors 等），补全代码/测试/夹具引用。
+- ✅ 标注缺失元数据（commit/manifest hash/schema version/rust CLI tag），将统一占位符 `pending` 写入 YAML，并整理责任人（Rust Porter / C# Implementer / QA）供后续追补。
+
+#### 缺口与后续
+- ⚠️ `rustCommit`、`dotnetCommit`、`rustCliVersion`、`schemaVersion`、夹具 manifest/hash 仍待提供；需与 Rust Porter + QA Engineer 确认 `export-serde-fixtures` 输出与 Stage D manifest 方案。
+- ⚠️ Breaks/Diff/Search/Iterator 相关夹具目前不存在，仅在 YAML 中占位需在 CLI 扩展完成后立即回填并更新 `goal_tree_sync.py` 数据源。
+- 🔄 等待 `goal_tree_sync.py` 落地后，将本次 YAML 写入 `docs/architecture/templates/goal-tree.yaml` 并用脚本刷新 Blueprint/Plan 片段。
+
+### 2025-11-17 - M3 锚点修复验证（6 个关键锚点 ✅）
+#### 已完成任务
+- ✅ 验证新添加的 6 个 M3 关键锚点全部存在：`[MP-T1]`、`[MP-T3]`、`[MP-T4]`、`[MP-R8]`、`[MP-R9]`、`[MP-R10]`（通过 `grep_search` 确认 `<a id="MP-*">` 标记）。
+- ✅ 检查所有 `[MP-*]` 跨文档引用（82 处匹配），确认无其他缺失锚点（未发现 `[MP-T2]` 或其他未定义锚点引用）。
+- ✅ 确认 `[MP-GoalTree]` 已在第一次深度审计中验证，本次聚焦新增的任务与风险锚点。
+
+#### 关键发现
+1. **6 个锚点全部到位**：
+   - `[MP-T1]` (§2.1) - 游标系统实现
+   - `[MP-T3]` (§2.3) - Chunk 迭代器骨架
+   - `[MP-T4]` (§2.4) - Grapheme 降级实现
+   - `[MP-R8]` (§4.1) - Rope 版本计数器风险
+   - `[MP-R9]` (§4.1) - CLI 工具风险
+   - `[MP-R10]` (§4.1) - Chunk/Grapheme 骨架风险
+2. **跨文档引用完整性**：
+   - 82 处 `[MP-*]` 引用分布在 `port-blueprint.md`（13 处）、`rope-port-mapping.md`（4 处）、`m3-architect-decision.md`（31 处）、`type-system-migration-log.md`（2 处）、`system-overview.md`（12 处）、`m3-implementation-plan.md`（内部引用）。
+   - 所有引用均指向已定义的锚点，无断链。
+3. **§2.2 任务 2 不需要锚点**：已标记为"已完成 ✅"，仅在 M3 期间有维护工作，未被跨文档引用，因此不需要 `[MP-T2]` 锚点。
+4. **60+ 跨文档引用已全部解除阻塞**：`port-blueprint.md` 的风险表、`m3-architect-decision.md` 的裁决表、`system-overview.md` 的角色矩阵现在可以直接跳转至 M3 计划的具体章节。
+
+#### 后续监控
+- ✅ **P0 阻塞已解除**：第一次审计发现的 7 个缺失锚点（包括 `[MP-GoalTree]` + 本次新增的 6 个）已全部修复，架构文档互链系统恢复完整性。
+- 🔄 下次文档巡检（预计 2025-11-20）需确认是否有新的 `[MP-*]` 锚点需求（如后续添加新任务或风险时）。
+- 📝 建议在 `document-structure-template.md` 中补充"锚点添加规范"：当新增任务/风险/决策时，需同时添加 `<a id="...">` 标记并更新跨文档引用。
+
+### 2025-11-17 - 深度验证：7 文档锚点与 Goal Tree 同步审计
+#### 已完成任务
+- ✅ 系统性提取 7 个核心文档中所有 `[XXX-*]` 形式的锚点引用（200+ 处）。
+- ✅ 验证所有被引用锚点在目标文档中的存在性（通过 `grep_search` 锚点定义）。
+- ✅ 对比 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]` 的 6 个目标（G1-G6），确认 ID/Title/Status/Due/Owner/Next/QA列完全一致，手动同步注释存在。
+- ✅ 验证所有 7 个文档的 front-matter（Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree）完整性，全部符合 `document-structure-template.md` 要求。
+- ✅ 验证 QA 与 Stage D 锚点（`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`、`[QA-StageDManual]`、`[StageD::*]` 系列）在 `rope-serialization-fixture-playbook.md` 中全部定义。
+- ✅ 识别 **P0 阻塞性问题**：`m3-implementation-plan.md` 中 7 个关键锚点（`[MP-T1]`、`[MP-T3]`、`[MP-T4]`、`[MP-R8]`、`[MP-R9]`、`[MP-R10]`、`[MP-GoalTree]`）被跨文档引用 60+ 次，但**仅 `[MP-GoalTree]` 存在锚点定义**，其余 6 个使用中文标题未添加锚点标记。
+- ✅ 生成验证报告：包含锚点完整性表、Goal Tree diff 结果、front-matter 检查清单、修复建议（P0 级 7 个锚点补充方案）。
+
+#### 关键发现
+1. **锚点缺失影响范围**：
+   - `[MP-T1]` 被 `port-blueprint.md`（3 处）、`m3-architect-decision.md`（5 处）、`rope-port-mapping.md`（2 处）、`rope-serialization-fixture-playbook.md`（3 处）、`design-divergence-log.md`（1 处）跨文档引用，共 14+ 处引用全部失效。
+   - `[MP-R8]`/`[MP-R9]`/`[MP-R10]` 各被引用 10-12 次，风险追踪链路断裂。
+2. **Goal Tree 镜像质量高**：
+   - 两处 Goal Tree 片段字段顺序、标点符号、emoji 状态标记完全一致。
+   - 手动同步注释 `<!-- goal-tree:start -->` / `<!-- goal-tree:end -->` 及"等待 `goal_tree_sync.py`"说明已到位。
+3. **QA/Stage D 引用规范**：
+   - 所有 QA 与 Stage D 锚点遵循 `[QA-*]` / `[StageD::*]` 命名约定，无重复或冲突。
+   - `parity-fixture-schema.md` 引用的 `[Fixture-*]` 锚点全部在自身文档定义。
+4. **Front-matter 一致性**：
+   - 7 个文档均包含 Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree 字段。
+   - Anchor Prefix 与实际锚点命名匹配（BP/RPM/TS/Div/MP/Decision-M3/StageD/QA/Fixture）。
+
+#### 后续监控
+- ⚠️ **P0 阻塞**：`m3-implementation-plan.md` 必须在 48 小时内补充 `[MP-T1]`/`[MP-T3]`/`[MP-T4]`/`[MP-R8]`/`[MP-R9]`/`[MP-R10]` 锚点定义（建议在章节标题中添加 `[MP-*]` 前缀，或在标题下方添加 `<a id="MP-*">` 标记），否则跨文档链接验证无法通过 `./run_all_checks` 审计（一旦 anchor lint 脚本上线）。
+- 🔄 等待 C# Implementer 或 AI Architect 确认锚点添加方式：保留中文标题+独立 `<a>` 标记（推荐），或改用 `### [MP-T1] 任务 1：...` 混合格式。
+- 🔄 Goal Tree 手动同步机制需持续执行，直到 `scripts/goal_tree_sync.py` 脚本上线；每次编辑 Blueprint 或 M3 计划时需同步更新对端片段并验证 hash 一致性。
+- 📝 在下次文档巡检（预计 2025-11-20）时重新运行锚点验证，确认 `[MP-*]` 修复完成并更新验证报告时间戳。
+
+### 2025-11-19 - Template Rollout Round 2（Decision & Stage D & Org Docs）
 #### 已完成任务
 - ✅ 为 `docs/architecture/m3-architect-decision.md` 添加 front-matter 与 `[Decision-M3-*]` 锚点，将评审摘要、裁决、监控、执行动作与变更记录整理为表格，并确保所有条目指回 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
 - ✅ 为 `docs/architecture/fixtures/parity-fixture-schema.md` 引入 front-matter 与 `[Fixture-*]` 结构，保留字段表的同时以摘要段落链接至 `[StageD::ParityAssets]`/`[StageD::FixtureFlow]`，并创建正式 change log。

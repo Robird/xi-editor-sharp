@@ -12,14 +12,15 @@
 ## [BP-GoalTree] Goal Tree Snapshot
 <a id="BP-GoalTree"></a>
 <!-- goal-tree:start -->
+<!-- goal-tree:meta generated-at="2025-11-16T22:18:10.864531+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
-| G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun `[MP-T1]` parity ingestion | `[QA-IngestionSmoke]` · `[StageD::ParityAssets]` |
-| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record `[MP-T3]` baseline | `[QA-ChunkBench]` · `[StageD::ParityAssets]` |
-| G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh `[TS-B5]` card | `[StageD::FeatureGates]` |
-| G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | `[StageD::FixtureFlow]` |
-| G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | `[StageD::FixtureFlow]` |
-| G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document `[TS-B2]` dependency | `[QA-StageDManual]` |
+| G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Stage D smoke must ingest cursor_descriptors manifest once CLI export lands) · [StageD::ParityAssets] |
+| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record [MP-T3] baseline | [QA-ChunkBench] (Capture 1 MB baseline with diagnostics counters) · [StageD::ParityAssets] |
+| G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh [TS-B5] card | [StageD::FeatureGates] |
+| G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | [QA-StageDManual] (Manual validation plan required before fixtures ship) · [StageD::FixtureFlow] |
+| G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | [QA-IngestionSmoke] (Smoke scripts must pass once CLI flags converge) · [StageD::FixtureFlow] |
+| G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document [TS-B2] dependency | [QA-StageDManual] (QA to confirm adapter instrumentation via manual Stage D checklist) · [StageD::FeatureGates] |
 <!-- goal-tree:end -->
 > Snippet mirrors `m3-implementation-plan.md#[MP-GoalTree]`; update both blocks together until `goal_tree_sync.py` lands.
 

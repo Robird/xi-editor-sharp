@@ -1,0 +1,229 @@
+- id: G1
+  title: "Cursor descriptors + version tickets"
+  status: "⚠️ Watch"
+  due: 2025-11-22
+  owner:
+    - "C# Implementer"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - serde
+    - cursor_state
+  assetRefs:
+    - kind: code
+      path: src/xi.Core/Rope/Tree/NodeCursor.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: test
+      path: tests/xi.Core.Tests/CursorDescriptorParityTests.cs
+      anchor: docs/architecture/m3-implementation-plan.md#mp-t1
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+      manifest: tests/xi.Core.Tests/Fixtures/cursor_descriptors/manifest.json
+      manifestHash: pending
+  schemaVersion: cursor_descriptors@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/m3-implementation-plan.md#mp-goaltree
+    - docs/architecture/type-system-migration-log.md#ts-b1
+  next:
+    - "Freeze CLI schema + rerun [MP-T1] parity ingestion"
+  riskFlag: "Watch -> [MP-R8]"
+  qaAnchors:
+    - anchor: "[QA-IngestionSmoke]"
+      note: "Stage D smoke must ingest cursor_descriptors manifest once CLI export lands"
+  stageDAnchors:
+    - "[StageD::ParityAssets]"
+
+- id: G2
+  title: "Chunk/Line diagnostics + fixtures"
+  status: "⚠️ Watch"
+  due: 2025-11-23
+  owner:
+    - "C# Implementer"
+    - "QA Engineer"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - serde
+    - chunk_diagnostics
+  assetRefs:
+    - kind: code
+      path: src/xi.Core/Rope/RopeChunkEnumerator.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: code
+      path: src/xi.Core/Rope/RopeLineEnumerator.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: test
+      path: tests/xi.Core.Tests/RopeChunkEnumeratorTests.cs
+      anchor: docs/architecture/m3-implementation-plan.md#mp-t3
+    - kind: test
+      path: tests/xi.Core.Tests/RopeLineEnumeratorTests.cs
+      anchor: docs/architecture/m3-implementation-plan.md#mp-t3
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+      manifest: tests/xi.Core.Tests/Fixtures/chunk_descriptors/manifest.json
+      manifestHash: pending
+  schemaVersion: chunk_descriptors@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/m3-implementation-plan.md#mp-t3
+    - docs/architecture/type-system-migration-log.md#ts-b3
+  next:
+    - "Import chunk JSON + record [MP-T3] baseline"
+  riskFlag: "Watch -> [MP-R10]"
+  qaAnchors:
+    - anchor: "[QA-ChunkBench]"
+      note: "Capture 1 MB baseline with diagnostics counters"
+  stageDAnchors:
+    - "[StageD::ParityAssets]"
+
+- id: G3
+  title: "Breaks tree bridge"
+  status: "⚠️ Watch"
+  due: 2025-11-26
+  owner:
+    - "C# Implementer"
+    - "Rust Porter"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - serde
+    - breaks_shim
+  assetRefs:
+    - kind: code
+      path: src/xi.Core/Rope/BreaksMetricHelper.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: test
+      path: tests/xi.Core.Tests/BreaksMetricHelperTests.cs
+      anchor: docs/architecture/type-system-migration-log.md#ts-b5
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+      manifest: tests/xi.Core.Tests/Fixtures/breaks_descriptors/manifest.json
+      manifestHash: pending
+  schemaVersion: breaks_descriptors@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/type-system-migration-log.md#ts-b5
+  next:
+    - "Publish shim draft + refresh [TS-B5] card"
+  riskFlag: "Watch -> [TS-B5]"
+  qaAnchors: []
+  stageDAnchors:
+    - "[StageD::FeatureGates]"
+
+- id: G4
+  title: "Diff/Search plan handoff"
+  status: "⏳ Pending"
+  due: 2025-11-28
+  owner:
+    - "AI Architect"
+    - "C# Implementer"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - diff_search_plan
+  assetRefs:
+    - kind: code
+      path: pending
+      anchor: docs/architecture/m3-implementation-plan.md#mp-goaltree
+    - kind: test
+      path: pending
+      anchor: docs/architecture/m3-implementation-plan.md#mp-goaltree
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/diff_search/regions.json
+      manifest: tests/xi.Core.Tests/Fixtures/diff_search/manifest.json
+      manifestHash: pending
+  schemaVersion: diff_search_plan@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/m3-implementation-plan.md#mp-goaltree
+  next:
+    - "Ship doc skeleton + stub directories"
+  riskFlag: "Watch"
+  qaAnchors:
+    - anchor: "[QA-StageDManual]"
+      note: "Manual validation plan required before fixtures ship"
+  stageDAnchors:
+    - "[StageD::FixtureFlow]"
+
+- id: G5
+  title: "Iterator façade + CLI alignment"
+  status: "⏳ Pending"
+  due: 2025-11-27
+  owner:
+    - "Rust Porter"
+    - "Architecture Mapper"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - serde
+    - iterator_facade_export
+  assetRefs:
+    - kind: code
+      path: xi-editor-ph7/rust/rope/src/bin/export-serde-fixtures.rs
+      anchor: docs/rust-refactor/iterator-facade-export.md
+    - kind: test
+      path: xi-editor-ph7/rust/rope/tests/chunk_descriptor.rs
+      anchor: docs/rust-refactor/iterator-facade-export.md
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+      manifest: tests/xi.Core.Tests/Fixtures/chunk_descriptors/manifest.json
+      manifestHash: pending
+  schemaVersion: iterator_facade@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/m3-implementation-plan.md#mp-goaltree
+    - docs/rust-refactor/iterator-facade-export.md
+  next:
+    - "Approve export matrix + update Stage D script"
+  riskFlag: "Watch -> [MP-R9]"
+  qaAnchors:
+    - anchor: "[QA-IngestionSmoke]"
+      note: "Smoke scripts must pass once CLI flags converge"
+  stageDAnchors:
+    - "[StageD::FixtureFlow]"
+
+- id: G6
+  title: "Metric adapter bridge"
+  status: "⚠️ Watch"
+  due: 2025-11-24
+  owner:
+    - "C# Implementer"
+    - "Architecture Mapper"
+  rustCommit: pending
+  dotnetCommit: pending
+  rustCliVersion: pending
+  featureGates:
+    - serde
+    - metric_adapter
+  assetRefs:
+    - kind: code
+      path: src/xi.Core/Rope/IMetric.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: code
+      path: src/xi.Core/Rope/Metrics.cs
+      anchor: docs/architecture/rope-port-mapping.md#rpm-matrix
+    - kind: test
+      path: tests/xi.Core.Tests/GenericNodeInterfaceTests.cs
+      anchor: docs/architecture/m3-implementation-plan.md#mp-t1
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/ParityFixtures/delta_regression.json
+      manifest: tests/xi.Core.Tests/Fixtures/ParityFixtures/manifest.json
+      manifestHash: pending
+  schemaVersion: metric_adapter@pending
+  evidence:
+    - docs/architecture/port-blueprint.md#bp-goaltree
+    - docs/architecture/type-system-migration-log.md#ts-b2
+  next:
+    - "Land adapter tests + document [TS-B2] dependency"
+  riskFlag: "Watch -> [TS-B2]"
+  qaAnchors:
+    - anchor: "[QA-StageDManual]"
+      note: "QA to confirm adapter instrumentation via manual Stage D checklist"
+  stageDAnchors:
+    - "[StageD::FeatureGates]"

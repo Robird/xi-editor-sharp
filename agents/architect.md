@@ -84,17 +84,20 @@
 4. 向用户汇报进度与下一步计划
 
 ## 当前聚焦（下一会话）
-- [进行中] 🗂️ **Architecture 文档结构 1.0 落地**
-  - **目标**：按照 `document-structure-template.md` 重构 `docs/architecture/` 七个核心文档，统一 front-matter、锚点与共享章节（Goal Tree / Matrix / Blocker Cards / Stage D anchors）。
-  - **步骤**：
-    1. 规划每个文档的目标结构与锚点（完成于 2025-11-18，本档案附 rollout 方案）。
-    2. 委派 AI 员工重写各自负责的文档（Architecture Mapper：`port-blueprint`/`rope-port-mapping`/`type-system-migration-log`/`design-divergence-log`; C# Implementer：`m3-implementation-plan`; AI 架构师：`m3-architect-decision`; Rust Porter + QA：`rope-serialization-fixture-playbook`).
-    3. 统一验证：检查锚点、Stage D/QA 链接、`goal-tree` snippet（暂手工维护），并在 `AGENTS.md` 记录交付。
-  - **验收**：所有文档出现 front-matter（Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree）、遵循模板章节、旧信息迁移到相应引用文档（背景/细节放回专题文档）。
-  - **里程碑**：11/18 完成规划；11/19 提交文档改写；11/20 更新 `AGENTS.md`/role 档案。
+- [已完成] ✅ **Architecture 文档结构 1.0 落地**
+  - **目标**：按照 `document-structure-template.md` 重构 `docs/architecture/` 七个核心文档，统一 front-matter、锚点与共享章节（Goal Tree / Matrix / Blocker Cards / Stage D anchors）。
+  - **交付物**：
+    - ✅ 所有 7 个文档符合模板标准（front-matter/锚点/章节结构）
+    - ✅ Goal Tree 在 `port-blueprint.md` ↔ `m3-implementation-plan.md` 完全同步
+    - ✅ 60+ 跨文档引用全部可达（补齐 6 个缺失锚点）
+    - ✅ QA/Stage D 锚点系统完整（8 个关键锚点全部定义）
+  - **完成时间**：2025-11-17（晚）
+  - **质量验收**：Architecture Mapper 两轮深度审计通过，无 P0/P1 阻塞项
 
-- [搁置] 🎯 **M3 实施第 2 天：T1.2-T1.4 游标导航与 Metric 转换**
-  - **状态**：等待文档重构完成后恢复。保留原行动项与风险门槛以便重新切换。
+- [待启动] 🎯 **M3 实施：游标系统与泛型接口验证**
+  - **状态**：文档重构已完成 ✅，可随时启动 M3 任务推进。
+  - **参考计划**：`docs/architecture/m3-implementation-plan.md`（已完成锚点修复）
+  - **优先任务**：T1.1-T1.6（游标系统实现，6-8.5 天）
 
 - [待命] 📋 **周会准备（第 5-7 天）**
   - 议程：文档落地复盘 + M3 任务回流。

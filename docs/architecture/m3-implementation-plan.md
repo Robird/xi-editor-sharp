@@ -12,14 +12,15 @@
 ## [MP-GoalTree] Goal Tree Snapshot
 <a id="MP-GoalTree"></a>
 <!-- goal-tree:start -->
+<!-- goal-tree:meta generated-at="2025-11-16T22:18:10.864531+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
-| G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun `[MP-T1]` parity ingestion | `[QA-IngestionSmoke]` · `[StageD::ParityAssets]` |
-| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record `[MP-T3]` baseline | `[QA-ChunkBench]` · `[StageD::ParityAssets]` |
-| G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh `[TS-B5]` card | `[StageD::FeatureGates]` |
-| G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | `[StageD::FixtureFlow]` |
-| G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | `[StageD::FixtureFlow]` |
-| G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document `[TS-B2]` dependency | `[QA-StageDManual]` |
+| G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Stage D smoke must ingest cursor_descriptors manifest once CLI export lands) · [StageD::ParityAssets] |
+| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record [MP-T3] baseline | [QA-ChunkBench] (Capture 1 MB baseline with diagnostics counters) · [StageD::ParityAssets] |
+| G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh [TS-B5] card | [StageD::FeatureGates] |
+| G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | [QA-StageDManual] (Manual validation plan required before fixtures ship) · [StageD::FixtureFlow] |
+| G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | [QA-IngestionSmoke] (Smoke scripts must pass once CLI flags converge) · [StageD::FixtureFlow] |
+| G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document [TS-B2] dependency | [QA-StageDManual] (QA to confirm adapter instrumentation via manual Stage D checklist) · [StageD::FeatureGates] |
 <!-- goal-tree:end -->
 > This snapshot is mirrored verbatim in `port-blueprint.md#[BP-GoalTree]`.
 
@@ -109,6 +110,7 @@
 ## 2. 任务分解与工作量估算
 
 ### 2.1 任务 1：游标系统实现
+<a id="MP-T1"></a>
 
 #### 2.1.1 子任务拆解
 | 子任务 ID | 描述 | 负责人 | 工作量 | 依赖 |
@@ -155,6 +157,7 @@
 ---
 
 ### 2.3 任务 3：Chunk 迭代器骨架
+<a id="MP-T3"></a>
 
 #### 2.3.1 子任务拆解
 | 子任务 ID | 描述 | 负责人 | 工作量 | 依赖 |
@@ -182,6 +185,7 @@
 ---
 
 ### 2.4 任务 4：Grapheme 降级实现
+<a id="MP-T4"></a>
 
 #### 2.4.1 子任务拆解
 | 子任务 ID | 描述 | 负责人 | 工作量 | 依赖 |
@@ -297,9 +301,9 @@
 | R2 | Chunk 迭代器分配过多（性能问题） | 中 | 高 | 压测脚本显示处理 1 MB 文本分配 > 5 MB LOH | - 记录基准数据<br>- M4 优化时再处理 | 接受临时性能损失，M3 不优化 |
 | R3 | Grapheme 降级导致编辑行为与 Rust 不一致 | 中 | 中 | 遥测显示 `CodePointFallbackCount` / 交互 bug 超过 0.5% session | - 在 API 注释中明确说明<br>- 收集遥测数据 | 若实际触发频率高，M4 提前引入 ICU4N |
 | R4 | Rust `CursorDescriptor` Parity 样本不足 | 低 | 低 | T1.6 启动时 `CursorDescriptors/*.json` < 10 份或缺深树样本 | - Rust Porter 导出 JSON fixture（含深树、多 Metric、边界用例）<br>- 使用 `cursor_descriptor.rs` 测试生成样本<br>- 提供 serde 导出工具（扩展 `export-serde-fixtures` bin） | - 若导出工具延迟，手动构造 Descriptor JSON<br>- C# 侧先用简单场景验证，复杂场景 M3 后期补充 |
-| R8 | Rope 版本计数器缺失导致游标无法可靠失效 | 高 | 中 | 2025-11-18 前 `Rope` 编辑路径仍未更新 `_editVersion` | - 由 C# Implementer 在 `Rope.Edit`/`Node.Edit` 管线写入版本自增<br>- Architecture Mapper 在 `rope-port-mapping.md` 中追踪实现状态 | 临时退回到仅 `ReferenceEquals` 判定，并在 API 注释中声明编辑后需手动重建游标 |
-| R9 | `export-serde-fixtures --cursor-descriptors` CLI 未落地 | 中 | 中 | 2025-11-19 前工具未合入 `xi-editor-ph7` 主支 | - Rust Porter 先提交最小 CLI patch，并在周同步会上演示输出格式<br>- Architecture Mapper 将 CLI 作为 Stage D 资产登记 | 由 C# 实现者手写 2-3 个最小 JSON 以解锁单测，其余样本延后补全 |
-| R10 | Chunk/Grapheme 骨架缺失拖慢 T3/T4 | 中 | 中 | T3.1/T4.1 开始时仍无 `RopeChunkEnumerator` / `GraphemeNavigation` skeleton | - 在 2025-11-18 前提交 skeleton PR，并同步 `docs/skeleton/rope.md`<br>- 通过 Architecture Mapper 追踪 owner/工时 | 将 `Rope.Snapshot()` + `string` 操作作为临时实现，并推迟性能测试至 M4 |
+| R8 <a id="MP-R8"></a> | Rope 版本计数器缺失导致游标无法可靠失效 | 高 | 中 | 2025-11-18 前 `Rope` 编辑路径仍未更新 `_editVersion` | - 由 C# Implementer 在 `Rope.Edit`/`Node.Edit` 管线写入版本自增<br>- Architecture Mapper 在 `rope-port-mapping.md` 中追踪实现状态 | 临时退回到仅 `ReferenceEquals` 判定，并在 API 注释中声明编辑后需手动重建游标 |
+| R9 <a id="MP-R9"></a> | `export-serde-fixtures --cursor-descriptors` CLI 未落地 | 中 | 中 | 2025-11-19 前工具未合入 `xi-editor-ph7` 主支 | - Rust Porter 先提交最小 CLI patch，并在周同步会上演示输出格式<br>- Architecture Mapper 将 CLI 作为 Stage D 资产登记 | 由 C# 实现者手写 2-3 个最小 JSON 以解锁单测，其余样本延后补全 |
+| R10 <a id="MP-R10"></a> | Chunk/Grapheme 骨架缺失拖慢 T3/T4 | 中 | 中 | T3.1/T4.1 开始时仍无 `RopeChunkEnumerator` / `GraphemeNavigation` skeleton | - 在 2025-11-18 前提交 skeleton PR，并同步 `docs/skeleton/rope.md`<br>- 通过 Architecture Mapper 追踪 owner/工时 | 将 `Rope.Snapshot()` + `string` 操作作为临时实现，并推迟性能测试至 M4 |
 
 > **修改者**：Rust Porter  
 > **修改理由**：补充缓解措施细节，明确样本来源与应急预案  
