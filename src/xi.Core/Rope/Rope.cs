@@ -47,6 +47,23 @@ public sealed class Rope : ITextBuffer
         Replace(Length, 0, text.ToString());
     }
 
+    /// <summary>
+    /// Creates a rope instance that adopts an existing <see cref="Node"/> tree.
+    /// </summary>
+    /// <param name="root">The root node to attach.</param>
+    /// <returns>A rope whose contents mirror the supplied node.</returns>
+    internal static Rope FromNode(Node root)
+    {
+        if (root is null)
+        {
+            throw new ArgumentNullException(nameof(root));
+        }
+
+        var rope = new Rope();
+        rope.UpdateRoot(root);
+        return rope;
+    }
+
     public void Clear()
     {
         UpdateRoot(Node.Empty);

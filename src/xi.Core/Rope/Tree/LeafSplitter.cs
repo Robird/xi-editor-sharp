@@ -4,7 +4,7 @@ namespace Xi.Core.Rope.Tree;
 
 internal static class LeafSplitter
 {
-    internal const int NewlinePreferenceWindow = 64;
+    internal static readonly int NewlinePreferenceWindow = StringLeafOperations.MaxLeafSize - StringLeafOperations.MinLeafSize;
 
     internal static IEnumerable<string> Split(string leaf) => StringLeafOperations.SplitByCapacity(leaf);
 }

@@ -26,6 +26,7 @@
     <None Include="Fixtures\subset_regression.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\delta_regression.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\engine_regression.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\cursor_descriptors\cursor_descriptors.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

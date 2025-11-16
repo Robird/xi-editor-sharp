@@ -1,5 +1,7 @@
+using System;
 using Xi.Core.Rope.Tree;
 using Xunit;
+using Xunit.Sdk;
 
 namespace Xi.Core.Tests;
 
@@ -15,7 +17,8 @@ public static class RopeTestHelpers
         }
 
         var message = string.Join(Environment.NewLine, issues);
-        Assert.True(issues.Count == 0, $"Invariant violations detected:{Environment.NewLine}{message}");
+        Console.WriteLine($"Invariant violations detected:{Environment.NewLine}{message}");
+        throw new XunitException($"Invariant violations detected:{Environment.NewLine}{message}");
     }
 
     public static Node GetRoot(Rope.Rope buffer) => buffer.DebugRoot;

@@ -204,7 +204,7 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
         var candidate = Math.Clamp(totalLength / 2, minSplit, maxSplit);
         candidate = PreferNewlineBoundary(left, right, candidate, minSplit, maxSplit);
 
-        if (!TryEnsureSurrogateBoundary(left, right, ref candidate, minSplit, maxSplit))
+        if (!RetreatToCombinedSurrogateBoundary(left, right, ref candidate))
         {
             return false;
         }
@@ -229,48 +229,66 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
             yield break;
         }
 
-        var max = MaxLeafSize;
-        var window = NewlinePreferenceWindow;
         var offset = 0;
-        var length = leaf.Length;
-
-        while (offset < length)
+        while (offset < leaf.Length)
         {
-            var remaining = length - offset;
-            var desired = Math.Min(max, remaining);
-            var split = desired;
-
-            if (remaining > desired)
+            var remaining = leaf.Length - offset;
+            if (remaining <= MaxLeafSize)
             {
-                var searchEnd = offset + desired - 1;
-                var windowStart = Math.Max(offset, searchEnd - (window - 1));
+                yield return leaf.Substring(offset, remaining);
+                break;
+            }
 
-                for (var index = searchEnd; index >= windowStart; index--)
-                {
-                    if (leaf[index] == '\n')
-                    {
-                        split = index - offset + 1;
-                        break;
-                    }
-                }
-
-                if (offset + split < length &&
-                    split > 0 &&
-                    char.IsHighSurrogate(leaf[offset + split - 1]) &&
-                    char.IsLowSurrogate(leaf[offset + split]))
-                {
-                    split--;
-                }
-
-                if (split <= 0)
-                {
-                    split = desired;
-                }
+            var slice = leaf.AsSpan(offset, remaining);
+            var split = FindLeafSplit(slice, MinLeafSize);
+            if (split <= 0 || split >= slice.Length)
+            {
+                split = Math.Clamp(split, MinLeafSize, MaxLeafSize);
             }
 
             yield return leaf.Substring(offset, split);
             offset += split;
         }
+    }
+
+    private static int FindLeafSplit(ReadOnlySpan<char> span, int minSplit)
+    {
+        var length = span.Length;
+        var boundedMinSplit = Math.Min(Math.Max(minSplit, MinLeafSize), MaxLeafSize);
+        var remainderLower = Math.Min(Math.Max(length - MaxLeafSize, 0), MaxLeafSize);
+        var lowerBound = Math.Max(boundedMinSplit, remainderLower);
+
+        var upperWindow = Math.Min(boundedMinSplit + NewlinePreferenceWindow, MaxLeafSize);
+        var upperRemaining = Math.Min(Math.Max(length - MinLeafSize, 0), MaxLeafSize);
+        var splitpoint = Math.Min(upperWindow, upperRemaining);
+        if (splitpoint < lowerBound)
+        {
+            splitpoint = lowerBound;
+        }
+
+        var windowStart = Math.Max(splitpoint - NewlinePreferenceWindow, MinLeafSize - 1);
+        if (windowStart < 0)
+        {
+            windowStart = 0;
+        }
+
+        if (splitpoint > windowStart)
+        {
+            var searchSpan = span.Slice(windowStart, splitpoint - windowStart);
+            var newlineIndex = searchSpan.LastIndexOf('\n');
+            if (newlineIndex >= 0)
+            {
+                splitpoint = windowStart + newlineIndex + 1;
+            }
+        }
+
+        while (splitpoint > 0 && splitpoint < length &&
+               char.IsLowSurrogate(span[splitpoint]) && char.IsHighSurrogate(span[splitpoint - 1]))
+        {
+            splitpoint--;
+        }
+
+        return splitpoint;
     }
 
     private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit)
@@ -294,29 +312,21 @@ internal readonly struct StringLeafOperations : ILeafOperations<string>
         return candidate;
     }
 
-    private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit)
+    private static bool RetreatToCombinedSurrogateBoundary(string left, string right, ref int splitIndex)
     {
         var total = left.Length + right.Length;
-
-        if (!IsSafeBoundary(left, right, splitIndex))
-        {
-            if (splitIndex + 1 <= maxSplit && IsSafeBoundary(left, right, splitIndex + 1))
-            {
-                splitIndex += 1;
-            }
-            else if (splitIndex - 1 >= minSplit && IsSafeBoundary(left, right, splitIndex - 1))
-            {
-                splitIndex -= 1;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
         if (splitIndex <= 0 || splitIndex >= total)
         {
             return false;
+        }
+
+        while (!IsSafeBoundary(left, right, splitIndex))
+        {
+            splitIndex--;
+            if (splitIndex <= 0)
+            {
+                return false;
+            }
         }
 
         return true;

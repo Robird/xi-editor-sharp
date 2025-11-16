@@ -517,13 +517,14 @@ public class NodeTests
     public void Delete_AcrossMultipleLevelsMaintainsLeafConstraints()
     {
         var builder = new TreeBuilder();
-        for (var i = 0; i < 6; i++)
+        const int leafCount = 12; // exceed Node.MaxChildCount (8) to ensure multi-level tree
+        for (var i = 0; i < leafCount; i++)
         {
             builder.PushString(new string((char)('a' + i), Node.MaxLeafSize));
         }
 
         var node = builder.Build();
-        Assert.True(node.Height >= 2);
+        Assert.True(node.Height >= 2, $"Expected multi-level tree but height={node.Height}");
 
         node = node.Delete(Node.MaxLeafSize + 128, Node.MaxLeafSize + 400);
 

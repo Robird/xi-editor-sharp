@@ -28,6 +28,12 @@ namespace Xi.Core.Rope.Tree;
 /// </summary>
 public sealed class Node
 {
+    private const int MinChildren = 4;
+    private const int MaxChildren = 8;
+
+    internal static int MaxChildCount => MaxChildren;
+    internal static int MinChildCount => MinChildren;
+
     public static int MinLeafSize => StringLeafOperations.MinLeafSize;
     public static int MaxLeafSize => StringLeafOperations.MaxLeafSize;
 
@@ -245,6 +251,18 @@ public sealed class Node
 
     public bool IsLeaf => Body.Height == 0;
 
+    internal bool IsOkChild()
+    {
+        if (IsLeaf)
+        {
+            var length = Body.Leaf?.Length ?? 0;
+            return length > 0 && length <= MaxLeafSize;
+        }
+
+        var count = Body.Children?.Length ?? 0;
+        return count > 0 && count <= MaxChildCount;
+    }
+
     public bool IsEmpty => Length == 0;
 
     public int ChildCount => Body.Children?.Length ?? 0;
@@ -378,17 +396,57 @@ public sealed class Node
             return left;
         }
 
-        if (left.Height == right.Height)
+        var leftHeight = left.Height;
+        var rightHeight = right.Height;
+
+        if (leftHeight == rightHeight)
         {
-            return CreateInternal(left.Height + 1, new[] { left, right });
+            if (left.IsOkChild() && right.IsOkChild())
+            {
+                return CreateInternal(leftHeight + 1, new[] { left, right });
+            }
+
+            if (leftHeight == 0)
+            {
+                return MergeLeaves(left, right);
+            }
+
+            return MergeNodes(left.RequireChildren(), right.RequireChildren());
         }
 
-        if (left.Height < right.Height)
+        if (leftHeight < rightHeight)
         {
-            return ConcatLeftShorter(left, right);
+            var rightChildren = right.RequireChildren();
+
+            if (leftHeight == rightHeight - 1 && left.IsOkChild())
+            {
+                return MergeNodes(new[] { left }, rightChildren);
+            }
+
+            var merged = Concat(left, rightChildren[0]);
+            if (merged.Height == rightHeight - 1)
+            {
+                return MergeNodes(new[] { merged }, CopyRange(rightChildren, 1, rightChildren.Length - 1));
+            }
+
+            return MergeNodes(merged.RequireChildren(), CopyRange(rightChildren, 1, rightChildren.Length - 1));
         }
 
-        return ConcatRightShorter(left, right);
+        var leftChildren = left.RequireChildren();
+
+        if (rightHeight == leftHeight - 1 && right.IsOkChild())
+        {
+            return MergeNodes(leftChildren, new[] { right });
+        }
+
+        var lastIndex = leftChildren.Length - 1;
+        var mergedRight = Concat(leftChildren[lastIndex], right);
+        if (mergedRight.Height == leftHeight - 1)
+        {
+            return MergeNodes(CopyRange(leftChildren, 0, lastIndex), new[] { mergedRight });
+        }
+
+        return MergeNodes(CopyRange(leftChildren, 0, lastIndex), mergedRight.RequireChildren());
     }
 
     public IEnumerable<Node> TraverseLeaves()
@@ -1212,59 +1270,6 @@ public sealed class Node
         return (leftNode, rightNode);
     }
 
-    private static Node ConcatLeftShorter(Node left, Node right)
-    {
-        var children = right.RequireChildren();
-        var firstChild = children[0];
-        var merged = Concat(left, firstChild);
-
-        if (merged.Height == right.Height - 1)
-        {
-            var newChildren = new Node[children.Length];
-            newChildren[0] = merged;
-            Array.Copy(children, 1, newChildren, 1, children.Length - 1);
-            return CreateInternal(right.Height, newChildren);
-        }
-
-        if (merged.Height == right.Height)
-        {
-            var mergedChildren = merged.RequireChildren();
-            var combined = new Node[mergedChildren.Length + children.Length - 1];
-            Array.Copy(mergedChildren, 0, combined, 0, mergedChildren.Length);
-            Array.Copy(children, 1, combined, mergedChildren.Length, children.Length - 1);
-            return CreateInternal(right.Height, combined);
-        }
-
-        throw new InvalidOperationException("Unexpected height relationship during rope concatenation.");
-    }
-
-    private static Node ConcatRightShorter(Node left, Node right)
-    {
-        var children = left.RequireChildren();
-        var lastIndex = children.Length - 1;
-        var lastChild = children[lastIndex];
-        var merged = Concat(lastChild, right);
-
-        if (merged.Height == left.Height - 1)
-        {
-            var newChildren = new Node[children.Length];
-            Array.Copy(children, 0, newChildren, 0, lastIndex);
-            newChildren[lastIndex] = merged;
-            return CreateInternal(left.Height, newChildren);
-        }
-
-        if (merged.Height == left.Height)
-        {
-            var mergedChildren = merged.RequireChildren();
-            var combined = new Node[children.Length + mergedChildren.Length - 1];
-            Array.Copy(children, 0, combined, 0, lastIndex);
-            Array.Copy(mergedChildren, 0, combined, lastIndex, mergedChildren.Length);
-            return CreateInternal(left.Height, combined);
-        }
-
-        throw new InvalidOperationException("Unexpected height relationship during rope concatenation.");
-    }
-
     private Node[] RequireChildren()
     {
         if (Body.Children is { Length: > 0 } children)
@@ -1273,6 +1278,177 @@ public sealed class Node
         }
 
         throw new InvalidOperationException("Operation requires an internal node with children.");
+    }
+
+    private static Node MergeLeaves(Node left, Node right)
+    {
+        if (!left.IsLeaf || !right.IsLeaf)
+        {
+            throw new InvalidOperationException("MergeLeaves requires leaf nodes.");
+        }
+
+        var leftText = GetLeafText(left);
+        var rightText = GetLeafText(right);
+
+        if (StringLeafOperations.IsValidChild(leftText) && StringLeafOperations.IsValidChild(rightText))
+        {
+            return CreateInternal(1, new[] { left, right });
+        }
+
+        var merged = StringLeafOperations.Merge(leftText, rightText);
+        if (StringLeafOperations.IsValidChild(merged))
+        {
+            return FromLeaf(merged);
+        }
+
+        if (StringLeafOperations.TryComputeBalancedSplit(leftText, rightText, out var newLeft, out var newRight))
+        {
+            return CreateInternal(1, new[] { FromLeaf(newLeft), FromLeaf(newRight) });
+        }
+
+        var leaves = new List<Node>();
+        foreach (var segment in StringLeafOperations.SplitByCapacity(merged))
+        {
+            if (segment.Length == 0)
+            {
+                continue;
+            }
+
+            leaves.Add(FromLeaf(segment));
+        }
+
+        if (leaves.Count == 0)
+        {
+            return Empty;
+        }
+
+        var mergedNode = leaves[0];
+        for (var i = 1; i < leaves.Count; i++)
+        {
+            mergedNode = Concat(mergedNode, leaves[i]);
+        }
+
+        return mergedNode;
+    }
+
+    private static Node MergeNodes(IReadOnlyList<Node> leftChildren, IReadOnlyList<Node> rightChildren)
+    {
+        var combined = CombineChildren(leftChildren, rightChildren);
+        if (combined.Length == 0)
+        {
+            throw new InvalidOperationException("Cannot merge zero children.");
+        }
+
+        if (combined.Length == 1)
+        {
+            return combined[0];
+        }
+
+        if (combined.Length <= MaxChildren)
+        {
+            return CreateInternal(combined[0].Height + 1, combined);
+        }
+
+        var splitPoint = Math.Min(MaxChildren, combined.Length - MinChildren);
+        var left = new Node[splitPoint];
+        Array.Copy(combined, 0, left, 0, splitPoint);
+        var rightLength = combined.Length - splitPoint;
+        var right = new Node[rightLength];
+        Array.Copy(combined, splitPoint, right, 0, rightLength);
+
+        var parents = new[]
+        {
+            CreateInternal(left[0].Height + 1, left),
+            CreateInternal(right[0].Height + 1, right)
+        };
+
+        return CreateInternal(parents[0].Height + 1, parents);
+    }
+
+    internal static Node FromNodes(IReadOnlyList<Node> children)
+    {
+        if (children is null)
+        {
+            throw new ArgumentNullException(nameof(children));
+        }
+
+        if (children.Count == 0)
+        {
+            return Empty;
+        }
+
+        if (children.Count == 1)
+        {
+            return children[0];
+        }
+
+        if (children.Count > MaxChildren)
+        {
+            throw new ArgumentOutOfRangeException(nameof(children), children.Count, $"Internal node cannot exceed {MaxChildren} children.");
+        }
+
+        var array = new Node[children.Count];
+        var expectedHeight = children[0].Height;
+        for (var i = 0; i < children.Count; i++)
+        {
+            var child = children[i] ?? throw new ArgumentNullException(nameof(children), "Child node cannot be null.");
+            if (child.Height != expectedHeight)
+            {
+                throw new InvalidOperationException("All child nodes must have the same height.");
+            }
+
+            array[i] = child;
+        }
+
+        return CreateInternal(expectedHeight + 1, array);
+    }
+
+    private static Node[] CopyRange(IReadOnlyList<Node> source, int start, int length)
+    {
+        if (length <= 0)
+        {
+            return Array.Empty<Node>();
+        }
+
+        var result = new Node[length];
+        for (var i = 0; i < length; i++)
+        {
+            result[i] = source[start + i];
+        }
+
+        return result;
+    }
+
+    private static Node[] CombineChildren(IReadOnlyList<Node>? leftChildren, IReadOnlyList<Node>? rightChildren)
+    {
+        var leftCount = leftChildren?.Count ?? 0;
+        var rightCount = rightChildren?.Count ?? 0;
+        var total = leftCount + rightCount;
+        if (total == 0)
+        {
+            return Array.Empty<Node>();
+        }
+
+        var combined = new Node[total];
+        var index = 0;
+
+        if (leftCount > 0 && leftChildren != null)
+        {
+            for (var i = 0; i < leftCount; i++)
+            {
+                combined[index++] = leftChildren[i];
+            }
+        }
+
+        if (rightCount > 0 && rightChildren != null)
+        {
+            for (var i = 0; i < rightCount; i++)
+            {
+                combined[index++] = rightChildren[i];
+            }
+        }
+
+        return combined;
     }
 
     private static string GetLeafText(Node node)

@@ -428,6 +428,16 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Leaf Split & Delete Invariants)
+- **LeafSplitter 对齐 Rust**：重写 `StringLeafOperations.FindLeafSplit`，按 Rust `find_leaf_split` 计算上下界并扩展换行窗口搜索范围，遇到代理对拆分时退回安全边界；`TryComputeBalancedSplit` 现复用新的合并对齐逻辑，所有叶片再平衡路径不再撕裂 surrogate。
+- **诊断与测试增强**：`RopeTestHelpers.AssertInvariants` 直接抛出 `XunitException` 并打印违规详情，`NodeTests.Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 改为构造 `12` 片段（>8）确保覆盖多层节点，防止高度=1 时误测。
+- **验证**：先跑针对性筛选（TreeBuilder/Node split），再执行 `dotnet test -v m`（169 项）全部通过，四个遗留失败清零。
+
+### 2025-11-17 (Cursor Descriptor Deep Tree Parity)
+- **构建策略对齐**：在 `Rope` 中新增 `FromNode` 工厂以便直接接管 `TreeBuilder` 输出，测试可无损还原 Rust 侧深树结构。
+- **深树夹具重建**：`CursorDescriptorParityTests` 新增 `BuildDeepTreeRope`，复刻 `build_deep_rope()`（511 字符叶片 + 8^5 计数标记），确保 `deep_tree_midpoint` 与 JSON 夹具的层级/leaf path 完全一致。
+- **验证**：执行 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter CursorDescriptor`，11 项用例全部通过，`deep_tree_midpoint` 现与 Rust 描述符帧完全对齐。
+
 ### 2025-11-16 (晚) (C# Rope Skeleton 清理)
 - **Skeletonizer 工具**：在 `tools/Skeletonizer` 下创建 Roslyn 小工具，自动定位方法/构造函数/访问器的 `BlockSyntax` 并输出占位注释，避免手工逐块编辑造成 diff 噪音。
 - **批量替换**：执行 `dotnet run -- tools/Skeletonizer ..\\..\\docs\\skeleton\\xi.Core.Rope.cs`，共 293 个函数体被替换为 `// Body removed for skeleton view.` 注释，保留了原始签名与结构层级。

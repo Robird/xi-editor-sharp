@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Xi.Core.Rope;
 
@@ -20,6 +21,7 @@ public sealed class NodeCursor
     private int _position;
     private readonly PathFrame?[] _pathCache;
     private string? _currentLeaf;
+    private Node? _currentLeafNode;
     private int _offsetOfLeaf;
     private bool _isValid;
 
@@ -289,6 +291,55 @@ public sealed class NodeCursor
         }
 
         return IsBoundary(metric) ? _position : MoveToPrevious(metric);
+    }
+
+    /// <summary>
+    /// Captures an owning descriptor that mirrors xi-editor's <c>CursorDescriptor</c> snapshot semantics.
+    /// </summary>
+    public CursorDescriptor ToDescriptor()
+    {
+        if (!EnsureOwnerVersionMatches())
+        {
+            return CursorDescriptor.CreateInvalid(_position);
+        }
+
+        if (!_isValid || _currentLeafNode is null)
+        {
+            return CursorDescriptor.CreateInvalid(_position);
+        }
+
+        var frames = BuildDescriptorFrames();
+        return CursorDescriptor.CreateValid(_position, _offsetOfLeaf, _currentLeafNode, frames);
+    }
+
+    /// <summary>
+    /// Attempts to rehydrate cursor caches from a descriptor. Leaves the cursor unchanged when validation fails.
+    /// </summary>
+    public bool TryApplyDescriptor(CursorDescriptor descriptor)
+    {
+        if (descriptor is null)
+        {
+            throw new ArgumentNullException(nameof(descriptor));
+        }
+
+        if (!EnsureOwnerVersionMatches())
+        {
+            return false;
+        }
+
+        if (!descriptor.IsValid)
+        {
+            return false;
+        }
+
+        var snapshot = CaptureSnapshot();
+        if (ApplyDescriptorInternal(descriptor))
+        {
+            return true;
+        }
+
+        RestoreSnapshot(snapshot);
+        return false;
     }
 
     private void Descend()
@@ -634,7 +685,7 @@ public sealed class NodeCursor
     {
         var cacheCopy = new PathFrame?[CacheSizeLimit];
         Array.Copy(_pathCache, cacheCopy, CacheSizeLimit);
-        return new CursorSnapshot(_position, _offsetOfLeaf, _currentLeaf, _isValid, cacheCopy);
+        return new CursorSnapshot(_position, _offsetOfLeaf, _currentLeaf, _currentLeafNode, _isValid, cacheCopy);
     }
 
     private void RestoreSnapshot(CursorSnapshot snapshot)
@@ -642,12 +693,14 @@ public sealed class NodeCursor
         _position = snapshot.Position;
         _offsetOfLeaf = snapshot.OffsetOfLeaf;
         _currentLeaf = snapshot.CurrentLeaf;
+        _currentLeafNode = snapshot.CurrentLeafNode;
         _isValid = snapshot.IsValid;
         Array.Copy(snapshot.Cache, _pathCache, CacheSizeLimit);
     }
 
     private void SetLeafFromNode(Node leafNode, int offset)
     {
+        _currentLeafNode = leafNode ?? throw new ArgumentNullException(nameof(leafNode));
         _currentLeaf = leafNode.GetLeaf() ?? string.Empty;
         _offsetOfLeaf = offset;
         _isValid = true;
@@ -670,6 +723,141 @@ public sealed class NodeCursor
         {
             _pathCache[i] = null;
         }
+
+        _currentLeafNode = null;
+    }
+
+    private IReadOnlyList<CursorDescriptorFrame> BuildDescriptorFrames()
+    {
+        var frames = new List<CursorDescriptorFrame>();
+        var current = _root;
+        int absoluteOffset = 0;
+        int target = Math.Min(_position, _root.Length);
+
+        while (!current.IsLeaf)
+        {
+            var children = RequireChildren(current);
+            int childIndex = 0;
+            int childOffset = 0;
+
+            while (childIndex + 1 < children.Length)
+            {
+                int nextOffset = childOffset + children[childIndex].Length;
+                if (absoluteOffset + nextOffset > target)
+                {
+                    break;
+                }
+
+                childOffset = nextOffset;
+                childIndex++;
+            }
+
+            frames.Add(new CursorDescriptorFrame(current, childIndex, childOffset));
+            absoluteOffset += childOffset;
+            current = children[childIndex];
+        }
+
+        return frames;
+    }
+
+    private bool ApplyDescriptorInternal(CursorDescriptor descriptor)
+    {
+        if (descriptor is null || !descriptor.IsValid)
+        {
+            return false;
+        }
+
+        if (descriptor.Position > _root.Length)
+        {
+            return false;
+        }
+
+        if (descriptor.OffsetOfLeaf > descriptor.Position)
+        {
+            return false;
+        }
+
+        var frames = descriptor.Frames;
+        Node current = _root;
+        int accumulatedOffset = 0;
+
+        ClearCache();
+
+        foreach (var frame in frames)
+        {
+            if (!ReferenceEquals(frame.Node, current))
+            {
+                return false;
+            }
+
+            var children = RequireChildren(current);
+            if ((uint)frame.ChildIndex >= (uint)children.Length)
+            {
+                return false;
+            }
+
+            if (!TryCalculateChildOffset(current, frame.ChildIndex, out int computedOffset))
+            {
+                return false;
+            }
+            if (computedOffset != frame.ChildOffset)
+            {
+                return false;
+            }
+
+            int cacheIndex = current.Height - 1;
+            if (cacheIndex < CacheSizeLimit)
+            {
+                _pathCache[cacheIndex] = new PathFrame(current, frame.ChildIndex);
+            }
+
+            accumulatedOffset += computedOffset;
+            current = children[frame.ChildIndex];
+        }
+
+        if (!ReferenceEquals(descriptor.LeafNode, current))
+        {
+            return false;
+        }
+
+        if (accumulatedOffset != descriptor.OffsetOfLeaf)
+        {
+            return false;
+        }
+
+        int offsetInLeaf = descriptor.Position - descriptor.OffsetOfLeaf;
+        var leaf = current.GetLeaf() ?? string.Empty;
+        if (offsetInLeaf > leaf.Length)
+        {
+            return false;
+        }
+
+        _position = descriptor.Position;
+        _offsetOfLeaf = descriptor.OffsetOfLeaf;
+        _currentLeafNode = current;
+        _currentLeaf = leaf;
+        _isValid = true;
+
+        return true;
+    }
+
+    private static bool TryCalculateChildOffset(Node parent, int childIndex, out int offset)
+    {
+        var children = parent.GetChildren();
+        if (children == null || childIndex < 0 || childIndex > children.Length)
+        {
+            offset = 0;
+            return false;
+        }
+
+        int result = 0;
+        for (int i = 0; i < childIndex; i++)
+        {
+            result += children[i].Length;
+        }
+
+        offset = result;
+        return true;
     }
 
     private void Invalidate()
@@ -715,11 +903,12 @@ public sealed class NodeCursor
 
     private readonly struct CursorSnapshot
     {
-        public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, bool isValid, PathFrame?[] cache)
+        public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, Node? currentLeafNode, bool isValid, PathFrame?[] cache)
         {
             Position = position;
             OffsetOfLeaf = offsetOfLeaf;
             CurrentLeaf = currentLeaf;
+            CurrentLeafNode = currentLeafNode;
             IsValid = isValid;
             Cache = cache;
         }
@@ -727,6 +916,7 @@ public sealed class NodeCursor
         public int Position { get; }
         public int OffsetOfLeaf { get; }
         public string? CurrentLeaf { get; }
+        public Node? CurrentLeafNode { get; }
         public bool IsValid { get; }
         public PathFrame?[] Cache { get; }
     }
