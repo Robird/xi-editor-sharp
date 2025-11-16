@@ -24,7 +24,10 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use serde::Serialize;
 
 #[cfg(feature = "serde")]
-use xi_rope::serde_fixtures::{export_cursor_descriptor_fixtures, fixtures, Fixture};
+use xi_rope::serde_fixtures::{
+    export_chunk_descriptors, export_cursor_descriptor_fixtures, export_grapheme_descriptors,
+    fixtures, ChunkDescriptorExportReport, Fixture, GraphemeDescriptorExportReport,
+};
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 use xi_rope::{
@@ -49,6 +52,12 @@ fn export_to_directory(
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 fn handle_tree_builder_trace(dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(feature = "serde")]
+fn report_chunk_export(report: &ChunkDescriptorExportReport) {...}
+
+#[cfg(feature = "serde")]
+fn report_grapheme_export(report: &GraphemeDescriptorExportReport) {...}
 
 #[cfg(all(feature = "serde", not(feature = "tree_builder_slice_trace")))]
 fn handle_tree_builder_trace(_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
@@ -2726,12 +2735,25 @@ impl<'a> Iterator for Lines<'a> {
 ```rust
 #![cfg(feature = "serde")]
 
+pub mod chunk_descriptors;
 pub mod cursor_descriptors;
+pub mod grapheme_descriptors;
 
 pub use cursor_descriptors::{
     cursor_descriptor_samples, export_cursor_descriptor_fixtures, CursorDescriptorExportReport,
     CursorDescriptorFixture, CursorDescriptorFrame, CursorDescriptorOffsets, DescriptorMetric,
     CURSOR_DESCRIPTOR_FILENAME,
+};
+
+pub use chunk_descriptors::{
+    chunk_descriptor_fixtures, export_chunk_descriptors, ChunkDescriptor,
+    ChunkDescriptorExportReport, ChunkDescriptorFile, LineDescriptor, RangeSnapshot,
+    CHUNK_DESCRIPTOR_FILENAME,
+};
+
+pub use grapheme_descriptors::{
+    export_grapheme_descriptors, grapheme_descriptor_fixtures, GraphemeDescriptor,
+    GraphemeDescriptorExportReport, GraphemeDescriptorFile, GRAPHEME_DESCRIPTOR_FILENAME,
 };
 
 /// Describes a single serde regression fixture.
@@ -2763,6 +2785,162 @@ pub const fn fixtures() -> &'static [Fixture] {...}
 
 /// Attempts to lookup a fixture by file name.
 pub fn get_fixture(name: &str) -> Option<&'static Fixture> {...}
+
+pub(crate) fn detect_git_commit() -> Option<String> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/chunk_descriptors.rs
+
+```rust
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
+use crate::helpers::string_leaf::{MAX_LEAF, MIN_LEAF};
+use crate::rope::Rope;
+use crate::tree::{Cursor, CursorDescriptor, TreeBuilder};
+
+use super::detect_git_commit;
+use crate::rope::RopeInfo;
+
+pub const CHUNK_DESCRIPTOR_FILENAME: &str = "chunk_descriptors.json";
+const CHUNK_SCHEMA_VERSION: &str = "1.0.0";
+const DEFAULT_CONTEXT_WINDOW: usize = 16;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChunkDescriptorFile {
+    pub metadata: ChunkDescriptorMetadata,
+    pub chunk_descriptors: Vec<ChunkDescriptor>,
+    pub line_descriptors: Vec<LineDescriptor>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChunkDescriptorMetadata {
+    pub schema_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_commit: Option<String>,
+    pub generated_at_unix_millis: u128,
+    pub chunk_descriptor_count: usize,
+    pub line_descriptor_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChunkDescriptor {
+    pub sample: String,
+    pub chunk_index: usize,
+    pub text: String,
+    pub byte_range: RangeSnapshot,
+    pub utf16_range: RangeSnapshot,
+    pub leaf_range: RangeSnapshot,
+    pub contains_crlf: bool,
+    pub is_empty: bool,
+    pub tags: Vec<String>,
+    pub path: Vec<PathFrameSnapshot>,
+    pub context: ChunkContext,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LineDescriptor {
+    pub sample: String,
+    pub line_index: usize,
+    pub raw: String,
+    pub logical: String,
+    pub byte_range: RangeSnapshot,
+    pub utf16_range: RangeSnapshot,
+    pub newline_kind: LineEndingKind,
+    pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct RangeSnapshot {
+    pub start: usize,
+    pub end: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PathFrameSnapshot {
+    pub node_height: usize,
+    pub node_len: usize,
+    pub child_index: usize,
+    pub child_offset: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChunkContext {
+    pub before: String,
+    pub after: String,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LineEndingKind {
+    None,
+    Lf,
+    Cr,
+    CrLf,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ChunkDescriptorExportReport {
+    pub file_path: PathBuf,
+    pub chunk_count: usize,
+    pub line_count: usize,
+}
+
+struct RopeFixtureSample {
+    name: &'static str,
+    rope: Rope,
+    tags: &'static [&'static str],
+    include_in_lines: bool,
+    max_chunks: usize,
+    max_lines: usize,
+}
+
+pub fn export_chunk_descriptors(
+    dir: &Path,
+) -> Result<ChunkDescriptorExportReport, Box<dyn std::error::Error>> {...}
+
+fn chunk_context(rope: &Rope, start: usize, end: usize) -> ChunkContext {...}
+
+fn clamp_prev_boundary(rope: &Rope, offset: usize) -> usize {...}
+
+fn clamp_next_boundary(rope: &Rope, offset: usize) -> usize {...}
+pub fn chunk_descriptor_fixtures() -> ChunkDescriptorFile {...}
+
+fn build_chunk_descriptors(samples: &[RopeFixtureSample]) -> Vec<ChunkDescriptor> {...}
+
+fn build_line_descriptors(samples: &[RopeFixtureSample]) -> Vec<LineDescriptor> {...}
+
+fn snapshot_chunk(
+    sample: &RopeFixtureSample,
+    chunk_index: usize,
+    chunk_text: &str,
+    absolute_start: usize,
+    rope: &Rope,
+    cursor: &Cursor<'_, RopeInfo, String>,
+) -> ChunkDescriptor {...}
+
+fn empty_chunk_descriptor(sample: &RopeFixtureSample) -> ChunkDescriptor {...}
+
+fn frames_from_descriptor(
+    descriptor: &CursorDescriptor<RopeInfo, String>,
+) -> Vec<PathFrameSnapshot> {...}
+
+fn compose_chunk_tags(base: &[&str], chunk_text: &str) -> Vec<String> {...}
+
+fn compose_line_tags(base: &[&str], newline_kind: LineEndingKind) -> Vec<String> {...}
+
+fn detect_newline_kind(raw: &str) -> LineEndingKind {...}
+
+fn current_millis() -> u128 {...}
+
+fn chunk_samples() -> Vec<RopeFixtureSample> {...}
+
+fn build_deep_tree_sample() -> Rope {...}
+
+fn deep_leaf_payload(idx: usize) -> String {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_fixtures/cursor_descriptors.rs
@@ -2875,6 +3053,135 @@ fn fixture_from_descriptor(
 fn build_deep_rope() -> Rope {...}
 
 fn generate_leaf_payload() -> String {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/grapheme_descriptors.rs
+
+```rust
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
+use crate::helpers::string_leaf::{MAX_LEAF, MIN_LEAF};
+use crate::rope::Rope;
+use crate::tree::{Cursor, CursorDescriptor, TreeBuilder};
+use unicode_segmentation::UnicodeSegmentation;
+
+use super::chunk_descriptors::{PathFrameSnapshot, RangeSnapshot};
+use super::detect_git_commit;
+use crate::rope::RopeInfo;
+
+pub const GRAPHEME_DESCRIPTOR_FILENAME: &str = "grapheme_descriptors.json";
+const GRAPHEME_SCHEMA_VERSION: &str = "1.0.0";
+const GRAPHEME_CONTEXT_WINDOW: usize = 24;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GraphemeDescriptorFile {
+    pub metadata: GraphemeDescriptorMetadata,
+    pub grapheme_descriptors: Vec<GraphemeDescriptor>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GraphemeDescriptorMetadata {
+    pub schema_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_commit: Option<String>,
+    pub generated_at_unix_millis: u128,
+    pub descriptor_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GraphemeDescriptor {
+    pub sample: String,
+    pub cluster_index: usize,
+    pub cluster: String,
+    pub byte_range: RangeSnapshot,
+    pub utf16_range: RangeSnapshot,
+    pub scalar_count: usize,
+    pub contains_zwj: bool,
+    pub is_ascii: bool,
+    pub crosses_leaf: bool,
+    pub requires_fallback: bool,
+    pub tags: Vec<String>,
+    pub context: GraphemeContext,
+    pub leaf: LeafSnapshot,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GraphemeContext {
+    pub before: String,
+    pub after: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LeafSnapshot {
+    pub range: RangeSnapshot,
+    pub path: Vec<PathFrameSnapshot>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GraphemeDescriptorExportReport {
+    pub file_path: PathBuf,
+    pub descriptor_count: usize,
+}
+
+struct GraphemeSample {
+    name: &'static str,
+    rope: Rope,
+    tags: &'static [&'static str],
+    max_clusters: usize,
+}
+
+pub fn export_grapheme_descriptors(
+    dir: &Path,
+) -> Result<GraphemeDescriptorExportReport, Box<dyn std::error::Error>> {...}
+
+pub fn grapheme_descriptor_fixtures() -> GraphemeDescriptorFile {...}
+
+fn build_grapheme_descriptors(samples: &[GraphemeSample]) -> Vec<GraphemeDescriptor> {...}
+
+fn snapshot_grapheme(
+    sample: &GraphemeSample,
+    cluster_index: usize,
+    cluster_text: &str,
+    start: usize,
+    end: usize,
+    rope: &Rope,
+    rope_text: &str,
+) -> GraphemeDescriptor {...}
+
+fn capture_leaf_snapshot(rope: &Rope, offset: usize) -> LeafSnapshot {...}
+
+fn grapheme_context_from_text(text: &str, start: usize, end: usize) -> GraphemeContext {...}
+
+fn clamp_prev_boundary_in_text(text: &str, offset: usize) -> usize {...}
+
+fn clamp_next_boundary_in_text(text: &str, offset: usize) -> usize {...}
+
+fn frames_from_descriptor(
+    descriptor: &CursorDescriptor<RopeInfo, String>,
+) -> Vec<PathFrameSnapshot> {...}
+
+fn infer_fallback(contains_zwj: bool, crosses_leaf: bool, cluster_text: &str) -> bool {...}
+
+fn compose_grapheme_tags(
+    base: &[&str],
+    contains_zwj: bool,
+    is_ascii: bool,
+    crosses_leaf: bool,
+    cluster_text: &str,
+) -> Vec<String> {...}
+
+fn grapheme_samples() -> Vec<GraphemeSample> {...}
+
+fn build_cross_leaf_flag_sample() -> Rope {...}
+
+fn flag_leaf_left() -> String {...}
+
+fn flag_leaf_right() -> String {...}
+
+fn current_millis() -> u128 {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_impls.rs
@@ -3978,6 +4285,22 @@ fn build_descriptor_components<N: NodeInfo<L>, L: Leaf>(
 fn clone_node_arc<N: NodeInfo<L>, L: Leaf>(node: &Node<N, L>) -> Arc<NodeBody<N, L>> {...}
 ```
 
+## xi-editor-ph7/rust/rope/tests/chunk_descriptor.rs
+
+```rust
+#[cfg(feature = "serde")]
+mod serde_chunk_export {
+    use std::fs;
+    use std::process::Command;
+
+    use tempfile::tempdir;
+    use xi_rope::serde_fixtures::chunk_descriptors::{
+        ChunkDescriptorFile, LineEndingKind, CHUNK_DESCRIPTOR_FILENAME,
+    };
+
+    }
+```
+
 ## xi-editor-ph7/rust/rope/tests/cursor_descriptor.rs
 
 ```rust
@@ -4010,6 +4333,22 @@ mod cursor_state_tests {
     where
         M: Metric<RopeInfo, String>,
     {...}
+
+    }
+```
+
+## xi-editor-ph7/rust/rope/tests/grapheme_descriptor.rs
+
+```rust
+#[cfg(feature = "serde")]
+mod serde_grapheme_export {
+    use std::fs;
+    use std::process::Command;
+
+    use tempfile::tempdir;
+    use xi_rope::serde_fixtures::grapheme_descriptors::{
+        GraphemeDescriptorFile, GRAPHEME_DESCRIPTOR_FILENAME,
+    };
 
     }
 ```

@@ -428,6 +428,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-16 (晚) (C# Rope Skeleton 清理)
+- **Skeletonizer 工具**：在 `tools/Skeletonizer` 下创建 Roslyn 小工具，自动定位方法/构造函数/访问器的 `BlockSyntax` 并输出占位注释，避免手工逐块编辑造成 diff 噪音。
+- **批量替换**：执行 `dotnet run -- tools/Skeletonizer ..\\..\\docs\\skeleton\\xi.Core.Rope.cs`，共 293 个函数体被替换为 `// Body removed for skeleton view.` 注释，保留了原始签名与结构层级。
+- **骨架收益**：`docs/skeleton/xi.Core.Rope.cs` 从 4k+ 行压缩至 1.3k 行，阅读时可以快速对齐类型/方法分布，同时方便未来将 Rust/C# 映射差异附加在注释旁。
+- **紧凑注释版**：进一步把函数体内的换行与缩进内容替换成单行 `/* body removed for skeleton view. */` 注释，重新运行 Skeletonizer 以减少 token/行数消耗，方便在 chat 场景快速引用。
+
 ### 2025-11-16 (晚) (M3 Implementation Plan Creation)
 - **Architecture Mapper 履职**：作为架构映射维护者，基于星形会议决策（`type-system-migration-log.md` 会议章节）创建 `docs/architecture/m3-implementation-plan.md`。
 - **计划要点**：

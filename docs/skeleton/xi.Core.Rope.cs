@@ -17,7 +17,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+5c040c7b42db088e5f3879848a0ef9cf51f3824e")]
+[assembly: AssemblyInformationalVersion("1.0.0+2b9637db9ff563137c3df499cde2d003a7f9ab6c")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -35,49 +35,23 @@ namespace Xi.Core {
 	public sealed class TextBuffer : ITextBuffer {
 		private readonly StringBuilder _builder = new StringBuilder();
 		public int Length => _builder.Length;
-		public void Append(string? text) {
-			// Appends text to the end of the buffer in the original implementation.
-		}
-		public void Append(ReadOnlySpan<char> text) {
-			// Appended spans directly to the StringBuilder when not empty.
-		}
-		public void Clear() {
-			// Cleared all accumulated text within the backing builder.
-		}
-		public void Replace(int start, int length, string? text) {
-			// Replaced a span within the buffer, removing and optionally inserting new text.
-		}
-		public string Snapshot() {
-			// Returned the full textual contents captured in the builder.
-		}
-		public string GetSlice(int start, int length) {
-			// Produced a substring slice after validating bounds against the builder length.
-		}
-		public override string ToString() {
-			// Delegated to Snapshot() for textual representation.
-		}
-		private static void ValidateRange(int start, int length, int totalLength) {
-			// Guarded against invalid range parameters before mutating the buffer state.
-		}
+		public void Append(string? text) {/* body removed for skeleton view. */}
+		public void Append(ReadOnlySpan<char> text) {/* body removed for skeleton view. */}
+		public void Clear() {/* body removed for skeleton view. */}
+		public void Replace(int start, int length, string? text) {/* body removed for skeleton view. */}
+		public string Snapshot() {/* body removed for skeleton view. */}
+		public string GetSlice(int start, int length) {/* body removed for skeleton view. */}
+		public override string ToString() {/* body removed for skeleton view. */}
+		private static void ValidateRange(int start, int length, int totalLength) {/* body removed for skeleton view. */}
 	}
 }
 namespace Xi.Core.Rope {
 	internal static class BreaksMetricHelper {
-		public static int GetNthBreakOffset(ReadOnlySpan<int> breaks, int leafLength, int measuredUnits) {
-			// Located the offset of the Nth break with guard rails for range checks.
-		}
-		public static int CountBreaksUpTo(ReadOnlySpan<int> breaks, int offset) {
-			// Counted break markers up to the requested offset using a binary search.
-		}
-		public static int? FindPreviousBreak(ReadOnlySpan<int> breaks, int offset) {
-			// Walked backwards through sorted breaks to find the last boundary before offset.
-		}
-		public static int? FindNextBreak(ReadOnlySpan<int> breaks, int offset) {
-			// Located the next available break boundary at or after the offset.
-		}
-		public static bool IsBreakBoundary(ReadOnlySpan<int> breaks, int offset) {
-			// Determined whether the supplied offset exactly matched a break point.
-		}
+		public static int GetNthBreakOffset(ReadOnlySpan<int> breaks, int leafLength, int measuredUnits) {/* body removed for skeleton view. */}
+		public static int CountBreaksUpTo(ReadOnlySpan<int> breaks, int offset) {/* body removed for skeleton view. */}
+		public static int? FindPreviousBreak(ReadOnlySpan<int> breaks, int offset) {/* body removed for skeleton view. */}
+		public static int? FindNextBreak(ReadOnlySpan<int> breaks, int offset) {/* body removed for skeleton view. */}
+		public static bool IsBreakBoundary(ReadOnlySpan<int> breaks, int offset) {/* body removed for skeleton view. */}
 	}
 	internal enum DeltaElementKind {
 		Copy,
@@ -87,16 +61,12 @@ namespace Xi.Core.Rope {
 		public int Start { get; }
 		public int End { get; }
 		public int Length => End - Start;
-		public CopyElement(int start, int end) {
-			// Validated copy range bounds and stored the original span offsets.
-		}
+		public CopyElement(int start, int end) {/* body removed for skeleton view. */}
 	}
 	internal readonly struct InsertElement<TLeaf> where TLeaf : class {
 		public TLeaf Value { get; }
 		public int Length { get; }
-		public InsertElement(TLeaf value, int length) {
-			// Captured the insert payload and enforced length invariants for the element.
-		}
+		public InsertElement(TLeaf value, int length) {/* body removed for skeleton view. */}
 	}
 	internal readonly struct DeltaElement<TLeaf> where TLeaf : class {
 		private readonly DeltaElementKind _kind;
@@ -105,58 +75,26 @@ namespace Xi.Core.Rope {
 		internal DeltaElementKind Kind => _kind;
 		internal bool IsCopy => _kind == DeltaElementKind.Copy;
 		internal bool IsInsert => _kind == DeltaElementKind.Insert;
-		private DeltaElement(CopyElement copy) {
-			_kind = DeltaElementKind.Copy;
-			_copy = copy;
-			_insert = default(InsertElement<TLeaf>);
-		}
-		private DeltaElement(InsertElement<TLeaf> insert) {
-			_kind = DeltaElementKind.Insert;
-			_copy = default(CopyElement);
-			_insert = insert;
-		}
-		internal static DeltaElement<TLeaf> Copy(int start, int end) {
-			// Wrapped a copy range into a delta element.
-		}
-		internal static DeltaElement<TLeaf> Insert(TLeaf value, int? length = null) {
-			// Wrapped an insert payload into a delta element after resolving its length.
-		}
-		private static int ResolveInsertLength(TLeaf value) {
-			// Derived the insert segment length and rejected unsupported payload types.
-		}
-		internal CopyElement AsCopy() {
-			// Returned the copy payload or threw when the element was not a copy.
-		}
-		internal InsertElement<TLeaf> AsInsert() {
-			// Returned the insert payload or threw when the element was not an insert.
-		}
+		private DeltaElement(CopyElement copy) {/* body removed for skeleton view. */}
+		private DeltaElement(InsertElement<TLeaf> insert) {/* body removed for skeleton view. */}
+		internal static DeltaElement<TLeaf> Copy(int start, int end) {/* body removed for skeleton view. */}
+		internal static DeltaElement<TLeaf> Insert(TLeaf value, int? length = null) {/* body removed for skeleton view. */}
+		private static int ResolveInsertLength(TLeaf value) {/* body removed for skeleton view. */}
+		internal CopyElement AsCopy() {/* body removed for skeleton view. */}
+		internal InsertElement<TLeaf> AsInsert() {/* body removed for skeleton view. */}
 	}
 	internal sealed class Delta<TInfo, TLeaf> where TLeaf : class {
 		private readonly List<DeltaElement<TLeaf>> _elements;
 		internal int BaseLength { get; }
 		internal int ElementCount => _elements.Count;
 		internal IReadOnlyList<DeltaElement<TLeaf>> Elements => _elements;
-		private Delta(List<DeltaElement<TLeaf>> elements, int baseLength) {
-			// Stored the canonicalized element list alongside the base document length.
-		}
-		internal IEnumerable<DeltaElement<TLeaf>> EnumerateElements() {
-			// Exposed the ordered delta elements for iteration.
-		}
-		internal IEnumerable<(bool IsInsert, int Start, int End)> EnumerateElementTriples() {
-			// Translated elements into xi-rope compatible triples while tracking new offsets.
-		}
-		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<DeltaElement<TLeaf>> elements) {
-			// Normalized incoming elements and asserted they stayed within the base length.
-		}
-		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<(int? CopyStart, int? CopyEnd, TLeaf? Insert)> elementTuples) {
-			// Converted tuple payloads into delta elements before delegating to the main factory.
-		}
-		internal (Delta<TInfo, TLeaf> InsertDelta, Subset DeletedSubset) Factor() {
-			// Split the delta into insertion and deletion components in the original implementation.
-		}
-		private static void ValidateBaseLength(int baseLength, int maxCopyEnd) {
-			// Guarded against negative base lengths and out-of-range copy spans.
-		}
+		private Delta(List<DeltaElement<TLeaf>> elements, int baseLength) {/* body removed for skeleton view. */}
+		internal IEnumerable<DeltaElement<TLeaf>> EnumerateElements() {/* body removed for skeleton view. */}
+		internal IEnumerable<(bool IsInsert, int Start, int End)> EnumerateElementTriples() {/* body removed for skeleton view. */}
+		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<DeltaElement<TLeaf>> elements) {/* body removed for skeleton view. */}
+		internal static Delta<TInfo, TLeaf> FromElements(int baseLength, IEnumerable<(int? CopyStart, int? CopyEnd, TLeaf? Insert)> elementTuples) {/* body removed for skeleton view. */}
+		internal (Delta<TInfo, TLeaf> InsertDelta, Subset DeletedSubset) Factor() {/* body removed for skeleton view. */}
+		private static void ValidateBaseLength(int baseLength, int maxCopyEnd) {/* body removed for skeleton view. */}
 	}
 	internal static class DeltaJson {
 		private sealed class DeltaDto {
@@ -176,20 +114,14 @@ namespace Xi.Core.Rope {
 			WriteIndented = false,
 			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 		};
-		internal static string Serialize<TInfo>(Delta<TInfo, string> delta) {
-			// Emitted a xi-rope compatible JSON payload for the supplied delta.
-		}
-		internal static Delta<TInfo, string> Deserialize<TInfo>(string json) {
-			// Parsed the xi-rope delta JSON payload back into a Delta<TInfo, string> instance.
-		}
+		internal static string Serialize<TInfo>(Delta<TInfo, string> delta) {/* body removed for skeleton view. */}
+		internal static Delta<TInfo, string> Deserialize<TInfo>(string json) {/* body removed for skeleton view. */}
 	}
 	internal readonly struct RevId {
 		public long Session1 { get; }
 		public int Session2 { get; }
 		public int Number { get; }
-		public RevId(long session1, int session2, int number) {
-			// Validated revision identifiers and captured the composite revision id.
-		}
+		public RevId(long session1, int session2, int number) {/* body removed for skeleton view. */}
 	}
 	internal enum RevisionOperationKind {
 		Edit,
@@ -199,12 +131,8 @@ namespace Xi.Core.Rope {
 		internal abstract RevisionOperationKind Kind { get; }
 		internal bool IsEdit => Kind == RevisionOperationKind.Edit;
 		internal bool IsUndo => Kind == RevisionOperationKind.Undo;
-		internal RevisionEdit AsEdit() {
-			// Returned the edit payload after confirming the operation kind.
-		}
-		internal RevisionUndo AsUndo() {
-			// Returned the undo payload after confirming the operation kind.
-		}
+		internal RevisionEdit AsEdit() {/* body removed for skeleton view. */}
+		internal RevisionUndo AsUndo() {/* body removed for skeleton view. */}
 	}
 	internal sealed class RevisionEdit : RevisionOperation {
 		internal override RevisionOperationKind Kind => RevisionOperationKind.Edit;
@@ -212,9 +140,7 @@ namespace Xi.Core.Rope {
 		internal int UndoGroup { get; }
 		internal Subset Inserts { get; }
 		internal Subset Deletes { get; }
-		internal RevisionEdit(int priority, int undoGroup, Subset inserts, Subset deletes) {
-			// Captured edit metadata and enforced non-null subsets with non-negative priorities.
-		}
+		internal RevisionEdit(int priority, int undoGroup, Subset inserts, Subset deletes) {/* body removed for skeleton view. */}
 	}
 	internal sealed class RevisionUndo : RevisionOperation {
 		private readonly int[] _toggledGroups;
@@ -222,20 +148,14 @@ namespace Xi.Core.Rope {
 		internal override RevisionOperationKind Kind => RevisionOperationKind.Undo;
 		internal IReadOnlyList<int> ToggledGroups => _toggledGroupsView;
 		internal Subset DeletesBitxor { get; }
-		internal RevisionUndo(IEnumerable<int> toggledGroups, Subset deletesBitxor) {
-			// Stored the toggled undo groups alongside the deletes_bitxor subset snapshot.
-		}
-		private static int[] CopyGroups(IEnumerable<int> groups) {
-			// Copied and validated undo group identifiers before freezing them in an array.
-		}
+		internal RevisionUndo(IEnumerable<int> toggledGroups, Subset deletesBitxor) {/* body removed for skeleton view. */}
+		private static int[] CopyGroups(IEnumerable<int> groups) {/* body removed for skeleton view. */}
 	}
 	internal sealed class Revision {
 		internal RevId RevId { get; }
 		internal int MaxUndoSoFar { get; }
 		internal RevisionOperation Operation { get; }
-		internal Revision(RevId revId, int maxUndoSoFar, RevisionOperation operation) {
-			// Recorded the revision metadata and enforced a non-negative undo depth.
-		}
+		internal Revision(RevId revId, int maxUndoSoFar, RevisionOperation operation) {/* body removed for skeleton view. */}
 	}
 	internal sealed class Engine {
 		private readonly string _text;
@@ -245,33 +165,15 @@ namespace Xi.Core.Rope {
 		private readonly Revision[] _revisions;
 		private readonly IReadOnlyList<int> _undoneGroupsView;
 		private readonly IReadOnlyList<Revision> _revisionLogView;
-		private Engine(string text, string tombstones, Subset deletesFromUnion, int[] undoneGroups, Revision[] revisions) {
-			// Stored serialized fields and materialized read-only views over engine state.
-		}
-		internal static Engine FromSerializedState(string text, string tombstones, Subset deletesFromUnion, IEnumerable<int> undoneGroups, IEnumerable<Revision> revisions) {
-			// Reconstructed an engine from serialized buffers, undone groups, and the revision log.
-		}
-		private static int[] CopyGroups(IEnumerable<int> source) {
-			// Copied and validated group identifiers from the enumerable source.
-		}
-		private static Revision[] CopyRevisions(IEnumerable<Revision> source) {
-			// Copied and validated revision entries from the enumerable source.
-		}
-		internal string TextSnapshot() {
-			// Returned the preserved text snapshot from the engine state.
-		}
-		internal string TombstonesSnapshot() {
-			// Returned the tombstones string captured in the engine state.
-		}
-		internal Subset DeletesFromUnionSnapshot() {
-			// Returned the deletes-from-union subset snapshot.
-		}
-		internal IReadOnlyList<int> UndoneGroupsSnapshot() {
-			// Returned the immutable view over undone groups.
-		}
-		internal IReadOnlyList<Revision> RevisionLog() {
-			// Returned the immutable revision log view.
-		}
+		private Engine(string text, string tombstones, Subset deletesFromUnion, int[] undoneGroups, Revision[] revisions) {/* body removed for skeleton view. */}
+		internal static Engine FromSerializedState(string text, string tombstones, Subset deletesFromUnion, IEnumerable<int> undoneGroups, IEnumerable<Revision> revisions) {/* body removed for skeleton view. */}
+		private static int[] CopyGroups(IEnumerable<int> source) {/* body removed for skeleton view. */}
+		private static Revision[] CopyRevisions(IEnumerable<Revision> source) {/* body removed for skeleton view. */}
+		internal string TextSnapshot() {/* body removed for skeleton view. */}
+		internal string TombstonesSnapshot() {/* body removed for skeleton view. */}
+		internal Subset DeletesFromUnionSnapshot() {/* body removed for skeleton view. */}
+		internal IReadOnlyList<int> UndoneGroupsSnapshot() {/* body removed for skeleton view. */}
+		internal IReadOnlyList<Revision> RevisionLog() {/* body removed for skeleton view. */}
 	}
 	internal static class EngineJson {
 		private sealed class EngineDto {
@@ -339,36 +241,16 @@ namespace Xi.Core.Rope {
 			WriteIndented = false,
 			DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 		};
-		internal static string Serialize(Engine engine) {
-			// Serialized engine state into the xi-rope JSON fixture format.
-		}
-		internal static Engine Deserialize(string json) {
-			// Rehydrated an Engine instance from the xi-rope JSON payload.
-		}
-		private static int[] CopyGroups(IReadOnlyList<int> groups) {
-			// Created a defensive copy of the undo group list.
-		}
-		private static int[] ValidateGroups(int[] groups, string fieldName) {
-			// Validated undo group values and normalized empty sequences.
-		}
-		private static RevisionDto[] ToRevisionDtos(IReadOnlyList<Revision> revisions) {
-			// Translated the revision log into DTOs for serialization.
-		}
-		private static RevisionDto ToRevisionDto(Revision revision) {
-			// Projected a single revision into its DTO representation.
-		}
-		private static EditPayloadDto ToEditPayloadDto(RevisionEdit edit) {
-			// Converted an edit revision into its DTO payload.
-		}
-		private static UndoPayloadDto ToUndoPayloadDto(RevisionUndo undo) {
-			// Converted an undo revision into its DTO payload.
-		}
-		private static SubsetDto ToSubsetDto(Subset subset) {
-			// Converted a subset into DTO segments for JSON output.
-		}
-		private static Subset FromSubsetDto(SubsetDto dto) {
-			// Built a subset from DTO segments with validation.
-		}
+		internal static string Serialize(Engine engine) {/* body removed for skeleton view. */}
+		internal static Engine Deserialize(string json) {/* body removed for skeleton view. */}
+		private static int[] CopyGroups(IReadOnlyList<int> groups) {/* body removed for skeleton view. */}
+		private static int[] ValidateGroups(int[] groups, string fieldName) {/* body removed for skeleton view. */}
+		private static RevisionDto[] ToRevisionDtos(IReadOnlyList<Revision> revisions) {/* body removed for skeleton view. */}
+		private static RevisionDto ToRevisionDto(Revision revision) {/* body removed for skeleton view. */}
+		private static EditPayloadDto ToEditPayloadDto(RevisionEdit edit) {/* body removed for skeleton view. */}
+		private static UndoPayloadDto ToUndoPayloadDto(RevisionUndo undo) {/* body removed for skeleton view. */}
+		private static SubsetDto ToSubsetDto(Subset subset) {/* body removed for skeleton view. */}
+		private static Subset FromSubsetDto(SubsetDto dto) {/* body removed for skeleton view. */}
 	}
 	public interface IMetric : ITreeMetric<string, RopeInfo> {
 	}
@@ -378,128 +260,56 @@ namespace Xi.Core.Rope {
 		public int Length => End - Start;
 		public bool IsEmpty => Start == End;
 		public static Interval Empty => new Interval(0, 0);
-		public Interval(int start, int end) {
-			// Validated inputs and populated Start/End to describe a half-open interval.
-		}
-		public bool Contains(int position) {
-			// Reported whether the provided position fell within the interval bounds.
-		}
-		public Interval Intersect(Interval other) {
-			// Returned overlap between two intervals or Empty when no intersection existed.
-		}
-		public Interval Union(Interval other) {
-			// Combined two intervals into a minimal covering range, preserving empties.
-		}
-		public Interval Translate(int delta) {
-			// Shifted the interval by a signed delta while preserving length.
-		}
-		public static Interval EmptyAt(int position) {
-			// Produced an empty interval anchored at the requested position.
-		}
-		public bool Equals(Interval other) {
-			// Performed value equality by comparing start and end positions.
-		}
-		public override bool Equals(object? obj) {
-			// Deferred to the strongly-typed Equals implementation.
-		}
-		public override int GetHashCode() {
-			// Combined Start and End for hashing semantics consistent with Equals.
-		}
-		public override string ToString() {
-			// Formatted the interval using half-open notation.
-		}
-		public static bool operator ==(Interval left, Interval right) {
-			// Compared two intervals for equality.
-		}
-		public static bool operator !=(Interval left, Interval right) {
-			// Reported inequality between two intervals.
-		}
+		public Interval(int start, int end) {/* body removed for skeleton view. */}
+		public bool Contains(int position) {/* body removed for skeleton view. */}
+		public Interval Intersect(Interval other) {/* body removed for skeleton view. */}
+		public Interval Union(Interval other) {/* body removed for skeleton view. */}
+		public Interval Translate(int delta) {/* body removed for skeleton view. */}
+		public static Interval EmptyAt(int position) {/* body removed for skeleton view. */}
+		public bool Equals(Interval other) {/* body removed for skeleton view. */}
+		public override bool Equals(object? obj) {/* body removed for skeleton view. */}
+		public override int GetHashCode() {/* body removed for skeleton view. */}
+		public override string ToString() {/* body removed for skeleton view. */}
+		public static bool operator ==(Interval left, Interval right) {/* body removed for skeleton view. */}
+		public static bool operator !=(Interval left, Interval right) {/* body removed for skeleton view. */}
 	}
 	public sealed class BaseMetric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static BaseMetric Instance { get; } = new BaseMetric();
 		public bool CanFragment => false;
-		private BaseMetric() {
-			// Singleton constructor hidden in the original implementation.
-		}
-		public int Measure(RopeInfo info, int nodeLength) {
-			// Reported node length as the base-unit measurement.
-		}
-		public int ToBaseUnits(string leaf, int measuredUnits) {
-			// Validated UTF-16 boundaries and returned the measured units unchanged.
-		}
-		public int FromBaseUnits(string leaf, int baseUnits) {
-			// Converted base units to metric units with surrogate safety checks.
-		}
-		public bool IsBoundary(string leaf, int offset) {
-			// Determined if an offset was a valid UTF-16 boundary within the leaf.
-		}
-		public int? GetPreviousBoundary(string leaf, int offset) {
-			// Found the preceding UTF-16 boundary relative to the offset.
-		}
-		public int? GetNextBoundary(string leaf, int offset) {
-			// Located the next UTF-16 boundary after the supplied offset.
-		}
+		private BaseMetric() {/* body removed for skeleton view. */}
+		public int Measure(RopeInfo info, int nodeLength) {/* body removed for skeleton view. */}
+		public int ToBaseUnits(string leaf, int measuredUnits) {/* body removed for skeleton view. */}
+		public int FromBaseUnits(string leaf, int baseUnits) {/* body removed for skeleton view. */}
+		public bool IsBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetPreviousBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetNextBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
 	}
 	public sealed class LinesMetric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static LinesMetric Instance { get; } = new LinesMetric();
 		public bool CanFragment => true;
-		private LinesMetric() {
-			// Private constructor retaining singleton semantics.
-		}
-		public int Measure(RopeInfo info, int nodeLength) {
-			// Reported the number of newline-delimited segments encoded in RopeInfo.
-		}
-		public int ToBaseUnits(string leaf, int measuredUnits) {
-			// Walked newline characters to translate line counts into UTF-16 offsets.
-		}
-		public int FromBaseUnits(string leaf, int baseUnits) {
-			// Counted newline characters within a span to compute measured units.
-		}
-		public bool IsBoundary(string leaf, int offset) {
-			// Determined whether a position followed a newline boundary.
-		}
-		public int? GetPreviousBoundary(string leaf, int offset) {
-			// Searched backwards for the prior newline boundary if present.
-		}
-		public int? GetNextBoundary(string leaf, int offset) {
-			// Scanned forward to locate the next newline boundary.
-		}
+		private LinesMetric() {/* body removed for skeleton view. */}
+		public int Measure(RopeInfo info, int nodeLength) {/* body removed for skeleton view. */}
+		public int ToBaseUnits(string leaf, int measuredUnits) {/* body removed for skeleton view. */}
+		public int FromBaseUnits(string leaf, int baseUnits) {/* body removed for skeleton view. */}
+		public bool IsBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetPreviousBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetNextBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
 	}
 	public sealed class Utf16Metric : IMetric, ITreeMetric<string, RopeInfo> {
 		public static Utf16Metric Instance { get; } = new Utf16Metric();
 		public bool CanFragment => false;
-		private Utf16Metric() {
-			// Private constructor maintaining singleton lifetime.
-		}
-		public int Measure(RopeInfo info, int nodeLength) {
-			// Reported the cached UTF-16 code unit count from RopeInfo.
-		}
-		public int ToBaseUnits(string leaf, int measuredUnits) {
-			// Converted rune counts into UTF-16 unit offsets with surrogate validation.
-		}
-		public int FromBaseUnits(string leaf, int baseUnits) {
-			// Ensured the supplied base units were in range and returned them unchanged.
-		}
-		public bool IsBoundary(string leaf, int offset) {
-			// Checked surrogate boundaries via Utf16BoundaryHelper.
-		}
-		public int? GetPreviousBoundary(string leaf, int offset) {
-			// Delegated to Utf16BoundaryHelper for the preceding boundary.
-		}
-		public int? GetNextBoundary(string leaf, int offset) {
-			// Delegated to Utf16BoundaryHelper for the next boundary.
-		}
+		private Utf16Metric() {/* body removed for skeleton view. */}
+		public int Measure(RopeInfo info, int nodeLength) {/* body removed for skeleton view. */}
+		public int ToBaseUnits(string leaf, int measuredUnits) {/* body removed for skeleton view. */}
+		public int FromBaseUnits(string leaf, int baseUnits) {/* body removed for skeleton view. */}
+		public bool IsBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetPreviousBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
+		public int? GetNextBoundary(string leaf, int offset) {/* body removed for skeleton view. */}
 	}
 	internal static class Utf16BoundaryHelper {
-		public static bool IsBoundary(ReadOnlySpan<char> leaf, int offset) {
-			// Determined whether a position falls on a valid UTF-16 surrogate boundary.
-		}
-		public static int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset) {
-			// Returned the previous safe boundary, adjusting for trailing surrogates.
-		}
-		public static int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset) {
-			// Returned the next safe boundary, handling high-surrogate pairs.
-		}
+		public static bool IsBoundary(ReadOnlySpan<char> leaf, int offset) {/* body removed for skeleton view. */}
+		public static int? GetPreviousBoundary(ReadOnlySpan<char> leaf, int offset) {/* body removed for skeleton view. */}
+		public static int? GetNextBoundary(ReadOnlySpan<char> leaf, int offset) {/* body removed for skeleton view. */}
 	}
 	public sealed class Rope : ITextBuffer {
 		private Node _root = Node.Empty;
@@ -507,95 +317,78 @@ namespace Xi.Core.Rope {
 		public int Length => _root.Length;
 		internal Node DebugRoot => _root;
 		public long EditVersion => Interlocked.Read(in _editVersion);
-		public void Append(string? text) {
-			// Appended text by delegating to the core Replace pipeline at the tail.
-		}
-		public void Append(ReadOnlySpan<char> text) {
-			// Accepted spans, converting to string before forwarding to Replace.
-		}
-		public void Clear() {
-			// Reset the rope to its canonical empty node.
-		}
-		public void Replace(int start, int length, string? text) {
-			// Validated a range and replaced the corresponding rope region.
-		}
-		public string Snapshot() {
-			// Materialized the rope into a contiguous string snapshot.
-		}
-		public string GetSlice(int start, int length) {
-			// Extracted a substring by slicing the underlying rope structure.
-		}
-		public int ConvertLinesFromBytes(int offset) {
-			// Converted a byte offset into a zero-based line index using the Lines metric.
-		}
-		public int ConvertBytesFromLines(int line) {
-			// Converted a line index into a byte offset, handling the sentinel end-of-buffer line.
-		}
-		public int ConvertUtf16FromBytes(int offset) {
-			// Converted a byte offset into a UTF-16 code unit count via stored rope metrics.
-		}
-		public int ConvertBytesFromUtf16(int units) {
-			// Converted a UTF-16 code unit count back into a byte offset using the Utf16 metric.
-		}
-		private static void ValidateRange(int start, int length, int totalLength) {
-			// Ensured index and length arguments were within the rope's bounds.
-		}
-		private static void ValidateOffset(int offset, int totalLength, string parameterName) {
-			// Guarded against offset arguments that exceeded the rope's bounds.
-		}
-		private static void ValidateMetricCoordinate(int value, int maxInclusive, string parameterName) {
-			// Validated metric coordinates before delegating to conversion helpers.
-		}
-		private void UpdateRoot(Node newRoot) {
-			if (newRoot == null) {
-				throw new ArgumentNullException("newRoot");
-			}
-			if (_root != newRoot) {
-				_root = newRoot;
-				BumpEditVersion();
-			}
-		}
-		private void BumpEditVersion() {
-			Interlocked.Increment(ref _editVersion);
-		}
+		public RopeChunkEnumerator EnumerateChunks() {/* body removed for skeleton view. */}
+		public RopeLineEnumerator EnumerateLines() {/* body removed for skeleton view. */}
+		public void Append(string? text) {/* body removed for skeleton view. */}
+		public void Append(ReadOnlySpan<char> text) {/* body removed for skeleton view. */}
+		public void Clear() {/* body removed for skeleton view. */}
+		public void Replace(int start, int length, string? text) {/* body removed for skeleton view. */}
+		public string Snapshot() {/* body removed for skeleton view. */}
+		public string GetSlice(int start, int length) {/* body removed for skeleton view. */}
+		public int ConvertLinesFromBytes(int offset) {/* body removed for skeleton view. */}
+		public int ConvertBytesFromLines(int line) {/* body removed for skeleton view. */}
+		public int ConvertUtf16FromBytes(int offset) {/* body removed for skeleton view. */}
+		public int ConvertBytesFromUtf16(int units) {/* body removed for skeleton view. */}
+		private static void ValidateRange(int start, int length, int totalLength) {/* body removed for skeleton view. */}
+		private static void ValidateOffset(int offset, int totalLength, string parameterName) {/* body removed for skeleton view. */}
+		private static void ValidateMetricCoordinate(int value, int maxInclusive, string parameterName) {/* body removed for skeleton view. */}
+		private void UpdateRoot(Node newRoot) {/* body removed for skeleton view. */}
+		private void BumpEditVersion() {/* body removed for skeleton view. */}
+	}
+	public ref struct RopeChunkEnumerator {
+		private readonly Rope _rope;
+		private readonly NodeCursor? _cursor;
+		private int _nextOffset;
+		private bool _completed;
+		private bool _emittedEmptyChunk;
+		private ReadOnlyMemory<char> _current;
+		public ReadOnlyMemory<char> Current => _current;
+		internal RopeChunkEnumerator(Rope rope) {/* body removed for skeleton view. */}
+		public RopeChunkEnumerator GetEnumerator() {/* body removed for skeleton view. */}
+		public bool MoveNext() {/* body removed for skeleton view. */}
+		private static ReadOnlyMemory<char> CloneLeaf(string leaf) {/* body removed for skeleton view. */}
 	}
 	public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric> {
 		public int LineCount { get; }
 		public int Utf16Length { get; }
 		public static RopeInfo Identity => new RopeInfo(0, 0);
 		static BaseMetric IDefaultMetricProvider<RopeInfo, string, BaseMetric>.DefaultMetric => BaseMetric.Instance;
-		private RopeInfo(int lineCount, int utf16Length) {
-			// Stored line and UTF-16 aggregates for a rope segment.
-		}
-		public static RopeInfo FromLeaf(ReadOnlySpan<char> span) {
-			// Analyzed a leaf span to produce aggregate line and UTF-16 metrics.
-		}
-		public static RopeInfo FromLeaf(string leaf) {
-			// Overload accepting string leaves before forwarding to the span-based analyzer.
-		}
-		public RopeInfo Accumulate(RopeInfo other) {
-			// Combined metrics from another RopeInfo to support tree aggregation.
-		}
-		public Interval IntervalForPrefix(int prefixLength) {
-			// Projected a prefix length onto an interval bounded by cached UTF-16 length.
-		}
-		private static (int lines, int utf16) AnalyzeSpan(ReadOnlySpan<char> span) {
-			// Counted newline characters and UTF-16 code units across the provided span.
-		}
+		private RopeInfo(int lineCount, int utf16Length) {/* body removed for skeleton view. */}
+		public static RopeInfo FromLeaf(ReadOnlySpan<char> span) {/* body removed for skeleton view. */}
+		public static RopeInfo FromLeaf(string leaf) {/* body removed for skeleton view. */}
+		public RopeInfo Accumulate(RopeInfo other) {/* body removed for skeleton view. */}
+		public Interval IntervalForPrefix(int prefixLength) {/* body removed for skeleton view. */}
+		private static (int lines, int utf16) AnalyzeSpan(ReadOnlySpan<char> span) {/* body removed for skeleton view. */}
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int AddLength(int baseLength) {
-			// Accumulated the stored UTF-16 length with an existing base length.
-		}
-		static RopeInfo ITreeNodeInfo<RopeInfo, string>.FromLeaf(string leaf) {
-			// Invoked the static factory to derive RopeInfo from a leaf string.
-		}
+		public int AddLength(int baseLength) {/* body removed for skeleton view. */}
+		static RopeInfo ITreeNodeInfo<RopeInfo, string>.FromLeaf(string leaf) {/* body removed for skeleton view. */}
+	}
+	public ref struct RopeLineEnumerator {
+		private readonly bool _ropeWasEmpty;
+		private RopeChunkEnumerator _chunks;
+		private Queue<ReadOnlyMemory<char>>? _pendingLines;
+		private StringBuilder? _builder;
+		private ReadOnlyMemory<char> _current;
+		private bool _pendingCarriageReturn;
+		private bool _completed;
+		private bool _emittedAnyLine;
+		public ReadOnlyMemory<char> Current => _current;
+		internal RopeLineEnumerator(Rope rope) {/* body removed for skeleton view. */}
+		public RopeLineEnumerator GetEnumerator() {/* body removed for skeleton view. */}
+		public bool MoveNext() {/* body removed for skeleton view. */}
+		private void ProcessChunk(ReadOnlySpan<char> chunk) {/* body removed for skeleton view. */}
+		private void CompleteDeferredCarriageReturn(ReadOnlySpan<char> nextChunk, ref int index) {/* body removed for skeleton view. */}
+		private void AppendSlice(ReadOnlySpan<char> slice) {/* body removed for skeleton view. */}
+		private void AppendLiteral(string literal) {/* body removed for skeleton view. */}
+		private void EmitLine() {/* body removed for skeleton view. */}
+		private void EnqueueLine(string text) {/* body removed for skeleton view. */}
+		private bool TryDequeueLine(out ReadOnlyMemory<char> line) {/* body removed for skeleton view. */}
+		private StringBuilder EnsureBuilder() {/* body removed for skeleton view. */}
 	}
 	internal readonly struct SubsetSegment {
 		public int Length { get; }
 		public int Count { get; }
-		public SubsetSegment(int length, int count) {
-			// Validated arguments and captured the subset segment metadata.
-		}
+		public SubsetSegment(int length, int count) {/* body removed for skeleton view. */}
 	}
 	internal sealed class Subset {
 		private readonly SubsetSegment[] _segments;
@@ -604,40 +397,20 @@ namespace Xi.Core.Rope {
 		internal int SegmentCount => _segments.Length;
 		internal bool IsEmpty => _segments.Length == 0 || (_segments.Length == 1 && _segments[0].Count == 0);
 		internal int Length => _totalLength;
-		private Subset(SubsetSegment[] segments, int totalLength) {
-			// Stored the ordered segments and their aggregate length.
-		}
-		internal static Subset Create(SubsetSegment[] segments, int totalLength) {
-			// Constructed a normalized subset from ordered segments and a total length.
-		}
-		internal int LengthAfterDelete() {
-			// Calculated the retained length after removing segments marked for deletion.
-		}
-		internal IEnumerable<(int Start, int Length, int Count)> SegmentTriples() {
-			// Iterated segments yielding triples for downstream serialization helpers.
-		}
-		internal static Subset FromSegmentTriples(IEnumerable<(int Start, int Length, int Count)> triples) {
-			// Built a subset by interpreting ordered triples and coalescing implicit gaps.
-		}
+		private Subset(SubsetSegment[] segments, int totalLength) {/* body removed for skeleton view. */}
+		internal static Subset Create(SubsetSegment[] segments, int totalLength) {/* body removed for skeleton view. */}
+		internal int LengthAfterDelete() {/* body removed for skeleton view. */}
+		internal IEnumerable<(int Start, int Length, int Count)> SegmentTriples() {/* body removed for skeleton view. */}
+		internal static Subset FromSegmentTriples(IEnumerable<(int Start, int Length, int Count)> triples) {/* body removed for skeleton view. */}
 	}
 	internal sealed class SubsetBuilder {
 		private readonly List<SubsetSegment> _segments = new List<SubsetSegment>();
 		private int _totalLength;
-		internal void PadToLength(int totalLength) {
-			// Extended the builder with zero-count padding to reach the requested length.
-		}
-		internal void AddRange(int begin, int end, int count) {
-			// Added a counted range while preserving ordering and coalescing gaps.
-		}
-		internal void PushSegment(int length, int count) {
-			// Added a single segment after validating length/count invariants.
-		}
-		private void PushSegmentInternal(int length, int count) {
-			// Internal helper that updates totals and merges adjacent segments when possible.
-		}
-		internal Subset Build() {
-			// Produced an immutable subset snapshot from accumulated segments.
-		}
+		internal void PadToLength(int totalLength) {/* body removed for skeleton view. */}
+		internal void AddRange(int begin, int end, int count) {/* body removed for skeleton view. */}
+		internal void PushSegment(int length, int count) {/* body removed for skeleton view. */}
+		private void PushSegmentInternal(int length, int count) {/* body removed for skeleton view. */}
+		internal Subset Build() {/* body removed for skeleton view. */}
 	}
 	internal static class SubsetJson {
 		private sealed class SubsetDto {
@@ -654,139 +427,26 @@ namespace Xi.Core.Rope {
 			PropertyNamingPolicy = null,
 			WriteIndented = false
 		};
-		internal static string Serialize(Subset subset) {
-			// Serialized a subset into the xi-rope JSON payload shape.
-		}
-		internal static Subset Deserialize(string json) {
-			// Materialized a subset from the xi-rope JSON payload.
-		}
+		internal static string Serialize(Subset subset) {/* body removed for skeleton view. */}
+		internal static Subset Deserialize(string json) {/* body removed for skeleton view. */}
 	}
 }
 namespace Xi.Core.Rope.Tree {
 	public sealed class GenericTreeBuilder<TInfo, TLeaf, TLeafOps> where TInfo : struct, ITreeNodeInfo<TInfo, TLeaf> where TLeafOps : ILeafOperations<TLeaf> {
 		private readonly List<Node<TInfo, TLeaf, TLeafOps>> _pending = new List<Node<TInfo, TLeaf, TLeafOps>>();
-		public void PushString(string? text) {
-			if (string.IsNullOrEmpty(text)) {
-				return;
-			}
-			foreach (string item in LeafSplitter.Split(text)) {
-				TLeaf leaf = ConvertStringToLeaf(item);
-				AppendNode(Node<TInfo, TLeaf, TLeafOps>.FromLeaf(leaf));
-			}
-		}
-		public void PushNode(Node<TInfo, TLeaf, TLeafOps> node) {
-			if (node == null) {
-				throw new ArgumentNullException("node");
-			}
-			if (!node.IsEmpty) {
-				AppendNode(node);
-			}
-		}
-		public Node<TInfo, TLeaf, TLeafOps> Build() {
-			if (_pending.Count == 0) {
-				return Node<TInfo, TLeaf, TLeafOps>.Empty;
-			}
-			Node<TInfo, TLeaf, TLeafOps> node = _pending[0];
-			for (int i = 1; i < _pending.Count; i++) {
-				node = Concat(node, _pending[i]);
-			}
-			return node;
-		}
-		public void Reset() {
-			_pending.Clear();
-		}
-		private void AppendNode(Node<TInfo, TLeaf, TLeafOps> node) {
-			Node<TInfo, TLeaf, TLeafOps> node2 = node;
-			int num = _pending.Count - 1;
-			while (num >= 0) {
-				Node<TInfo, TLeaf, TLeafOps> node3 = _pending[num];
-				if (node3.Height == node2.Height) {
-					node2 = Concat(node3, node2);
-					_pending.RemoveAt(num);
-					num--;
-					continue;
-				}
-				break;
-			}
-			_pending.Add(node2);
-		}
-		private static Node<TInfo, TLeaf, TLeafOps> Concat(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
-			if (left.IsEmpty) {
-				return right;
-			}
-			if (right.IsEmpty) {
-				return left;
-			}
-			if (left.Height == right.Height) {
-				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(new Node<TInfo, TLeaf, TLeafOps>[2] { left, right });
-			}
-			if (left.Height < right.Height) {
-				return ConcatLeftShorter(left, right);
-			}
-			return ConcatRightShorter(left, right);
-		}
-		private static Node<TInfo, TLeaf, TLeafOps> ConcatLeftShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
-			IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children = right.Children;
-			Node<TInfo, TLeaf, TLeafOps> right2 = children[0];
-			Node<TInfo, TLeaf, TLeafOps> node = Concat(left, right2);
-			if (node.Height == right.Height - 1) {
-				Node<TInfo, TLeaf, TLeafOps>[] array = new Node<TInfo, TLeaf, TLeafOps>[children.Count];
-				array[0] = node;
-				for (int i = 1; i < children.Count; i++) {
-					array[i] = children[i];
-				}
-				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array);
-			}
-			if (node.Height == right.Height) {
-				IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children2 = node.Children;
-				Node<TInfo, TLeaf, TLeafOps>[] array2 = new Node<TInfo, TLeaf, TLeafOps>[children2.Count + children.Count - 1];
-				for (int j = 0; j < children2.Count; j++) {
-					array2[j] = children2[j];
-				}
-				for (int k = 1; k < children.Count; k++) {
-					array2[children2.Count + k - 1] = children[k];
-				}
-				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array2);
-			}
-			throw new InvalidOperationException($"Unexpected height relationship during concatenation: left={left.Height}, right={right.Height}, merged={node.Height}");
-		}
-		private static Node<TInfo, TLeaf, TLeafOps> ConcatRightShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {
-			IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children = left.Children;
-			Node<TInfo, TLeaf, TLeafOps> left2 = children[children.Count - 1];
-			Node<TInfo, TLeaf, TLeafOps> node = Concat(left2, right);
-			if (node.Height == left.Height - 1) {
-				Node<TInfo, TLeaf, TLeafOps>[] array = new Node<TInfo, TLeaf, TLeafOps>[children.Count];
-				for (int i = 0; i < children.Count - 1; i++) {
-					array[i] = children[i];
-				}
-				array[children.Count - 1] = node;
-				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array);
-			}
-			if (node.Height == left.Height) {
-				IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children2 = node.Children;
-				Node<TInfo, TLeaf, TLeafOps>[] array2 = new Node<TInfo, TLeaf, TLeafOps>[children.Count - 1 + children2.Count];
-				for (int j = 0; j < children.Count - 1; j++) {
-					array2[j] = children[j];
-				}
-				for (int k = 0; k < children2.Count; k++) {
-					array2[children.Count - 1 + k] = children2[k];
-				}
-				return Node<TInfo, TLeaf, TLeafOps>.CreateInternal(array2);
-			}
-			throw new InvalidOperationException($"Unexpected height relationship during concatenation: left={left.Height}, right={right.Height}, merged={node.Height}");
-		}
-		private static TLeaf ConvertStringToLeaf(string segment) {
-			if (typeof(TLeaf) == typeof(string)) {
-				return (TLeaf)(object)segment;
-			}
-			throw new NotSupportedException("GenericTreeBuilder.PushString only supports TLeaf = string. For custom leaf types, use PushNode with pre-constructed leaves.");
-		}
+		public void PushString(string? text) {/* body removed for skeleton view. */}
+		public void PushNode(Node<TInfo, TLeaf, TLeafOps> node) {/* body removed for skeleton view. */}
+		public Node<TInfo, TLeaf, TLeafOps> Build() {/* body removed for skeleton view. */}
+		public void Reset() {/* body removed for skeleton view. */}
+		private void AppendNode(Node<TInfo, TLeaf, TLeafOps> node) {/* body removed for skeleton view. */}
+		private static Node<TInfo, TLeaf, TLeafOps> Concat(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {/* body removed for skeleton view. */}
+		private static Node<TInfo, TLeaf, TLeafOps> ConcatLeftShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {/* body removed for skeleton view. */}
+		private static Node<TInfo, TLeaf, TLeafOps> ConcatRightShorter(Node<TInfo, TLeaf, TLeafOps> left, Node<TInfo, TLeaf, TLeafOps> right) {/* body removed for skeleton view. */}
+		private static TLeaf ConvertStringToLeaf(string segment) {/* body removed for skeleton view. */}
 	}
 	internal static class LeafSplitter {
 		internal const int NewlinePreferenceWindow = 64;
-		internal static IEnumerable<string> Split(string leaf) {
-			// Delegated to StringLeafOperations to generate appropriately sized leaves.
-		}
+		internal static IEnumerable<string> Split(string leaf) {/* body removed for skeleton view. */}
 	}
 	public sealed class Node {
 		private sealed class NodeBody {
@@ -795,12 +455,8 @@ namespace Xi.Core.Rope.Tree {
 			public RopeInfo Info { get; }
 			public string? Leaf { get; }
 			public Node[]? Children { get; }
-			public NodeBody(int height, int length, RopeInfo info, string? leaf, Node[]? children) {
-				// Stored the structural metadata, leaf payload, and child array reference.
-			}
-			public NodeBody Clone(Node[]? overrideChildren = null) {
-				// Produced a shallow copy optionally substituting the child array reference.
-			}
+			public NodeBody(int height, int length, RopeInfo info, string? leaf, Node[]? children) {/* body removed for skeleton view. */}
+			public NodeBody Clone(Node[]? overrideChildren = null) {/* body removed for skeleton view. */}
 		}
 		private sealed class SharedNode {
 			private readonly NodeBody _body;
@@ -811,27 +467,13 @@ namespace Xi.Core.Rope.Tree {
 			public RopeInfo Info => _body.Info;
 			public string? Leaf => _body.Leaf;
 			public Node[]? Children => _body.Children;
-			public SharedNode(NodeBody body) {
-				// Wrapped the immutable node body shared across rope instances.
-			}
-			public SharedNode EnsureUnique() {
-				// Cloned the underlying body to guarantee writable ownership.
-			}
-			public SharedNode CloneWithChildren(IReadOnlyList<Node> newChildren) {
-				// Rebuilt an internal body using a new child list and updated aggregates.
-			}
-			public SharedNode ReplaceChildRange(int index, int removeCount, IReadOnlyList<Node> replacements) {
-				// Produced a new SharedNode with a spliced child range and refreshed aggregates.
-			}
-			public static SharedNode FromInternal(int height, IReadOnlyList<Node> children) {
-				// Materialized an internal node from child references while computing metadata.
-			}
-			private static (int Length, RopeInfo Info, Node[] Array) MaterializeChildren(int parentHeight, IReadOnlyList<Node> children) {
-				// Validated child heights, accumulated metrics, and produced a dense array copy.
-			}
-			private static (int Length, RopeInfo Info) AggregateChildren(int parentHeight, Node[] children) {
-				// Recomputed length and RopeInfo by iterating children of a fixed height.
-			}
+			public SharedNode(NodeBody body) {/* body removed for skeleton view. */}
+			public SharedNode EnsureUnique() {/* body removed for skeleton view. */}
+			public SharedNode CloneWithChildren(IReadOnlyList<Node> newChildren) {/* body removed for skeleton view. */}
+			public SharedNode ReplaceChildRange(int index, int removeCount, IReadOnlyList<Node> replacements) {/* body removed for skeleton view. */}
+			public static SharedNode FromInternal(int height, IReadOnlyList<Node> children) {/* body removed for skeleton view. */}
+			private static (int Length, RopeInfo Info, Node[] Array) MaterializeChildren(int parentHeight, IReadOnlyList<Node> children) {/* body removed for skeleton view. */}
+			private static (int Length, RopeInfo Info) AggregateChildren(int parentHeight, Node[] children) {/* body removed for skeleton view. */}
 		}
 		private readonly SharedNode _shared;
 		public static int MinLeafSize => StringLeafOperations.MinLeafSize;
@@ -844,145 +486,55 @@ namespace Xi.Core.Rope.Tree {
 		public bool IsLeaf => Body.Height == 0;
 		public bool IsEmpty => Length == 0;
 		public int ChildCount {
-			get {
-				// Reported the number of child nodes held by this internal node.
-			}
+			get {/* body removed for skeleton view. */}
 		}
 		public IReadOnlyList<Node> Children => Body.Children ?? Array.Empty<Node>();
 		public ReadOnlySpan<char> LeafSpan => (Body.Leaf == null) ? ReadOnlySpan<char>.Empty : Body.Leaf.AsSpan();
 		private Node(NodeBody body)
-			: this(new SharedNode(body)) {
-			// Wrapped a raw node body inside the shared-node container.
-		}
-		private Node(SharedNode shared) {
-			// Captured the shared node handle for future structural operations.
-		}
-		private static Node FromShared(SharedNode shared) {
-			// Constructed a Node façade around an existing SharedNode instance.
-		}
-		public string? GetLeaf() {
-			return IsLeaf ? (Body.Leaf ?? string.Empty) : null;
-		}
-		public Node[]? GetChildren() {
-			return IsLeaf ? null : Body.Children;
-		}
-		internal int ConvertFromDefaultMetric(IMetric metric, int offset) {
-			// Converted a default-metric offset into the requested metric coordinate for this node.
-		}
-		internal int ConvertToDefaultMetric(IMetric metric, int value) {
-			// Converted a metric coordinate into the rope's default metric using stored aggregates.
-		}
-		private static int ConvertMetrics(Node node, int value, IMetric fromMetric, IMetric toMetric) {
-			// Translated a coordinate between metrics while traversing the rope hierarchy.
-		}
-		public static Node FromLeaf(string? text) {
-			// Created a leaf node from raw text, computing rope metadata along the way.
-		}
-		public static Node Concat(Node left, Node right) {
-			// Concatenated two nodes, balancing heights by delegating to helper paths.
-		}
-		public IEnumerable<Node> TraverseLeaves() {
-			// Enumerated leaf nodes depth-first for inspection and diagnostics.
-		}
-		public Node Slice(int start, int length) {
-			// Produced a sub-node representing a contiguous range of the original node.
-		}
-		public override string ToString() {
-			// Materialized the rope node and its descendants into a single string.
-		}
-		public Node Insert(int start, string text) {
-			// Inserted text at a position, falling back to structural rebuilds when needed.
-		}
-		public Node Delete(int start, int length) {
-			// Removed a length of text, attempting localized edits before rebuilding.
-		}
-		public Node Replace(int start, int length, string? text) {
-			// Replaced text within the node, using targeted edits or composite operations.
-		}
-		public Node EnsureWritableLeaf() {
-			// Guaranteed a writable leaf by cloning shared strings when necessary.
-		}
-		public IReadOnlyList<Node> SplitLeafByBounds() {
-			// Split oversized leaves into capacity-bounded segments using helper logic.
-		}
-		private bool TryInsertInSingleLeaf(int start, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {
-			// Attempted to mutate a single leaf in-place, cascading splits when capacity overflowed.
-		}
-		private bool TryDeleteInSingleSegment(int start, int length, out Node result) {
-			// Attempted to delete within a single leaf or child segment, updating structure minimally.
-		}
-		private bool TryReplaceInSingleSegment(int start, int length, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {
-			// Tried to rewrite a single segment, handling splits, merges, and rebalancing as needed.
-		}
-		public Node CloneWithChildren(IReadOnlyList<Node> newChildren) {
-			// Returned a new node sharing metadata but with substituted children.
-		}
-		public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false) {
-			// Collected structural invariant violations for diagnostics and testing.
-		}
-		public void ValidateInvariants(bool enforceLeafMinimum = false) {
-			// Threw an exception when invariant checks uncovered structural problems.
-		}
-		public Node NormalizeLeafMinimum() {
-			// Iteratively resolved underfilled leaves until size invariants were satisfied.
-		}
-		private static bool TryParseInvariantPath(string issue, out int[] indices) {
-			// Parsed an invariant error message into a navigation path for remediation.
-		}
-		private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out Node updated) {
-			// Walked a path toward an underflowing leaf and merged or rebalanced it.
-		}
-		private Node ReplaceChildWithSegments(Node[] children, int index, IReadOnlyList<Node> segments) {
-			// Replaced a single child with multiple segments and rebuilt node metadata.
-		}
-		public Node WithChildReplaced(int index, Node newChild) {
-			// Produced a node with a single child replaced while keeping other children intact.
-		}
-		public (Node Left, Node Right) SplitAt(int index) {
-			// Split the node into two parts around the specified index, recursing as needed.
-		}
-		private static Node ConcatLeftShorter(Node left, Node right) {
-			// Balanced concatenation when the left operand was shorter than the right.
-		}
-		private static Node ConcatRightShorter(Node left, Node right) {
-			// Balanced concatenation when the right operand was shorter than the left.
-		}
-		private Node[] RequireChildren() {
-			// Retrieved the internal node's child array, asserting presence of children.
-		}
-		private static string GetLeafText(Node node) {
-			// Exposed the string payload stored in a leaf node.
-		}
-		private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {
-			// Attempted to merge a small leaf with adjacent siblings to satisfy capacity rules.
-		}
-		private bool TryRebalanceLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {
-			// Redistributed characters with neighbors to bring an underflowing leaf back in range.
-		}
-		private bool TryRebalancePair(Node[] children, int firstIndex, int secondIndex, Node first, Node second, out Node result) {
-			// Rebuilt a neighboring leaf pair with balanced splits to enforce capacity constraints.
-		}
-		private static void ValidateNode(Node node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
-			// Validated tree invariants recursively, emitting issues for diagnostics.
-		}
-		private static string FormatLeafPreview(Node node) {
-			// Generated a truncated, escaped preview of a leaf's contents for logging.
-		}
-		private static string EscapePreview(string text) {
-			// Escaped control characters to keep previews readable in diagnostics.
-		}
-		private static string SummarizeChildren(Node[] children) {
-			// Produced a compact textual summary of child lengths for diagnostics.
-		}
-		private Node BuildMergedNode(Node[] children, int firstIndex, int secondIndex, Node mergedLeaf) {
-			// Replaced a consecutive child range with a merged leaf and rebuilt the node.
-		}
-		private static Node CreateInternal(int height, IReadOnlyList<Node> children) {
-			// Created an internal node from children while computing aggregate metadata.
-		}
-		private static Node BuildFromSegments(List<Node> segments) {
-			// Folded a list of node segments into a balanced tree via TreeBuilder.
-		}
+			: this(new SharedNode(body)) {/* body removed for skeleton view. */}
+		private Node(SharedNode shared) {/* body removed for skeleton view. */}
+		private static Node FromShared(SharedNode shared) {/* body removed for skeleton view. */}
+		public string? GetLeaf() {/* body removed for skeleton view. */}
+		public Node[]? GetChildren() {/* body removed for skeleton view. */}
+		internal int ConvertFromDefaultMetric(IMetric metric, int offset) {/* body removed for skeleton view. */}
+		internal int ConvertToDefaultMetric(IMetric metric, int value) {/* body removed for skeleton view. */}
+		private static int ConvertMetrics(Node node, int value, IMetric fromMetric, IMetric toMetric) {/* body removed for skeleton view. */}
+		public static Node FromLeaf(string? text) {/* body removed for skeleton view. */}
+		public static Node Concat(Node left, Node right) {/* body removed for skeleton view. */}
+		public IEnumerable<Node> TraverseLeaves() {/* body removed for skeleton view. */}
+		public Node Slice(int start, int length) {/* body removed for skeleton view. */}
+		public override string ToString() {/* body removed for skeleton view. */}
+		public Node Insert(int start, string text) {/* body removed for skeleton view. */}
+		public Node Delete(int start, int length) {/* body removed for skeleton view. */}
+		public Node Replace(int start, int length, string? text) {/* body removed for skeleton view. */}
+		public Node EnsureWritableLeaf() {/* body removed for skeleton view. */}
+		public IReadOnlyList<Node> SplitLeafByBounds() {/* body removed for skeleton view. */}
+		private bool TryInsertInSingleLeaf(int start, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {/* body removed for skeleton view. */}
+		private bool TryDeleteInSingleSegment(int start, int length, out Node result) {/* body removed for skeleton view. */}
+		private bool TryReplaceInSingleSegment(int start, int length, string text, out Node result, out IReadOnlyList<Node>? splitNodes) {/* body removed for skeleton view. */}
+		public Node CloneWithChildren(IReadOnlyList<Node> newChildren) {/* body removed for skeleton view. */}
+		public IReadOnlyList<string> CollectInvariantIssues(bool enforceLeafMinimum = false) {/* body removed for skeleton view. */}
+		public void ValidateInvariants(bool enforceLeafMinimum = false) {/* body removed for skeleton view. */}
+		public Node NormalizeLeafMinimum() {/* body removed for skeleton view. */}
+		private static bool TryParseInvariantPath(string issue, out int[] indices) {/* body removed for skeleton view. */}
+		private bool TryResolveLeafUnderflow(ReadOnlySpan<int> path, out Node updated) {/* body removed for skeleton view. */}
+		private Node ReplaceChildWithSegments(Node[] children, int index, IReadOnlyList<Node> segments) {/* body removed for skeleton view. */}
+		public Node WithChildReplaced(int index, Node newChild) {/* body removed for skeleton view. */}
+		public (Node Left, Node Right) SplitAt(int index) {/* body removed for skeleton view. */}
+		private static Node ConcatLeftShorter(Node left, Node right) {/* body removed for skeleton view. */}
+		private static Node ConcatRightShorter(Node left, Node right) {/* body removed for skeleton view. */}
+		private Node[] RequireChildren() {/* body removed for skeleton view. */}
+		private static string GetLeafText(Node node) {/* body removed for skeleton view. */}
+		private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {/* body removed for skeleton view. */}
+		private bool TryRebalanceLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {/* body removed for skeleton view. */}
+		private bool TryRebalancePair(Node[] children, int firstIndex, int secondIndex, Node first, Node second, out Node result) {/* body removed for skeleton view. */}
+		private static void ValidateNode(Node node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {/* body removed for skeleton view. */}
+		private static string FormatLeafPreview(Node node) {/* body removed for skeleton view. */}
+		private static string EscapePreview(string text) {/* body removed for skeleton view. */}
+		private static string SummarizeChildren(Node[] children) {/* body removed for skeleton view. */}
+		private Node BuildMergedNode(Node[] children, int firstIndex, int secondIndex, Node mergedLeaf) {/* body removed for skeleton view. */}
+		private static Node CreateInternal(int height, IReadOnlyList<Node> children) {/* body removed for skeleton view. */}
+		private static Node BuildFromSegments(List<Node> segments) {/* body removed for skeleton view. */}
 	}
 	public sealed class Node<TInfo, TLeaf, TLeafOps> where TInfo : struct, ITreeNodeInfo<TInfo, TLeaf> where TLeafOps : ILeafOperations<TLeaf> {
 		private sealed record NodeBody(int Height, int Length, TInfo Info, TLeaf Leaf, Node<TInfo, TLeaf, TLeafOps>[]? Children);
@@ -995,141 +547,27 @@ namespace Xi.Core.Rope.Tree {
 		public bool IsLeaf => _body.Children == null;
 		public bool IsEmpty => Length == 0;
 		public TLeaf Leaf {
-			get {
-				// Provided access to the leaf payload when the node represented a leaf.
-			}
+			get {/* body removed for skeleton view. */}
 		}
 		public IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> Children => _body.Children ?? Array.Empty<Node<TInfo, TLeaf, TLeafOps>>();
-		private Node(NodeBody body) {
-			// Captured the provided node body in the original implementation.
-		}
-		public static Node<TInfo, TLeaf, TLeafOps> FromLeaf(TLeaf leaf) {
-			// Constructed a leaf node using leaf operations to populate metadata.
-		}
-		public static Node<TInfo, TLeaf, TLeafOps> CreateInternal(IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children) {
-			// Built an internal node from homogeneous children, aggregating metadata generically.
-		}
-		public IEnumerable<Node<TInfo, TLeaf, TLeafOps>> TraverseLeaves() {
-			// Enumerated generic leaf nodes recursively.
-		}
-		public List<string> ValidateInvariants(bool enforceLeafMinimum = false) {
-			List<string> list = new List<string>();
-			ValidateNode(this, isRoot: true, enforceLeafMinimum, list, "root");
-			return list;
-		}
-		public string ToDebugString() {
-			StringBuilder stringBuilder = new StringBuilder();
-			AppendDebugString(stringBuilder, 0);
-			return stringBuilder.ToString();
-		}
-		private void AppendDebugString(StringBuilder builder, int depth) {
-			string value = new string(' ', depth * 2);
-			if (IsLeaf) {
-				builder.Append(value);
-				builder.Append("Leaf[len=");
-				builder.Append(Length);
-				builder.Append("]");
-				builder.AppendLine();
-				return;
-			}
-			builder.Append(value);
-			builder.Append("Internal[h=");
-			builder.Append(Height);
-			builder.Append(", len=");
-			builder.Append(Length);
-			builder.Append(", children=");
-			Node<TInfo, TLeaf, TLeafOps>[]? children = _body.Children;
-			builder.Append((children != null) ? children.Length : 0);
-			builder.Append("]");
-			builder.AppendLine();
-			if (_body.Children != null) {
-				Node<TInfo, TLeaf, TLeafOps>[] children2 = _body.Children;
-				foreach (Node<TInfo, TLeaf, TLeafOps> node in children2) {
-					node.AppendDebugString(builder, depth + 1);
-				}
-			}
-		}
-		private static void ValidateNode(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
-			if (node.IsLeaf) {
-				ValidateLeaf(node, isRoot, enforceLeafMinimum, issues, path);
-			}
-			else {
-				ValidateInternal(node, isRoot, enforceLeafMinimum, issues, path);
-			}
-		}
-		private static void ValidateLeaf(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
-			int length = node.Length;
-			if (length > TLeafOps.MaxLeafSize) {
-				issues.Add($"[{path}] Leaf exceeds MaxLeafSize: length={length}, max={TLeafOps.MaxLeafSize}");
-			}
-			if (enforceLeafMinimum && !isRoot && length > 0 && length < TLeafOps.MinLeafSize) {
-				issues.Add($"[{path}] Leaf below MinLeafSize: length={length}, min={TLeafOps.MinLeafSize}");
-			}
-			if (!isRoot && length > 0 && !TLeafOps.IsValidChild(node.Leaf)) {
-				issues.Add($"[{path}] Leaf fails IsValidChild check: length={length}");
-			}
-		}
-		private static void ValidateInternal(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {
-			Node<TInfo, TLeaf, TLeafOps>[] children = node._body.Children;
-			if (children == null || children.Length == 0) {
-				issues.Add($"[{path}] Internal node has no children (height={node.Height})");
-				return;
-			}
-			int num = node.Height - 1;
-			if (num < 0) {
-				issues.Add($"[{path}] Internal node has invalid height: {node.Height}");
-				return;
-			}
-			int num2 = 0;
-			TInfo val = TInfo.Identity;
-			for (int i = 0; i < children.Length; i++) {
-				Node<TInfo, TLeaf, TLeafOps> node2 = children[i];
-				string text = $"{path}/{i}";
-				if (node2.Height != num) {
-					issues.Add($"[{text}] Height mismatch: expected={num}, actual={node2.Height}, length={node2.Length}");
-				}
-				ValidateNode(node2, isRoot: false, enforceLeafMinimum, issues, text);
-				num2 = checked(num2 + node2.Length);
-				val = val.Accumulate(node2.Info);
-			}
-			if (num2 != node.Length) {
-				string value = FormatChildLengths(children);
-				issues.Add($"[{path}] Length aggregate mismatch: expected={node.Length}, actual={num2}; children={value}");
-			}
-		}
-		private static string FormatChildLengths(Node<TInfo, TLeaf, TLeafOps>[] children) {
-			if (children.Length == 0) {
-				return "[](count=0)";
-			}
-			StringBuilder stringBuilder = new StringBuilder();
-			stringBuilder.Append('[');
-			int num = Math.Min(children.Length, 6);
-			for (int i = 0; i < num; i++) {
-				if (i > 0) {
-					stringBuilder.Append(", ");
-				}
-				stringBuilder.Append(children[i].Length);
-			}
-			if (children.Length > 6) {
-				stringBuilder.Append(", …");
-			}
-			stringBuilder.Append("](count=");
-			stringBuilder.Append(children.Length);
-			stringBuilder.Append(')');
-			return stringBuilder.ToString();
-		}
+		private Node(NodeBody body) {/* body removed for skeleton view. */}
+		public static Node<TInfo, TLeaf, TLeafOps> FromLeaf(TLeaf leaf) {/* body removed for skeleton view. */}
+		public static Node<TInfo, TLeaf, TLeafOps> CreateInternal(IReadOnlyList<Node<TInfo, TLeaf, TLeafOps>> children) {/* body removed for skeleton view. */}
+		public IEnumerable<Node<TInfo, TLeaf, TLeafOps>> TraverseLeaves() {/* body removed for skeleton view. */}
+		public List<string> ValidateInvariants(bool enforceLeafMinimum = false) {/* body removed for skeleton view. */}
+		public string ToDebugString() {/* body removed for skeleton view. */}
+		private void AppendDebugString(StringBuilder builder, int depth) {/* body removed for skeleton view. */}
+		private static void ValidateNode(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {/* body removed for skeleton view. */}
+		private static void ValidateLeaf(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {/* body removed for skeleton view. */}
+		private static void ValidateInternal(Node<TInfo, TLeaf, TLeafOps> node, bool isRoot, bool enforceLeafMinimum, List<string> issues, string path) {/* body removed for skeleton view. */}
+		private static string FormatChildLengths(Node<TInfo, TLeaf, TLeafOps>[] children) {/* body removed for skeleton view. */}
 	}
 	public sealed class NodeCursor {
 		private readonly struct PathFrame {
 			public Node Node { get; }
 			public int ChildIndex { get; }
-			public PathFrame(Node node, int childIndex) {
-				Node = node ?? throw new ArgumentNullException("node");
-				ChildIndex = childIndex;
-			}
-			public PathFrame WithChildIndex(int childIndex) {
-				return new PathFrame(Node, childIndex);
-			}
+			public PathFrame(Node node, int childIndex) {/* body removed for skeleton view. */}
+			public PathFrame WithChildIndex(int childIndex) {/* body removed for skeleton view. */}
 		}
 		private readonly struct CursorSnapshot {
 			public int Position { get; }
@@ -1137,13 +575,7 @@ namespace Xi.Core.Rope.Tree {
 			public string? CurrentLeaf { get; }
 			public bool IsValid { get; }
 			public PathFrame?[] Cache { get; }
-			public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, bool isValid, PathFrame?[] cache) {
-				Position = position;
-				OffsetOfLeaf = offsetOfLeaf;
-				CurrentLeaf = currentLeaf;
-				IsValid = isValid;
-				Cache = cache;
-			}
+			public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, bool isValid, PathFrame?[] cache) {/* body removed for skeleton view. */}
 		}
 		private const int CacheSizeLimit = 4;
 		private readonly Node _root;
@@ -1161,318 +593,37 @@ namespace Xi.Core.Rope.Tree {
 		public int TotalLength => _root.Length;
 		public bool IsValid => _isValid;
 		public NodeCursor(Node root, int position)
-			: this(root, position, null, -1L)
-        {
-            // Intended to couple a traversal cursor with a rope root and position.
-        }
+			: this(root, position, null, -1L) {/* body removed for skeleton view. */}
 		public NodeCursor(Rope owner, int position)
-			: this((owner ?? throw new ArgumentNullException("owner")).DebugRoot, position, owner, owner.EditVersion) {
-		}
-		private NodeCursor(Node root, int position, Rope? owner, long ownerVersionSnapshot) {
-			_root = root ?? throw new ArgumentNullException("root");
-			_rootSharedNode = root;
-			_owner = owner;
-			_capturedEditVersion = ownerVersionSnapshot;
-			if (position < 0 || position > root.Length) {
-				throw new ArgumentOutOfRangeException("position", $"Position {position} is out of range [0, {root.Length}].");
-			}
-			_position = position;
-			_pathCache = new PathFrame?[4];
-			Descend();
-		}
-		private bool EnsureOwnerVersionMatches() {
-			if (_owner == null || _ownerVersionMismatch) {
-				return !_ownerVersionMismatch;
-			}
-			if (_owner.EditVersion == _capturedEditVersion) {
-				return true;
-			}
-			_ownerVersionMismatch = true;
-			Invalidate();
-			return false;
-		}
-		public (string Leaf, int Offset)? GetLeaf() {
-			// Would expose the current leaf text and offset under the cursor.
-		}
-		public void SetPosition(int position) {
-			// Planned to update the cursor position within the rope.
-		}
-		public bool IsBoundary(IMetric metric) {
-			// Intended to report whether the cursor is on a metric boundary.
-		}
-		public int? MoveToPrevious(IMetric metric) {
-			// Would move the cursor to the previous boundary according to a metric.
-		}
-		public int? MoveToNext(IMetric metric) {
-			// Would move the cursor to the next boundary according to a metric.
-		}
-		public int? AtOrNext(IMetric metric) {
-			// Intended to snap to the current or next boundary defined by the metric.
-		}
-		public int? AtOrPrevious(IMetric metric) {
-			// Intended to snap to the current or previous boundary defined by the metric.
-		}
-		private void Descend() {
-			if (!EnsureOwnerVersionMatches()) {
-				return;
-			}
-			AssertRootStable();
-			_position = Math.Min(_position, _root.Length);
-			ClearCache();
-			_currentLeaf = null;
-			_isValid = false;
-			Node node = _root;
-			int num = 0;
-			int position = _position;
-			while (!node.IsLeaf) {
-				Node[] array = RequireChildren(node);
-				int i;
-				for (i = 0; i + 1 < array.Length; i++) {
-					int num2 = num + array[i].Length;
-					if (num2 > position) {
-						break;
-					}
-					num = num2;
-				}
-				int num3 = node.Height - 1;
-				if (num3 < 4) {
-					_pathCache[num3] = new PathFrame(node, i);
-				}
-				node = array[i];
-			}
-			SetLeafFromNode(node, num);
-		}
-		private bool PrevLeaf() {
-			if (!_isValid || _currentLeaf == null) {
-				return false;
-			}
-			if (_offsetOfLeaf == 0) {
-				InvalidateToStart();
-				return false;
-			}
-			for (int i = 0; i < 4 && _pathCache[i].HasValue; i++) {
-				PathFrame value = _pathCache[i].Value;
-				if (value.ChildIndex > 0) {
-					PathFrame value2 = value.WithChildIndex(value.ChildIndex - 1);
-					_pathCache[i] = value2;
-					Node node = RequireChildren(value.Node)[value2.ChildIndex];
-					for (int num = i - 1; num >= 0; num--) {
-						Node[] array = RequireChildren(node);
-						int num2 = array.Length - 1;
-						_pathCache[num] = new PathFrame(node, num2);
-						node = array[num2];
-					}
-					SetLeafFromNode(node, _position = _offsetOfLeaf - node.Length);
-					return true;
-				}
-			}
-			_position = _offsetOfLeaf - 1;
-			Descend();
-			_position = _offsetOfLeaf;
-			return _isValid;
-		}
-		private bool NextLeaf() {
-			if (!_isValid || _currentLeaf == null) {
-				return false;
-			}
-			int num = (_position = _offsetOfLeaf + _currentLeaf.Length);
-			for (int i = 0; i < 4 && _pathCache[i].HasValue; i++) {
-				PathFrame value = _pathCache[i].Value;
-				Node[] array = RequireChildren(value.Node);
-				if (value.ChildIndex + 1 < array.Length) {
-					PathFrame value2 = value.WithChildIndex(value.ChildIndex + 1);
-					_pathCache[i] = value2;
-					Node node = array[value2.ChildIndex];
-					for (int num2 = i - 1; num2 >= 0; num2--) {
-						Node[] array2 = RequireChildren(node);
-						_pathCache[num2] = new PathFrame(node, 0);
-						node = array2[0];
-					}
-					SetLeafFromNode(node, num);
-					return true;
-				}
-			}
-			if (num == _root.Length) {
-				InvalidateToEnd();
-				return false;
-			}
-			Descend();
-			return _isValid;
-		}
-		private string? PeekPrevLeaf() {
-			if (!_isValid || _currentLeaf == null) {
-				return null;
-			}
-			CursorSnapshot snapshot = CaptureSnapshot();
-			if (!PrevLeaf()) {
-				RestoreSnapshot(snapshot);
-				return null;
-			}
-			string currentLeaf = _currentLeaf;
-			RestoreSnapshot(snapshot);
-			return currentLeaf;
-		}
-		private int? LastInsideLeaf(IMetric metric, int originalPosition) {
-			if (!_isValid || _currentLeaf == null) {
-				return null;
-			}
-			int length = _currentLeaf.Length;
-			int num = _offsetOfLeaf + length;
-			if (num < originalPosition && metric.IsBoundary(_currentLeaf, length)) {
-				if (NextLeaf()) {
-					return _position;
-				}
-				return null;
-			}
-			int? previousBoundary = metric.GetPreviousBoundary(_currentLeaf, length);
-			if (!previousBoundary.HasValue) {
-				return null;
-			}
-			_position = _offsetOfLeaf + previousBoundary.Value;
-			return _position;
-		}
-		private int? NextInsideLeaf(IMetric metric) {
-			if (!_isValid || _currentLeaf == null) {
-				return null;
-			}
-			int offset = _position - _offsetOfLeaf;
-			int? nextBoundary = metric.GetNextBoundary(_currentLeaf, offset);
-			if (!nextBoundary.HasValue) {
-				return null;
-			}
-			int value = nextBoundary.Value;
-			int num = _offsetOfLeaf + value;
-			if (value == _currentLeaf.Length && num != _root.Length) {
-				return NextLeaf() ? new int?(_position) : ((int?)null);
-			}
-			_position = num;
-			if (_position == _root.Length) {
-				InvalidateToEnd();
-			}
-			return _position;
-		}
-		private int? PreviousInsideLeaf(IMetric metric, int offsetInLeaf) {
-			if (!_isValid || _currentLeaf == null || offsetInLeaf <= 0) {
-				return null;
-			}
-			int num;
-			for (num = offsetInLeaf; num > 0; num--) {
-				int? previousBoundary = metric.GetPreviousBoundary(_currentLeaf, num);
-				if (!previousBoundary.HasValue) {
-					return null;
-				}
-				int num2 = _offsetOfLeaf + previousBoundary.Value;
-				if (num2 < _position) {
-					_position = num2;
-					return _position;
-				}
-				num = previousBoundary.Value;
-				if (num == 0) {
-					break;
-				}
-			}
-			return null;
-		}
-		private int MeasureLeaf(IMetric metric, int position) {
-			Node node = _root;
-			int num = 0;
-			int num2 = Math.Min(position, _root.Length);
-			while (!node.IsLeaf) {
-				Node[] array = RequireChildren(node);
-				Node[] array2 = array;
-				foreach (Node node2 in array2) {
-					int length = node2.Length;
-					if (num2 < length) {
-						node = node2;
-						break;
-					}
-					num2 -= length;
-					num = checked(num + metric.Measure(node2.Info, node2.Length));
-				}
-			}
-			return num;
-		}
-		private void DescendMetric(IMetric metric, int measure) {
-			if (!EnsureOwnerVersionMatches()) {
-				return;
-			}
-			AssertRootStable();
-			if (measure < 0) {
-				measure = 0;
-			}
-			ClearCache();
-			Node node = _root;
-			int num = 0;
-			int num2 = measure;
-			while (!node.IsLeaf) {
-				Node[] array = RequireChildren(node);
-				int i = 0;
-				for (int num3 = array.Length - 1; i < num3; i++) {
-					Node node2 = array[i];
-					int num4 = metric.Measure(node2.Info, node2.Length);
-					if (num4 >= num2) {
-						break;
-					}
-					num = checked(num + node2.Length);
-					num2 -= num4;
-				}
-				int num5 = node.Height - 1;
-				if (num5 < 4) {
-					_pathCache[num5] = new PathFrame(node, i);
-				}
-				node = array[i];
-			}
-			_position = num;
-			SetLeafFromNode(node, num);
-		}
-		private CursorSnapshot CaptureSnapshot() {
-			PathFrame?[] array = new PathFrame?[4];
-			Array.Copy(_pathCache, array, 4);
-			return new CursorSnapshot(_position, _offsetOfLeaf, _currentLeaf, _isValid, array);
-		}
-		private void RestoreSnapshot(CursorSnapshot snapshot) {
-			_position = snapshot.Position;
-			_offsetOfLeaf = snapshot.OffsetOfLeaf;
-			_currentLeaf = snapshot.CurrentLeaf;
-			_isValid = snapshot.IsValid;
-			Array.Copy(snapshot.Cache, _pathCache, 4);
-		}
-		private void SetLeafFromNode(Node leafNode, int offset) {
-			_currentLeaf = leafNode.GetLeaf() ?? string.Empty;
-			_offsetOfLeaf = offset;
-			_isValid = true;
-		}
-		private static Node[] RequireChildren(Node node) {
-			Node[] children = node.GetChildren();
-			if (children == null || children.Length == 0) {
-				throw new InvalidOperationException("Internal node must have children.");
-			}
-			return children;
-		}
-		private void ClearCache() {
-			for (int i = 0; i < _pathCache.Length; i++) {
-				_pathCache[i] = null;
-			}
-		}
-		private void Invalidate() {
-			_isValid = false;
-			_currentLeaf = null;
-			ClearCache();
-		}
-		private void InvalidateToStart() {
-			_position = 0;
-			_offsetOfLeaf = 0;
-			Invalidate();
-		}
-		private void InvalidateToEnd() {
-			_position = Math.Min(_position, _root.Length);
-			_offsetOfLeaf = _position;
-			Invalidate();
-		}
+			: this((owner ?? throw new ArgumentNullException("owner")).DebugRoot, position, owner, owner.EditVersion) {/* body removed for skeleton view. */}
+		private NodeCursor(Node root, int position, Rope? owner, long ownerVersionSnapshot) {/* body removed for skeleton view. */}
+		private bool EnsureOwnerVersionMatches() {/* body removed for skeleton view. */}
+		public (string Leaf, int Offset)? GetLeaf() {/* body removed for skeleton view. */}
+		public void SetPosition(int position) {/* body removed for skeleton view. */}
+		public bool IsBoundary(IMetric metric) {/* body removed for skeleton view. */}
+		public int? MoveToPrevious(IMetric metric) {/* body removed for skeleton view. */}
+		public int? MoveToNext(IMetric metric) {/* body removed for skeleton view. */}
+		public int? AtOrNext(IMetric metric) {/* body removed for skeleton view. */}
+		public int? AtOrPrevious(IMetric metric) {/* body removed for skeleton view. */}
+		private void Descend() {/* body removed for skeleton view. */}
+		private bool PrevLeaf() {/* body removed for skeleton view. */}
+		private bool NextLeaf() {/* body removed for skeleton view. */}
+		private string? PeekPrevLeaf() {/* body removed for skeleton view. */}
+		private int? LastInsideLeaf(IMetric metric, int originalPosition) {/* body removed for skeleton view. */}
+		private int? NextInsideLeaf(IMetric metric) {/* body removed for skeleton view. */}
+		private int? PreviousInsideLeaf(IMetric metric, int offsetInLeaf) {/* body removed for skeleton view. */}
+		private int MeasureLeaf(IMetric metric, int position) {/* body removed for skeleton view. */}
+		private void DescendMetric(IMetric metric, int measure) {/* body removed for skeleton view. */}
+		private CursorSnapshot CaptureSnapshot() {/* body removed for skeleton view. */}
+		private void RestoreSnapshot(CursorSnapshot snapshot) {/* body removed for skeleton view. */}
+		private void SetLeafFromNode(Node leafNode, int offset) {/* body removed for skeleton view. */}
+		private static Node[] RequireChildren(Node node) {/* body removed for skeleton view. */}
+		private void ClearCache() {/* body removed for skeleton view. */}
+		private void Invalidate() {/* body removed for skeleton view. */}
+		private void InvalidateToStart() {/* body removed for skeleton view. */}
+		private void InvalidateToEnd() {/* body removed for skeleton view. */}
 		[Conditional("DEBUG")]
-		private void AssertRootStable() {
-			Debug.Assert(_rootSharedNode == _root, "Cursor root reference changed unexpectedly.");
-		}
+		private void AssertRootStable() {/* body removed for skeleton view. */}
 	}
 	[StructLayout(LayoutKind.Sequential, Size = 1)]
 	internal readonly struct StringLeafOperations : ILeafOperations<string> {
@@ -1480,72 +631,30 @@ namespace Xi.Core.Rope.Tree {
 		public static int MaxLeafSize => 1024;
 		public static string Empty => string.Empty;
 		public static int NewlinePreferenceWindow => 64;
-		public static int GetLength(string leaf) {
-			// Reported the UTF-16 length of the string leaf.
-		}
-		public static bool IsValidChild(string leaf) {
-			// Determined whether a string leaf met the minimum capacity requirement.
-		}
-		public static string Clone(string leaf) {
-			// Produced a new string copy to break sharing of the original leaf.
-		}
-		public static string Insert(string leaf, int index, string text) {
-			// Inserted text into a string leaf while preserving UTF-16 ordering.
-		}
-		public static string RemoveRange(string leaf, int index, int length) {
-			// Removed a substring from the leaf and returned the compacted result.
-		}
-		public static string ReplaceRange(string leaf, int index, int length, string replacement) {
-			// Replaced a substring with new text, combining insertion and removal semantics.
-		}
-		public static string Merge(string left, string right) {
-			// Concatenated two string leaves while preserving order.
-		}
-		public static bool TryComputeBalancedSplit(string left, string right, out string newLeft, out string newRight) {
-			// Calculated balanced split strings ensuring size and surrogate constraints.
-		}
-		public static IEnumerable<string> SplitByCapacity(string leaf) {
-			// Yielded capacity-aware substrings, preferring newline boundaries when splitting.
-		}
-		private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit) {
-			// Nudged the split toward a nearby newline when possible.
-		}
-		private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit) {
-			// Adjusted split positions to avoid breaking surrogate pairs.
-		}
-		private static bool IsSafeBoundary(string left, string right, int index) {
-			// Checked whether a split index avoided bisecting surrogate pairs.
-		}
-		private static string CreateCombinedSegment(string left, string right, int start, int length) {
-			// Built a substring spanning the virtual concatenation of left and right.
-		}
-		private static char GetCombinedChar(string left, string right, int index) {
-			// Accessed a character from the conceptual concatenation of two strings.
-		}
+		public static int GetLength(string leaf) {/* body removed for skeleton view. */}
+		public static bool IsValidChild(string leaf) {/* body removed for skeleton view. */}
+		public static string Clone(string leaf) {/* body removed for skeleton view. */}
+		public static string Insert(string leaf, int index, string text) {/* body removed for skeleton view. */}
+		public static string RemoveRange(string leaf, int index, int length) {/* body removed for skeleton view. */}
+		public static string ReplaceRange(string leaf, int index, int length, string replacement) {/* body removed for skeleton view. */}
+		public static string Merge(string left, string right) {/* body removed for skeleton view. */}
+		public static bool TryComputeBalancedSplit(string left, string right, out string newLeft, out string newRight) {/* body removed for skeleton view. */}
+		public static IEnumerable<string> SplitByCapacity(string leaf) {/* body removed for skeleton view. */}
+		private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit) {/* body removed for skeleton view. */}
+		private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit) {/* body removed for skeleton view. */}
+		private static bool IsSafeBoundary(string left, string right, int index) {/* body removed for skeleton view. */}
+		private static string CreateCombinedSegment(string left, string right, int start, int length) {/* body removed for skeleton view. */}
+		private static char GetCombinedChar(string left, string right, int index) {/* body removed for skeleton view. */}
 	}
 	public sealed class TreeBuilder {
 		private readonly List<Node> _pending = new List<Node>();
-		public void PushString(string? text) {
-			// Split text into leaf-sized segments and appended them as nodes.
-		}
-		public void PushSpan(ReadOnlySpan<char> span) {
-			// Accepted a span and forwarded it through the string-based push path.
-		}
-		public void PushNode(Node node) {
-			// Added an existing node to the builder, skipping empties.
-		}
-		public Node Build() {
-			// Reduced pending nodes into a balanced rope via concatenation.
-		}
-		public void Reset() {
-			// Cleared all accumulated nodes to reuse the builder.
-		}
-		private void AppendNode(Node node) {
-			// Maintained a height-sorted pending list by merging nodes eagerly.
-		}
-		private static IEnumerable<string> SplitIntoLeaves(string text) {
-			// Delegated to LeafSplitter for capacity-aware segmentation.
-		}
+		public void PushString(string? text) {/* body removed for skeleton view. */}
+		public void PushSpan(ReadOnlySpan<char> span) {/* body removed for skeleton view. */}
+		public void PushNode(Node node) {/* body removed for skeleton view. */}
+		public Node Build() {/* body removed for skeleton view. */}
+		public void Reset() {/* body removed for skeleton view. */}
+		private void AppendNode(Node node) {/* body removed for skeleton view. */}
+		private static IEnumerable<string> SplitIntoLeaves(string text) {/* body removed for skeleton view. */}
 	}
 	public interface ILeafOperations<TLeaf> {
 		static abstract int MinLeafSize { get; }
@@ -1578,5 +687,44 @@ namespace Xi.Core.Rope.Tree {
 		bool IsBoundary(TLeaf leaf, int offset);
 		int? GetPreviousBoundary(TLeaf leaf, int offset);
 		int? GetNextBoundary(TLeaf leaf, int offset);
+	}
+}
+namespace Xi.Core.Rope.Navigation {
+	public sealed class DegradedGraphemeNavigator : IGraphemeNavigator {
+		private static readonly int MaxContextChars = Node.MaxLeafSize * 2;
+		private readonly GraphemeNavigationMetrics _metrics;
+		public GraphemeNavigationMetrics Metrics => _metrics;
+		public DegradedGraphemeNavigator(GraphemeNavigationMetrics? metrics = null) {/* body removed for skeleton view. */}
+		public int? MoveNext(NodeCursor cursor) {/* body removed for skeleton view. */}
+		public int? MovePrevious(NodeCursor cursor) {/* body removed for skeleton view. */}
+		public bool IsBoundary(NodeCursor cursor) {/* body removed for skeleton view. */}
+		private string BuildForwardContext(NodeCursor cursor, string leaf, int leafStart, int offsetInLeaf) {/* body removed for skeleton view. */}
+		private string BuildBackwardContext(NodeCursor cursor, string leaf, int leafStart, int offsetInLeaf) {/* body removed for skeleton view. */}
+		private static bool TryCaptureLeaf(NodeCursor cursor, out string leaf, out int leafStart, out int offsetInLeaf) {/* body removed for skeleton view. */}
+		private static (string Leaf, int Start)? TryFetchLeaf(Node root, int absolutePosition) {/* body removed for skeleton view. */}
+		private static int? GetFirstTextElementLength(string text) {/* body removed for skeleton view. */}
+		private static int? GetLastTextElementLength(string text) {/* body removed for skeleton view. */}
+		private static int GetForwardScalarLength(string text) {/* body removed for skeleton view. */}
+		private static int GetBackwardScalarLength(string text) {/* body removed for skeleton view. */}
+	}
+	public sealed class GraphemeNavigationMetrics {
+		public readonly record struct Snapshot(long ForwardNeighborRequests, long BackwardNeighborRequests, long ScalarFallbacks, long MoveNextCalls, long MovePreviousCalls);
+		private long _forwardNeighborRequests;
+		private long _backwardNeighborRequests;
+		private long _scalarFallbacks;
+		private long _moveNextCalls;
+		private long _movePreviousCalls;
+		public void RecordNeighborRequest(bool forward) {/* body removed for skeleton view. */}
+		public void RecordScalarFallback() {/* body removed for skeleton view. */}
+		public void RecordMoveNext() {/* body removed for skeleton view. */}
+		public void RecordMovePrevious() {/* body removed for skeleton view. */}
+		public void Reset() {/* body removed for skeleton view. */}
+		public Snapshot GetSnapshot() {/* body removed for skeleton view. */}
+	}
+	public interface IGraphemeNavigator {
+		GraphemeNavigationMetrics Metrics { get; }
+		int? MoveNext(NodeCursor cursor);
+		int? MovePrevious(NodeCursor cursor);
+		bool IsBoundary(NodeCursor cursor);
 	}
 }
