@@ -173,6 +173,18 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Architecture 文档模板落地 (Round 1)
+#### 已完成任务
+- ✅ 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以统一 front-matter、`goal-tree` 片段、`Parity Assets`/QA 引用，并删减冗余叙述。
+- ✅ 在 `m3-implementation-plan.md` 注入与 Blueprint 同步的 `[MP-GoalTree]` 片段，确保 G1-G6 单一来源在脚本上线前保持手工镜像。
+- ✅ 将阻塞项改写为 `[TS-Bx]` 卡片（含 Problem/Rust Plan/C# Plan/Status/Links/Next），新增 Breaks/Diff/Search 缺口（`[TS-B5]`）并串联到 `[StageD::ParityAssets]`、`[QA-ChunkBench]`、`[QA-Telemetry]` 监控。
+- ✅ 在 `rope-port-mapping.md` 压缩矩阵至 10 个关键模块，补写 `[RPM-ParityAssets]` 表与 `[RPM-Actions]` 清单，让 G1-G3 的 CLI/Telemetry 缺口一目了然。
+- ✅ 将 `design-divergence-log.md` 表格化，保留 UTF-16 叶片与 Grapheme 降级两条记录，并新增 Chunk copy-on-read 降级条目挂到 `[QA-ChunkBench]`。
+#### 后续监控
+- 🔄 等待 Rust Porter demo `--cursor-descriptors/--chunk-descriptors/--grapheme-windows`，随后刷新 `[StageD::ParityAssets]` 列表并更新 `rope-port-mapping.md` 状态列。
+- 🔄 与 QA 对齐 `[QA-ChunkBench]` 与 `[QA-Telemetry]` 的基准记录时间戳，在 `BP-RiskTable` 里追踪 R9/R10。
+- 🔼 监督 `MetricAdapter` 草案（`[TS-B2]`）与 Breaks/Diff/Search 骨架（`[TS-B5]`）提交节奏，必要时在 Goal Tree G3/G6 标红。
+
 ### 2025-11-17 - 文档结构模板精简审阅
 #### 已完成任务
 - ✅ 阅读 `docs/architecture/document-structure-template.md` 全文，并对照 `port-blueprint.md`、`rope-port-mapping.md`、`m3-implementation-plan.md` 交叉验证字段/锚点的重复与可裁剪区段。

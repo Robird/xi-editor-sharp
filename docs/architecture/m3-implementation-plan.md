@@ -7,7 +7,30 @@
 > **预计工期**：15-20 天（约 2-3 周）  
 > **测试基线**：114 项测试（M3 前 106 项 ✅ + 8 项泛型接口测试 ✅）
 
----
+ ---
+
+## [MP-GoalTree] Goal Tree Snapshot
+<a id="MP-GoalTree"></a>
+<!-- goal-tree:start -->
+| ID | Title | Status | Due | Owner | Next | QA / Stage D |
+| --- | --- | --- | --- | --- | --- | --- |
+| G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun `[MP-T1]` parity ingestion | `[QA-IngestionSmoke]` · `[StageD::ParityAssets]` |
+| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record `[MP-T3]` baseline | `[QA-ChunkBench]` · `[StageD::ParityAssets]` |
+| G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh `[TS-B5]` card | `[StageD::FeatureGates]` |
+| G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | `[StageD::FixtureFlow]` |
+| G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | `[StageD::FixtureFlow]` |
+| G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document `[TS-B2]` dependency | `[QA-StageDManual]` |
+<!-- goal-tree:end -->
+> This snapshot is mirrored verbatim in `port-blueprint.md#[BP-GoalTree]`.
+
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[QA-IngestionSmoke]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[QA-StageDManual]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[TS-B2]: type-system-migration-log.md#ts-b2
+[TS-B5]: type-system-migration-log.md#ts-b5
 
 ## 1. M3 目标概述
 

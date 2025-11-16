@@ -84,25 +84,67 @@
 4. 向用户汇报进度与下一步计划
 
 ## 当前聚焦（下一会话）
-- [准备中] 🎯 **M3 实施第 2 天：T1.2-T1.4 游标导航与 Metric 转换**
-  - **当前状态**：T1.1 已完成 80%（370 行代码 + 26 项测试，24 项通过，2 项阻塞）
-  - **阻塞问题**：
-    1. 叶片遍历未完成（`MoveToNextLeaf`/`MoveToPrevLeaf` 硬编码返回 false）
-    2. BaseMetric 边界计数偏差（迭代 6 次，预期 5 次）
-  - **下一步行动**：
-    1. 修复 T1.1 阻塞：实现完整树遍历逻辑（参考 Rust `tree.rs` 1350-1420 行）
-    2. 推进 T1.2-T1.4：游标导航方法 + Metric 转换（预计 3-4 天）
-    3. 监控进度：C# Implementer 每日更新认知档案，Architecture Mapper 每 2-3 天检查
-  - **质量门禁**：114 项基线测试保持通过 + 26 项游标测试全部通过
-  - **风险预警**：若 T1.2 超期 > 2 天，立即召开星形会议评估部分回退
+- [进行中] 🗂️ **Architecture 文档结构 1.0 落地**
+  - **目标**：按照 `document-structure-template.md` 重构 `docs/architecture/` 七个核心文档，统一 front-matter、锚点与共享章节（Goal Tree / Matrix / Blocker Cards / Stage D anchors）。
+  - **步骤**：
+    1. 规划每个文档的目标结构与锚点（完成于 2025-11-18，本档案附 rollout 方案）。
+    2. 委派 AI 员工重写各自负责的文档（Architecture Mapper：`port-blueprint`/`rope-port-mapping`/`type-system-migration-log`/`design-divergence-log`; C# Implementer：`m3-implementation-plan`; AI 架构师：`m3-architect-decision`; Rust Porter + QA：`rope-serialization-fixture-playbook`).
+    3. 统一验证：检查锚点、Stage D/QA 链接、`goal-tree` snippet（暂手工维护），并在 `AGENTS.md` 记录交付。
+  - **验收**：所有文档出现 front-matter（Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree）、遵循模板章节、旧信息迁移到相应引用文档（背景/细节放回专题文档）。
+  - **里程碑**：11/18 完成规划；11/19 提交文档改写；11/20 更新 `AGENTS.md`/role 档案。
+
+- [搁置] 🎯 **M3 实施第 2 天：T1.2-T1.4 游标导航与 Metric 转换**
+  - **状态**：等待文档重构完成后恢复。保留原行动项与风险门槛以便重新切换。
 
 - [待命] 📋 **周会准备（第 5-7 天）**
-  - 议程：T1.2-T1.4 进度对齐、R1 风险实测（`ReferenceEquals` 假失效率）、T1.6 Parity 样本时间表
-  - 参与者：AI 架构师（主持）+ C# Implementer + Rust Porter + Architecture Mapper
+  - 议程：文档落地复盘 + M3 任务回流。
+  - 参与者：AI 架构师（主持）+ C# Implementer + Rust Porter + Architecture Mapper。
 
 - [待命] 🔍 **架构监控**
-  - 每 2-3 天：检查 C# Implementer 认知档案的"当前阻塞"
-  - 触发星形会议条件：单个子任务超期 > 2 天、新技术阻塞、测试通过率 < 90%
+  - 维持每 2-3 天查阅 C# Implementer 档案的节奏；若文档重构影响 M3 里程碑需立即沟通。
+
+### 2025-11-18 · Document Structure Rollout 方案
+> 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。
+
+1. **`docs/architecture/port-blueprint.md` (`BP-*`)**
+   - Front-matter：`Scope/Owner/Update Frequency/Reviewers/Anchor Prefix=BP/Last Synced Goal Tree`。
+   - Section 顺序：`## [BP-GoalTree] Goal Tree Snapshot`（`<!-- goal-tree:start -->` 包裹 YAML）、`## [BP-Milestones] Milestones & Dependencies`（表格引用 `[MP-Tx.y]`/`[TS-Bx]`/`[Decision-*]`）、`## [BP-RiskTable] Risk & Watchlist`（列出 `[MP-Rx]` 引用 + Stage D/QA anchor）、`## [BP-ChangeLog] Change Log`。
+   - 处理策略：章节 2-9 的背景细节压缩为 2 段 `Context` 小节并链接至 `docs/csharp-refactor/`/`docs/rust-refactor/`，其余详述挪回对应专题文档。
+
+2. **`docs/architecture/rope-port-mapping.md` (`RPM-*`)**
+   - Front-matter（Owner: Architecture Mapper，Prefix=RPM）。
+   - Sections：`## [RPM-Matrix] File & Type Matrix`（保留压缩版映射表 + 新列“Goal Anchor”）、`## [RPM-ParityAssets] Parity Assets & Stage D Hooks`（指向 `[StageD::ParityAssets]`）、`## [RPM-Actions] Open Actions`（列表对应 `[MP-Tx.y]`、`[TS-Bx]`）、`## [RPM-ChangeLog] Change Log`。
+   - 长表格策略：仅保留核心模块行，其余移动到 `docs/rust-refactor/` 子文档或附录引用。
+
+3. **`docs/architecture/type-system-migration-log.md` (`TS-*`)**
+   - Front-matter（Owner: Architecture Mapper）。
+   - Sections：`## [TS-Overview] Blocker Cards` → 每个阻塞定义 `#### [TS-B1] 游标生命周期` 格式，卡片结构（Problem · Rust Plan · C# Plan · Status · Links）；`## [TS-Archive] Retired Blockers`；`## [TS-ChangeLog]`。
+   - 会议记录与长描述移动到 `docs/rust-refactor/` / `docs/csharp-refactor/`，保留链接。
+
+4. **`docs/architecture/design-divergence-log.md` (`Div-*`)**
+   - Front-matter（Owner: Architecture Mapper + QA）。
+   - Sections：`## [Div-Active] Active Divergences`（表格列：Anchor | Feature | Reason | Mitigation | Exit | QA Anchor）、`## [Div-Retired] Retired Divergences`、`## [Div-ChangeLog]`。
+   - 对 Grapheme/Chunk 降级保留精简描述，详细策略链接 `docs/architecture/rope-port-mapping.md#rpm-parityassets` 等。
+
+5. **`docs/architecture/m3-implementation-plan.md` (`MP-*`)**
+   - Front-matter（Owner: C# Implementer，Prefix=MP）。
+   - Sections：`## [MP-GoalTree] Goal Tree Snapshot`、`## [MP-Tasks] Task Table`（`[MP-Tx.y]` 行 + Owner/ETA/Deps/Evidence）、`## [MP-QA] QA Matrix`（引用 `[QA-*]`）、`## [MP-Risks] Risk Register`（`[MP-Rx]` 与缓解措施）、`## [MP-ChangeLog]`。
+   - 文字段落浓缩为任务描述 +链接 `docs/csharp-refactor/` 详情。
+
+6. **`docs/architecture/m3-architect-decision.md` (`Decision-*`)**
+   - Front-matter（Owner: AI Architect）。
+   - Sections：`## Decision Ledger` 列出 `[Decision-M3-001]` 样式条目（Date · Context · Decision · Impact · Linked Goals/Tasks）；`## Change Log`。
+   - 将原大段会议记录挪到 `agents/architect.md` / `AGENTS.md`，此处只保留裁决摘要。
+
+7. **`docs/architecture/rope-serialization-fixture-playbook.md` (`StageD::` + `Fixture-*`)**
+   - Front-matter（Owners: Rust Porter + QA）。
+   - Sections：`## [StageD::StageDChecklist] Refresh Checklist`、`## [StageD::FixtureFlow] Export → Validate 流程`、`## [StageD::ParityAssets] Manifest Ledger`（含 `Fixture-` anchors per asset）、`## [StageD::FeatureGates] CLI/feature matrix`、`## [StageD::ChangeLog]`。
+   - QA anchors `[QA-IngestionSmoke]`/`[QA-StageDManual]` 内联说明阈值；详细命令移至脚注或 `scripts/` 注释。
+
+8. **共性要求**
+   - 所有文档引用 QA/Stage D anchor 时采用 `[QA-*]` / `[StageD::*]`，不要重复 CLI/脚本细节。
+   - 在重写完成后更新 `AGENTS.md` “当前聚焦”与相关员工档案“最近完成”。
+   - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
 ### 2025-11-17

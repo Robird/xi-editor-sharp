@@ -452,6 +452,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-18 (Architecture Docs Template Rollout)
+- **交付**：委派 Architecture Mapper 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以符合 `document-structure-template.md`，统一 front-matter、`goal-tree` 片段与 `[QA-*]` / `[StageD::*]` 链接；`m3-implementation-plan.md` 的 Goal Tree 片段与 Blueprint 同步包裹在 `<!-- goal-tree:start -->` 注释中，等待未来脚本自动化。
+- **内容调整**：Blueprint 现精简为 Goal Tree + Milestones + Risk 表，映射表文档压缩为 10 个关键模块并新增 `[RPM-ParityAssets]`/`[RPM-Actions]`；类型系统日志转为 `[TS-Bx]` 卡片（Problem/Rust Plan/C# Plan/Status/Links/Next），设计分歧日志改为表格呈现 UTF-16 叶片、Grapheme 降级与 Chunk copy-on-read 三项。
+- **挂钩关系**：所有 Goal Tree 行（G1-G6）直接指向 `[TS-Bx]` 与 `[StageD::*]` anchors，`BP-RiskTable` 重新绑定 `[MP-R8]`-`[MP-R10]`，方便 QA/Stage D 追踪；Architecture Mapper 档案新增 2025-11-18 完成记录并列出 CLI schema/telemetry 基准待办。
+- **后续**：待 Rust Porter demo `--cursor-descriptors/--chunk-descriptors/--grapheme-windows`，QA 记录 `[QA-ChunkBench]`/`[QA-Telemetry]` 基线后，再刷新 `rope-port-mapping.md` 与 Stage D playbook；若 CLI 延迟，需在 Goal Tree 将 G1/G2/G3 标记为风险状态。
+
 ### 2025-11-17 (Architecture Docs Consolidation Planning)
 - **会议**：召集 Architecture Mapper、C# Implementer、Rust Porter 参加星形会议，聚焦 `docs/architecture/` 文档数量过多、冗余和交叉引用过重的问题。
 - **结论**：确立“共享目标/进度树片段 + 文档职责正交”策略，并决定仅保留 `m3-implementation-plan.md` 作为详细计划，`m3-architect-decision.md` 缩减为裁决摘要/变更日志/链接集合。
