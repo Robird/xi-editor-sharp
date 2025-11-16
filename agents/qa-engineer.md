@@ -85,6 +85,18 @@
 - **Information Researcher**：需要历史测试记录或特定文档片段时请求支援。
 
 ## 最近完成
+### 2025-11-17 - QA 模板字段精简评估
+- **任务**：依照架构指令复盘 `agents/qa-engineer.md` 与 `docs/architecture/document-structure-template.md`，确认在 Architecture Mapper/C# Implementer/Rust Porter 已定义字段基础上，QA 最低限度需要保留的 anchor/字段集合及可转交 Stage D Playbook 的内容。
+- **命令**：`read_file agents/qa-engineer.md`、`read_file docs/architecture/document-structure-template.md`。
+- **结果**：罗列 QA 视角的必留 anchor（`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`、`[QA-StageDManual]`）、风险/遥测字段（`telemetryThreshold`、`benchmarkScript`、`benchmarkBaseline`、`riskFlag`、`fixtureManifestHash`）以及可外移到 Stage D Playbook 的操作细节；整理了最小字段/锚点方案和自动化需求（anchor lint + manifest/benchmark 校验）。
+- **风险/后续**：需要在模板更新时验证 anchor lint/manifest 校验脚本已覆盖上述锚点，防止 QA 字段被裁剪；Stage D Playbook 需接管详细操作流程。
+
+### 2025-11-17 - QA 文档字段评估
+- **任务**：评估 Architecture Mapper/C# Implementer/Rust Porter 提出的统一 front-matter 字段能否覆盖 QA 对 parity ingestion smoke、1 MB 基准、Telemetry 阈值的记录需求，并给出缺失项建议。
+- **命令**：`read_file agents/qa-engineer.md`（复盘职责与风险）；复用既有文档上下文（`docs/architecture/m3-implementation-plan.md`、`AGENTS.md`）中对 Stage D/遥测/基准的要求。
+- **结果**：识别当前字段缺少 `BenchmarkScript`、`TelemetryThreshold`, `TestMatrix`、`CIStatus`, `RefreshRecipe` 类 QA 视角信息，拟在统一模板中补充并定义锚点引用方式（详见工作报告）。
+- **风险/后续**：若未纳入上述字段，Stage D 复查与 1 MB 基准将缺乏可追踪来源，Telemetry 阈值无法落地；需在下一轮模板定稿前敲定字段与记录流程。
+
 ### 2025-11-17 - QA 入职与资产确认
 - **任务**：阅读 `agents/qa-engineer-template.md`、`AGENTS.md`「下一步行动 & 风险」章节、`docs/architecture/m3-implementation-plan.md` §1/4/5.3；清点 parity 夹具与脚本开关；建档。
 - **命令**：`list_dir tests/xi.Core.Tests/Fixtures/*`、`read_file scripts/refresh_serialization_fixtures.ps1`、`read_file docs/architecture/m3-implementation-plan.md`（节选）。

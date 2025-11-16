@@ -452,10 +452,27 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Architecture Docs Consolidation Planning)
+- **会议**：召集 Architecture Mapper、C# Implementer、Rust Porter 参加星形会议，聚焦 `docs/architecture/` 文档数量过多、冗余和交叉引用过重的问题。
+- **结论**：确立“共享目标/进度树片段 + 文档职责正交”策略，并决定仅保留 `m3-implementation-plan.md` 作为详细计划，`m3-architect-decision.md` 缩减为裁决摘要/变更日志/链接集合。
+- **行动项**：
+  - Architecture Mapper 在 11/18 前起草统一目标树模板（含 Owner/Status/Due/Evidence/Next + Rust Commit/Feature Gates/CLI 版本字段），插入 `port-blueprint.md` 与 `m3-implementation-plan.md` 并输出引用规范。
+  - C# Implementer 补充每个 G1-G3 叶节点对应的代码/测试/夹具路径链接，验证实现者读取体验。
+  - Rust Porter 将 Stage D/CLI/schema 元数据和 feature gate 说明挂钩目标树字段，同时在 `rope-port-mapping.md`、`rope-serialization-fixture-playbook.md` 对应章节标注锚点。
+- **交付**：发布 `docs/architecture/document-structure-template.md` 元文档，整合 Architecture Mapper/C# Implementer/Rust Porter/QA Engineer 的字段与锚点需求，定义统一 front-matter、目标树 YAML 真源、脚本同步与 QA/Stage D 仪表，四个角色均在各自档案记录认可。
+- **二次迭代**：同日再次召集四个角色传阅模板并精简：保留 14 项核心字段 + 3 项可选锚点引用，将 Stage D / QA 细节改为链接至 `[StageD::*]` 与 `[QA-*]`，收紧 per-doc 章节与治理脚本说明，更新 `docs/architecture/document-structure-template.md` 以反映新结构。
 ### 2025-11-17 (QA/Info Researcher Onboarding)
 - **QA Engineer 入职**：基于 `agents/qa-engineer-template.md` 建立 `agents/qa-engineer.md`，补齐 8 条测试资产索引、169/169 `dotnet test -v m` 基线、R8/R9/R10 风险监控与 parity/Stage D 行动清单，为后续 ingestion smoke 与 1 MB 基准奠定资料来源。
 - **Information Researcher 入职**：创建 `agents/information-researcher.md`，填充 13 条索引与 7 条监控清单，并注明“仅接受架构师调度”限制；重点跟踪 AGENTS、m3 计划、Stage D schema、`refresh_serialization_fixtures.ps1` 新开关等差异。
 - **组织更新**：`docs/architecture/ai-team-design-draft.md`、`AGENTS.md` 记录信息调查员仅服务架构师的技术限制，并将 QA/Information Researcher 标记为正式员工，后续由 QA 承接 parity smoke + 基准，由信息调查员维护会议资料与 Stage D 日志。
+
+### 2025-11-17 (run_all_checks Rust Lint Sweep)
+- **失败复盘**：`./run_all_checks` 在 clippy 阶段连锁暴露 `xi-trace`/`xi-rope`/`xi-core-lib`/`xi-plugin-lib`/CLI 多处 lint、私有字段访问与缺少 `serde` 特性，导致脚本无法进入 `cargo check/test`。
+- **修复动作**：
+  - Rust 端清理 doc 注释/`to_vec`/`type alias`/`Vec` 初始化/`for` 循环/`is_empty` 等 20+ 处 lint，`export-serde-fixtures` CLI 改用 `ok_or`，`find.rs` 避开 `repeat_n`（MSRV 1.75），`watcher.rs`、`recorder.rs`、`tabs.rs`、`plugin-lib` 文档与 API 均对齐规范；
+  - `xi-core-lib` 默认启用 `serde` 特性以解锁插件 RPC 序列化路径，`Delta` 暴露 `elements()` 访问器供插件缓存无需触达私有字段；
+  - `plugin-lib`/`core-lib`/`rpc` 依赖面全部通过 `cargo fmt` + `cargo clippy --all -D warnings`；
+- **验证结果**：`./run_all_checks` 全流程（fmt、clippy、cargo check、workspace tests、`xi-rope` 无默认特性 + serde 组合测试）现全部通过，确保 Stage D CLI/夹具导出可在 Linux/WSL 上一次完成，无需手动跳过模块。
 ### 2025-11-17 (Leaf Split & Delete Invariants)
 - **LeafSplitter 对齐 Rust**：重写 `StringLeafOperations.FindLeafSplit`，按 Rust `find_leaf_split` 计算上下界并扩展换行窗口搜索范围，遇到代理对拆分时退回安全边界；`TryComputeBalancedSplit` 现复用新的合并对齐逻辑，所有叶片再平衡路径不再撕裂 surrogate。
 - **诊断与测试增强**：`RopeTestHelpers.AssertInvariants` 直接抛出 `XunitException` 并打印违规详情，`NodeTests.Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 改为构造 `12` 片段（>8）确保覆盖多层节点，防止高度=1 时误测。

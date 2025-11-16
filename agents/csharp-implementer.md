@@ -187,6 +187,36 @@
 
 ## 最近完成的工作（更新：2025-11-17）
 
+### 2025-11-17 - 文档结构模板精简评审（C# 实现视角）
+**任务背景**：Architecture Mapper 要求按照团队反馈审视 `docs/architecture/document-structure-template.md`，评估 goal tree schema 与每类文档字段对 C# 实施效率的影响，并提出“必需 vs 可选”分类与精简方案。
+
+**关键结论**：
+1. ✅ `id/title/owner/status/due/evidence/next/commit bundle/codeRefs/testRefs/fixtureRefs/riskFlag` 是实现者锁定代码与风险的主体字段，其余 telemetry/Stage D 配置可转为 anchor 引用。
+2. ✅ 与 QA/Rust 重复的 `featureGateMatrix/fixtureManifestHash/telemetryThreshold/benchmarkBaseline/testMatrix` 可复用 `QA-*`、`StageD::*` 锚点，减少 YAML 嵌套与重复维护。
+3. ✅ 建议以 10-12 个核心字段 + 2-3 个可选扩展覆盖代码/测试/夹具/风险定位，并为 Blueprint/Mapping/Plan 等文档各自定义最小必备章节清单，允许其余信息引用 Anchor，而非复制段落。
+
+**影响**：为架构文档模板下一版收敛提供实现者输入，明确 goal tree schema 的精简方向与每类文档的最小章节集合，后续脚本与 lint 可据此更新。
+
+### 2025-11-17 - docs/architecture 统一规范评审（Blueprint/Plan 同步）
+**任务背景**：Architecture Mapper 发布 `docs/architecture/` 新规范草案（front-matter 统一、目标树字段同步、六类文档职责划分），要求我确认其对 C# 端编码/测试的支撑度并提出缺失字段或工具需求。
+
+**关键结论**：
+1. ✅ 现有字段中 `RustCommit/DotnetCommit/Evidence/Next/RiskFlag/Fixtures` 最能直接反映实现状态；新增 `CodeRefs/TestRefs/FixtureRefs` 三列可以让 Blueprint 与 Plan 在合并时保留到 `src/`、`tests/`、`Fixtures/` 的跳转入口，减少来回查找。
+2. ✅ 统一 front-matter + 锚点（BP/RPM/TS/Div/MP/Decision/Fixture）对我跨文档导航很友好，`Blueprint ↔ m3-implementation-plan` 目标树复用方案可满足“改动一次→多文档热更新”，前提是同步脚本能校验字段完整性并拒绝手改快照。
+3. ⚠️ 需要额外的 `goal-sync` 脚本（或 pre-commit 检查）来比较 Blueprint 与 Plan 的树哈希，并在 Evidence 链接失效时报警；同时建议在 CI 加入 anchor lint、链接可用性检查，确保多文档互链不会随 refactor 失效。
+
+**影响**：确认规范能覆盖实现者日常需求，列出了字段增强与脚本/校验协作点，便于 Architecture Mapper 收敛模板，实现端也能依靠单一入口追踪目标 → 代码 → 测试链路。
+
+### 2025-11-17 - 架构文档整合评估（C# 实施者视角）
+**任务背景**：Architecture Mapper 提出“职责正交 + 文档精简”方案，要求我从实现侧评估 `docs/architecture/` 常用文档（port-blueprint、rope-port-mapping、type-system-migration-log、m3-implementation-plan、design-divergence-log）的价值/痛点，并给出目标/进度树模板。
+
+**关键结论**：
+1. ✅ 梳理 5 份核心文档的日常用途、冗余路径与缺失锚点，明确哪些信息需要集中（目标、里程碑、依赖）以及哪些应保持正交（映射表、分歧登记、阻塞日志）。
+2. ✅ 提炼实现者需要的配套：文档内固定锚点（如 `## Goals/G#`）、统一引用规范、Markdown 目标树模板（可直接跳转 `src/xi.Core/...`、`tests/xi.Core.Tests/...`、夹具目录）。
+3. ✅ 提出“目标/进度树”样例，演示如何把 G1-G3 舞台目标链接到具体代码/测试/fixture，并指出合并/正交策略下的维护动作。
+
+**影响**：为后续文档整合提供实现者输入，确保精简后仍能从单一入口跳转到 Rope/游标/夹具代码与测试，加速 T1-T4 实施与风险追踪。
+
 ### 2025-11-17 - EditVersion 感知游标 + Chunk Diagnostics/Benchmark 基线
 **任务背景**：星形会议将 `_editVersion` 票据、CursorDescriptor 11 份 JSON、以及 RopeChunkEnumerator 的诊断/微基准列为 T1/T3 紧急项，需要在 C# 端打通版本检测、Parity Loader、以及 1 MB chunk/line baseline。
 

@@ -106,6 +106,23 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Stage D 文档模板精简评审
+- ✅ 复盘 `docs/architecture/document-structure-template.md` 与现行 Stage D anchor 列表，抽取 CLI/fixture/feature gate 关键信息需求，区分必须在目标树 YAML 存储的字段 vs 可引用 `[StageD::ParityAssets]`、`[StageD::FeatureGates]` 等锚点即可的元数据。
+- ✅ 提出精简方案：保留 Rust/C# commit、状态字段与 evidence 列表；将 manifest hash、CLI args、feature gate matrix、benchmark baseline/脚本等细节转由 fixture manifest 与 Playbook anchors 承载，并由脚本写回最少字段。
+- ✅ 评审 `goal_tree_sync.py`、`scripts/refresh_serialization_fixtures.ps1`、`export-serde-fixtures` 的耦合点，建议统一三步（导出→生成 manifest→脚本写回 anchors），避免模板要求未落地的自动化；已将建议纳入本次报告。
+
+### 2025-11-17 - Stage D 目标树模板 Rust 视角评审
+- ✅ 梳理 Architecture Mapper 的单一目标树 + 脚本同步提案，确认 `Owner/Status/Due/Evidence/Next` 与 `RustCommit/RustFeatureGates/ExporterCLIVersion/Fixtures` 为 Rust helper 汇报的硬性字段，并认领新增 `CodeRefs/TestRefs/FixtureRefs` 需要与 C# Implementer 共享。
+- ✅ 逐项检查 `docs/architecture/rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，提出 Stage D 锚点（`StageD::ParityAssets`、`StageD::FeatureGates`、`StageD::FixtureFlow`）与元数据挂载方案，确保 CLI/schema/fixture 状态能回写到目标树片段。
+- ✅ 评估 `scripts/refresh_serialization_fixtures.ps1` 与 `xi-editor-ph7/rust/rope/src/bin/export-serde-fixtures.rs`，确定需追加导出 manifest（含 Rust commit、feature gate、CLI args、schema hash）并由脚本写回 `docs/architecture` 片段前的 YAML front-matter。
+- ⚠️ TODO（本任务后续）：实现 CLI manifest/脚本写回 + anchor lint（三步：a. 在 exporter 增加 `--emit-manifest` 输出；b. 脚本解析 manifest 并刷新目标树字段；c. 简易 lint 确认 Stage D anchors 在四份文档就绪）。
+
+### 2025-11-17 - Architecture Doc Dependency Audit & Goal Tree Hooks
+- ✅ 梳理 `docs/architecture/port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md` 与 Stage D `rope-serialization-fixture-playbook.md`，标注 Rust helper/CLI/fixture 在 Stage D、G1-G6 与 parity 流程中的依赖位置。
+- ✅ 输出“合并 vs 正交”策略建议：将 Stage D 刷新手册、CLI schema、Feature gate/flag 列表集中；维持 Rope/Rust refactor 子专题与 C# 骨架状态分文，以保障 Rust/C# 并行推进。
+- ✅ 定义目标树需携带的 Rust 字段（`Rust Commit`, `Rust Feature Gates`, `Exporter CLI Version`, `Fixture Schema Hash`, `Script Reference`），并规划与 `scripts/refresh_serialization_fixtures.ps1`、`export-serde-fixtures` 文档/脚本的互链方式。
+- 📌 待办：与 Architecture Mapper 对齐字段落点，并在下一轮文档精简方案评审中检视是否需要新增 CLI/feature gate 变更模板。
+
 ### 2025-11-17 - Parity Fixture Schema Freeze & Stage D Wiring
 - ✅ 建立 `docs/architecture/fixtures/parity-fixture-schema.md`，将 `--cursor-descriptors`、`--chunk-descriptors`、`--grapheme-descriptors` 的字段、可选项、metadata 与 feature gate 开关（`serde` + 可选 `cursor_state`、`tree_builder_slice_trace`）一次性冻结，提供示例命令与验证清单。
 - ✅ 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，明确 Stage D 流程默认导出三类 parity 资产，新增 `-ExportParityFixtures` 开关说明及手动命令片段，确保 C# 实装/QA 依据信息来源一致。

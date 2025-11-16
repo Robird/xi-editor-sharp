@@ -173,6 +173,36 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - 文档结构模板精简审阅
+#### 已完成任务
+- ✅ 阅读 `docs/architecture/document-structure-template.md` 全文，并对照 `port-blueprint.md`、`rope-port-mapping.md`、`m3-implementation-plan.md` 交叉验证字段/锚点的重复与可裁剪区段。
+- ✅ 整理文档目录、目标树 schema、每文档要求、锚点规则、QA/Stage D、治理六大核心章节的冗余项与必保留项，为 AI Team 传阅准备迭代建议。
+- ✅ 形成“精简版模板纲要”草案，标注可下放到 playbook/agents 档案或附录的细节，待架构师评审后统一发出。
+#### 后续监控
+- 🔼 2025-11-18 前向 AI Team 提交本次模板精简建议，收集各角色（QA、Implementer、Porter）对删减字段的反馈，并决定是否在 `docs/architecture/` 顶层发布精简版片段。
+- 🔄 若获批，需要协助各文档 owner 迁移到精简模板，并更新 `AGENTS.md` 记录执行进度。
+
+### 2025-11-17 - 文档结构模板提案 + 目标树字段定义
+#### 已完成任务
+- ✅ 全量复盘 `docs/architecture/port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md`、`m3-architect-decision.md` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，梳理现有章节职责、互链方式与重复段落，为模板提案建立事实基线。
+- ✅ 归纳 7 份核心文档的职责矩阵与锚点建议（含 Blueprint ↔ M3 计划、阻塞日志 ↔ 分歧日志、Fixture 手册 ↔ Stage D CLI），并规划交叉引用规范（如 `[G1]`, `[Decision-M3-01]`, `[Fixture-Cursor-CLI]`）。
+- ✅ 设计目标/进度树字段标准（Owner/Status/Due/Evidence/Next/Rust Commit/Feature Gates/CLI Version/Fixtures/Telemetry等）与 Blueprint ↔ M3 计划的复用策略（Markdown 片段 + `refresh_skeleton_docs.py` 钩子 + 注释约束），形成统一元文档草案。
+- ✅ 起草“文档规范模板”骨架（摘要/范围、文档类别章节顺序、引用/锚点规则、维护者/频率/审核流程），并标记需其他角色补充的字段（如 CLI schema、测试链接、遥测阈值）。
+#### 后续监控
+- 🔄 等待团队评审模板草案，若获批需在 `docs/architecture/` 顶层创建共享章节段落并向各文档 owner 通知迁移窗口。
+- 🔼 与 Rust Porter/C# Implementer 对齐“目标树字段”中 CLI/fixture/测试责任的自动校验方式（脚本或手工清单），防止字段长期空缺。
+- 📝 一旦模板批准，需批量更新 7 份核心文档的章节排布与引用标签，并在 `AGENTS.md` 登记迁移动作与检查清单。
+
+### 2025-11-17 - 架构文档整合扫描 + 星形会议准备
+#### 已完成任务
+- ✅ 快速审阅 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md`、`m3-architect-decision.md`，收集现状、交叉引用与重复段落，为星形会议提供输入。
+- ✅ 整理两种候选策略（合并型 / 正交型）的初步建议点，标注各文件适合的职责边界与可能的合并路径，并草拟目标/进度树模板。
+- ✅ 梳理实施影响（维护成本、上下文载荷、AI 团队协同）与需更新的文档/脚本清单，准备在最终报告中输出。
+#### 后续监控
+- 🔼 星形会议时需驱动团队确认选择的策略版本，并在会后批量更新 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md` 等受影响章节。
+- 🔄 待架构师确认目标/进度树结构后，在相关文档插入统一模板，并同步通知 QA/Implementer 如何引用。
+- 📝 如果会议决定调整 CLI/schema 或 Stage D 脚本范围，我需追加到 `scripts/refresh_serialization_fixtures.ps1` 与 Stage D 文档的更新清单。
+
 ### 2025-11-17 - Rope 文档同步 + R8/R9/R10 状态刷新
 #### 已完成任务
 - ✅ 更新 `docs/architecture/rope-port-mapping.md` 的 Leaf/Cursor/Chunk/Grapheme 行：记入 `_editVersion` 版本票据、`CursorDescriptorParityTests` 11/11、`RopeChunkEnumeratorDiagnostics`/`GraphemeNavigationMetrics` 插桩，并明确 CLI schema、Grapheme 遥测阈值与 1 MB 基准尚未交付。

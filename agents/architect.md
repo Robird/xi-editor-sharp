@@ -55,7 +55,6 @@
 4. 通过 `runSubagent` 委派，指令格式：
    ```
    你是 [员工角色]，请先读取 `agents/[员工档案].md` 恢复你的认知。
-   
    ## 背景
    [项目上下文，必要时引用 AGENTS.md 相关章节]
    
@@ -67,7 +66,6 @@
    ## 约束
    - [不要做什么]
    - [质量要求]
-   
    ## 完成后必须
    1. 更新你的认知档案 `agents/[你的档案].md` 的"最近完成"章节
    2. 向我汇报：完成了什么、遇到什么问题、有什么建议
@@ -76,11 +74,9 @@
    ```
 
 ### 产物整合
-1. 读取各 AI 员工更新后的认知档案
 2. 运行全局测试验证集成（`dotnet test Xi.Editor.sln`）
 3. 更新 `docs/architecture/system-overview.md` 的子系统状态
 4. 必要时协调跨员工冲突（如接口不一致）
-
 ### 会话收尾
 1. 将完成事项移至 `AGENTS.md` 的"已完成事项"
 2. 在 `AGENTS.md` 的"工作日志"记录关键行动
@@ -109,6 +105,12 @@
   - 触发星形会议条件：单个子任务超期 > 2 天、新技术阻塞、测试通过率 < 90%
 
 ## 最近完成的工作
+### 2025-11-17
+- **主持 Architecture 文档整合星形会议**：与 Architecture Mapper、C# Implementer、Rust Porter 讨论“合并型 vs 文档职责正交”策略，决定采用“共享目标树 + 文档正交 + 个别精简”方案，保留 `m3-implementation-plan.md` 作为唯一计划书，并将 `m3-architect-decision.md` 改写为决策摘要/变更日志。
+- **对齐行动项**：Architecture Mapper 负责目标树模板与引用规范（含 Owner/Status/Due/Evidence/Next + Rust Commit/Feature Gates/CLI 版本字段）；C# Implementer 提供 G1-G3 节点对应的代码/测试/夹具链接；Rust Porter 将 Stage D/CLI/schema 元数据映射到模板字段并更新相关锚点。
+- **交付**：整合四位角色的评审结果并创建 `docs/architecture/document-structure-template.md`，明确 front-matter、目标树 YAML 真源、QA/Stage D 锚点与自动化脚本要求，全员在各自档案中记录认可。
+- **复审**：再次组织 Architecture Mapper/C# Implementer/Rust Porter/QA Engineer 传阅模板，精简目标树字段至“14 核心 + 3 可选锚点”，把 Stage D/QA 细节改为链接、压缩 per-doc 章节与治理描述，更新 `docs/architecture/document-structure-template.md` 并同步记录。
+
 ### 2025-11-16（晚）
 - **主持类型系统阻塞点可行性会议**（星形会议模式）：
   - 议题：评估 `type-system-migration-log.md` 中 4 个阻塞点（游标/Metric/Chunk/字素）是否可解决，决定是否坚持骨架映射策略
