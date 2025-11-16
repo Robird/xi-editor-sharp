@@ -147,7 +147,26 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
-### 2025-11-17
+### 2025-11-17（晚）
+- **主持元任务：用户提示词设计与改良**
+  - **目标**：设计一个能让用户快速激活 AI Team Leader 模式的提示词，使架构师迅速进入工作状态
+  - **方法**：采用"先调研 → 再设计 → 最后验证"策略
+    1. 读取 `agents/architect.md`（当前档案）+ `AGENTS.md`（全局记忆）+ `system-overview.md`（子系统地图），了解现有 AI Team 组织结构与工作流程
+    2. 通过 runSubagent 激活 Architecture Mapper，从文档治理者视角评估提示词缺失元素（9 项优先级排序：P0 必须补充 4 项、P1 应该补充 3 项、P2 可选 2 项）
+    3. 通过 runSubagent 激活 C# Implementer，从一线实施者视角评估提示词实用性（认知档案优先级、委派指令改进、阻塞响应机制、收尾清单重要性）
+    4. 架构师整合两位员工的深度评审报告（共 2 份，约 5000 字），提炼核心需求
+    5. 设计最终版提示词（200+ 行，包含 5 步认知恢复、委派模板、7 项收尾清单、阻塞响应机制）
+  - **关键发现**：
+    - **Architecture Mapper 视角**：当前提示词的"XXX"占位导致无法定位具体计划，缺少文档读取顺序（可能陷入文档迷宫），缺少会话收尾提醒（容易遗忘更新记忆）
+    - **C# Implementer 视角**：委派指令需补充"文件路径明确性""测试覆盖要求""依赖明确性"，阻塞响应需显式化触发词（"⚠️ 阻塞"），收尾清单中"员工档案更新确认"和"测试基线验证"是 P0 级别
+    - **共同建议**：提供标准 5 步启动序列（3-5 分钟恢复上下文）、采用"双层锚点"设计（`architect.md § 当前聚焦` + 动态文档选择）、强制 5 项 P0-P1 收尾清单
+  - **交付物**：
+    - `scripts/user-root-prompt.md`（200+ 行完整指南，从 1 句话扩展）
+    - `AGENTS.md` § 摘要 Agent 提示（新增用户提示词升级说明）
+    - `agents/architect.md` § 当前聚焦（新增用户提示词优化任务）
+  - **验证计划**：下次用户使用新提示词时，观察架构师是否能在 3-5 分钟内恢复上下文并启动工作
+
+### 2025-11-17（早）
 - **主持 Architecture 文档整合星形会议**：与 Architecture Mapper、C# Implementer、Rust Porter 讨论“合并型 vs 文档职责正交”策略，决定采用“共享目标树 + 文档正交 + 个别精简”方案，保留 `m3-implementation-plan.md` 作为唯一计划书，并将 `m3-architect-decision.md` 改写为决策摘要/变更日志。
 - **对齐行动项**：Architecture Mapper 负责目标树模板与引用规范（含 Owner/Status/Due/Evidence/Next + Rust Commit/Feature Gates/CLI 版本字段）；C# Implementer 提供 G1-G3 节点对应的代码/测试/夹具链接；Rust Porter 将 Stage D/CLI/schema 元数据映射到模板字段并更新相关锚点。
 - **交付**：整合四位角色的评审结果并创建 `docs/architecture/document-structure-template.md`，明确 front-matter、目标树 YAML 真源、QA/Stage D 锚点与自动化脚本要求，全员在各自档案中记录认可。

@@ -392,7 +392,9 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - 评估协同编辑/CRDT 功能的技术路线，明确所需的 Delta/Subset 扩展与一致性测试。
 
 ## 摘要Agent提示
-- 下次执行摘要时请突出：**SubAgent 委派机制已建立并验证**，通过两次实战（代码搜索 + 功能实现 + 测试）确认 SubAgent 与主 Agent 能力对等，可独立完成完整开发周期；相关工作模式、适用场景、委派原则已文档化于 `AGENTS.md`"协作与工具心得"章节。
+- **用户提示词已完成重大升级 v3.0**（2025-11-17）：`scripts/user-root-prompt.md` 从"瀑布式单次执行"进化为"迭代循环推进"模式，核心范式从"启动 → 执行一次 → 收尾"转变为"{目标-差距-思考-委派} PDCA 循环，直至目标达成或遇到真正阻塞"，充分利用无限次工具调用能力实现主动推进而非被动等待，通过用户反馈识别"瀑布式思维陷阱"并重构为敏捷迭代模式。
+- **SubAgent 委派机制已建立并验证**：通过两次实战（代码搜索 + 功能实现 + 测试）确认 SubAgent 与主 Agent 能力对等，可独立完成完整开发周期；相关工作模式、适用场景、委派原则已文档化于 `AGENTS.md`"协作与工具心得"章节。
+- **AI Team 组织已成熟**：5 位核心员工（Rust Porter、C# Implementer、Architecture Mapper、QA Engineer、Information Researcher）已入职并建立认知档案，星形会议、文档先行、认知档案机制等最佳实践已沉淀于 `agents/architect.md` § 成功经验总结。
 - 同步强调：`StringLeafOperations` 已抽离叶片编辑/合并/再平衡逻辑，并配套 81 项测试基线；泛型 `Node.Generic.cs` 现已具备 `ValidateInvariants`/`ToDebugString` 诊断能力，测试基线从 102 项增至 106 项全部通过。
 - 提醒 Rust 端 `cursor_state` 可选特性已经引入 `CursorState`/`Cursor::state()`（Phase 2），已通过 Base/Lines/Utf16 导航对拍测试确认语义一致，后续仅需按需收集轻量指标以决定默认策略。
 - 概述紧邻的短期计划（叶操作抽象巩固、泛型 Node 内核试验、阶段 C 再平衡设计），以便快速恢复上下文。
@@ -452,6 +454,44 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (User Prompt Upgrade v3.0 - 迭代循环模式)
+- **核心突破**：从"瀑布式单次执行"转变为"持续迭代推进"模式
+  - **问题识别**：用户指出"所有设想都是瀑布式的（启动→执行一次→收尾→等待下次输入），而非迭代与动态的{目标-差距-思考-委派}循环，工具调用无限制为何要陷入等待？"
+  - **认知转变**：意识到自己陷入"单次会话 = 单次任务"的思维陷阱，忽略了"一次会话可以持续迭代推进多个任务直到目标达成"的可能性
+- **v3.0 核心改进**：
+  - **PDCA 循环范式**：Plan（评估差距）→ Do（委派执行）→ Check（验证整合）→ Act（决策下一步）→ 回到 Plan，直到目标达成或遇到真正阻塞
+  - **停止条件明确**：仅 2 种情况停下（✅ 目标已达成、🚨 遇到无法解决的阻塞），其余情况立即进入下一轮迭代
+  - **主动推进原则**：错误模式"完成任务 A → 等待用户输入" vs 正确模式"完成任务 A → 检查目标 → 立即启动任务 B → ... → 目标达成后汇报"
+  - **启动简化**：从"场景 A/B/C 三档启动"简化为"最小化启动（< 1 分钟）→ 立即进入 PDCA 循环"，启动只是手段，迭代推进才是核心
+- **工作模式转变**：
+  - v1.0/v2.0：架构师 = "任务执行者"（用户说做什么就做什么，做完等待下次指令）
+  - v3.0：架构师 = "自主推进者"（用户给定目标，架构师持续迭代直到目标达成或需要外部支援）
+- **实际案例对比**：
+  - 瀑布式（v2.0）：用户输入提示词 → 架构师完成子任务 1 → 向用户汇报 → 等待用户再次输入 → 架构师完成子任务 2 → ...（需要 N 次用户输入）
+  - 迭代式（v3.0）：用户输入提示词 → 架构师进入 PDCA 循环（子任务 1 → 2 → 3 → ... → N）→ 目标达成后一次性汇报（仅需 1 次用户输入）
+- **更新文档**：`scripts/user-root-prompt.md`（v3.0）、`AGENTS.md` § 摘要 + 工作日志
+
+### 2025-11-17 (User Prompt Upgrade v2.0)
+- **元任务交付**：基于用户反馈与实验验证，重构 `scripts/user-root-prompt.md` 为场景化灵活指南（v1.0 → v2.0）。
+- **设计方法**：
+  1. **v1.0 设计**：通过 runSubagent 激活 Architecture Mapper + C# Implementer 深度评审，设计 200+ 行 5 步完整流程
+  2. **用户反馈**：指出 3 个关键问题（AGENTS.md 自动注入无需读取、逐个读员工档案消耗过高、过度规范化丧失灵活性）
+  3. **实验验证**：通过 runSubagent 模拟架构师执行 v1.0 提示词，发现第三步"扫描 5 个员工档案"消耗 ~30K tokens（40%）且过于机械，缺少"快速通道"
+  4. **v2.0 重构**：场景化启动（快速 < 1 分钟/标准 3-5 分钟/深度 5-10 分钟）+ 智能扫描（grep 替代逐个打开）+ 丰田管理哲学（Kaizen/Jidoka/Respect）
+- **核心改进**：
+  - **场景 A（快速启动）**：仅读 `architect.md § 当前聚焦` + grep 搜索阻塞，< 1 分钟（适合连续会话）
+  - **场景 B（标准启动）**：读架构师记忆（聚焦核心）+ 智能扫描团队（grep/日志）+ 按需定位文档，3-5 分钟（常规会话）
+  - **场景 C（深度启动）**：完整恢复认知流程，5-10 分钟（长期中断）
+  - **委派原则**：从"7 项必须"简化为"3 个必须 + 1 个信任"，强调给员工主观能动性空间
+  - **收尾哲学**：从"7 项强制清单"转为"3 个核心目标 + 按需检查"，避免"填表格"心态
+  - **管理哲学**：融入丰田生产方式（Kaizen 改善/Jidoka 自働化/Respect for People）+ 敏捷精神（响应变化/工作软件/个体互动）
+- **实验发现**：
+  - v1.0 完整流程消耗 ~75K tokens，15-20 分钟（人类等效）
+  - v2.0 标准启动压缩至 ~20-30K tokens，3-5 分钟
+  - 第三步"逐个打开员工档案"是最大瓶颈（30K/75K = 40%），改用 grep 可降至 < 5K
+- **更新文档**：`scripts/user-root-prompt.md`（v2.0）、`AGENTS.md` § 摘要 + 工作日志、`agents/architect.md` § 当前聚焦
+- **验证计划**：下次用户使用新提示词时，观察是否能在 1-5 分钟内（视场景）恢复上下文并灵活应变
+
 ### 2025-11-19 (System Overview Map Launch)
 - **交付**：创建 `docs/architecture/system-overview.md`，补齐 front-matter + `[SO-*]` anchors，并以表格形式串联 Rope Core/Delta-Subset/Engine/Stage D/AI Team/Testing&QA 子系统，提供 `[BP-GoalTree]`、`[RPM-Matrix]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]` 等跨文档入口。
 - **引用关系**：`[SO-Map]` 将 Goal Tree 与 `[TS-Bx]`、`[MP-Tx]`、Stage D/QA 锚点对齐，`[SO-Responsibilities]` 指向 `agents/*.md` 档案，`[SO-Dependencies]` 阐明 Goal Tree→Stage D→QA 闭环，方便 runSubAgent 读取后直接定位事实来源。
