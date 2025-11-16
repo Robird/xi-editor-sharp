@@ -36,6 +36,12 @@
 - 需评估 C# Cursor 复用 `SharedNode` 后的 GC 压力与缓存命中率，建议在实现阶段引入 instrumentation 并回写 `AGENTS.md`。
 - Open question: 是否需要在 Cursor 状态中记录版本号以检测编辑后的失效？Rust 端依赖 `Arc::ptr_eq`，C# 需确认等效策略；如未来复刻 `CursorState`，仍可延续版本号/指针比较混合方案。
 
+#### 2025-11-17 - 版本票据 + Diagnostics 里程碑
+- **负责人**：C# Implementer（实现 `_editVersion` + `NodeCursor` 失效检测）、Architecture Mapper（文档对齐）、Rust Porter（CLI schema 冻结）。
+- **交付物**：`Rope` 在所有编辑路径递增 `_editVersion`/版本票据（`src/xi.Core/Rope/Rope.cs`）、`NodeCursor` 通过版本号 + `ReferenceEquals` 复合策略检测失效，`CursorDescriptorParityTests.cs` 11/11 JSON 驱动用例与 `dotnet test -v m`（169/169）结果确认诊断全绿。
+- **引用资产**：`tests/xi.Core.Tests/CursorDescriptorParityTests.cs`、`tests/xi.Core.Tests/Fixtures/CursorDescriptors/`（手工维护的 11 份 JSON，等待 CLI 更新）。
+- **下一步验证**：Rust Porter 需在 `export-serde-fixtures` 中冻结 `--cursor-descriptors` schema 并更新 Stage D 文档；Architecture Mapper 负责在 `rope-port-mapping.md`/`m3-implementation-plan.md` 标注 CLI/文档缺口，QA 在 schema 就绪后运行 ingestion smoke。
+
 ## Metric 泛型与 Node 编辑互通
 
 ### Rust 侧策略
@@ -88,6 +94,17 @@
 - `iterator-facade-export.md` 给出了 owned descriptor/visitor 风格指引，但尚未有具体实现；需跟进 Rust 侧是否计划导出 `(byte_len, utf16_len)` 元数据或 `visit_chunks` façade。
 - Open question: C# 是否采用 `ArrayPool<char>`/`MemoryOwner<char>` 来减少桥接成本？需在原型阶段收集基准后决策。
 - 待办：协调 Rust 提供 chunk/line façade 或共享 trace，C# 侧同步规划 `ChunkDescriptor` 结构与测试夹具，避免长期依赖 `Snapshot()`。 
+
+#### 2025-11-17 - Diagnostics & 版本票据联动里程碑
+- **负责人**：C# Implementer（`RopeChunkEnumeratorDiagnostics` + API 曝光）、Architecture Mapper（文档/设计分歧更新）、QA Engineer（微基准脚本）、Rust Porter（准备 CLI schema）。
+- **交付物**：
+	- `RopeChunkEnumeratorDiagnostics` 统计 chunk 总数、最大 chunk 长度、跨叶复制成本，并在 `RopeChunkEnumeratorDiagnosticsTests.cs` 与 `tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs` 中验证；
+	- 枚举器可选地接受 diagnostics 参数，便于与 `NodeCursor` 版本票据（编辑后重新枚举）同源追踪；
+	- 文档（`rope-port-mapping.md`、`design-divergence-log.md`）同步记录“复制语义 + Diagnostics”降级策略。
+- **下一步验证**：
+	- Rust Porter 需补全 `--chunk-descriptors` schema 与 Stage D CLI 指南，确保 diagnostics 可对照 CLI JSON；
+	- QA 在 schema 可用后运行 1 MB payload 微基准并把数据写入 `m3-implementation-plan.md` §5.3；
+	- Architecture Mapper 追踪 `GraphemeNavigationMetrics` 阈值裁决与性能基准，必要时触发 R10 风险升级。
 
 ## 字素导航与跨叶上下文
 

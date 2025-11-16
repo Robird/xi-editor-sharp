@@ -72,6 +72,8 @@
 3. **Grapheme 导航追平评估（后期）** - 当前 C# 采用降级实现（surrogate 安全 + 单叶/邻叶补片），已在 `design-divergence-log.md` 登记；待真实需求验证后决定是否提供 `GraphemeStep` helper
 4. **Chunk 元数据 API（后期）** - 为 `iter_chunks` 补充 `iter_chunk_descriptors` 输出 `(byte_len, utf16_len)` 元信息；依赖 Iterator Façade 方案成熟
 5. **叶片拆分双指标返回（后期）** - 让 `find_leaf_split_*` 返回同时包含字节与 UTF-16 长度的结构体；等待 C# 侧明确需求
+6. **Leaf Split parity 样本守护（短期触发 ≤0.5 天）** - 2025-11-17 parity 已完成，但需预备 `leaf_split_parity_samples.json` 导出脚本或守护测试。一旦 C# 端出现新拆分策略、`NodeTests.Delete*` 再扩容或 `dotnet test -v m` 报告 leaf case 回归，即触发 Rust 端生成 UTF-8/UTF-16 极值样本并纳入 CLI/fixture。
+7. **CursorDescriptor CLI 下一版（中期 1-1.5 天）** - 升级 `export-serde-fixtures --cursor-descriptors`：参数化 `build_deep_rope`、追加 Base/Lines/Utf16/Breaks 等组合、串接 chunk/grapheme schema、注入失效路径（光标越界/缓存失效）。依赖 Architecture Mapper/C# Implementer 确认 schema 字段与样本数量后执行。
 
 ## 知识库快速索引
 
@@ -103,6 +105,18 @@
 - `xi-editor-ph7/rust/rope/src/serde_fixtures.rs` - 序列化夹具常量与回归测试
 
 ## 最近完成的工作
+
+### 2025-11-17 - Parity Fixture Schema Freeze & Stage D Wiring
+- ✅ 建立 `docs/architecture/fixtures/parity-fixture-schema.md`，将 `--cursor-descriptors`、`--chunk-descriptors`、`--grapheme-descriptors` 的字段、可选项、metadata 与 feature gate 开关（`serde` + 可选 `cursor_state`、`tree_builder_slice_trace`）一次性冻结，提供示例命令与验证清单。
+- ✅ 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，明确 Stage D 流程默认导出三类 parity 资产，新增 `-ExportParityFixtures` 开关说明及手动命令片段，确保 C# 实装/QA 依据信息来源一致。
+- ✅ 扩展 `scripts/refresh_serialization_fixtures.ps1`：新增默认开启的 `-ExportParityFixtures`，在 `cargo run -p xi-rope --features serde --bin export-serde-fixtures` 调用内注入三条输出目录 flag，并在 `pwsh -File .\scripts\refresh_serialization_fixtures.ps1 -SkipDotnet` 运行中验证 Rust 基线 + parity 写入（`cursor_descriptors=11`, `chunk_descriptors=9`, `line_descriptors=11`, `grapheme_descriptors=668`）；命令输出附在同步报告中以便 QA 引用。
+- ✅ 手工执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests/xi.Core.Tests/Fixtures --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors`，确认 schema 覆盖的字段全部生成，并在 Stage D 文档中记录示例。
+- ⚠️ 待 Architecture Mapper/C# Implementer 对接：需在 11/19 前将新 schema 与脚本更新引用到 `AGENTS.md`、`rope-port-mapping.md` 与 QA ingest 清单，并排定下一次 parity fixture 消费验证时间点。
+
+### 2025-11-17 - Leaf Split & Cursor Descriptor 深树 Parity 跟进
+- ✅ 依据 `AGENTS.md` 2025-11-17 日志确认：C# `StringLeafOperations.FindLeafSplit`、`TryComputeBalancedSplit` 与 Rust `helpers/string_leaf.rs` 已实现逐语义对齐，`NodeTests.Delete*` 升级为 12 片段验证，`dotnet test -v m`（169/169）全数通过；Rust helper 暂无需改动，仅需监控是否需追加更极端 UTF-8/UTF-16 分布的样本。
+- ✅ `CursorDescriptorParityTests` 通过 `Rope.FromNode` 与 `BuildDeepTreeRope` 复刻 Rust `build_deep_rope()`，并消化 CLI 输出的 11 个 `cursor_descriptors` JSON 样本实现 11/11 比对成功；现有 Rust CLI 资产已被完全消费，需要评估是否扩展更多 metric 组合、chunk/grapheme schema 或失效场景以支撑下一轮验证。
+- ✅ 记录后续观察点：如 C# 触发新拆分策略需立刻导出 `leaf_split_parity_samples.json`；若 cursor fixture 需覆盖更深路径、混合 metric 或失效案例，则需参数化 `build_deep_rope` 并扩展 `export-serde-fixtures`；相关 TODO 已写入“待推进的改造”与“下次任务”。
 
 ### 2025-11-16 - Round 2 Rust Asset Audit (Star Meeting)
 - ✅ 复核 `docs/skeleton/rope.md` 与 `docs/architecture/rope-port-mapping.md`，梳理 CursorState、Breaks/Find/Diff、Iterator façade、Chunk/Grapheme helper 等核心模块在代码/测试/fixture/CLI 维度的成熟度，并标注已映射到 C# 骨架或 JSON 资产的范围。
@@ -215,8 +229,10 @@
 3. **Iterator Façade 范围** - `iterator-facade-export.md` 列出多个迭代器候选，`Rope::iter_chunks` 有流式依赖场景。已确认分批实施：优先 `Delta` façade（可 materialize），`iter_chunks` 改用 visitor 模式；时间表 M2/M3
 4. **Feature Gate 管理策略** - 当前已有 `cursor_state`、`tree_builder_slice_trace` 等可选特性。未来是否会继续增加更多 feature？是否需要建立统一的特性命名与文档约定？
 5. **Serde Fixtures 刷新频率** - Stage D 已建立 `export-serde-fixtures` 与 `refresh_serialization_fixtures.ps1` 流程。何时需要刷新黄金夹具？是每次 Rust helper 改动后立即刷新，还是按阶段（如每个 Phase 完成后）批量更新？
+6. **Leaf parity 样本触发条件** - 需与 Architecture Mapper/C# Implementer 在 48 小时内明确：哪些 UTF-8/UTF-16 分布、叶片规模或 `NodeTests.Delete*` 场景变化将触发 Rust 端生成 `leaf_split_parity_samples.json`，以及是否需要自动化 guard。
+7. **Cursor fixture 扩展范围** - 下一版 `cursor_descriptors` 是否必须包含更多 metric/编辑失败路径？`build_deep_rope` 参数化与 CLI schema（是否拆分 chunk/grapheme 文件）需获得跨团队确认后方可估算工时。
 
 ---
 
-**最后更新**：2025-11-16  
-**下次任务**：等待架构师分派
+**最后更新**：2025-11-17  
+**下次任务**：48 小时内与 Architecture Mapper/C# Implementer 对齐 leaf parity 样本触发条件与 Cursor fixture 扩展范围，并给出 `leaf_split_parity_samples` 守护脚本与 `cursor_descriptors` CLI 升级的工时评估。

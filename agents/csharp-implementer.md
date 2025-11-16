@@ -71,12 +71,12 @@
    - `Node.Generic.cs` - 泛型节点骨架（`Node<TInfo,TLeaf,TLeafOps>`），含诊断方法
    - `TreeBuilder.cs` - 批量构建与再平衡入口
    - `LeafSplitter.cs` - 叶片拆分策略
-   - `StringLeafOperations.cs` - 实现 `ILeafOperations<string>`，含 81 项测试
+   - `StringLeafOperations.cs` - `FindLeafSplit` 重写后与 Rust 对齐（newline window 搜索、代理对回退、`TryComputeBalancedSplit` 复用），支撑 81+ 叶片拆分/删除测试
    - `TreeContracts.cs` - 静态抽象接口（`ILeafOperations`、`ITreeNodeInfo`、`IDefaultMetricProvider`）
-   - `NodeCursor.cs` - 游标占位骨架（待实现）
+   - `NodeCursor.cs` - 拥有型游标实现已完成 T1.1（Base/Lines Metric 导航可用），T1.2 仍在处理叶片遍历与边界计数修复
 
 2. **Rope 表层与度量**（`src/xi.Core/Rope/`）
-   - `Rope.cs` - 字符串缓冲区主入口
+   - `Rope.cs` - 字符串缓冲区主入口，新增 `Rope.FromNode` 工厂允许测试直接接管 `TreeBuilder` 输出
    - `RopeInfo.cs` - 聚合信息（长度、行数、UTF-16 单元数）
    - `Metrics.cs` - BaseMetric、LinesMetric、Utf16CodeUnitsMetric 实现
    - `IMetric.cs` - 度量接口
@@ -92,12 +92,14 @@
    - `TextBuffer.cs` - 基于 StringBuilder 的占位实现
    - `Class1.cs`, `ITextBuffer.cs` - 接口定义
 
-5. **测试基线**（106 项全部通过）
-   - `RopeTests.cs` - Rope 核心功能测试
-   - `NodeTests.cs` - Node 编辑、拆分、合并测试
+5. **测试基线**（`dotnet test -v m` 169/169 通过，含 11 项 CursorDescriptor 专项）
+   - `RopeTests.cs` - Rope 核心功能测试，涵盖 `Rope.FromNode` 新入口
+   - `NodeTests.cs` - Node 编辑、拆分、合并测试，`Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 通过 12 片段场景覆盖多层节点
    - `TreeBuilderTests.cs` - TreeBuilder 构建测试
-   - `StringLeafOperationsTests.cs` - 叶片操作测试（81 项）
+   - `StringLeafOperationsTests.cs` - 叶片操作测试（含全套 Leaf Split 重写回归）
+   - `RopeTestHelpers.cs` - `AssertInvariants` 现改用 `XunitException` 输出违例树形详情
    - `GenericNodeSmokeTests.cs` - 泛型节点诊断测试（7 项）
+   - `CursorDescriptorParityTests.cs` - 新增深树构建器 `BuildDeepTreeRope`，对齐 Rust 深树夹具（11 项）
    - `RopeMetricsTests.cs` - 度量系统测试
    - `RopeMetricInteropTests.cs` - 度量互操作测试
    - `SubsetSerializationTests.cs` - Subset 序列化测试
@@ -112,10 +114,11 @@
    - 串联 TreeBuilder/Delta 与泛型节点
    - 更新现有 81 项 Rope 测试以支持泛型
 
-2. **游标系统**（`NodeCursor.cs` 当前为占位）
+2. **游标系统**（`NodeCursor.cs` 进入 T1.2 阶段）
    - 实现 `CursorDescriptor`（对齐 Rust 端必需能力）
    - 设计拥有型状态缓存（参考 Rust `cursor_state`）
    - 补充 Base/Lines/Utf16 导航测试
+   - **当前阻塞**：T1.2 叶片遍历与 Metric 边界计数仍待完成（需要复刻 Rust `prev_leaf`/`next_leaf` 路径缓存回溯与 EOF 终止条件）；下一步将以深树 Rope + 12 片段删除用例验证 `_pathCache` 升降逻辑
 
 3. **迭代器与遍历**
    - `RopeChunkEnumerator` - 零拷贝块遍历（返回 `ReadOnlyMemory<char>`）
@@ -182,7 +185,48 @@
 - `docs/skeleton/core-lib.md` - Rust 核心库骨架
 - `docs/skeleton/plugin-lib.md` - Rust 插件库骨架
 
-## 最近完成的工作
+## 最近完成的工作（更新：2025-11-17）
+
+### 2025-11-17 - EditVersion 感知游标 + Chunk Diagnostics/Benchmark 基线
+**任务背景**：星形会议将 `_editVersion` 票据、CursorDescriptor 11 份 JSON、以及 RopeChunkEnumerator 的诊断/微基准列为 T1/T3 紧急项，需要在 C# 端打通版本检测、Parity Loader、以及 1 MB chunk/line baseline。
+
+**关键改动**：
+1. ✅ `Rope` 公开 `EnumerateChunks(diagnostics)`，`NodeCursor` 在检测到 `Rope.EditVersion` 漂移时会自动清空缓存、重新 `Descend`，并新增 `CursorInvalidatesAfterEdit`/`CursorMaintainsWhenNoEdit`/`CursorSetPositionAfterEditReattaches` 三项单测验证自动 reattach 路径。
+2. ✅ `CursorDescriptorParityTests` 当前改为目录枚举 (`Fixtures/cursor_descriptors/*.json`)，并为深树/失效样本通过 `ITestOutputHelper` 打印 `ToDebugString()`，方便落地 11 份 JSON 时快速定位差异。
+3. ✅ `RopeChunkEnumeratorDiagnostics` 记录 chunk 总数、最大 chunk 长度、UTF-16 拷贝累计值；`RopeChunkEnumeratorDiagnosticsTests` 覆盖空/单叶/多叶，`RopeChunkEnumeratorTests` 无需改动即可消费 `diagnostics`。
+4. ✅ 新建 `tests/xi.Core.Tests/Benchmarks/Diagnostics/` 控制台（`RopeChunkEnumeratorBenchmarks.csproj` + `Program.cs` + README），生成 1 MB 文本后输出 chunk/line 统计与耗时，供后续 telemetry/性能基准引用；在测试 csproj 中排除了 `Benchmarks/**`，避免被单元测试项目重复编译。
+
+**验证**：
+- `dotnet test Xi.Editor.sln -v m --filter NodeCursor`
+- `dotnet test Xi.Editor.sln -v m --filter RopeChunkEnumerator`
+
+**风险 / 下一步**：
+- Rust Porter 仍需交付 11 份 CursorDescriptor JSON；Loader 已支持目录扫描但目前只有历史合并的单文件。
+- `RopeChunkEnumeratorDiagnostics` 仅记录拷贝统计，尚未挂接线性遥测事件；待 T3.7 汇报时补充 exporter。
+- `NodeCursorState` 仍未实现；现阶段 reattach 仅针对拥有型 NodeCursor，本周需要评估共享 state（ISharedNode）缓存方案。
+
+### 2025-11-17 - Leaf Split & Delete Invariants
+**任务背景**：Leaf Split 算法要与 Rust 完全对齐，同时确保跨多层节点删除时 Leaf 约束仍被监控。
+
+**关键改动**：
+1. ✅ `StringLeafOperations.FindLeafSplit` 重写为 Rust 同源逻辑，新增 newline window 搜索、代理对回退，并将所有平衡判断汇聚到 `TryComputeBalancedSplit`，减少重复逻辑与路径分歧。
+2. ✅ `RopeTestHelpers.AssertInvariants` 现在抛出 `XunitException` 并输出违规节点/片段细节，方便快速定位哪一层叶片失衡。
+3. ✅ `NodeTests.Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 通过构造 12 片段 Rope 覆盖多层内部节点，在删除与再平衡过程中强制命中新 helper。
+
+**验证**：`dotnet test -v m`（169/169 通过）。
+
+**风险 / 后续**：Leaf Split 基线稳定，但 T1.2 游标仍需利用这些深树样例检验 `_pathCache`，并将违规输出纳入 future telemetry。
+
+### 2025-11-17 - Cursor Descriptor Deep Tree Parity
+**任务背景**：为了让 CursorDescriptor 与 Rust 深树夹具保持一致，需要提供能够直接使用 `TreeBuilder` 输出的 Rope，并补齐深树 parity 测试。
+
+**关键改动**：
+1. ✅ `Rope.FromNode` 工厂允许测试接管 `TreeBuilder` 结果构造 Rope，避免额外 copy 并能直接复用 Rust porter 导出的节点拓扑。
+2. ✅ `CursorDescriptorParityTests` 新增 `BuildDeepTreeRope` helper，将 Rust 深树夹具映射到 C#，并扩展 11 项 CursorDescriptor parity 用例验证 Base/Lines/Utf16 三种度量在深树下的路径与边界。
+
+**验证**：`dotnet test -v m`（169/169 通过，其中 CursorDescriptor 专项 11/11 全绿）。
+
+**风险 / 后续**：深树 parity 已对齐，但 T1.2 叶片遍历仍需结合该 helper 观测 `_pathCache` 升降次数，并记录任何 Metric 边界计数偏差。
 
 ### 2025-11-16 - Round 1 Skeleton Gap Report（星形会议输入）
 **任务背景**：星形会议 Round 1 要求我从 `docs/skeleton/xi.Core.Rope.cs` 对照 `docs/skeleton/rope.md` 盘点 C# 端缺口、阻塞与后续计划，以便 11 月内补齐 “Rust ↔ C# 类型骨架映射”。
@@ -577,5 +621,5 @@
 
 ---
 
-**最后更新**：2025-11-16  
+**最后更新**：2025-11-17  
 **下次任务**：等待架构师分派（可能方向：游标系统实现、Node 泛型接入、迭代器原型）

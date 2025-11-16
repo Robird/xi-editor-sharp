@@ -93,6 +93,10 @@
   - 需关注：遥测与监控指标尚未落地
 
 ### 待同步的变更
+#### 文档同步提醒（2025-11-17）
+- `docs/architecture/rope-port-mapping.md`：补记 `StringLeafOperations` parity 完成、`Rope.FromNode` 工厂与深树夹具行，并在 Cursor 区段追加“CursorDescriptorParityTests 11/11 + dotnet test -v m 169/169”验证说明。
+- `docs/architecture/design-divergence-log.md`：注记“Leaf split 已追平，仅监控 surrogate fallback”以及“Cursor 深树 parity fixture 已落地，持续观察 CLI/fixture 管线节奏”。
+- `docs/architecture/type-system-migration-log.md`：更新 Cursor/Leaf section 时间戳，写入游标 T1.2 下一步、Chunk CLI 依赖与 Rust Porter fixture schema 协同方式，并引用上述通过数据作为佐证。
 #### Rust Porter 最近完成（来自 `agents/rust-porter.md`）
 - ✅ SharedNode API 封装（tree.rs）- 集中 COW 触点
 - ✅ Metrics Helper 模块化（metrics/）- 抽离 UTF-8 边界、换行定位、Breaks 索引
@@ -168,6 +172,29 @@
 - `agents/architecture-mapper.md` - Architecture Mapper 认知档案（本档案）
 
 ## 最近完成的工作
+
+### 2025-11-17 - Rope 文档同步 + R8/R9/R10 状态刷新
+#### 已完成任务
+- ✅ 更新 `docs/architecture/rope-port-mapping.md` 的 Leaf/Cursor/Chunk/Grapheme 行：记入 `_editVersion` 版本票据、`CursorDescriptorParityTests` 11/11、`RopeChunkEnumeratorDiagnostics`/`GraphemeNavigationMetrics` 插桩，并明确 CLI schema、Grapheme 遥测阈值与 1 MB 基准尚未交付。
+- ✅ 在 `docs/architecture/type-system-migration-log.md` 的“游标生命周期”“Chunk/行 迭代器”章节登记“版本票据 + Diagnostics”里程碑（含负责人、引用测试与下一步验证），形成可追溯链路。
+- ✅ 扩写 `docs/architecture/design-divergence-log.md`（Chunk 复制语义降级 + Grapheme 遥测阈值待裁决）与 `docs/architecture/m3-implementation-plan.md`（G1/G2 状态、§5.3 基线、§4.4 风险更新），并在 `AGENTS.md` “下一步行动”区加入“文档同步 + schema/阈值待交付”提醒以备星形会议使用。
+#### 后续监控
+- 🔼 Rust Porter 需在 2025-11-19 前提交 `--cursor-descriptors/--chunk-descriptors/--grapheme-windows` schema 与 Stage D 文档；若逾期，R9/R10 将按 §4.4 提升等级。
+- 🔄 架构师需在 2025-11-20 前裁决 Grapheme 遥测阈值（是否继续 0.5%），并与 QA 协调 1 MB Chunk/Line 基准；完成后我需回写 `design-divergence-log.md`、`m3-implementation-plan.md` §5.3。
+- 🧪 QA Engineer 在 schema 就绪后负责 CLI ingestion smoke + 1 MB 基准运行；我需跟进结果并将数据写入 `rope-port-mapping.md`/`type-system-migration-log.md`/`m3-implementation-plan.md`。
+
+### 2025-11-17 - Leaf Split & CursorDescriptor 深树 parity 同步
+#### 已完成任务
+- ✅ 阅读 `AGENTS.md` 2025-11-17 日志，将“Leaf Split & Delete Invariants”“Cursor Descriptor Deep Tree Parity”两项成果吸收进本档案工作记要。
+- ✅ 汇总 Leaf Split parity 对映射表与分歧日志的影响：记录 C# `StringLeafOperations.FindLeafSplit` 已与 Rust helper 对齐、`TryComputeBalancedSplit`/`RopeTestHelpers.AssertInvariants` 的诊断强化（抛出 `XunitException`）及 `NodeTests.Delete…` 12 片段覆盖多层结构，准备在 `rope-port-mapping.md`、`design-divergence-log.md` 中更新 LeafSplitter 行与“删除跨多层案例”观察点。
+- ✅ 整理 CursorDescriptor 深树 parity 状态：`Rope.FromNode` 工厂 + `BuildDeepTreeRope` 夹具补齐深树样本，`CursorDescriptorParityTests` 11/11 JSON 基线与 `dotnet test -v m` 169/169 结果需回写 `rope-port-mapping.md`、`type-system-migration-log.md`，同时提示 fixture 管线可被 Rust Porter 复用。
+- ✅ 标注必须同步的文档行动：`rope-port-mapping.md` Leaf/Cursor 行、`design-divergence-log.md` Leaf split 追平与 Cursor fixture 监控、`type-system-migration-log.md` Cursor/Leaf/T1.2 行（含 Chunk CLI 依赖），并准备在“待同步的变更”“下一步/后续监控”中明确责任与截止期。
+
+#### 后续监控
+- 🔼 **P0 · 2025-11-18**：完成 `docs/architecture/rope-port-mapping.md` 更新，新增 `StringLeafOperations` parity 完成、`Rope.FromNode`/深树夹具行以及 Cursor fixture 管线备注，保持与 `dotnet test -v m` 169/169、Cursor JSON 11/11 数据一致。
+- 🔼 **P0 · 2025-11-18**：在 `docs/architecture/design-divergence-log.md` 注记“Leaf split 已追平，仅保留 surrogate fallback 监控”与“Cursor 深树 parity fixture 已落地，需跟踪 CLI 导出节奏”。
+- 🔼 **P1 · 2025-11-19**：刷写 `docs/architecture/type-system-migration-log.md` Cursor/Leaf section 时间戳，补上游标 T1.2 待办、Chunk CLI 依赖、Rust Porter fixture schema 需求，并引用 `dotnet test -v m` 169/169 + CursorDescriptor 11/11 作为校验记录。
+- ⚠️ **风险**：若 Leaf/Cursor 文档未在 48 小时内同步，将导致 `rope-port-mapping.md` 与实现失真，Rust Porter 难以及时加载新的 fixture schema。
 
 ### 2025-11-16 - Round 3 跨端骨架映射整合
 #### 已完成任务
@@ -372,5 +399,5 @@
 
 ---
 
-**最后更新**：2025-11-16  
-**下次任务**：等待架构师分派（可能方向：同步 Rust/C# 最新变更、补充 Diff/Search/Breaks 映射、评估 Iterator Façade 依赖关系）
+**最后更新**：2025-11-17  
+**下次任务**：P0 跟进 rope-port-mapping/design-divergence/type-system-migration 三份文档的 Leaf/Cursor parity 更新，并与 Rust Porter 确认深树 fixture schema 是否需追加 CLI 导出。

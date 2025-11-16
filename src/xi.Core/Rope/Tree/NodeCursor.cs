@@ -13,11 +13,11 @@ public sealed class NodeCursor
 {
     private const int CacheSizeLimit = 4; // Matches Rust CURSOR_CACHE_SIZE
 
-    private readonly Node _root;
-    private readonly Node _rootSharedNode; // Reference snapshot for invalidation detection
+    private Node _root;
+    private Node _rootSharedNode; // Reference snapshot for invalidation detection
     private readonly Rope? _owner;
-    private readonly long _capturedEditVersion;
-    private bool _ownerVersionMismatch;
+    private long _capturedEditVersion;
+    private bool _reattachInProgress;
     private int _position;
     private readonly PathFrame?[] _pathCache;
     private string? _currentLeaf;
@@ -63,19 +63,18 @@ public sealed class NodeCursor
 
     private bool EnsureOwnerVersionMatches()
     {
-        if (_owner is null || _ownerVersionMismatch)
-        {
-            return !_ownerVersionMismatch;
-        }
-
-        if (_owner.EditVersion == _capturedEditVersion)
+        if (_owner is null)
         {
             return true;
         }
 
-        _ownerVersionMismatch = true;
-        Invalidate();
-        return false;
+        var ownerVersion = _owner.EditVersion;
+        if (ownerVersion == _capturedEditVersion)
+        {
+            return true;
+        }
+
+        return TryRefreshOwnerState(ownerVersion);
     }
 
     public (string Leaf, int Offset)? GetLeaf()
@@ -342,9 +341,9 @@ public sealed class NodeCursor
         return false;
     }
 
-    private void Descend()
+    private void Descend(bool skipVersionCheck = false)
     {
-        if (!EnsureOwnerVersionMatches())
+        if (!skipVersionCheck && !EnsureOwnerVersionMatches())
         {
             return;
         }
@@ -387,6 +386,46 @@ public sealed class NodeCursor
         }
 
         SetLeafFromNode(current, offset);
+    }
+
+    private bool TryRefreshOwnerState(long ownerVersion)
+    {
+        if (_owner is null)
+        {
+            return false;
+        }
+
+        if (_reattachInProgress)
+        {
+            return false;
+        }
+
+        _reattachInProgress = true;
+        try
+        {
+            var nextRoot = _owner.DebugRoot ?? Node.Empty;
+            _root = nextRoot;
+            _rootSharedNode = nextRoot;
+            _capturedEditVersion = ownerVersion;
+
+            ClearCache();
+            _currentLeaf = null;
+            _currentLeafNode = null;
+            _offsetOfLeaf = 0;
+            _isValid = false;
+
+            if (_position > _root.Length)
+            {
+                _position = _root.Length;
+            }
+
+            Descend(skipVersionCheck: true);
+            return true;
+        }
+        finally
+        {
+            _reattachInProgress = false;
+        }
     }
 
     private bool PrevLeaf()

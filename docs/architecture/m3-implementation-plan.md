@@ -54,8 +54,8 @@
 
 | 编号 | 差距描述 | 当前状态 | 所属任务 | 负责人 | 依赖/说明 |
 |------|----------|----------|----------|--------|-----------|
-| **G1** | `CursorDescriptor`/`CursorState` 与版本票据缺失，C# 无法消费 Rust fixture | C# 仅有 `NodeCursor` 骨架，Rust CLI 已输出 JSON | 衔接 T1.1-T1.6 并新增 T1.7（版本票据） | C# Implementer + Architecture Mapper | 需冻结 schema（AI 架构师 11/18 前决策）并在 `NodeCursorTests` 添加 Parity 覆盖 |
-| **G2** | Chunk/Line 迭代器虽有骨架，但 parity/telemetry/benchmark 未落地 | C# skeleton ✅、Rust CLI ✅、测试 12 项通过；尚未消费 JSON | T3.1-T3.8（保留） | C# Implementer + QA + Rust Porter | `tests/…/chunk_descriptors.json` 已就绪，需加载并在 §5.3 记录基线 |
+| **G1** | `CursorDescriptor`/`CursorState` 与版本票据缺失，C# 无法消费 Rust fixture | `_editVersion`/版本票据与 `CursorDescriptorParityTests` 11/11 JSON 用例已在 C# 侧落地，但 CLI/schema 与 Stage D 文档仍缺位 | 衔接 T1.1-T1.6 并新增 T1.7（版本票据） | C# Implementer + Architecture Mapper | 需冻结 schema（AI 架构师 11/18 前决策）并在 `NodeCursorTests` 添加 Parity 覆盖 |
+| **G2** | Chunk/Line 迭代器虽有骨架，但 parity/telemetry/benchmark 未落地 | `RopeChunkEnumeratorDiagnostics` + 12 项测试已绿，仍缺 CLI schema、1 MB 基准与遥测阈值记录 | T3.1-T3.8（保留） | C# Implementer + QA + Rust Porter | `tests/…/chunk_descriptors.json` 待 Rust Porter 正式导出；需要在 §5.3 记录基线并回填 Stage D 指南 |
 | **G3** | Breaks 树/Builder/Metric Shim 缺席，`rope-port-mapping` 长期为“未开始” | Rust helper +测试 ✅，CLI/schema 未有 | 新增 T5.x「Breaks Tree Integration」 | C# Implementer + Rust Porter | 需 `--breaks-descriptors` 导出方案 + `BreaksMetricInteropTests` 扩展 |
 | **G4** | Diff/Search/Find API 无 C# 骨架、无 parity 资产 | Rust `diff.rs/find.rs` 成熟，C# 空白 | 在 §2新增 “Diff/Search Pipeline” 里程碑并于 M4 开启 | AI 架构师 + C# Implementer + Rust Porter | 依赖 G1-G3、Rust `--diff-regions/--search-trace` 计划 |
 | **G5** | Iterator Façade 仍为设计稿，CLI flag 分散且无统一 schema | Rust 端仅有 `iterator-facade-export.md` 研究稿 | 追加 “Iterator Façade Export” 子任务（并入 Stage D） | Rust Porter + Architecture Mapper | 需决定 CLI 收敛策略（AI 架构师 11/21 前拍板）与 Stage D `refresh_serialization_fixtures.ps1` 对接 |
@@ -282,6 +282,7 @@
 > **修改理由**：补充缓解措施细节，明确样本来源与应急预案  
 > **修改时间**：2025-11-16
 
+
 ### 4.2 进度风险
 
 | 风险 ID | 描述 | 严重度 | 概率 | 缓解措施 | 应急预案 |
@@ -303,6 +304,11 @@
 | CP-G3 | Grapheme fallback 命中率基准（≥10k 操作）记录在 telemetry dashboard，若 > 阈值触发升级讨论 | QA Engineer + Architecture Mapper | 2025-11-24 或首次 fallback > 阈值 | T4.8 |
 
 > 若任一 checkpoint 逾期或未满足数据质量要求，需立即在风险台账中升级对应条目（R8/R9/R10）。
+
+### 4.4 风险状态更新（2025-11-17）
+- **R8（版本票据）**：`Rope` `_editVersion` 与 `NodeCursor` 失效检测已上线并在 `CursorDescriptorParityTests` 11/11、`dotnet test -v m` 169/169 中验证，但 CLI/schema/Stage D 文档尚未更新；若 11/19 前未补齐文档/fixture，风险维持“高/中”且将重新触发 T1.7 依赖检查。
+- **R9（CLI schema / Stage D）**：`--cursor-descriptors/--chunk-descriptors/--grapheme-windows` 仍处草稿，`tests/xi.Core.Tests/Fixtures/*` 靠手写 JSON 维持；Rust Porter 必须在 11/19 前提交 schema/CLI PR，否则 Architecture Mapper 将在 §1.7 的 G1/G2 状态列把其标记为阻塞并要求 QA 延后 ingestion smoke。
+- **R10（Chunk/Grapheme Diagnostics）**：`RopeChunkEnumeratorDiagnostics` 与 `GraphemeNavigationMetrics` 已可观测（见 §5.3、`rope-port-mapping.md`），但 1 MB 基准和 Grapheme 遥测阈值缺位，性能/体验仍不可追溯；若 11/21 前 QA/AI 架构师未出具数据，将把 R10 从“中/中”升级为“高/中”。
 
 ---
 
@@ -365,17 +371,17 @@
 ### 5.3 现实基线状态（2025-11-16）
 
 **测试现状**
-- `dotnet test Xi.Editor.sln --filter NodeCursorTests` ✅，确认游标专项回归已恢复；尚未重新跑完整 114 项套件，因此“114 项 + 游标全绿”仍是目标值而非现状。
-- `dotnet test Xi.Editor.sln --filter "RopeChunkEnumeratorTests|RopeLineEnumeratorTests|GraphemeNavigatorSmokeTests"` ✅，12 项 Chunk/Line/Grapheme 骨架测试全部通过，覆盖 `tests/xi.Core.Tests/{RopeChunkEnumeratorTests,RopeLineEnumeratorTests,GraphemeNavigatorSmokeTests}.cs`。
+- `dotnet test -v m`（169/169）于 2025-11-17 完成，`CursorDescriptorParityTests` 11/11 JSON 驱动用例、`RopeChunkEnumeratorDiagnosticsTests` 与 `GraphemeNavigatorSmokeTests` 均纳入该回归；后续全量 114+ 项套件以此结果为最新一次已知绿灯。
+- 针对 CLI 尚未交付的资产，仍保留 `tests/xi.Core.Tests/Fixtures/CursorDescriptors/*.json` 手工样本，并通过 `RopeChunkEnumeratorTests|RopeLineEnumeratorTests|GraphemeNavigatorSmokeTests` 的筛选运行确保复制语义/遥测降级路径可回归。
 
 **现实基线**
-1. **Chunk/Line/Grapheme 骨架已提交**：`src/xi.Core/Rope/RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs` 与 `Rope/Navigation/DegradedGraphemeNavigator.cs`/`GraphemeNavigationMetrics.cs` 已在主干；实现遵循 2025-11-16 设计分歧记录（复制叶片 + 遥测降级），并通过上述 12 项测试验证。
-2. **Parity fixture & Benchmark 待落地**：Chunk/Grapheme CLI（`export-serde-fixtures --chunk-descriptors/--grapheme-windows`）尚未输出 JSON，`tests/xi.Core.Tests/Fixtures/Chunks/`、`.../Graphemes/` 仍为空；QA 也未记录 1 MB 文本微基准或 Grapheme fallback 命中率基线。
+1. **版本票据 + 游标 parity**：`Rope` 编辑路径写入 `_editVersion`（`src/xi.Core/Rope/Rope.cs`），`NodeCursor` 结合版本号与 `ReferenceEquals` 做失效检测，`CursorDescriptorParityTests.cs` 11/11 用例及 `dotnet test -v m` 验证版本票据生效。
+2. **Diagnostics 插桩可用**：`RopeChunkEnumeratorDiagnostics` 与 `GraphemeNavigationMetrics` 已合入（参见 `RopeChunkEnumeratorDiagnosticsTests.cs`、`GraphemeNavigatorSmokeTests.cs`），可在 API 或微基准中观察 chunk 数量/最大 chunk/复制字节以及 Grapheme fallback 次数。
 
 **缺失组件与差距**
-1. **Rope 编辑版本计数器**：`Rope`/`Node` 编辑路径仍缺 `_editVersion` 或等效票据，当前只能依赖 `ReferenceEquals` 检测失效（影响 R1/R8）。
-2. **Cursor Parity CLI**：`export-serde-fixtures` 尚未提供 `--cursor-descriptors`，`tests/xi.Core.Tests/Fixtures/CursorDescriptors/` 为空，T1.6 仍需手工构造样本。
-3. **Chunk/Grapheme 数据资产**：虽有骨架与测试，但 CLI fixture、Telemetry 阈值、性能基线尚未记录，T3.6-T3.8/T4.6-T4.8 需投入额外 2-3 天完成。
+1. **Stage D/CLI schema**：`export-serde-fixtures --cursor-descriptors/--chunk-descriptors/--grapheme-windows` 的 schema、路径与刷新流程尚未写入 Stage D 文档，`tests/xi.Core.Tests/Fixtures/*` 仍依赖手工样本。
+2. **Telemetry 阈值 + 基准**：Grapheme fallback 阈值（是否维持 0.5%）与 1 MB Chunk/Line 性能基准尚未由架构师/QA 复核，`m3-implementation-plan.md` §4/§5.3、`design-divergence-log.md` 仅记录临时提醒。
+3. **CLI Ingestion Smoke**：QA 仍需在 Rust Porter 发布正式 schema 后验证 CLI→C# 流程，否者 R9/R10 无法收敛；Architecture Mapper 必须追踪执行窗口并在风险台账中保留加粗提醒。
 
 > 本小节取代原“全量测试已绿”的假设，供后续同步与周会引用；每次重新跑完 114 项测试、落地 CLI 夹具或补齐基准后需更新时间戳。
 

@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using Xi.Core.Rope;
 using Xi.Core.Rope.Tree;
 using RopeBuffer = Xi.Core.Rope.Rope;
+using Xunit.Abstractions;
 
 namespace Xi.Core.Tests;
 
@@ -20,6 +21,12 @@ public sealed class CursorDescriptorParityTests
     };
 
     private static readonly Lazy<IReadOnlyList<CursorDescriptorFixtureRecord>> Fixtures = new(LoadFixtures);
+    private readonly ITestOutputHelper _output;
+
+    public CursorDescriptorParityTests(ITestOutputHelper output)
+    {
+        _output = output ?? throw new ArgumentNullException(nameof(output));
+    }
 
     public static IEnumerable<object[]> FixtureData
     {
@@ -40,6 +47,11 @@ public sealed class CursorDescriptorParityTests
         var offsetMap = Utf8OffsetMap.Build(fixture.Text);
         var initialPosition = offsetMap.ToCharOffset(fixture.Position);
         var cursor = new NodeCursor(rope, Math.Min(initialPosition, rope.Length));
+
+        if (fixture.ShouldEmitDebugLog)
+        {
+            _output.WriteLine(fixture.ToDebugString());
+        }
 
         if (!fixture.IsValid)
         {
@@ -221,20 +233,44 @@ public sealed class CursorDescriptorParityTests
 
     private static IReadOnlyList<CursorDescriptorFixtureRecord> LoadFixtures()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cursor_descriptors", "cursor_descriptors.json");
-        if (!File.Exists(path))
+        var directory = Path.Combine(AppContext.BaseDirectory, "Fixtures", "cursor_descriptors");
+        if (!Directory.Exists(directory))
         {
-            throw new FileNotFoundException("Cursor descriptor fixture file not found.", path);
+            throw new DirectoryNotFoundException($"Cursor descriptor fixture directory not found: {directory}.");
         }
 
-        using var stream = File.OpenRead(path);
-        var fixtures = JsonSerializer.Deserialize<List<CursorDescriptorFixtureRecord>>(stream, SerializerOptions);
-        if (fixtures is null || fixtures.Count == 0)
+        var files = Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (files.Count == 0)
         {
-            throw new InvalidOperationException($"No cursor descriptor fixtures were loaded from {path}.");
+            throw new InvalidOperationException($"No cursor descriptor fixture files were discovered under {directory}.");
         }
 
-        return fixtures;
+        var aggregated = new List<CursorDescriptorFixtureRecord>();
+        foreach (var path in files)
+        {
+            using var stream = File.OpenRead(path);
+            var records = JsonSerializer.Deserialize<List<CursorDescriptorFixtureRecord>>(stream, SerializerOptions);
+            if (records is null || records.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var record in records)
+            {
+                record.SourceFile = Path.GetFileName(path);
+                aggregated.Add(record);
+            }
+        }
+
+        if (aggregated.Count == 0)
+        {
+            throw new InvalidOperationException($"Cursor descriptor fixture files were parsed, but no records were produced from {directory}.");
+        }
+
+        return aggregated;
     }
 
     public sealed class CursorDescriptorFixtureRecord
@@ -272,6 +308,36 @@ public sealed class CursorDescriptorParityTests
 
         [JsonPropertyName("leaf_path")]
         public List<CursorDescriptorFrameRecord> LeafPath { get; set; } = new();
+
+        [JsonIgnore]
+        public string SourceFile { get; set; } = string.Empty;
+
+        [JsonIgnore]
+        public bool ShouldEmitDebugLog => Name.Contains("deep_tree", StringComparison.OrdinalIgnoreCase) || !IsValid || !ExpectApply;
+
+        public string ToDebugString()
+        {
+            var builder = new StringBuilder();
+            builder.Append("CursorDescriptorFixture(name=").Append(Name)
+                   .Append(", metric=").Append(Metric)
+                   .Append(", isValid=").Append(IsValid)
+                   .Append(", expectApply=").Append(ExpectApply)
+                   .Append(", positionBytes=").Append(Position)
+                   .Append(", offsetOfLeafBytes=").Append(Offsets.OffsetOfLeaf)
+                   .Append(", frames=").Append(LeafPath?.Count ?? 0);
+
+            if (!string.IsNullOrEmpty(SourceFile))
+            {
+                builder.Append(", source=").Append(SourceFile);
+            }
+
+            if (!string.IsNullOrEmpty(EditedText))
+            {
+                builder.Append(", editedTextLength=").Append(EditedText.Length);
+            }
+
+            return builder.ToString();
+        }
     }
 
     public sealed class CursorDescriptorOffsetsRecord

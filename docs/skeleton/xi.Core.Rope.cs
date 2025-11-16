@@ -17,7 +17,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+2b9637db9ff563137c3df499cde2d003a7f9ab6c")]
+[assembly: AssemblyInformationalVersion("1.0.0+e37fa2d30e7de220efd3a78bb28fbeba4d462f92")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -317,10 +317,11 @@ namespace Xi.Core.Rope {
 		public int Length => _root.Length;
 		internal Node DebugRoot => _root;
 		public long EditVersion => Interlocked.Read(in _editVersion);
-		public RopeChunkEnumerator EnumerateChunks() {/* body removed for skeleton view. */}
+		public RopeChunkEnumerator EnumerateChunks(RopeChunkEnumeratorDiagnostics? diagnostics = null) {/* body removed for skeleton view. */}
 		public RopeLineEnumerator EnumerateLines() {/* body removed for skeleton view. */}
 		public void Append(string? text) {/* body removed for skeleton view. */}
 		public void Append(ReadOnlySpan<char> text) {/* body removed for skeleton view. */}
+		internal static Rope FromNode(Node root) {/* body removed for skeleton view. */}
 		public void Clear() {/* body removed for skeleton view. */}
 		public void Replace(int start, int length, string? text) {/* body removed for skeleton view. */}
 		public string Snapshot() {/* body removed for skeleton view. */}
@@ -338,15 +339,23 @@ namespace Xi.Core.Rope {
 	public ref struct RopeChunkEnumerator {
 		private readonly Rope _rope;
 		private readonly NodeCursor? _cursor;
+		private readonly RopeChunkEnumeratorDiagnostics? _diagnostics;
 		private int _nextOffset;
 		private bool _completed;
 		private bool _emittedEmptyChunk;
 		private ReadOnlyMemory<char> _current;
 		public ReadOnlyMemory<char> Current => _current;
-		internal RopeChunkEnumerator(Rope rope) {/* body removed for skeleton view. */}
+		internal RopeChunkEnumerator(Rope rope, RopeChunkEnumeratorDiagnostics? diagnostics = null) {/* body removed for skeleton view. */}
 		public RopeChunkEnumerator GetEnumerator() {/* body removed for skeleton view. */}
 		public bool MoveNext() {/* body removed for skeleton view. */}
 		private static ReadOnlyMemory<char> CloneLeaf(string leaf) {/* body removed for skeleton view. */}
+	}
+	public sealed class RopeChunkEnumeratorDiagnostics {
+		public int ChunkCount { get; private set; }
+		public int MaxChunkLength { get; private set; }
+		public long TotalUtf16CharCount { get; private set; }
+		public void Reset() {/* body removed for skeleton view. */}
+		internal void RecordChunk(int chunkLength) {/* body removed for skeleton view. */}
 	}
 	public readonly struct RopeInfo : ITreeNodeInfo<RopeInfo, string>, IDefaultMetricProvider<RopeInfo, string, BaseMetric> {
 		public int LineCount { get; }
@@ -432,6 +441,28 @@ namespace Xi.Core.Rope {
 	}
 }
 namespace Xi.Core.Rope.Tree {
+	public sealed class CursorDescriptor {
+		private static readonly CursorDescriptorFrame[] s_emptyFrames = Array.Empty<CursorDescriptorFrame>();
+		private readonly CursorDescriptorFrame[] _frames;
+		public bool IsValid { get; }
+		public int Position { get; }
+		public int OffsetOfLeaf { get; }
+		public int? LeafLength { get; }
+		internal Node? LeafNode { get; }
+		public IReadOnlyList<CursorDescriptorFrame> Frames => _frames;
+		private CursorDescriptor(bool isValid, int position, int offsetOfLeaf, int? leafLength, Node? leafNode, CursorDescriptorFrame[] frames) {/* body removed for skeleton view. */}
+		internal static CursorDescriptor CreateInvalid(int position) {/* body removed for skeleton view. */}
+		internal static CursorDescriptor CreateValid(int position, int offsetOfLeaf, Node leafNode, IReadOnlyList<CursorDescriptorFrame> frames) {/* body removed for skeleton view. */}
+		public NodeCursor? TryRestore(Rope rope) {/* body removed for skeleton view. */}
+	}
+	public sealed class CursorDescriptorFrame {
+		public int NodeHeight { get; }
+		public int NodeLength { get; }
+		public int ChildIndex { get; }
+		public int ChildOffset { get; }
+		internal Node Node { get; }
+		internal CursorDescriptorFrame(Node node, int childIndex, int childOffset) {/* body removed for skeleton view. */}
+	}
 	public sealed class GenericTreeBuilder<TInfo, TLeaf, TLeafOps> where TInfo : struct, ITreeNodeInfo<TInfo, TLeaf> where TLeafOps : ILeafOperations<TLeaf> {
 		private readonly List<Node<TInfo, TLeaf, TLeafOps>> _pending = new List<Node<TInfo, TLeaf, TLeafOps>>();
 		public void PushString(string? text) {/* body removed for skeleton view. */}
@@ -445,7 +476,7 @@ namespace Xi.Core.Rope.Tree {
 		private static TLeaf ConvertStringToLeaf(string segment) {/* body removed for skeleton view. */}
 	}
 	internal static class LeafSplitter {
-		internal const int NewlinePreferenceWindow = 64;
+		internal static readonly int NewlinePreferenceWindow = StringLeafOperations.MaxLeafSize - StringLeafOperations.MinLeafSize;
 		internal static IEnumerable<string> Split(string leaf) {/* body removed for skeleton view. */}
 	}
 	public sealed class Node {
@@ -475,7 +506,11 @@ namespace Xi.Core.Rope.Tree {
 			private static (int Length, RopeInfo Info, Node[] Array) MaterializeChildren(int parentHeight, IReadOnlyList<Node> children) {/* body removed for skeleton view. */}
 			private static (int Length, RopeInfo Info) AggregateChildren(int parentHeight, Node[] children) {/* body removed for skeleton view. */}
 		}
+		private const int MinChildren = 4;
+		private const int MaxChildren = 8;
 		private readonly SharedNode _shared;
+		internal static int MaxChildCount => 8;
+		internal static int MinChildCount => 4;
 		public static int MinLeafSize => StringLeafOperations.MinLeafSize;
 		public static int MaxLeafSize => StringLeafOperations.MaxLeafSize;
 		private NodeBody Body => _shared.Body;
@@ -494,6 +529,7 @@ namespace Xi.Core.Rope.Tree {
 			: this(new SharedNode(body)) {/* body removed for skeleton view. */}
 		private Node(SharedNode shared) {/* body removed for skeleton view. */}
 		private static Node FromShared(SharedNode shared) {/* body removed for skeleton view. */}
+		internal bool IsOkChild() {/* body removed for skeleton view. */}
 		public string? GetLeaf() {/* body removed for skeleton view. */}
 		public Node[]? GetChildren() {/* body removed for skeleton view. */}
 		internal int ConvertFromDefaultMetric(IMetric metric, int offset) {/* body removed for skeleton view. */}
@@ -521,9 +557,12 @@ namespace Xi.Core.Rope.Tree {
 		private Node ReplaceChildWithSegments(Node[] children, int index, IReadOnlyList<Node> segments) {/* body removed for skeleton view. */}
 		public Node WithChildReplaced(int index, Node newChild) {/* body removed for skeleton view. */}
 		public (Node Left, Node Right) SplitAt(int index) {/* body removed for skeleton view. */}
-		private static Node ConcatLeftShorter(Node left, Node right) {/* body removed for skeleton view. */}
-		private static Node ConcatRightShorter(Node left, Node right) {/* body removed for skeleton view. */}
 		private Node[] RequireChildren() {/* body removed for skeleton view. */}
+		private static Node MergeLeaves(Node left, Node right) {/* body removed for skeleton view. */}
+		private static Node MergeNodes(IReadOnlyList<Node> leftChildren, IReadOnlyList<Node> rightChildren) {/* body removed for skeleton view. */}
+		internal static Node FromNodes(IReadOnlyList<Node> children) {/* body removed for skeleton view. */}
+		private static Node[] CopyRange(IReadOnlyList<Node> source, int start, int length) {/* body removed for skeleton view. */}
+		private static Node[] CombineChildren(IReadOnlyList<Node>? leftChildren, IReadOnlyList<Node>? rightChildren) {/* body removed for skeleton view. */}
 		private static string GetLeafText(Node node) {/* body removed for skeleton view. */}
 		private bool TryMergeLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {/* body removed for skeleton view. */}
 		private bool TryRebalanceLeafWithSibling(Node[] children, int index, Node replacement, out Node result) {/* body removed for skeleton view. */}
@@ -573,19 +612,21 @@ namespace Xi.Core.Rope.Tree {
 			public int Position { get; }
 			public int OffsetOfLeaf { get; }
 			public string? CurrentLeaf { get; }
+			public Node? CurrentLeafNode { get; }
 			public bool IsValid { get; }
 			public PathFrame?[] Cache { get; }
-			public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, bool isValid, PathFrame?[] cache) {/* body removed for skeleton view. */}
+			public CursorSnapshot(int position, int offsetOfLeaf, string? currentLeaf, Node? currentLeafNode, bool isValid, PathFrame?[] cache) {/* body removed for skeleton view. */}
 		}
 		private const int CacheSizeLimit = 4;
-		private readonly Node _root;
-		private readonly Node _rootSharedNode;
+		private Node _root;
+		private Node _rootSharedNode;
 		private readonly Rope? _owner;
-		private readonly long _capturedEditVersion;
-		private bool _ownerVersionMismatch;
+		private long _capturedEditVersion;
+		private bool _reattachInProgress;
 		private int _position;
 		private readonly PathFrame?[] _pathCache;
 		private string? _currentLeaf;
+		private Node? _currentLeafNode;
 		private int _offsetOfLeaf;
 		private bool _isValid;
 		public Node Root => _root;
@@ -605,7 +646,10 @@ namespace Xi.Core.Rope.Tree {
 		public int? MoveToNext(IMetric metric) {/* body removed for skeleton view. */}
 		public int? AtOrNext(IMetric metric) {/* body removed for skeleton view. */}
 		public int? AtOrPrevious(IMetric metric) {/* body removed for skeleton view. */}
-		private void Descend() {/* body removed for skeleton view. */}
+		public CursorDescriptor ToDescriptor() {/* body removed for skeleton view. */}
+		public bool TryApplyDescriptor(CursorDescriptor descriptor) {/* body removed for skeleton view. */}
+		private void Descend(bool skipVersionCheck = false) {/* body removed for skeleton view. */}
+		private bool TryRefreshOwnerState(long ownerVersion) {/* body removed for skeleton view. */}
 		private bool PrevLeaf() {/* body removed for skeleton view. */}
 		private bool NextLeaf() {/* body removed for skeleton view. */}
 		private string? PeekPrevLeaf() {/* body removed for skeleton view. */}
@@ -619,6 +663,9 @@ namespace Xi.Core.Rope.Tree {
 		private void SetLeafFromNode(Node leafNode, int offset) {/* body removed for skeleton view. */}
 		private static Node[] RequireChildren(Node node) {/* body removed for skeleton view. */}
 		private void ClearCache() {/* body removed for skeleton view. */}
+		private IReadOnlyList<CursorDescriptorFrame> BuildDescriptorFrames() {/* body removed for skeleton view. */}
+		private bool ApplyDescriptorInternal(CursorDescriptor descriptor) {/* body removed for skeleton view. */}
+		private static bool TryCalculateChildOffset(Node parent, int childIndex, out int offset) {/* body removed for skeleton view. */}
 		private void Invalidate() {/* body removed for skeleton view. */}
 		private void InvalidateToStart() {/* body removed for skeleton view. */}
 		private void InvalidateToEnd() {/* body removed for skeleton view. */}
@@ -630,7 +677,7 @@ namespace Xi.Core.Rope.Tree {
 		public static int MinLeafSize => 511;
 		public static int MaxLeafSize => 1024;
 		public static string Empty => string.Empty;
-		public static int NewlinePreferenceWindow => 64;
+		public static int NewlinePreferenceWindow => LeafSplitter.NewlinePreferenceWindow;
 		public static int GetLength(string leaf) {/* body removed for skeleton view. */}
 		public static bool IsValidChild(string leaf) {/* body removed for skeleton view. */}
 		public static string Clone(string leaf) {/* body removed for skeleton view. */}
@@ -640,20 +687,25 @@ namespace Xi.Core.Rope.Tree {
 		public static string Merge(string left, string right) {/* body removed for skeleton view. */}
 		public static bool TryComputeBalancedSplit(string left, string right, out string newLeft, out string newRight) {/* body removed for skeleton view. */}
 		public static IEnumerable<string> SplitByCapacity(string leaf) {/* body removed for skeleton view. */}
+		private static int FindLeafSplit(ReadOnlySpan<char> span, int minSplit) {/* body removed for skeleton view. */}
 		private static int PreferNewlineBoundary(string left, string right, int candidate, int minSplit, int maxSplit) {/* body removed for skeleton view. */}
-		private static bool TryEnsureSurrogateBoundary(string left, string right, ref int splitIndex, int minSplit, int maxSplit) {/* body removed for skeleton view. */}
+		private static bool RetreatToCombinedSurrogateBoundary(string left, string right, ref int splitIndex) {/* body removed for skeleton view. */}
 		private static bool IsSafeBoundary(string left, string right, int index) {/* body removed for skeleton view. */}
 		private static string CreateCombinedSegment(string left, string right, int start, int length) {/* body removed for skeleton view. */}
 		private static char GetCombinedChar(string left, string right, int index) {/* body removed for skeleton view. */}
 	}
 	public sealed class TreeBuilder {
-		private readonly List<Node> _pending = new List<Node>();
+		private readonly List<List<Node>> _stack = new List<List<Node>>();
 		public void PushString(string? text) {/* body removed for skeleton view. */}
 		public void PushSpan(ReadOnlySpan<char> span) {/* body removed for skeleton view. */}
 		public void PushNode(Node node) {/* body removed for skeleton view. */}
 		public Node Build() {/* body removed for skeleton view. */}
 		public void Reset() {/* body removed for skeleton view. */}
-		private void AppendNode(Node node) {/* body removed for skeleton view. */}
+		private void PushNodeInternal(Node node) {/* body removed for skeleton view. */}
+		private Node PopStackNode() {/* body removed for skeleton view. */}
+		private static void MergeLeafIntoFrame(List<Node> frame, Node incoming) {/* body removed for skeleton view. */}
+		private static void MergeInternalIntoFrame(List<Node> frame, Node incoming) {/* body removed for skeleton view. */}
+		private static IReadOnlyList<Node> CombineInternalChildren(Node left, Node right) {/* body removed for skeleton view. */}
 		private static IEnumerable<string> SplitIntoLeaves(string text) {/* body removed for skeleton view. */}
 	}
 	public interface ILeafOperations<TLeaf> {

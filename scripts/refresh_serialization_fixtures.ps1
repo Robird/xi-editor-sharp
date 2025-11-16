@@ -4,7 +4,8 @@ param(
     [switch]$SkipDotnet,
     [switch]$DryRun,
     [switch]$Verbose,
-    [switch]$ExportTreeTrace
+    [switch]$ExportTreeTrace,
+    [switch]$ExportParityFixtures = $true
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,6 +39,9 @@ $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
 $runAllChecks = Join-Path $rustRoot "run_all_checks"
 $csharpFixturesDir = Join-Path $repoRoot "tests/xi.Core.Tests/Fixtures"
 $treeTraceDir = Join-Path $csharpFixturesDir "tree_builder_slice"
+$cursorFixturesDir = Join-Path $csharpFixturesDir "cursor_descriptors"
+$chunkFixturesDir = Join-Path $csharpFixturesDir "chunk_descriptors"
+$graphemeFixturesDir = Join-Path $csharpFixturesDir "grapheme_descriptors"
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -67,7 +71,29 @@ if (-not $SkipRust) {
 if (-not $SkipCopy) {
     Push-Location $rustRoot
     try {
-        $arguments = @("run", "-p", "xi-rope", "--features", "serde", "--bin", "export-serde-fixtures", "--", "--dir", $csharpFixturesDir)
+        $arguments = @(
+            "run",
+            "-p",
+            "xi-rope",
+            "--features",
+            "serde",
+            "--bin",
+            "export-serde-fixtures",
+            "--",
+            "--dir",
+            $csharpFixturesDir
+        )
+
+        if ($ExportParityFixtures) {
+            $arguments += @(
+                "--cursor-descriptors",
+                $cursorFixturesDir,
+                "--chunk-descriptors",
+                $chunkFixturesDir,
+                "--grapheme-descriptors",
+                $graphemeFixturesDir
+            )
+        }
         Invoke-ExternalCommand "rust: export-serde-fixtures" "cargo" $arguments
 
         if ($ExportTreeTrace) {

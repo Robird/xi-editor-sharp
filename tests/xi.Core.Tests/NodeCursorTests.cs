@@ -310,32 +310,51 @@ public sealed class NodeCursorTests
     }
 
     [Fact]
-    public void CursorBoundToRope_InvalidatesAfterEdit()
+    public void CursorInvalidatesAfterEdit()
     {
         var rope = new Rope.Rope();
-        rope.Append("abc");
-        var cursor = new NodeCursor(rope, 0);
+        rope.Append("abcdef");
+        var cursor = new NodeCursor(rope, 2);
 
-        var first = cursor.MoveToNext(BaseMetric.Instance);
-        Assert.NotNull(first);
-        Assert.Equal(1, first.Value);
+        var descriptor = cursor.ToDescriptor();
 
-        rope.Append("def");
+        rope.Replace(0, 1, "XYZ");
 
-        var afterEdit = cursor.MoveToNext(BaseMetric.Instance);
-        Assert.Null(afterEdit);
-        Assert.False(cursor.IsValid);
+        Assert.False(cursor.TryApplyDescriptor(descriptor));
+
+        var next = cursor.MoveToNext(BaseMetric.Instance);
+        Assert.NotNull(next);
+        Assert.True(cursor.IsValid);
+        Assert.Equal(3, next.Value);
     }
 
     [Fact]
-    public void CursorBoundToRope_SetPositionAfterEditThrows()
+    public void CursorMaintainsWhenNoEdit()
     {
         var rope = new Rope.Rope();
-        rope.Append("abc");
-        var cursor = new NodeCursor(rope, 1);
+        rope.Append("abcdef");
+        var cursor = new NodeCursor(rope, 2);
 
-        rope.Replace(0, 1, "z");
+        var descriptor = cursor.ToDescriptor();
+        Assert.True(cursor.TryApplyDescriptor(descriptor));
 
-        Assert.Throws<InvalidOperationException>(() => cursor.SetPosition(0));
+        var next = cursor.MoveToNext(BaseMetric.Instance);
+        Assert.NotNull(next);
+        Assert.Equal(3, next.Value);
+        Assert.True(cursor.IsValid);
+    }
+
+    [Fact]
+    public void CursorSetPositionAfterEditReattaches()
+    {
+        var rope = new Rope.Rope();
+        rope.Append("abcdef");
+        var cursor = new NodeCursor(rope, 3);
+
+        rope.Append("ghi");
+
+        cursor.SetPosition(rope.Length);
+        Assert.Equal(rope.Length, cursor.Position);
+        Assert.True(cursor.IsValid);
     }
 }

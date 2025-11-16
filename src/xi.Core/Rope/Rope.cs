@@ -24,8 +24,9 @@ public sealed class Rope : ITextBuffer
 
     /// <summary>
     /// Iterates the rope leaf-by-leaf, copying content into temporary buffers (per design-divergence-log.md 2025-11-16) until zero-copy chunk views are wired up.
+    /// Optionally accepts a diagnostics collector to track chunk counts and copy sizes.
     /// </summary>
-    public RopeChunkEnumerator EnumerateChunks() => new(this);
+    public RopeChunkEnumerator EnumerateChunks(RopeChunkEnumeratorDiagnostics? diagnostics = null) => new(this, diagnostics);
 
     /// <summary>
     /// Iterates logical lines, including newline terminators when present. This first-pass implementation streams through chunk copies (see design-divergence-log.md 2025-11-16) and will be replaced by zero-copy spans later.

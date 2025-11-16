@@ -11,14 +11,17 @@ public ref struct RopeChunkEnumerator
 {
     private readonly Rope _rope;
     private readonly NodeCursor? _cursor;
+    private readonly RopeChunkEnumeratorDiagnostics? _diagnostics;
     private int _nextOffset;
     private bool _completed;
     private bool _emittedEmptyChunk;
     private ReadOnlyMemory<char> _current;
 
-    internal RopeChunkEnumerator(Rope rope)
+    internal RopeChunkEnumerator(Rope rope, RopeChunkEnumeratorDiagnostics? diagnostics = null)
     {
         _rope = rope ?? throw new ArgumentNullException(nameof(rope));
+        _diagnostics = diagnostics;
+        _diagnostics?.Reset();
         _nextOffset = 0;
         _completed = false;
         _emittedEmptyChunk = false;
@@ -50,6 +53,7 @@ public ref struct RopeChunkEnumerator
 
             _emittedEmptyChunk = true;
             _current = ReadOnlyMemory<char>.Empty;
+            _diagnostics?.RecordChunk(0);
             return true;
         }
 
@@ -76,10 +80,12 @@ public ref struct RopeChunkEnumerator
         {
             _nextOffset = _rope.Length;
             _current = ReadOnlyMemory<char>.Empty;
+            _diagnostics?.RecordChunk(0);
             return true;
         }
 
         _current = CloneLeaf(leafText);
+        _diagnostics?.RecordChunk(_current.Length);
         _nextOffset = Math.Min(_rope.Length, _nextOffset + leafText.Length);
         return true;
     }
@@ -94,5 +100,40 @@ public ref struct RopeChunkEnumerator
         // TODO(#design-divergence-log.md 2025-11-16 Rope Chunk/Line 枚举与 Grapheme Telemetry): switch to zero-copy chunk slices once Node exposes stable spans.
         var buffer = leaf.ToCharArray();
         return buffer.AsMemory();
+    }
+}
+
+/// <summary>
+/// Collects chunk enumeration statistics for diagnostics and micro-benchmarks.
+/// Tracks chunk count, the longest chunk encountered, and the total number of UTF-16 characters copied from the rope.
+/// </summary>
+public sealed class RopeChunkEnumeratorDiagnostics
+{
+    /// <summary>Total chunks emitted by the enumerator (including empty chunks for empty ropes).</summary>
+    public int ChunkCount { get; private set; }
+
+    /// <summary>The length (in UTF-16 chars) of the longest chunk observed.</summary>
+    public int MaxChunkLength { get; private set; }
+
+    /// <summary>Total UTF-16 characters copied across every emitted chunk.</summary>
+    public long TotalUtf16CharCount { get; private set; }
+
+    /// <summary>Resets all counters to zero so the instance can be reused across enumerations.</summary>
+    public void Reset()
+    {
+        ChunkCount = 0;
+        MaxChunkLength = 0;
+        TotalUtf16CharCount = 0;
+    }
+
+    internal void RecordChunk(int chunkLength)
+    {
+        ChunkCount++;
+        if (chunkLength > MaxChunkLength)
+        {
+            MaxChunkLength = chunkLength;
+        }
+
+        TotalUtf16CharCount += chunkLength;
     }
 }

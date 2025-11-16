@@ -27,8 +27,20 @@
   - `run_all_checks --filter serde-fixtures` 复用现有脚本缓存，覆盖 serde/非 serde 双轨测试。
   - 三个 `cargo test` 入口直接对比 `serde_fixtures` 常量，与 exporter 共用唯一来源；若想更新 JSON 结构，请先修改这些测试的断言与常量。
 3. **导出并覆写 C# 夹具**
-  - 默认：运行 `scripts/refresh_serialization_fixtures.ps1`（例如 `.\\scripts\\refresh_serialization_fixtures.ps1 -Verbose`），脚本会调用 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests\xi.Core.Tests\Fixtures` 由 Rust 侧直接写入目标目录，并在未使用 `-SkipDotnet` 时自动执行 `dotnet test`。
-  - 手动备选：进入 `xi-editor-ph7/rust` 后执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir <自定义目录>`，随后按需复制结果。
+  - **推荐**：运行 `scripts/refresh_serialization_fixtures.ps1`（例如 `.\\scripts\\refresh_serialization_fixtures.ps1 -Verbose`）。脚本现默认启用 `-ExportParityFixtures`，即在刷新 `subset/delta/engine` 三个 serde 基线文件的同时，通过同一次 `cargo run -p xi-rope --features serde --bin export-serde-fixtures` 调用更新以下目录：
+    - `tests\\xi.Core.Tests\\Fixtures\\cursor_descriptors`
+    - `tests\\xi.Core.Tests\\Fixtures\\chunk_descriptors`
+    - `tests\\xi.Core.Tests\\Fixtures\\grapheme_descriptors`
+    如需跳过 parity 资产，可显式传入 `-ExportParityFixtures:$false`；脚本仍会在未指定 `-SkipDotnet` 时执行 `dotnet test`。
+  - **手动备选**：进入 `xi-editor-ph7/rust` 后执行：
+    ```powershell
+    cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
+      --dir tests/xi.Core.Tests/Fixtures `
+      --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors `
+      --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors `
+      --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors
+    ```
+    若仅需生成 parity 资产，可省略 `--dir` 并保留对应 flag；需要 `cursor_state` 或 `tree_builder_slice_trace` 调试时，可将 feature 列表改为 `--features serde,cursor_state` 或 `--features serde,tree_builder_slice_trace`。
 4. **格式与差异检查**
    ```powershell
    git status --short tests/xi.Core.Tests/Fixtures;
@@ -51,8 +63,9 @@
 ## 4. 文档与同步要求
 - 每次刷新后更新以下文件：
   - `docs/architecture/rope-cs-mirror-plan.md`：记录 Stage D 进展与交付状态。
+  - `docs/architecture/fixtures/parity-fixture-schema.md`：若 CLI schema 调整需同步字段说明与 feature gate 要求。
   - `docs/architecture/rope-port-mapping.md`：标注新增/调整的 helper 对照与夹具来源。
-  - `docs/architecture/rope-serialization-fixture-playbook.md`（本文）：若流程更新需及时修订。
+  - `docs/csharp-refactor/rope-serialization-fixture-playbook.md`（本文）：若流程更新需及时修订。
   - `AGENTS.md`：在“当前聚焦事项”“下一步行动”“工作日志”记录本次刷新成果与测试结论。
 - 将新的命令或脚本引用写入文档，保持跨团队同步的唯一事实来源。
 

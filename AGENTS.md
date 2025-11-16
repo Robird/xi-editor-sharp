@@ -328,6 +328,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
     - `Cargo.toml`、`lib.rs` 条目与文档同步更新，并在下一阶段为轻量 instrumentation 与 C# 侧接入预留待办。
 
 ## 下一步行动（高优先级 Backlog）
+文档同步 + schema/阈值待交付
 
 ### 🚀 M3 实施已启动（2025-11-16）
 详见 `docs/architecture/m3-implementation-plan.md` v1.2 与 `docs/architecture/m3-architect-decision.md`。
@@ -344,6 +345,22 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - 日常：C# Implementer 每日更新认知档案，Architecture Mapper 每 2-3 天检查文档同步
 - 周会：每 5-7 天星形会议（进度对齐、阻塞讨论、优先级调整）
 - 里程碑：游标完成（第 10 天）、Chunk 完成（第 15 天）、M3 验收（第 20 天）
+
+### M3 星形会议（2025-11-18）行动项
+- **C# Implementer（11/19 前）**：
+  - 解除 `dotnet test -v m` 锁文件并回收最新 169/169 结果；
+  - 合入 `_editVersion` 版本票据、让 `CursorDescriptorParityTests` 消费全量 11 份 JSON；
+  - 补交 `RopeChunkEnumeratorDiagnostics`（chunk/line 计数、最大 chunk、复制字节）、准备 1 MB chunk/line 微基准脚本接入 QA。
+- **Rust Porter（11/17-11/19）**：
+  - 冻结 `cursor_descriptors`/`chunk_descriptors`/`grapheme_descriptors` schema 与 feature flag 说明，补充 `cursor_state`/`tree_builder_slice_trace` 输出；
+  - 更新 `export-serde-fixtures`/`refresh_serialization_fixtures.ps1` 文档，确保 Stage D 默认刷新新目录。
+- **Architecture Mapper（11/16-11/19）**：
+  - 回写 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 中 Leaf/Cursor/Chunk/Grapheme 现状与缺口；
+  - 与架构师确认 Grapheme 遥测阈值，并在 `design-divergence-log.md` 记录；
+  - 推送周报草稿，覆盖 R8/R9/R10 与 G1-G6 的状态。
+- **QA（11/19-11/21）**：
+  - 跑通 chunk/line/glyph parity 资产 ingestion smoke，回传 1 MB 文本微基准数据；
+  - 帮助验证 `metadata.rust_commit`/`generated_at_unix_millis` 的留存策略。
 
 ### 其他待办事项
 1. **Stage D 自动化落地**
@@ -465,6 +482,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
   3. **回退触发条件**：游标 > 10 天、测试通过率 < 80%、性能慢 5 倍，是否合理？
   4. **周会频率**：5-7 天一次是否足够？是否需要更频繁的日常同步？
 - **文档同步**：更新 `AGENTS.md` "下一步行动"章节，增加 M3 实施计划引用。
+
+### 2025-11-18 (M3 Star Meeting - Cursor/Chunk/Grapheme Sync)
+- **会议输入**：收集 C# Implementer、Architecture Mapper、Rust Porter 的进度报告，确认 T1/T3/T4 完成度、文档同步缺口与 CLI fixture 状态。
+- **状态结论**：游标结构/导航/descriptor/parity 已落地但 `_editVersion` 需挂钩失效检测；Chunk/Line 枚举器已消费 CLI JSON，缺少诊断与 1 MB 基准；Grapheme 降级与遥测插桩已到位但阈值待架构师裁决。
+- **风险定位**：R8（NodeCursor 版本票据）、R9（CLI schema & Stage D 集成）、R10（Chunk/Grapheme 遥测 + 基准）仍敞开，若 48h 内不更新文件与脚本，M3 里程碑将失去复现依据。
+- **行动项**：指派 C# Implementer 负责 `_editVersion`、chunk diagnostics 与基准脚本；Rust Porter 整理 CLI schema/feature 说明；Architecture Mapper 回写三份核心文档并协调阈值；QA 负责 parity ingestion smoke + 微基准。
 
 ### 2025-11-16 (Rope Port Mapping Divergence Sync)
 - 对照 `docs/architecture/design-divergence-log.md` 更新 `docs/architecture/rope-port-mapping.md`，将 Grapheme 降级策略标记为既定方案，撤除对 Rust 端新增 helper 的阻塞描述，并调整 C# 侧设计建议为监控型任务。

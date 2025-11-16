@@ -26,7 +26,13 @@
     <None Include="Fixtures\subset_regression.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\delta_regression.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures\engine_regression.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Fixtures\cursor_descriptors\cursor_descriptors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\cursor_descriptors\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\chunk_descriptors\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Fixtures\grapheme_descriptors\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Benchmarks\**\*.cs" />
   </ItemGroup>
 
 </Project>
