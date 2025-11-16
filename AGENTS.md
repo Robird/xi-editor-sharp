@@ -158,8 +158,13 @@ AI 架构师（主 Agent，拥有 runSubagent）
 │   ├─ Type System Specialist（待创建 - Phase 2）
 │   │   └─ 职责：类型系统设计、泛型/生命周期映射
 │   │
-│   └─ QA Engineer（待创建 - Phase 2）
-│       └─ 职责：测试设计、黄金夹具维护、回归验证
+│   ├─ QA Engineer（agents/qa-engineer.md）✅ 已入职
+│   │   ├─ 职责：测试设计、黄金夹具维护、Parity/Stage D 验证
+│   │   └─ 状态：认知档案首次填充，记录 8 条测试资产索引、169/169 基线及 R8/R9/R10 风险监控
+│   │
+│   └─ Information Researcher（agents/information-researcher.md）✅ 已入职
+│       ├─ 职责：维护信息索引、执行定向检索（仅服务 AI 架构师）、推送文档改动摘要
+│       └─ 状态：认知档案包含 13 条索引、7 条监控清单，重点跟踪 AGENTS/m3 计划/Stage D schema
 │
 └─ 📊 外观文档（待创建）
     └─ docs/architecture/system-overview.md（子系统协作地图）
@@ -346,6 +351,8 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - 周会：每 5-7 天星形会议（进度对齐、阻塞讨论、优先级调整）
 - 里程碑：游标完成（第 10 天）、Chunk 完成（第 15 天）、M3 验收（第 20 天）
 
+**AI 员工更新**：QA Engineer (`agents/qa-engineer.md`) 与 Information Researcher (`agents/information-researcher.md`) 已完成入职；后续需安排 QA 负责 parity ingestion smoke + 1 MB 基准，Information Researcher 提供星形会议文档索引与 Stage D schema 日志。
+
 ### M3 星形会议（2025-11-18）行动项
 - **C# Implementer（11/19 前）**：
   - 解除 `dotnet test -v m` 锁文件并回收最新 169/169 结果；
@@ -445,6 +452,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (QA/Info Researcher Onboarding)
+- **QA Engineer 入职**：基于 `agents/qa-engineer-template.md` 建立 `agents/qa-engineer.md`，补齐 8 条测试资产索引、169/169 `dotnet test -v m` 基线、R8/R9/R10 风险监控与 parity/Stage D 行动清单，为后续 ingestion smoke 与 1 MB 基准奠定资料来源。
+- **Information Researcher 入职**：创建 `agents/information-researcher.md`，填充 13 条索引与 7 条监控清单，并注明“仅接受架构师调度”限制；重点跟踪 AGENTS、m3 计划、Stage D schema、`refresh_serialization_fixtures.ps1` 新开关等差异。
+- **组织更新**：`docs/architecture/ai-team-design-draft.md`、`AGENTS.md` 记录信息调查员仅服务架构师的技术限制，并将 QA/Information Researcher 标记为正式员工，后续由 QA 承接 parity smoke + 基准，由信息调查员维护会议资料与 Stage D 日志。
 ### 2025-11-17 (Leaf Split & Delete Invariants)
 - **LeafSplitter 对齐 Rust**：重写 `StringLeafOperations.FindLeafSplit`，按 Rust `find_leaf_split` 计算上下界并扩展换行窗口搜索范围，遇到代理对拆分时退回安全边界；`TryComputeBalancedSplit` 现复用新的合并对齐逻辑，所有叶片再平衡路径不再撕裂 surrogate。
 - **诊断与测试增强**：`RopeTestHelpers.AssertInvariants` 直接抛出 `XunitException` 并打印违规详情，`NodeTests.Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 改为构造 `12` 片段（>8）确保覆盖多层节点，防止高度=1 时误测。
