@@ -25,6 +25,6 @@
 <a id="Div-ChangeLog"></a>
 - **2025-11-18 – Template rollout**: adopted the table-based log, added chunk copy-on-read entry, and linked each divergence to the QA/Stage D anchors that verify it.
 
-[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
+[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench

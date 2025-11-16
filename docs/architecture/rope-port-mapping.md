@@ -57,8 +57,8 @@
 [TS-B5]: type-system-migration-log.md#ts-b5
 [MP-T3]: m3-implementation-plan.md#23-任务-3chunk-迭代器骨架
 [Div-Active]: design-divergence-log.md#div-active
-[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
+[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
+[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FeatureGates
+[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow

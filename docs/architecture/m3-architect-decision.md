@@ -1,269 +1,116 @@
 # M3 实施计划架构师决策书
 
-> **决策日期**：2025-11-16  
-> **决策人**：AI 架构师  
-> **计划版本**：v1.2（经 Rust Porter 与 C# Implementer 评审修订）  
-> **决策状态**：✅ 批准放行
+> **Scope**: Document the ratified M3 milestone calls and how they map to `[MP-*]` anchors.
+> **Owner**: AI Architect
+> **Update Frequency**: Whenever a new M3 escalation or remedy is approved.
+> **Reviewers**: Architecture Mapper · Rust Porter · C# Implementer · QA Engineer
+> **Anchor Prefix**: Decision-M3
+> **Last Synced Goal Tree**: 2025-11-18
 
 ---
 
-## 一、全员评审总结
+## [Decision-M3-Overview] 决策概览
+<a id="Decision-M3-Overview"></a>
 
-### 1.1 评审参与者
-- **Architecture Mapper**（计划起草者）：创建 v1.0，469 行完整实施计划
-- **Rust Porter**（算法支持方）：修订至 v1.1，补充 8 处技术细节（样本规格、算法咨询预案）
-- **C# Implementer**（实施主力）：修订至 v1.2，调整 5 处工作量估算与风险缓释措施
-- **AI 架构师**（本人）：最终评审与关键决策
+| 项目 | 内容 |
+| --- | --- |
+| 决策日期 | 2025-11-16 |
+| 关联计划 | `[MP-GoalTree]`（手动同步自 `m3-implementation-plan.md` v1.2） |
+| 范围 | 游标缓存、Chunk/Line 诊断、Grapheme 降级与文档治理 |
+| 基线 | `dotnet test` 114/114 绿，Stage D 资产引用 `[StageD::ParityAssets]` |
+| 结论 | ✅ 准许执行，立即推进 `[MP-T1]`、`[MP-T3]`、`[MP-T4]` |
 
-### 1.2 评审结论
-**✅ 三位核心成员一致认可**，计划具备可执行性：
-- **Architecture Mapper**："可执行，已覆盖所有执行细节"
-- **Rust Porter**："可行，算法咨询与样本导出承诺已明确"
-- **C# Implementer**："可执行，已完成局部调整，能按时交付"
+**评审群体**
 
----
+| 角色 | 贡献 | 引用 |
+| --- | --- | --- |
+| Architecture Mapper | 起草 v1.0（469 行计划 + 目标树） | `[MP-GoalTree]` |
+| Rust Porter | v1.1 增补 8 个 CLI/样本细节 & 风险表（R8-R10） | `[MP-R8]` `[MP-R9]` `[MP-R10]` |
+| C# Implementer | v1.2 调整 T1/T3 工时与回退策略 | `[MP-T1]` `[MP-T3]` |
+| AI Architect | 本决策书：整合评审意见并落地 5 项裁决 | 本文 |
 
-## 二、架构师关键决策
-
-### 2.1 游标缓存失效检测方案（针对 §4.1 R1 高优风险）
-
-**问题**：C# 无法直接等效 Rust 的 `Arc::ptr_eq`，需确定失效检测方案。
-
-**可选方案**：
-- 方案 A：纯版本号检测（`Rope._editVersion`）
-- 方案 B：`ReferenceEquals` + 版本号双重检测
-- 方案 C：不支持失效检测，API 注释警告
-
-**架构师决策**：**采用方案 B（`ReferenceEquals` + 版本号）**
-
-**理由**（参考 Martin Fowler/Kent Beck 的"简单设计"原则）：
-1. **先满足需求**：游标失效检测是核心安全机制，不可降级为"无检测"
-2. **增量优化**：`ReferenceEquals` 在 99% 场景有效（对象未被 GC），版本号补充剩余 1% 场景
-3. **可观测性**：通过 instrumentation 监控假失效率，若 < 1% 则方案可接受
-4. **推迟决策**：若实测假失效率 > 5%，M4 再切换为纯版本号
-
-**实施要求**：
-- C# Implementer 在 `NodeCursor.IsValid()` 中同时检查 `ReferenceEquals(_rootNode, _rope.Root)` 与版本号
-- 新增 `CursorInvalidationTests` 验证编辑后失效（插入/删除/替换三类操作）
-- 在认知档案中记录假失效监控结果（若有）
+- 三位评审均确认“计划可执行”，未提出阻止性意见。
+- 关键依赖：Rust CLI（11/19 截止）与版本票据 `_editVersion` 改造必须按 `[MP-T1]` 路径完成。
 
 ---
 
-### 2.2 Chunk 性能基准设定（针对 §4.1 R2 中优风险）
+## [Decision-M3-KeyCalls] 核心裁决
+<a id="Decision-M3-KeyCalls"></a>
 
-**问题**：Chunk 迭代器非零拷贝会增加 GC 压力，需确定可接受阈值。
-
-**架构师决策**：**M3 接受临时性能损失，但需记录基准数据**
-
-**基准指标**（参考《高性能 .NET 代码优化》）：
-1. **分配率**：`RopeChunkEnumerator` 枚举 1MB 文本的总分配 < 5MB（5x 开销）
-2. **GC 暂停**：Gen0 GC 频率不超过 Rope 编辑操作的 2x
-3. **吞吐量**：枚举速度 > 200 MB/s（现代 SSD 读取速度的 50%）
-
-**验证方式**：
-- 使用 `BenchmarkDotNet` 测量 `RopeChunkEnumerator` vs `Snapshot()` 性能差异
-- 记录基准数据至 `docs/architecture/m3-performance-baseline.md`
-- M4 优化时以此为参考
-
-**回退条件**：
-- 若分配率 > 10x，立即回退到 `Rope.Snapshot()`
-- 若 GC 暂停 > 5x，在 API 注释中警告"大文件慎用"
+| 议题 | 裁决 | 关联 |
+| --- | --- | --- |
+| 游标失效检测 | 采用 `ReferenceEquals + Rope._editVersion` 双保险；Telemetry 记录假失效率，若 >5% 再评估纯版本号方案。 | `[MP-T1]` `[MP-R8]` |
+| Chunk 性能基准 | M3 接受非零拷贝，只要记录 1 MB 枚举分配 <5 MB、吞吐 >200 MB/s。数据写入 QA 基线并链接 `[QA-ChunkBench]`。 | `[MP-T3]` `[QA-ChunkBench]` |
+| 回退阈值 | 保留游标 10 天、测试 80%、性能 5x 的触发值，同时新增黄/橙/红三级响应与行动人。 | `[MP-R8]` `[MP-R9]` `[MP-R10]` |
+| 同步节奏 | 保持 5-7 天天会，新增 2-3 天异步文档巡检（Architecture Mapper），每日认知档案更新（C# Implementer）。 | `[MP-GoalTree]` |
+| 文档管控 | `m3-implementation-plan.md` 由 AI Architect 审核；其他架构文档需记录变更日志并在 `[StageD::FixtureFlow]` 中引用，无重复粘贴指令。 | `[StageD::FixtureFlow]` |
 
 ---
 
-### 2.3 回退触发条件合理性（针对全员评审关注点）
+## [Decision-M3-Controls] 监控与成功要素
+<a id="Decision-M3-Controls"></a>
 
-**问题**：§8.1 设定的回退触发条件是否合理？
+**监控矩阵**
 
-**当前设定**：
-- 游标超期门槛：> 10 天
-- 测试通过率门槛：< 80%
-- 性能退化门槛：慢 5 倍以上
+| Control | Owner | 触发 / 期望 | 对应风险 |
+| --- | --- | --- | --- |
+| `_editVersion` + `ReferenceEquals` instrumentation | C# Implementer | 假失效率 >1% 报告；>5% 触发警报 | `[MP-R8]` |
+| `export-serde-fixtures` CLI 演示 | Rust Porter | 11/19 前完成 cursor/chunk/grapheme demo + Stage D 记录 | `[MP-R9]` `[StageD::ParityAssets]` |
+| Chunk/Line telemetry + 1 MB 基准 | C# Implementer · QA Engineer | 11/21 前填充 `[QA-ChunkBench]`，分配率 <5x | `[MP-R10]` |
+| Grapheme fallback 遥测 | Architecture Mapper · QA Engineer | Fallback ≤0.5% 写入 `design-divergence-log.md` | `[MP-T4]` |
 
-**架构师决策**：**维持当前阈值，但补充分级响应**
+**成功要素（沿用原文）**
 
-**理由**（参考《凤凰项目》的"限制在制品"原则）：
-1. **游标 10 天门槛合理**：占总工期 50%-66%，既给予充分时间，又避免无限拖延
-2. **测试 80% 门槛偏低**：但 M3 是探索阶段，允许 20% 容错率；M4 再提升至 95%
-3. **性能 5x 门槛宽松**：M3 接受临时降级，关键是功能正确性
+- 拆解到天级子任务，随时可审查（《人月神话》“分治”）。
+- 角色边界清晰：Rust Porter 负责 helper/CLI，C# Implementer 负责功能，Architecture Mapper 负责文档，QA 抓基线。
+- 10 项架构管控措施已经在 `[MP-T1]` 附录列出，确保质量优先。
+- 字符串特化路径保留，出现红色警报可立即回退。
 
-**分级响应**（新增）：
-- **黄色警报**（游标 7 天、测试 85%、性能 3x）：架构师介入，日检查 + 协助调试
-- **橙色警报**（游标 10 天、测试 80%、性能 5x）：召开星形会议，评估部分回退
-- **红色警报**（游标 13 天、测试 75%、性能 10x）：触发全面回退至 M2 基线
+**团队寄语（节选）**
 
----
-
-### 2.4 周会频率（针对全员评审中优关注点）
-
-**问题**：5-7 天一次周会是否足够？
-
-**架构师决策**：**维持 5-7 天周会 + 新增 2-3 天异步检查点**
-
-**理由**（参考 Scrum 的"检视与调整"原则）：
-1. **避免会议过载**：星形会议需主 Agent 逐一调度，过于频繁会降低实施效率
-2. **异步协作优先**：通过认知档案同步日常进度，仅关键阻塞才召开星形会议
-3. **灵活调整**：若实际遇到高频阻塞，可临时加密会议频率
-
-**实施要求**：
-- **日常同步**：C# Implementer 每日更新认知档案"最近完成"与"当前阻塞"
-- **异步检查**：Architecture Mapper 每 2-3 天检查文档同步状态
-- **周会议程**：每 5-7 天星形会议讨论进度、阻塞、优先级调整
+> *Martin Fowler*: “先让它工作，再让它正确，最后让它快速。” —— M3 聚焦“工作”。
+>
+> *Kent Beck*: “每个子任务立刻补测试，否则会失去信心。”
+>
+> *Robert C. Martin*: “保持简单，先跑通基础导航，再补度量。”
+>
+> *Fred Brooks*: “没有银弹，只能分解管理。M3 的 20 个子任务就是分治。”
 
 ---
 
-### 2.5 文档修改权限（针对全员评审低优关注点）
+## [Decision-M3-Actions] 执行与责任
+<a id="Decision-M3-Actions"></a>
 
-**问题**：4 类文档的修改权限是否合理？
+| 行动 | Owner | 截止 / 状态 | 引用 |
+| --- | --- | --- | --- |
+| 完成游标 T1.1-T1.7（含版本票据 + `CursorInvalidationTests`） | C# Implementer | 2025-11-22，日更认知档案 | `[MP-T1]` |
+| 刷新 CLI（`--cursor/--chunk/--grapheme`）并更新 Stage D 手册 | Rust Porter | 2025-11-19 demo，写入 `[StageD::ParityAssets]` | `[MP-R9]` |
+| 文档与风险同步（Blueprint、Mapping、Type Log） | Architecture Mapper | 每 2-3 天巡检；星形会议前完成 | `[MP-GoalTree]` |
+| QA ingestion smoke + 1 MB baseline + Grapheme telemetry | QA Engineer | 2025-11-21；结果贴入 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` | `[MP-R10]` |
+| 架构师周会 | AI Architect | 每 5-7 天；必要时升级黄/橙/红警报 | `[MP-GoalTree]` |
 
-**架构师决策**：**维持计划中的权限设定，补充修改追溯机制**
-
-**权限矩阵**（§6.1）：
-| 文档 | 主要维护者 | 修改权限 | 审批要求 |
-|------|-----------|---------|---------|
-| `m3-implementation-plan.md` | AI 架构师 | 架构师独占 | 重大变更需星形会议 |
-| `rope-port-mapping.md` | Architecture Mapper | Mapper 主导 | 新增直接修改，状态变更需确认 |
-| `type-system-migration-log.md` | Mapper + 实现者 | 协作修改 | 新增需 Mapper 记录，解除需验证 |
-| `design-divergence-log.md` | Architecture Mapper | Mapper 主导 | 新增需架构师批准，追平需星形会议 |
-
-**修改追溯**（新增）：
-- 所有修改必须在文档末尾添加变更日志（见计划 §10）
-- 格式：`| 版本 | 日期 | 修改者 | 修改摘要 | 批准人 |`
-- 示例：`| v1.2 | 2025-11-16 | C# Implementer | 调整 T1.6 工作量估算（1→2.5 天），原因：JSON 解析调试需更多时间 | AI 架构师 |`
+**配套资料**：`agents/architect.md`、`agents/csharp-implementer.md`、`agents/rust-porter.md`、`agents/architecture-mapper.md` 中的“最近完成”章节需要在行动完成后更新，以维持跨会话记忆。
 
 ---
 
-## 三、最终批准
+## [Decision-M3-ChangeLog] 变更记录
+<a id="Decision-M3-ChangeLog"></a>
 
-### 3.1 批准声明
-**✅ 批准 `m3-implementation-plan.md` v1.2，授权 C# Implementer 立即启动实施。**
-
-### 3.2 启动条件确认
-- [x] 计划文档全员评审完成（Architecture Mapper + Rust Porter + C# Implementer）
-- [x] 关键决策已明确（5 个决策点全部落地）
-- [x] 测试基线稳固（114 项测试全部通过）
-- [x] 回退方案明确（部分回退 + 全面回退 + 分级响应）
-
-### 3.3 授权与责任
-- **C# Implementer**：自主推进 T1.1-T4.5 所有子任务，每日更新认知档案
-- **Rust Porter**：按承诺提供样本与算法咨询，响应时效 24-48h
-- **Architecture Mapper**：每 2-3 天检查文档同步，发现偏差立即提醒
-- **AI 架构师**（本人）：每 5-7 天检查进度，质量门禁验收，协调跨角色冲突
+| 日期 | 版本 | 作者 | 摘要 |
+| --- | --- | --- | --- |
+| 2025-11-19 | v1.1 | AI Architect | 对齐 `document-structure-template.md`：新增 front-matter、锚点、裁决/控制/行动表格，并记录 2025-11-19 模板同步；Stage D anchor 链接精确化。 |
+| 2025-11-16 | v1.0 | AI Architect | 初版决策书，批准 `m3-implementation-plan.md` v1.2 并记录 5 项关键裁决。 |
 
 ---
 
-## 四、实施优先级确认
-
-### 4.1 M3 高优任务（必须完成）
-1. **游标系统**（T1.1-T1.6）：6-8.5 天，解锁度量转换与导航 API
-2. **Chunk 迭代器骨架**（T3.1-T3.5）：3-4 天，解锁行遍历与视图渲染
-
-### 4.2 M3 中优任务（建议完成）
-3. **Grapheme 降级**（T4.1-T4.5）：2 天，完善边界安全，降低误操作风险
-4. **泛型接口挂钩**（T2.2）：1 天，为 M4 重构打基础
-
-### 4.3 M3 延后项（可推迟至 M3.5 或 M4）
-5. **泛型节点全面接入**：M4 任务，M3 保持双轨（字符串特化 + 泛型接口验证）
-6. **Chunk 零拷贝优化**：M4 任务，需 Rust façade 配合
-
-**时间分配建议**：
-- 第 1-2 周（10 天）：专注游标系统（T1.1-T1.6）
-- 第 2-3 周（5-10 天）：Chunk 迭代器（T3.1-T3.5） + Grapheme（T4.1-T4.5）并行
-- 缓冲期（0-5 天）：修复回归 Bug、补充测试、性能基准记录
-
----
-
-## 五、执行监控机制
-
-### 5.1 日常监控（Architecture Mapper + AI 架构师）
-- **每日检查**：C# Implementer 认知档案的"当前阻塞"章节
-- **每 2-3 天**：Architecture Mapper 检查映射表与阻塞日志同步状态
-- **触发星形会议条件**：
-  - 单个子任务超期 > 2 天
-  - 出现新的技术阻塞（非计划中的 R1-R7）
-  - 测试通过率下降 < 90%
-
-### 5.2 周会（每 5-7 天）
-**议程**：
-1. 进度对齐（已完成 vs 计划，偏差分析）
-2. 阻塞讨论（R1-R7 风险实际触发情况）
-3. 优先级调整（是否触发黄色/橙色警报）
-4. 下周计划（子任务分配与时间表）
-
-**参与者**：AI 架构师（主持）+ C# Implementer + Rust Porter + Architecture Mapper
-
-### 5.3 里程碑验收（关键节点）
-| 里程碑 | 预计时间 | 验收条件 | 验收人 |
-|--------|----------|----------|--------|
-| **游标系统完成** | M3 第 10 天 | §5.2 游标完成门禁 | AI 架构师 + Rust Porter |
-| **Chunk 迭代器完成** | M3 第 15 天 | §5.2 Chunk 完成门禁 | AI 架构师 |
-| **M3 总体验收** | M3 第 20 天 | §5.2 M3 验收门禁 | AI 架构师 + Architecture Mapper |
-
----
-
-## 六、成功因素与风险提示
-
-### 6.1 成功因素（参考《人月神话》）
-1. **计划可执行**：子任务拆解到天级，依赖关系清晰
-2. **职责明确**：4 个角色各司其职，协作接口明确
-3. **质量优先**：10 项管控措施 + 3 级评审机制
-4. **可回退性**：保留字符串特化路径，降低试错成本
-5. **团队互信**：3 位核心成员一致认可计划，承诺按时交付
-
-### 6.2 关键风险提示
-1. **游标复杂度**：首次实现复杂树游标，GC 压力与缓存策略需实测验证
-2. **跨语言对拍**：CursorDescriptor JSON 样本可能暴露 C#/Rust 细微差异
-3. **时间压力**：15-20 天工期紧凑，若游标超期将触发连锁延迟
-
-**架构师承诺**：若触发橙色警报，立即介入协助调试；若触发红色警报，果断回退保护 M2 基线。
-
----
-
-## 七、给团队的寄语
-
-> **"如果我是那些伟大架构师，我会如何抉择？"**
-
-**Martin Fowler**（重构之父）会说："先让它工作（Make it work），再让它正确（Make it right），最后让它快速（Make it fast）。M3 的目标是'让它工作'，别急着优化。"
-
-**Kent Beck**（TDD 之父）会说："测试驱动开发（TDD）。每个子任务完成后立即写测试，不要'先实现后测试'，那会让你失去对代码的信心。"
-
-**Robert C. Martin**（Clean Code 作者）会说："保持简单（Keep it simple）。游标实现不要一开始就追求完美，先让基础导航跑通，再逐步补充 Metric 支持。"
-
-**Fred Brooks**（《人月神话》作者）会说："没有银弹（No Silver Bullet）。复杂度无法消除，只能分解管理。把 M3 拆成 20 个子任务，就是在用'分治'战胜复杂度。"
-
-**作为 AI 架构师，我的抉择是**：
-- **信任团队**：你们已经证明了能力（106 项测试 → 114 项），我相信你们能完成 M3
-- **保护基线**：M2 的 106 项测试是底线，任何时候都不允许破坏
-- **拥抱试错**：M3 是探索阶段，允许犯错，但要快速反馈、及时调整
-- **持续改进**：每个里程碑后复盘，更新认知档案，避免重复踩坑
-
-**加油，团队！让我们一起完成 M3，为 M4 的全面泛型化打下坚实基础！**
-
----
-
-## 八、附件
-
-### 8.1 参考文档
-- `docs/architecture/m3-implementation-plan.md`（v1.2）
-- `docs/architecture/type-system-migration-log.md`（2025-11-16 会议决策章节）
-- `agents/architect.md`（AI 架构师认知档案）
-- `agents/csharp-implementer.md`（C# Implementer 认知档案）
-- `agents/rust-porter.md`（Rust Porter 认知档案）
-- `agents/architecture-mapper.md`（Architecture Mapper 认知档案）
-
-### 8.2 相关 Issue/PR（待创建）
-- [ ] M3 跟踪 Issue：创建 GitHub Issue 跟踪 M3 整体进度
-- [ ] 游标实现 PR：T1.1-T1.6 完成后提交
-- [ ] Chunk 迭代器 PR：T3.1-T3.5 完成后提交
-- [ ] Grapheme 降级 PR：T4.1-T4.5 完成后提交
-
-### 8.3 变更日志
-| 版本 | 日期 | 修改者 | 修改摘要 | 批准人 |
-|------|------|--------|----------|--------|
-| v1.0 | 2025-11-16 | AI 架构师 | 初版决策书，批准 M3 实施计划 v1.2 | AI 架构师 |
-
----
-
-**决策人签名**：AI 架构师  
-**决策日期**：2025-11-16  
-**下一步行动**：通知 C# Implementer 启动 T1.1（游标结构设计）
+[MP-GoalTree]: m3-implementation-plan.md#mp-goaltree
+[MP-T1]: m3-implementation-plan.md#21-任务-1游标系统实现
+[MP-T3]: m3-implementation-plan.md#23-任务-3chunk-迭代器骨架
+[MP-T4]: m3-implementation-plan.md#24-任务-4grapheme-降级实现
+[MP-R8]: m3-implementation-plan.md#r8
+[MP-R9]: m3-implementation-plan.md#r9
+[MP-R10]: m3-implementation-plan.md#r10
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
+[QA-IngestionSmoke]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-IngestionSmoke
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
+[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow

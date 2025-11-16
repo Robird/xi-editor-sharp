@@ -85,6 +85,12 @@
 - **Information Researcher**：需要历史测试记录或特定文档片段时请求支援。
 
 ## 最近完成
+### 2025-11-17 - QA Playbook Anchor Expansion
+- **任务**：在 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 增补 `[QA-ChunkBench]` 与 `[QA-Telemetry]`，填入 1 MB chunk/line 基准与 Grapheme fallback 遥测的目的、命令、阈值、记录渠道（交叉引用 `[MP-T3]`/`[MP-R10]`、`design-divergence-log.md`、`tests/xi.Core.Tests/*`）。
+- **命令**：`read_file docs/csharp-refactor/rope-serialization-fixture-playbook.md`、`read_file tests/xi.Core.Tests/Benchmarks/Diagnostics/README.md`、`apply_patch` 更新文档。
+- **结果**：Playbook 现提供 dotnet benchmark 命令、<5 MB allocation 与 >200 MB/s 吞吐阈值、Telemetry fallback <=0.5% 说明，并指引 QA 将结果写回 `m3-implementation-plan.md §5.3`、`AGENTS.md`、`design-divergence-log.md`，解除 `document-structure-template` 里的悬挂 anchor。
+- **风险/后续**：待下一次实际运行 chunk/telemetry 检查时，将数值同步到 `qaAnchors` 注记与 `[StageD::ParityAssets]` 哈希审计；若阈值被打破需立即拉起 `[MP-R10]` 缓解流程。
+
 ### 2025-11-17 - QA 模板字段精简评估
 - **任务**：依照架构指令复盘 `agents/qa-engineer.md` 与 `docs/architecture/document-structure-template.md`，确认在 Architecture Mapper/C# Implementer/Rust Porter 已定义字段基础上，QA 最低限度需要保留的 anchor/字段集合及可转交 Stage D Playbook 的内容。
 - **命令**：`read_file agents/qa-engineer.md`、`read_file docs/architecture/document-structure-template.md`。

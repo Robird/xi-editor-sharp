@@ -79,9 +79,9 @@
 <a id="TS-ChangeLog"></a>
 - **2025-11-18 – Template rollout**：重写为 blocker 卡片格式，新增 `[TS-B5]`（Breaks/Diff/Search 骨架缺口），并把每张卡映射到 Goal Tree / Stage D / QA anchors；旧段落被折叠进 Links/Next 字段。
 
-[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
+[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FeatureGates
+[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
+[QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
 [MP-R9]: m3-implementation-plan.md#r9

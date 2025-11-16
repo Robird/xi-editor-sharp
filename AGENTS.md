@@ -452,6 +452,27 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-19 (System Overview Map Launch)
+- **交付**：创建 `docs/architecture/system-overview.md`，补齐 front-matter + `[SO-*]` anchors，并以表格形式串联 Rope Core/Delta-Subset/Engine/Stage D/AI Team/Testing&QA 子系统，提供 `[BP-GoalTree]`、`[RPM-Matrix]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]` 等跨文档入口。
+- **引用关系**：`[SO-Map]` 将 Goal Tree 与 `[TS-Bx]`、`[MP-Tx]`、Stage D/QA 锚点对齐，`[SO-Responsibilities]` 指向 `agents/*.md` 档案，`[SO-Dependencies]` 阐明 Goal Tree→Stage D→QA 闭环，方便 runSubAgent 读取后直接定位事实来源。
+- **后续**：Architecture Mapper 需在每次 Goal Tree/Stage D/QA anchor 更新时同步刷新 `system-overview.md` 与本日志，保持文档治理链路可追踪。
+### 2025-11-19 (Stage D Playbook Template Alignment)
+- **交付**：重写 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，补齐 front-matter、`[StageD::*]`/`[QA-*]` 锚点、Stage D 操作清单、Fixture 流程与 Feature Gate 策略；新增 parity 资产哈希表（7 个 sha256）与 Automation backlog。
+- **引用关系**：所有 Stage D/QA anchor 现可被 `m3-implementation-plan.md`、`fixtures/parity-fixture-schema.md`、`rope-port-mapping.md`、Goal Tree `stageDAnchors` 字段直接引用；`[Fixture-FeatureGates]` 回指本手册的 Feature Gate 表。
+- **质量保障**：按模板要求覆盖 `StageD::StageDChecklist`→`FixtureFlow`→`ParityAssets`→`QA-IngestionSmoke`→`QA-StageDManual`→`AutomationBacklog`→`ChangeLog` 链路，并记录更新要求（AGENTS/agents/*.md/rope-cs-mirror-plan）。
+- **后续**：下一轮刷新需根据 exporter 输出更新哈希表并在 `agents/qa-engineer.md` 中登记测试结果；若引入 `goal_tree_sync.py` 校验，应扩展至 Stage D anchors。
+### 2025-11-19 (Architecture Docs Template Round 2)
+- **交付**：重构 `docs/architecture/m3-architect-decision.md`、`docs/architecture/fixtures/parity-fixture-schema.md`、`docs/architecture/ai-team-design-draft.md`，统一 front-matter 与 `[Decision-M3-*]`、`[Fixture-*]`、`[AIT-*]` 锚点，所有风险/行动/引用回指 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
+- **内容调整**：决策书现以概览/裁决/控制/行动表格呈现；Stage D schema 文档新增 change log 与 Stage D 链接；AI Team 草案加入阻塞表、ASCII 组织图与执行阶段路线。
+- **挂钩关系**：三份文档已对齐 `document-structure-template.md`；`agents/architecture-mapper.md` 的“最近完成”新增 Template Round 2 事项，标注待建 `system-overview.md` 与 Stage D 细粒度锚点。
+- **后续**：待 `docs/architecture/system-overview.md` 创建后在 `[AIT-ExecutionPlan]` 补链；Stage D playbook 拆分锚点后，更新 `[Fixture-*]` 段落引用具体 `[StageD::*]` 节点。
+- **Stage D Anchor Alignment**：`port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`fixtures/parity-fixture-schema.md`、`m3-implementation-plan.md`、`m3-architect-decision.md` 的 `[StageD::]`/`[QA-*]` 链接已全部指向 `rope-serialization-fixture-playbook.md` 精确片段，后续刷新 Stage D 文档时同步维护。
+
+### 2025-11-19 (QA Anchors Stage D Playbook)
+- **交付**：在 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 新增 `[QA-ChunkBench]`（1 MB chunk/line 基准）与 `[QA-Telemetry]`（Grapheme fallback 遥测）章节，写入 dotnet 命令、阈值（<5 MB allocation、>200 MB/s throughput、fallback ≤0.5%）、记录渠道与 `[MP-T3]`/`[MP-R10]`/`design-divergence-log.md` 互链，消除模板中的悬挂 `qaAnchors`。
+- **配套更新**：`agents/qa-engineer.md` “最近完成”登记了本次补档，提醒后续运行基准/遥测时需在 `m3-implementation-plan.md §5.3`、`AGENTS.md`、`design-divergence-log.md` 同步数据。
+- **后续**：QA Engineer 下一次执行 chunk/telemetry 任务时，应引用新章节并附带实际数值，若阈值被突破即刻升级 `[MP-R10]`。
+
 ### 2025-11-18 (Architecture Docs Template Rollout)
 - **交付**：委派 Architecture Mapper 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以符合 `document-structure-template.md`，统一 front-matter、`goal-tree` 片段与 `[QA-*]` / `[StageD::*]` 链接；`m3-implementation-plan.md` 的 Goal Tree 片段与 Blueprint 同步包裹在 `<!-- goal-tree:start -->` 注释中，等待未来脚本自动化。
 - **内容调整**：Blueprint 现精简为 Goal Tree + Milestones + Risk 表，映射表文档压缩为 10 个关键模块并新增 `[RPM-ParityAssets]`/`[RPM-Actions]`；类型系统日志转为 `[TS-Bx]` 卡片（Problem/Rust Plan/C# Plan/Status/Links/Next），设计分歧日志改为表格呈现 UTF-16 叶片、Grapheme 降级与 Chunk copy-on-read 三项。

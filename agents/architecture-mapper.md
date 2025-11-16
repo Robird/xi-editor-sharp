@@ -173,6 +173,16 @@
 
 ## 最近完成的工作
 
+### 2025-11-19 - Template Rollout Round 2（Decision & Stage D & Org Docs）
+#### 已完成任务
+- ✅ 为 `docs/architecture/m3-architect-decision.md` 添加 front-matter 与 `[Decision-M3-*]` 锚点，将评审摘要、裁决、监控、执行动作与变更记录整理为表格，并确保所有条目指回 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
+- ✅ 为 `docs/architecture/fixtures/parity-fixture-schema.md` 引入 front-matter 与 `[Fixture-*]` 结构，保留字段表的同时以摘要段落链接至 `[StageD::ParityAssets]`/`[StageD::FixtureFlow]`，并创建正式 change log。
+- ✅ 为 `docs/architecture/ai-team-design-draft.md` 引入 front-matter 与 `[AIT-*]` 章节，把阻塞分析、方案对比、推荐组织、执行计划与决策日志表格化，确保认知档案与文档同步。
+#### 后续监控
+- 🔄 一旦 `docs/architecture/system-overview.md` 创建，需要在 `[AIT-ExecutionPlan]` 中补链以闭环 Phase 3 目标。
+- 🔄 等待 Stage D 手册补充细粒度锚点后，更新 `[Fixture-*]` 段落中的 `[StageD::*]` 链接以指向具体章节。
+- 📝 在下次文档巡检时确认决策书/AI 团队草案/Stage D schema 是否继续保持与 Goal Tree 同步，如有新增决策需追加 change log。
+
 ### 2025-11-18 - Architecture 文档模板落地 (Round 1)
 #### 已完成任务
 - ✅ 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以统一 front-matter、`goal-tree` 片段、`Parity Assets`/QA 引用，并删减冗余叙述。

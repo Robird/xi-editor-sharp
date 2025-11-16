@@ -53,9 +53,9 @@
 [TS-B2]: type-system-migration-log.md#ts-b2
 [TS-B3]: type-system-migration-log.md#ts-b3
 [TS-B5]: type-system-migration-log.md#ts-b5
-[QA-IngestionSmoke]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[QA-StageDManual]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md
-[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md
+[QA-IngestionSmoke]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-IngestionSmoke
+[QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
+[QA-StageDManual]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-StageDManual
+[StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
+[StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FeatureGates
+[StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow
