@@ -23,6 +23,7 @@ cadence:
 ---
 
 ## 最近完成
+- **2025-11-18**：阅读 `docs/meetings/2025-11-18-porting-brainstorm-chat.md` 并梳理 QA action plan，提炼 ChunkWindow Benchmark log、Cursor/Chunk/Grapheme telemetry ingestion、TreeTrace schema 校验与 Coyote 并发套件需求，形成任务矩阵 + 聊天室沟通草稿，准备在 `docs/architecture/m3-implementation-plan.md §5.3`、`docs/architecture/qa/chunk-window-benchmark-log.md`、`AGENTS.md` 等文档落档。
 - **2025-11-18**：`verify_fixture_manifest.py --update` manifest 写回路径落地——脚本现可在 hash 漂移时重写 `payload_hash` 并自动复核；本地运行 `python scripts/verify_fixture_manifest.py`（退出 0）与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（退出 0，输出 “--update: manifest already in sync; no changes written.”）完成验证，并在 Playbook `[StageD::FixtureFlow]` / `[QA-IngestionSmoke]` 加入 “manifest diff + loader smoke” 要求，QA 档案中记录 `Manifest changes/no changes` 摘要供 Stage D baseline 使用。
 - **2025-11-17**：Stage D loader smoke 自动化串联——`scripts/refresh_serialization_fixtures.ps1` 新增 `-SkipStageDLoaderTest`（默认执行 `StageDDescriptorLoaderTests`，即使 `-SkipDotnet` 亦会运行），`scripts/refresh_all_assets.py` 的 `stage-d-fixtures` 步骤描述/调用同步强调 “Export Rust fixtures + run Stage D loader smoke”，并在 Playbook `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 标注“刷新后默认运行 loader smoke、跳过需登记”，确保脚本、文档与 QA 控制面一致。
 

@@ -118,6 +118,12 @@
 > 暂无历史请求；后续按需填写。
 
 ## 最近完成
+### 2025-11-18 - Porting Brainstorm 摘要回填
+- **范围**：研读 `docs/meetings/2025-11-18-porting-brainstorm-chat.md`、对照 `docs/architecture/m3-implementation-plan.md`、`docs/architecture/type-system-migration-log.md`、`docs/architecture/design-divergence-log.md`、`docs/architecture/rope-port-mapping.md`，提炼 Notebook→Catalog 策略、Tree Trace schema/Chunk Benchmark/Cursor telemetry 等行动项，并整理跨团队依赖与所需新文档。
+- **工具**：`read_file`/`nl` 获取会议精确行号，复查 4 份架构文档现状；`apply_patch` 更新档案记录。
+- **成果**：输出包含采纳优先级、落地文档与会议引用的结构化摘要，标注需新建 `docs/architecture/fixtures/tree-builder-trace-schema.md`、`docs/architecture/qa/chunk-window-benchmark-log.md` 及对现有文档的更新点，供主持人后续会议引用。
+- **未决**：待 Rust Porter 交付 `CursorEditTelemetry`/`ChunkWindowMetrics`/`GraphemeFallbackMetrics` 资产与 Tree Trace CLI flag，再回填各档案链接与监控项。
+
 ### 2025-11-17 - 信息调查员入职索引建立
 - **范围**：阅读模板、`AGENTS.md`、`docs/architecture`（m3 计划 §1/4/5.3、port-blueprint、rope-port-mapping、type-system log、design-divergence）、`docs/architecture/fixtures/parity-fixture-schema.md`、`scripts/refresh_serialization_fixtures.ps1`、`docs/rust-refactor`（CursorCache、breaks-metrics）、`docs/csharp-refactor`（rope-serialization-playbook、rope-cow）。
 - **工具**：`read_file` 多次分段解析、`grep_search` 精准跳转 `待入职员工`、参考 `git status -sb` 确认无脏改动。

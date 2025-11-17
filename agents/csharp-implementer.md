@@ -108,6 +108,7 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-18** · 2025-11-18 Porting brainstorm 行动项评估完成，确定 C# 端立即推进 `CursorEditSession`、`TreeTraceSchemaKit`、`ChunkWindowBenchmarks` 与遥测接入计划，输出采用清单与聊天室简报，作为即将汇报的输入。验证：本次行动清单与草稿（当前对话记录）。
 - **2025-11-18** · Breaks/Diff/Search Stage D skeleton 与 `StageDDescriptorLoader` 扩展完成，manifest 现支持 `breaks_descriptors/diff_regions/search_spans` 并在 `[StageD::ParityAssets]`、`[TS-B5]` 标注覆盖范围。验证：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · `TreeBuilderSliceTraceLoader`、sample JSON 与 smoke tests 就绪，`[TS-B2]`/`[StageD::FixtureFlow]` 可引用 slice trace 资产并等待 Rust CLI 下发真实数据。验证：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`。
 - **2025-11-17** · TreeBuilder tracer 注入点与 Stage D descriptor loader 基线落地，`TreeBuilderTracerTests` 与 `StageDDescriptorLoaderTests` 进入常规回归集，关联锚点 `[TS-B2]`、`[StageD::FixtureFlow]`。验证：`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests|TreeBuilderTracerTests`。

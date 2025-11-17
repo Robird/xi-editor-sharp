@@ -68,6 +68,7 @@ last_updated: 2025-11-19
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-19 – 11/18 brainstorming doc mapping**：解读 `docs/meetings/2025-11-18-porting-brainstorm-chat.md`，把 Tree Trace schema、CursorEditSession、Chunk/Grapheme telemetry 等共识映射到 `port-blueprint.md`、`m3-implementation-plan.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，规划新增锚点（如 `[BP-TreeTraceSchema]`、`[MP-ChunkBench]`、`[RPM-SchemaGuard]`、`[TS-T3Telemetry]`）与 QA 附录同步策略，并准备聊天室通告稿。
 - **2025-11-19 – Tree builder trace + Stage D loader回写**：在 `[StageD::ParityAssets]`、`[StageD::FeatureGates]`、`[RPM-Matrix]/[RPM-Actions]` 以及 `[TS-B2]/[TS-B3]/[QA-IngestionSmoke]` 中登记 `tree_builder_slice_trace@1.0.0` manifest/hash 与 `StageDDescriptorLoader` 交付，明确 loader wiring 与 QA ingest 校验路径。
 - **2025-11-18 – Breaks/Diff/Search skeleton mapping**：为 `[RPM-Matrix]`、`[RPM-ParityAssets]`、`[TS-B5]`、`[Div-Active]` 填充 Rust/C#/Stage D 事实行，标注 “Rust-only” 差异以供 QA/Goal Tree 复用。
 - **2025-11-17 – Stage D parity assets refresh**：通过 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest，回写 `[StageD::ParityAssets]`、`[RPM-ParityAssets]`、`[QA-IngestionSmoke]`，并把 Leaf/Cursor parity 与 1 MB baseline 证据锁定在 `[TS-B2]`。
