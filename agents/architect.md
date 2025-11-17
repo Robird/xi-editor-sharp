@@ -107,12 +107,12 @@
   - 维持每 2-3 天查阅 C# Implementer 档案的节奏；若文档重构影响 M3 里程碑需立即沟通。
 
 - [推进中] ⚙️ **一键刷新脚本与 Stage D 对接**
-  - **现状**：`scripts/refresh_all_assets.py`（2025-11-17）已把 Goal Tree → Rust skeleton → `dotnet build` → ILSpy → Skeletonizer 串成一键流程，支持 `--only/--skip/--dry-run/--continue-on-error`。
-  - **目标**：把该脚本接入 `run_all_checks` / Stage D Playbook，形成默认刷新路径；补充 CLI 失败时的兜底提示，并允许扩展 Stage D/exporter 步骤。
+  - **现状**：`scripts/refresh_all_assets.py`（2025-11-17）已把 Goal Tree → Rust skeleton → `dotnet build` → ILSpy → Skeletonizer 串成一键流程，并实测可触发 `--only stage-d-fixtures` 刷新以生成 manifest（QA ingestion smoke 已验证 chunk/cursor/grapheme 哈希 + Serialization 测试）。
+  - **目标**：把该脚本接入 `run_all_checks` / Stage D Playbook，形成默认刷新路径，并让 QA Anchors（`[QA-IngestionSmoke]`/`[QA-ChunkBench]`/`[QA-Telemetry]`）直接消费 manifest + 自动化哈希。
   - **下一步**：
-    1. 与 Architecture Mapper/QA 确认 Stage D 手册引用位置。
-    2. 评估是否追加 `python scripts/refresh_serialization_fixtures.ps1` / `cargo test` 钩子。
-    3. 在 `README` 或 `docs/architecture/document-structure-template.md` 记录调用约定。
+    1. 规划 canonical hash/diff 自动化：拓展 `refresh_all_assets.py` 或单独脚本，产出 `fixtures.manifest.json` 对比结果并写回 QA 记录。
+    2. 与 QA/Architecture Mapper 协调 chunk bench & grapheme telemetry 数据流，确保 `[QA-ChunkBench]`、`[QA-Telemetry]`、`[StageD::ParityAssets]` 使用 manifest 元数据。
+    3. 在 Stage D Playbook/`document-structure-template.md` 标准化脚本调用与失败兜底说明，必要时追加 `refresh_serialization_fixtures.ps1`/`cargo test` 钩子或 CLI trace 采集选项。
 
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。

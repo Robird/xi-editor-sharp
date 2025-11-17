@@ -454,6 +454,16 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Stage D ingestion smoke + Serialization filter)
+- **命令执行**：在仓库根依次运行 `find tests/xi.Core.Tests/Fixtures -name '*.json' -print0 | sort -z | xargs -0 sha256sum`（再用 `python - <<'PY' ... sort_keys=True, ensure_ascii=False` 复算 canonical SHA256）以及 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization`，10/10 用例 2.5s 通过，hash 与 `fixtures.manifest.json`/`[StageD::ParityAssets]` 完全一致。
+- **QA 档案同步**：`agents/qa-engineer.md` 的“当前监控”“[QA-IngestionSmoke]”与“最近完成”记录此次 smoke，风险从“Blocked”降为“✅ Manifest-backed”，后续待办转向 `refresh_all_assets.py --only stage-d-fixtures` 的 canonical hash 自动化。
+- **影响**：Stage D 手册、`QA` anchors 现可引用 manifest 作为事实来源，后续 chunk bench/telemetry 只需基于该 manifest 重放即可。
+
+### 2025-11-17 (Rope Port Mapping manifest refresh)
+- **文档改写**：`docs/architecture/rope-port-mapping.md` 在 `[RPM-Matrix]` 与 `[RPM-ParityAssets]` 标注 2025-11-17 manifest（`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、cursor/chunk/grapheme hashes），并说明命令 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 与 `[QA-IngestionSmoke]` 的对接。
+- **行动项更新**：`[RPM-Actions]` 由“解锁 CLI schema”改为“自动化 canonical hash diff”“将 manifest 接入 `[QA-ChunkBench]`/`[QA-Telemetry]`”“捕获 Grapheme iterator CLI trace”“MetricAdapter 设计”“Breaks/Diff/Search skeleton”，与最新状态对齐。
+- **认知档案**：`agents/architecture-mapper.md` 记入“Stage D parity assets updated”并在“当前聚焦”强调 canonical hash 自动化 + QA 联动，确保后续任务指向新的事实表。
+
 ### 2025-11-17 (AI Team Doc Refresh Kickoff)
 - **状态确认**：`document-structure-template.md` 覆盖的 7 份架构文档（Blueprint/Mapping/TS Log/Design Divergence/M3 Plan/M3 Decision/Stage D Playbook）已完成模板化改造，并由 `scripts/refresh_all_assets.py` 提供 goal-tree 同步验证，视为 Phase 1 成功收官。
 - **整顿指令**：以新版文档规范为准绳，所有 AI 员工需整理各自认知档案（路径如下），确保 front-matter、职责/进度/风险章节一致，并借机梳理最新认知：

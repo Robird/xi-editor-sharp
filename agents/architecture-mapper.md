@@ -19,7 +19,7 @@ last_updated: 2025-11-17
 
 ## 当前聚焦
 - Goal Tree YAML + Stage D anchors：用 `docs/architecture/templates/goal-tree.yaml` 作为单一事实来源，手工镜像 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]`，等待 `scripts/goal_tree_sync.py` 自动化上线。
-- Leaf/Cursor/Chunk/Grapheme 事实表：在 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 回写 Cursor 深树 parity、StringLeafOperations 对齐与 Stage D anchor 证据，防止 Rust/C# 状态漂移。
+- Leaf/Cursor/Chunk/Grapheme 事实表：保持 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 的事实同步；Stage D manifest 已于 2025-11-17 通过 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 刷新，现阶段聚焦 canonical hash 自动化、QA 记录与 CLI schema 前置告警，防止 Rust/C# 状态漂移。
 - Template 执行力：推动所有 Stage 3+ 文档按照 `document-structure-template.md` 填满 front-matter、Goal Tree 片段、QA/Stage D 引用，建立 lint 脚本清单。
 - QA/Rust Porter 接口：封装 CLI schema/fixture 需求（cursor/leaf/chunk/grapheme）并同步 QA 的 Stage D 触发条件与 1 MB 基准排程。
 
@@ -68,6 +68,7 @@ last_updated: 2025-11-17
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-17 – Stage D parity assets updated**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest (`rust_commit=7ac917a0`, `cli_rev=0.3.0`, `feature_gates=["serde"]`, cursor/chunk/grapheme hashes) 并在 `[RPM-ParityAssets]` 纪录“Manifest-backed”状态，同时同步 QA 的 `[QA-IngestionSmoke]` ✅ 结论与后续动作。
 - **2025-11-17 – Rope doc sync for G1/G2**：更新 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，写入 `_editVersion`/`CursorDescriptorParityTests` 证据、Stage D manifest (`fixtures.manifest.json`) 引用，以及 Chunk/Grapheme diagnostics + 1 MB baseline 降级策略。
 - **2025-11-17 – 档案升级 + Anchor 维护计划**：重写本档案为 front-matter + 五大章节结构，明确 Goal Tree/Stage D 流程、template 治理与跨角色接口，满足 AI 架构师“认知档案”要求。
 - **2025-11-17 – Goal Tree YAML 草案 & 锚点审计**：完成 G1-G6 字段对齐、14+3 字段 schema、锚点缺口清单，并记录在 `待办/风险`。
