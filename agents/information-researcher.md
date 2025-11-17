@@ -55,6 +55,7 @@
 
 ## 最近完成
 - **2025-11-17 – 信息调查员档案重构**：按架构师要求重写 front-matter、知识索引、监控清单与信息通报流程，确保 Goal Tree YAML、`scripts/refresh_all_assets.py`、Stage D Playbook、`run_all_checks` 结果来源全部在索引中，新增监控策略并记录当前关注。
+- **2025-11-17 – Rope Skeleton 映射梳理**：对 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs` 纵览 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme 六大类类型，标注 Stage D CLI（Chunk/Cursor/Grapheme fixtures）覆盖度与 C# 缺口，供 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` “Skeleton Coverage” 填写依据。
 
 ## 待办 / 风险
 - [TODO] 观测 `scripts/refresh_all_assets.py` 下一次运行，补齐其日志路径与失败处理 SOP。
@@ -122,6 +123,12 @@
 - **工具**：`read_file` 多次分段解析、`grep_search` 精准跳转 `待入职员工`、参考 `git status -sb` 确认无脏改动。
 - **成果**：建立 13 条索引、7 条监控、记录脚本/Schema 快速关键词；在档案首段与监控条目明确“仅架构师调度”。
 - **未决**：Grapheme 遥测阈值尚未由架构师确认；Stage D CLI schema 仍待 Rust Porter 发布正式版本。需持续关注。 
+
+### 2025-11-17 - Rope skeleton 映射梳理
+- **范围**：逐段查阅 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs`，提炼 Rope Core、Cursor、Metrics、Delta/Engine、Chunk/Line、Grapheme/Stage D 六类关键类型/函数、CLI 导出器与 serde fixtures。
+- **工具**：`read_file` + `grep_search` 聚焦 TreeBuilder/ChunkIter/GraphemeDescriptor/NodeCursor 片段，对照 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` 的 Skeleton Coverage 字段。
+- **成果**：整理跨语言 70+ 标识符及文件/命名空间来源，指出 Rust BreakBuilder、TreeBuilderTracer、serde descriptor 导出器在 C# 暂缺，以及 C# GraphemeNavigator 降级实现与 Rust unicode_segmentation API 的映射差异。
+- **未决**：待架构师确定哪些 Rust serde fixtures 需在 C# Stage D CLI 中复刻（Chunk/Grapheme RangeSnapshot 结构仍未落地）。
 
 ## 下一步计划
 - [ ] 为 2025-11-18 星形会议准备 `m3-implementation-plan` G1-G6 进度摘要 + 风险提示，供架构师快速引用。

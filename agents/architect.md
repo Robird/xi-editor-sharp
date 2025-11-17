@@ -113,6 +113,13 @@
     1. 拓展 canonical hash/diff：在 `verify_fixture_manifest.py` 实现 `--update` 或差异报告，结合 `refresh_serialization_fixtures.ps1` 输出为 QA/CI 提供自动对比。
     2. 与 QA/C# Implementer 制定 Chunk throughput 调优与 alloc telemetry方案（<5 MB counters、>200 MB/s 目标），并把计划写入 `design-divergence-log.md` 与 `[MP-R10]`。
     3. 与 Architecture Mapper 协调 Grapheme telemetry ingestion：补 `[QA-Telemetry]` 实测数据、在 Stage D Playbook 和 Goal Tree 中记录触发条件；必要时更新 `document-structure-template.md` 与 CLI trace 采集说明。
+- [推进中] 🧱 **Rust↔C# Skeleton Coverage**
+  - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；`rope-port-mapping.md#[RPM-Matrix]` 加入“Skeleton Coverage”列记录 TreeBuilderTracer、CursorDescriptor DTO、Breaks tree、Chunk/Grapheme exporter 等缺口。
+  - **目标**：把 skeleton 差异转化为 actionable backlog，指导 C# Implementer/Rust Porter/QA 的 Stage D 任务分配。
+  - **下一步**：
+    1. 依据新列为 `[TS-B2]`（MetricAdapter/TreeBuilderTracer）、`[TS-B3]`（Chunk/Line DTO）与 `[TS-B5]`（Breaks tree）建立里程碑子任务。
+    2. 指派 C# Implementer 先行补齐 `ChunkDescriptor`/`GraphemeDescriptor` DTO + CLI ingest stub，Rust Porter 维持 manifest 输出，QA 将 `[QA-ChunkBench]`/`[QA-Telemetry]` 连接到 manifest。
+    3. 在 `design-divergence-log.md` 记录 TreeBuilder trace 仍为 Rust-only 的降级策略，待 CLI trace 可在 C# 复现后关闭。
 
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。

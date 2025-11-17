@@ -454,6 +454,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Rope Skeleton Coverage Mapping)
+- **信息采集**：激活 Information Researcher 梳理 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs` 中的 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme 类型，形成 Rust↔C# 对照清单并登记在 `agents/information-researcher.md`。
+- **文档更新**：在 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` 新增“Skeleton Coverage”列，逐行标记 Rust skeleton 现状与 C# 覆盖差距（TreeBuilderTracer、CursorDescriptor DTO、Breaks tree、Chunk/Grapheme exporter 等），为后续骨架映射方案提供单一事实来源。
+- **后续聚焦**：依据新列输出，准备为 C# Implementer 制定 Breaks/Chunk/Grapheme skeleton 接入计划，并将缺口同步至 `[TS-B2]`/`[TS-B3]`/`[TS-B5]`。 
 ### 2025-11-17 (Stage D ingestion smoke + Serialization filter)
 - **命令执行**：在仓库根依次运行 `find tests/xi.Core.Tests/Fixtures -name '*.json' -print0 | sort -z | xargs -0 sha256sum`（再用 `python - <<'PY' ... sort_keys=True, ensure_ascii=False` 复算 canonical SHA256）以及 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization`，10/10 用例 2.5s 通过，hash 与 `fixtures.manifest.json`/`[StageD::ParityAssets]` 完全一致。
 - **QA 档案同步**：`agents/qa-engineer.md` 的“当前监控”“[QA-IngestionSmoke]”与“最近完成”记录此次 smoke，风险从“Blocked”降为“✅ Manifest-backed”，后续待办转向 `refresh_all_assets.py --only stage-d-fixtures` 的 canonical hash 自动化。
