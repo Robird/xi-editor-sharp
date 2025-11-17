@@ -106,6 +106,20 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Skeleton Metric/TreeBuilder/Cursor 路径补齐
+- ✅ 重写 `blocking_model_core::skeleton`，让 `Metric` trait 包含 `measure/to_base_units/from_base_units/is_boundary/prev/next/can_fragment`，并新增 `DefaultMetricProvider` 及 `BaseMetric/Utf16Metric` 占位实现；同步在 prelude 中 re-export
+- ✅ 在 `tree.rs` 补齐 `Interval`、`Leaf`/`NodeInfo`（含 `accumulate/compute_info/identity/interval`）、`NodeBody`、`NodeVal`、`SharedNode`、`Node` 方法（`from_leaf/from_children/len/height/is_leaf/ptr_eq`）以及 `PathFrame`/`Cursor`/`CursorDescriptor`/`CursorState`（feature gate）结构
+- ✅ 新增 `TreeBuilder` 占位实现，`build()` 分支显式触达 `SharedNode::from_children`，`Rope::new/edit/slice/measure/cursor/apply_descriptor` 通过 `TreeBuilder`、`SharedNode`、`Cursor` 串起占位调用链
+- ✅ `samples.rs` 升级 `SampleLeaf`（`Default/len/is_ok_child/push_maybe_split`）与 `SampleNodeInfo`（`DefaultMetricProvider` 实现），添加 `sample_rope_via_builder()` 样例
+- ✅ 更新 `blocking_model_core::tests::skeleton` 以验证新的 cursor descriptor roundtrip 与 `SharedNode` COW 语义；所有 API 由 `blocking_model_core::skeleton::prelude` 统一 re-export
+- 🧪 执行 `cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core`，确认 skeleton 仍可编译并通过现有测试
+
+### 2025-11-17 - Skeleton vs xi-rope 骨架映射复盘
+- ✅ 阅读 `blocking-model/rust/blocking_model_core/src/skeleton/{mod.rs,tree.rs,rope.rs,metrics.rs,samples.rs}`，梳理目前保留的类型/trait/占位函数关系
+- ✅ 对照 `xi-editor-ph7/rust/rope/src/{lib.rs,tree.rs,rope.rs,metrics/*}` 与游标路径，整理 Metric/Node/SharedNode/Cursor/Rope 的“已覆盖/缺失/需精简”清单
+- ✅ 检查 skeleton 是否残留业务逻辑（仅 `samples.rs` 提供样例类型，无真实实现），形成后续抽象建议
+- ⚠️ 输出文档提醒补齐 Metric 转换、TreeBuilder/CursorDescriptor/SharedNode COW 接口与 `Rope::edit -> Node::edit -> Cursor` 调用链的占位说明，方便下轮建模
+
 ### 2025-11-17 - Parity Fixture Schema Freeze & Stage D Wiring
 - ✅ 建立 `docs/architecture/fixtures/parity-fixture-schema.md`，将 `--cursor-descriptors`、`--chunk-descriptors`、`--grapheme-descriptors` 的字段、可选项、metadata 与 feature gate 开关（`serde` + 可选 `cursor_state`、`tree_builder_slice_trace`）一次性冻结，提供示例命令与验证清单。
 - ✅ 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，明确 Stage D 流程默认导出三类 parity 资产，新增 `-ExportParityFixtures` 开关说明及手动命令片段，确保 C# 实装/QA 依据信息来源一致。

@@ -173,6 +173,29 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Mini blocking model skeleton 刷新状态记录
+#### 已完成任务
+- ✅ 复查 `blocking-model/rust/blocking_model_core/src/skeleton/{metrics.rs,tree.rs,rope.rs,samples.rs}` 与 `tests/skeleton.rs`，确认 Metric/Leaf/Node/SharedNode/TreeBuilder/Cursor/Rope API/feature gate 的最新骨架边界（含 `cursor_state` feature、`TreeBuilder` stub、`sample_rope_via_builder` 资产）。
+- ✅ 更新 `docs/architecture/mini-blocking-model-skeleton-review.md`，重新标注矩阵状态（`Aligned/Partially aligned`）并记录 DefaultMetricProvider 转换、TreeBuilder 事件栈、CursorState 恢复路径、Rope API stub 等待办。
+- ✅ 核对 `docs/architecture/mini-blocking-model-plan.md` 与当前 skeleton 范围一致，暂不需要改动，仅在建议中注明下次同步触发条件。
+
+#### 后续监控
+- 🔼 Rust Porter 需补齐 DefaultMetricProvider convert 逻辑、TreeBuilder slice trace 事件栈以及 CursorState 深度恢复路径，完成后我将再次刷新 skeleton review 与 `mini-blocking-model-plan.md` 引用。
+- 🧪 QA Engineer 需要在 `tests/skeleton.rs` 扩充 TreeBuilder/Metric 覆盖（利用 `sample_rope_via_builder`），为未来 CLI fixture 导出提供最小回归资产。
+- 📓 待 Rust 端公开 `helpers/string_leaf` 与 CLI stub 后，再评估是否需要对 `docs/architecture/mini-blocking-model-plan.md`、`rope-port-mapping.md` 做联动更新。
+
+### 2025-11-17 - Mini blocking model skeleton 映射评估
+#### 已完成任务
+- ✅ 阅读 `blocking-model/rust/blocking_model_core/src/skeleton` 与 `xi-editor-ph7/rust/rope/src`（含 `tree.rs`、`rope.rs`、`metrics/mod.rs`、`helpers/string_leaf.rs`）的类型/调用关系，对照 `docs/architecture/mini-blocking-model-plan.md` 明确 skeleton 目标。
+- ✅ 编写 `docs/architecture/mini-blocking-model-skeleton-review.md`，输出背景、组件矩阵（Metric/Leaf/Node/SharedNode/TreeBuilder/Cursor/Rope API/feature gate/helper/fixtures）及 5 条高优先级建议，标注各组件 `Aligned/Missing/Over-specified` 状态。
+- ✅ 梳理 skeleton 中的过度实现（`MetricBinder`）与缺失链路（TreeBuilder、CursorDescriptor、feature gate），并将“运行期调用链断点”总结为文档建议，便于后续子任务排期。
+- ✅ 在本档案登记本次评估，为 Rust Porter/C# Implementer/QA 分配后续协作提示。
+
+#### 后续监控
+- 🔼 Rust Porter 需根据评估结果为 `Metric`/`DefaultMetricProvider`、`NodeBody`、`TreeBuilder`、`CursorDescriptor` 补齐 skeleton 占位接口；交付后我需同步 `docs/architecture/rope-port-mapping.md`。
+- 🔄 C# Implementer 需要关注 Node/Cursor/Chunk 相关接口变化，确保 mini workspace 的 C# skeleton 能够复用；若接口落地延迟需在 `type-system-migration-log.md` 标记阻塞。
+- 🧪 QA Engineer 待 skeleton 扩展完成后，在 mini workspace 添加深树/metrics 测试并记录在 `BlockingModel.Tests`，确保矩阵中“Missing”项能转为 “Aligned”。
+
 ### 2025-11-17 - Rope 文档同步 + R8/R9/R10 状态刷新
 #### 已完成任务
 - ✅ 更新 `docs/architecture/rope-port-mapping.md` 的 Leaf/Cursor/Chunk/Grapheme 行：记入 `_editVersion` 版本票据、`CursorDescriptorParityTests` 11/11、`RopeChunkEnumeratorDiagnostics`/`GraphemeNavigationMetrics` 插桩，并明确 CLI schema、Grapheme 遥测阈值与 1 MB 基准尚未交付。
