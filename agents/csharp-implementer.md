@@ -108,6 +108,17 @@ interfaces:
 
 ## 最近完成
 
+### 2025-11-18 - TreeBuilder Slice Trace Loader + Stage D Fixture Touchpoint
+**任务背景**：`[TS-B2]`/`[StageD::FixtureFlow]` 要 C# 端消费 Rust `tree_builder_slice_trace` 资产，但目前只有 tracer 接口，没有 loader/夹具/文档记录，Stage D CLI 无法验证 slice stack。 
+
+**关键输出**：
+1. ✅ 新增 `TreeBuilderSliceTraceLoader` + DTO（`TreeBuilderSliceTraceMetadata/Event/EventKind/Interval`），支持 metadata+`events[]` 或纯数组根节点，兼容缺失字段默认值，并解析 `LeafSlice`/`EnterChild`/`MergePop` 专用区间与 `merged_children` 数据（`src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs`）。
+2. ✅ 在 `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json` 放置最小示例（PushFrame/LeafSlice/EnterChild/MergePop），保持 ASCII schema 与 Rust exporter 描述一致，供 Stage D CLI 占位。
+3. ✅ 新建 `TreeBuilderSliceTraceLoaderTests`（`tests/xi.Core.Tests/Diagnostics/TreeBuilderSliceTraceLoaderTests.cs`）覆盖目录扫描、首事件字段映射、LeafSlice/EnterChild 区间断言与缺失目录异常。
+4. ✅ 更新 `[TS-B2]`、`[RPM-Matrix]`、`[RPM-ParityAssets]` 记录，说明 Slice trace loader 已就绪但仍等待 Rust CLI 输出真实资产。
+
+**验证**：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`
+
 ### 2025-11-17 - TreeBuilder Tracer Wiring + 单元测试
 **任务背景**：`[TS-B2]` 仍因 TreeBuilder tracer 未真正进执行路径而维持 ⚠️，需在 C# 端发出 push/merge/pop/build/reset 事件，才能后续与 Rust `tree_builder_slice_trace` 对拍。
 

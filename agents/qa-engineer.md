@@ -23,10 +23,11 @@ cadence:
 ---
 
 ## 最近完成
+- **2025-11-18**：`verify_fixture_manifest.py --update` manifest 写回路径落地——脚本现可在 hash 漂移时重写 `payload_hash` 并自动复核；本地运行 `python scripts/verify_fixture_manifest.py`（退出 0）与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（退出 0，输出 “--update: manifest already in sync; no changes written.”）完成验证，并在 Playbook `[StageD::FixtureFlow]` / `[QA-IngestionSmoke]` 加入 “manifest diff + loader smoke” 要求，QA 档案中记录 `Manifest changes/no changes` 摘要供 Stage D baseline 使用。
 - **2025-11-17**：Stage D loader smoke 自动化串联——`scripts/refresh_serialization_fixtures.ps1` 新增 `-SkipStageDLoaderTest`（默认执行 `StageDDescriptorLoaderTests`，即使 `-SkipDotnet` 亦会运行），`scripts/refresh_all_assets.py` 的 `stage-d-fixtures` 步骤描述/调用同步强调 “Export Rust fixtures + run Stage D loader smoke”，并在 Playbook `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 标注“刷新后默认运行 loader smoke、跳过需登记”，确保脚本、文档与 QA 控制面一致。
 
 ## 当前监控
-- **Stage D ingestion smoke `[QA-IngestionSmoke]`**：✅ 2025-11-17 本地完成 ingestion smoke；`python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`,`ensure_ascii=False`）取代手工 `sha256sum` 作为默认校验，必要时仍可逐条 hash 复核。`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 通过；manifest 与 Playbook 哈希 `bd863f…/fe963d…/a2b840…` 保持一致。
+- **Stage D ingestion smoke `[QA-IngestionSmoke]`**：✅ 2025-11-17 本地完成 ingestion smoke；`python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`,`ensure_ascii=False`）取代手工 `sha256sum` 作为默认校验，必要时仍可逐条 hash 复核。2025-11-18 起启用 `--update` 写回模式，脚本自动打印 `Manifest changes/no changes` 并复验，输出需与 loader smoke 共同归档。`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 通过；manifest 与 Playbook 哈希 `bd863f…/fe963d…/a2b840…` 保持一致。
 - **1 MB chunk benchmark `[QA-ChunkBench]`**：2025-11-17 rerun `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build`，输出 `ChunkCount=1,049`, `MaxChunkLength=1,000`, `TotalUtf16Chars=1,048,625`, `LineCount=8,389`；Chunk 12.62 ms（≈79 MiB/s 名义 / ≈159 MiB/s UTF-16），Line 14.99 ms（≈67 / 133 MiB/s）。吞吐未达 >200 MB/s 且缺少 <5 MB alloc 诊断，已在 Playbook + `m3-implementation-plan.md §5.3` 记档并将 anchor 标记 ⚠️。
 - **Grapheme fallback telemetry `[QA-Telemetry]`**：`GraphemeNavigatorSmokeTests` 已统计 fallback 命中率但未写 manifest。目标阈值 <=0.5%，若高于阈值需向 Architecture Mapper 报告并在 Stage D anchor 中登记。
 - **Stage D Baseline**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 已把 ingestion smoke、chunk bench、telemetry 的链路收口，等待 `[StageD::FixtureFlow]` manifest 线上化后同步 hash。
@@ -71,10 +72,11 @@ cadence:
 ### `scripts/verify_fixture_manifest.py`
 - **用途**：对 `fixtures.manifest.json` 中的 `fixtures[].payload_hash` 执行 canonical JSON（`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）哈希复核，自动标记缺失/漂移资产。
 - **运行**：```python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json```
+  - 若预期 hash drift，追加 `--update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 让脚本重写 `payload_hash` 并自动二次校验。
 - **Checklist**：
 	1. 默认在 Stage D 刷新后运行，或通过 `python scripts/refresh_all_assets.py --only verify-stage-d` 独立触发；
 	2. 若脚本报错，优先排查路径/JSON 结构，再 fallback `sha256sum`；
-	3. 未来将追加 `--update` 以重写 manifest（TODO）。
+	3. exporter 修改 JSON 时必须运行 `--update`，保存 `Manifest changes` 或 “no changes” 行，与 `StageDDescriptorLoaderTests` 输出组成 “manifest diff + loader smoke” 证据；脚本写回后已经自动复验，禁止手工编辑 manifest 或跳过记录。
 
 ### QA Diagnostics / Benchmark 脚本
 - **1 MB chunk bench**：```dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/Diagnostics.csproj --configuration Release -- --payloadMB 1 --export json```；记录 `ChunkCount`, `MaxChunkLengthBytes`, `ElapsedMs`。

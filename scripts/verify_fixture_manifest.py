@@ -31,6 +31,14 @@ class FixtureResult:
         return f"{self.name:<28} {self.status:<9} {self.expected_hash} {actual}"
 
 
+@dataclass
+class ManifestChange:
+    name: str
+    relative_path: str
+    old_hash: str
+    new_hash: str
+
+
 def _repo_root(default_path: Optional[str]) -> Path:
     if default_path:
         return Path(default_path).resolve()
@@ -58,6 +66,13 @@ def _sha256_hex(data: bytes) -> str:
 def _load_manifest(manifest_path: Path) -> dict:
     with manifest_path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _write_manifest(manifest_path: Path, manifest: dict) -> None:
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 # TODO: extend verification to cover feature_gates, rust_commit, cli_rev integrity.
@@ -144,6 +159,49 @@ def _format_summary(results: Iterable[FixtureResult]) -> str:
     return "\n".join(lines)
 
 
+def _apply_payload_hash_updates(
+    manifest: dict,
+    results: Iterable[FixtureResult],
+    manifest_path: Path,
+) -> List[ManifestChange]:
+    fixtures = manifest.get("fixtures")
+    if not isinstance(fixtures, list):
+        raise ValueError("Manifest missing 'fixtures' array.")
+
+    index = {}
+    for entry in fixtures:
+        if not isinstance(entry, dict):
+            continue
+        rel_path = entry.get("path")
+        if rel_path:
+            index[rel_path] = entry
+
+    changes: List[ManifestChange] = []
+    for result in results:
+        if result.status != "mismatch" or not result.actual_hash:
+            continue
+        entry = index.get(result.relative_path)
+        if not entry:
+            raise ValueError(f"Manifest missing entry for {result.relative_path}")
+        old_hash = entry.get("payload_hash", "")
+        if old_hash == result.actual_hash:
+            continue
+        entry["payload_hash"] = result.actual_hash
+        changes.append(
+            ManifestChange(
+                name=result.name,
+                relative_path=result.relative_path,
+                old_hash=old_hash,
+                new_hash=result.actual_hash,
+            )
+        )
+
+    if changes:
+        _write_manifest(manifest_path, manifest)
+
+    return changes
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Verify fixture payload hashes against the manifest.")
     parser.add_argument(
@@ -159,7 +217,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--update",
         action="store_true",
-        help="Future flag to rewrite manifest payload hashes when drift is expected.",
+        help="Rewrite payload_hash values when drift is detected, then re-run verification.",
     )
     args = parser.parse_args(argv)
 
@@ -169,11 +227,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not manifest_path.exists():
         print(f"Manifest not found: {manifest_path}", file=sys.stderr)
         return 2
-
-    if args.update:
-        # TODO: implement update mode that rewrites payload_hash entries.
-        print("--update is not implemented yet.", file=sys.stderr)
-        return 64
 
     try:
         manifest = _load_manifest(manifest_path)
@@ -186,6 +239,40 @@ def main(argv: Optional[List[str]] = None) -> int:
     except ValueError as exc:
         print(f"Manifest error: {exc}", file=sys.stderr)
         return 2
+
+    if args.update:
+        blockers = [r for r in results if r.status in {"missing", "error"}]
+        if blockers:
+            print(_format_summary(results))
+            print("\n--update aborted: unresolved fixture errors prevent manifest rewrite.")
+            for result in blockers:
+                detail = result.error or result.status
+                print(f"- {result.name}: {detail} ({result.relative_path})")
+            return 1
+
+        mismatches = [r for r in results if r.status == "mismatch"]
+        if mismatches:
+            try:
+                changes = _apply_payload_hash_updates(manifest, mismatches, manifest_path)
+            except ValueError as exc:
+                print(f"Failed to update manifest: {exc}", file=sys.stderr)
+                return 2
+
+            if changes:
+                print("\nManifest changes:")
+                for change in changes:
+                    print(
+                        f"- {change.name} ({change.relative_path}): {change.old_hash} -> {change.new_hash}"
+                    )
+
+            try:
+                manifest = _load_manifest(manifest_path)
+                results = _verify_fixtures(manifest, repo_root)
+            except (json.JSONDecodeError, ValueError) as exc:
+                print(f"Post-update verification failed: {exc}", file=sys.stderr)
+                return 2
+        else:
+            print("\n--update: manifest already in sync; no changes written.")
 
     print(_format_summary(results))
 

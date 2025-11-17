@@ -165,6 +165,12 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
+### 2025-11-18（manifest updater + slice trace loader）
+- **子任务**：驱动 QA Engineer 实现 `scripts/verify_fixture_manifest.py --update`，允许在检测到 hash drift 时自动重写 `payload_hash` 并输出 `Manifest changes` 摘要；默认校验也会生成 canonical 表格，Stage D Playbook `[StageD::FixtureFlow]`、`[QA-IngestionSmoke]` 与 QA 档案已描述“manifest diff + loader smoke”证据链。
+- **子任务**：驱动 C# Implementer 交付 `TreeBuilderSliceTraceLoader`（含 DTO）、示例 fixture `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json` 与 `TreeBuilderSliceTraceLoaderTests`，确保 `PushFrame`/`LeafSlice`/`EnterChild`/`MergePop` 事件可解析并在目录缺失时抛出明确异常。
+- **验证**：`python scripts/verify_fixture_manifest.py` 与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 均返回 0；`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`（3/3 ✅）。
+- **影响**：Stage D 刷新现在具备“manifest diff + loader smoke”组合；`[TS-B2]`、`[RPM-Matrix]`、`[RPM-ParityAssets]` 记录 slice trace loader 状态，为将来 Rust `--tree-builder-trace` 实际产出提供 C# 接点。
+- **风险/跟进**：仍需 Rust Porter 导出真实 slice trace 并把 `tree_builder_trace` 纳入 manifest；QA 下次刷新需粘贴 `--update` 日志并与 loader smoke 一同归档。
 ### 2025-11-17（夜间）
 - **子任务**：指导 QA Engineer 在 `scripts/refresh_serialization_fixtures.ps1` 默认执行 `dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`（除非显式 `-SkipStageDLoaderTest`），并在 `scripts/refresh_all_assets.py`/Stage D Playbook 标注“Stage D 刷新 = Rust 导出 + loader smoke”；同时驱动 C# Implementer 将 `ITreeBuilderTracer` 注入实际 `TreeBuilder` 路径（`PushLeaf`/`PushNode`/`MergeLeaf`/`PopFrame`/`BuildCompleted`/`Reset`），仅在 `Tracer.IsEnabled` 时计算 UTF-8 字节与 32 字符预览，落地 `TreeBuilderTracerTests`。
 - **验证**：`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`、`dotnet test Xi.Editor.sln -v m --filter TreeBuilderTracerTests` 及全量 `dotnet test Xi.Editor.sln -v m`（178/178 ✅）全部通过，确保自动化与 tracer 注入不会破坏基线。

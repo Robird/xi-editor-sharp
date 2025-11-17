@@ -29,18 +29,20 @@
 	3. Script `scripts/refresh_serialization_fixtures.ps1` to always pass `--emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
-- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。虽然 `src/xi.Core/Rope/Tree/TreeBuilderTracer.cs` 现已提供 `TreeBuilderEventKind/Event/ITreeBuilderTracer/NoOpTreeBuilderTracer` 骨架，但它尚未被 `TreeBuilder`/`MetricAdapter` 注入，Stage D slice trace 依旧只能依赖 Rust CLI。 
+- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。`TreeBuilderTracer` 骨架虽已记录节点事件，但尚未注入 `TreeBuilder`，Stage D 仍需 Rust CLI 才能产生真实 slice trace（当前 `basic_slice_plan.json` 仅是示例）。
 - **Rust Plan**: 依托 `convert_lines_from_bytes` 等 shim 以及 `docs/rust-refactor/breaks-metrics-templating.md` 的模板输出度量 helper，逐步补齐 `edit_*`/`Breaks` shim。
-- **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并利用新 `TreeBuilderTracer` 骨架记录调试事件，再写入 `[StageD::FeatureGates]` 以便 CLI/fixture 同步。
-- **Status**: ⚠️ Watch — `_editVersion` 与 `TreeBuilderTracer` 骨架已齐备，但 tracer 未进入执行路径、Stage D trace loader 也未接线，MetricAdapter 仍无可验证证据。
+- **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并利用 `TreeBuilderSliceTraceLoader` + `TreeBuilderTracer` 骨架记录调试事件，写入 `[StageD::FixtureFlow]` 以便 CLI/fixture 同步。
+- **Status**: 🟡 Implementation (loader ready) — `_editVersion` 与 `TreeBuilderTracer` 骨架齐备，`TreeBuilderSliceTraceLoader`/`TreeBuilderSliceTraceEvent` + unit tests现可消费 `ParityFixtures/tree_builder_trace/*.json`，但仍等待 Rust CLI 输出真实 trace 以及 MetricAdapter 草案。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/csharp-refactor/node-generic-refactor-plan.md`
+	- `src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs`
+	- `tests/xi.Core.Tests/Diagnostics/TreeBuilderSliceTraceLoaderTests.cs`
 	- `tests/xi.Core.Tests/GenericNodeInterfaceTests.cs`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 - **Next**:
 	1. 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
-	2. 将 `TreeBuilderTracer` 注入 `TreeBuilder` + Stage D slice trace loader，记录 CLI trace → C# tracer 的映射并更新 `[StageD::FixtureFlow]` 文档。
+	2. 将 `TreeBuilderTracer` 注入 `TreeBuilder`，并把 Rust CLI 导出的 slice trace 与 C# tracer 对拍；完成后更新 `[StageD::FixtureFlow]`/`[StageD::ParityAssets]`。
 	3. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`tree_builder_trace` 记录），确保 CLI/manifest 可复现实验。
 	4. 在 Stage D 文档中补上 `_editVersion` → tracer → adapter 依赖图，避免 G6 merge 时追溯困难。
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry

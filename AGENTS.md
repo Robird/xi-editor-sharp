@@ -585,6 +585,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **配套更新**：`agents/qa-engineer.md` “最近完成”登记了本次补档，提醒后续运行基准/遥测时需在 `m3-implementation-plan.md §5.3`、`AGENTS.md`、`design-divergence-log.md` 同步数据。
 - **后续**：QA Engineer 下一次执行 chunk/telemetry 任务时，应引用新章节并附带实际数值，若阈值被突破即刻升级 `[MP-R10]`。
 
+### 2025-11-18 (Manifest updater + TreeBuilder trace loader)
+- **Manifest 维护**：QA Engineer 实现 `scripts/verify_fixture_manifest.py --update`（可重写 `payload_hash`、打印 `Manifest changes`、在写回后自动复验），并在 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]`/`agents/qa-engineer.md` 描述“manifest diff + loader smoke”证据链；`python scripts/verify_fixture_manifest.py` 与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 均返回 0，后者在无 drift 场景输出“manifest already in sync”。
+- **TreeBuilder slice trace**：C# Implementer 新增 `src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs`、`tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json` 与 `TreeBuilderSliceTraceLoaderTests`，可解析 `PushFrame`/`LeafSlice`/`EnterChild`/`MergePop` 事件并在目录缺失时抛明确信息；`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`（3/3 ✅）验证通过。
+- **文档同步**：`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]` 与 `type-system-migration-log.md#[TS-B2]` 记录 loader 状态（Implementation, awaiting real traces），说明 `tree_builder_trace` 目前仍为示例且待 Rust CLI 导出；`agents/csharp-implementer.md`/`agents/qa-engineer.md` 各自更新“最近完成”。
+
 ### 2025-11-18 (Architecture Docs Template Rollout)
 - **交付**：委派 Architecture Mapper 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以符合 `document-structure-template.md`，统一 front-matter、`goal-tree` 片段与 `[QA-*]` / `[StageD::*]` 链接；`m3-implementation-plan.md` 的 Goal Tree 片段与 Blueprint 同步包裹在 `<!-- goal-tree:start -->` 注释中，等待未来脚本自动化。
 - **内容调整**：Blueprint 现精简为 Goal Tree + Milestones + Risk 表，映射表文档压缩为 10 个关键模块并新增 `[RPM-ParityAssets]`/`[RPM-Actions]`；类型系统日志转为 `[TS-Bx]` 卡片（Problem/Rust Plan/C# Plan/Status/Links/Next），设计分歧日志改为表格呈现 UTF-16 叶片、Grapheme 降级与 Chunk copy-on-read 三项。

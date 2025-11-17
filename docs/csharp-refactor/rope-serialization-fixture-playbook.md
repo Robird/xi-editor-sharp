@@ -26,6 +26,8 @@
 
 > 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动触发 `StageDDescriptorLoaderTests`（Stage D loader smoke），即使指定 `-SkipDotnet` 也会运行，只有在显式传入 `-SkipStageDLoaderTest` 时才会跳过。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader smoke”）自动串入。
 
+> **Manifest diff + loader smoke 证据链**：刷新或手动导出后必须运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。若预计存在 hash 漂移（Rust exporter 更新或 JSON 被覆写），追加 `--update` 让脚本重写 `payload_hash` 并打印 `Manifest changes` 摘要；无漂移时脚本会输出 “no changes” 提示。该日志与 `StageDDescriptorLoaderTests` 的通过记录一起，构成 `[QA-IngestionSmoke]` 所需的 “manifest diff + loader smoke” 证据，禁止跳过。
+
 ### 1. 环境变量与分支
 
 ```powershell
@@ -89,6 +91,13 @@ cd "$XI_EDITOR_SHARP_ROOT"
 ```
 
 > 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
+
+### 3.1 Manifest 校验与写回
+
+1. **默认校验**：刷新脚本或手工 exporter 结束后立即运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，保留摘要表格输出。
+2. **更新模式**：若 canonical JSON drift 属于预期，增加 `--update` 参数；脚本会重写相应 `payload_hash` 值、打印逐条 `old -> new` 摘要，并在写入后自动再跑一次校验。
+3. **记录要求**：将 `Manifest changes` 或 `--update: manifest already in sync; no changes written.` 行复制到 `agents/qa-engineer.md`、`AGENTS.md`、PR 描述，作为哈希证据。禁止绕过脚本手工修改 manifest。
+4. **与 loader smoke 绑定**：`--update` 完成后必须再次运行（或确认脚本自动触发的）`StageDDescriptorLoaderTests`，输出 + manifest diff 才能满足 `[QA-IngestionSmoke]` 的证明链。
 
 ### 4. 使用 StageDDescriptorLoader 校验 manifest
 
@@ -166,7 +175,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | 步骤 | 命令 | 期望 |
 | --- | --- | --- |
 | 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后会运行 `StageDDescriptorLoaderTests` 作为 loader smoke，除非显式传入 `-SkipStageDLoaderTest`。 |
-| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出应与 `[StageD::ParityAssets]` 表一致；如不一致需重新导出或更新表。 |
+| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；若刷新预期会修改 hash，追加 `--update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 让脚本写回 `payload_hash` 并自动二次校验；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出表格必须贴入 QA 档案；若使用 `--update`，务必记录 `Manifest changes` 或 “no changes” 行并与 loader smoke 一同上传，禁止跳过此步骤或手动编辑 manifest。 |
 | Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；脚本默认为 QA 运行该 smoke，如因调试跳过需补跑并在 `agents/qa-engineer.md` 说明。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest`，在两份档案中记录跳过理由与补偿动作。 |
