@@ -303,6 +303,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - M7：性能调优、文档、发布准备（未开始）。
 
 - **Stage D 共享资产维护**：继续串联 `export-serde-fixtures` CLI、`scripts/refresh_serialization_fixtures.ps1` 与 Rust/C# 回归测试，收敛黄金 JSON 更新流程，并在文档中记录每次刷新条件与验证步骤。
+- **Stage D Breaks/Diff/Search parity**：本次确认 `serde_fixtures/breaks_descriptors.rs`、`diff_regions.rs`、`search_spans.rs` 已实现导出逻辑并与 `snapshots.rs` 共享 `RangeSnapshot`/`PathFrameSnapshot`；CLI 入口存在 `--breaks-descriptors`/`--diff-regions`/`--search-spans`，对应目录已在 `tests/xi.Core.Tests/Fixtures/` 落地。下一步需在 `scripts/refresh_serialization_fixtures.ps1`/`refresh_all_assets.py` 默认打开这些 flag，刷新 manifest payload hashes，更新 Stage D Playbook `[StageD::ParityAssets]` 与 `StageDDescriptorLoaderTests` 以覆盖新资产，并在 `[QA-IngestionSmoke]` 记录 loader/CLI 组合校验。
 - **骨架映射与文档同步**：确保 `docs/architecture/port-blueprint.md`、`docs/architecture/rope-port-mapping.md`、`docs/architecture/type-system-migration-log.md` 持续反映代码现状与开放问题，任何 Rust helper 或 C# stub 变更需第一时间回填文档。
 - **困难模块拆分策略**：围绕游标生命周期、Metric/Node 泛型、Chunk/Lines 迭代器等难以直接移植的模块，推进“三路并行”方案：优先推动 Rust helper 重构，其次在 C# 侧实现近似逻辑，最终保留降级实现并记录监控指标。
 - **Rope 字符串 helper 与偏移对拍**：维护 `StringLeafOperations` 与 Rust `helpers/string_leaf.rs` 的常量/拆分策略一致性，扩充 `leaf_split_parity_samples.json` 并补充测试注释，持续提醒 UTF-8 byte 与 UTF-16 `char` 计量差异。
@@ -454,6 +455,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-18 (Stage D Breaks/Diff/Search readiness audit)
+- **Rust exporter现状**：梳理 `serde_fixtures/breaks_descriptors.rs`、`diff_regions.rs`、`search_spans.rs` 与共享辅助 `snapshots.rs`，确认 `RangeSnapshot`/`PathFrameSnapshot`/`frames_from_descriptor` 已支撑 Breaks/Diff/Search 导出，`export-serde-fixtures` 中的 `--breaks-descriptors`/`--diff-regions`/`--search-spans` 选项可以把 JSON 写入 `tests/xi.Core.Tests/Fixtures/` 对应目录。
+- **C#/脚本现状**：`StageDDescriptorLoader` 及现有测试只覆盖 chunk/grapheme，刷新脚本尚未把新 flag 设为默认；`fixtures.manifest.json`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 也尚未登记 Breaks/Diff/Search 的 schema hash。
+- **后续思路**：在 `scripts/refresh_serialization_fixtures.ps1`/`refresh_all_assets.py` 中默认导出 Breaks/Diff/Search，刷新 manifest 后扩展 StageD loader 测试、`[QA-IngestionSmoke]` 流程与 parity 文档，确保 QA 证据链覆盖全部 Stage D 资产，并为 `StageDDescriptorLoader` 增加 Breaks/Diff/Search DTO/断言。
+
 ### 2025-11-19 (Stage D manifest ledger 校验)
 - **Loader 强化**：`StageDDescriptorLoader` 现会把 `fixtures.manifest.json` 的 ledger 条目（name/path/count/schema_hash/payload_hash）hydrate 成 `StageDFixtureLedgerEntry`，并在加载 chunk/grapheme JSON 时检验 manifest 计数与 schema version 是否匹配，避免 hash/计数漂移未被察觉。
 - **测试覆盖**：新增 `StageDDescriptorLoader` ledger 单元测试，验证 chunk 与 grapheme 条目的 `count`、`schema_hash`、`payload_hash` 与 manifest 真值一致；`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`（4/4 ✅，15.8s）作为 smoke 记录。

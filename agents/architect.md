@@ -113,6 +113,7 @@
     1. 拓展 canonical hash/diff：在 `verify_fixture_manifest.py` 实现 `--update` 或差异报告，结合 `refresh_serialization_fixtures.ps1` 输出为 QA/CI 提供自动对比。
     2. 与 QA/C# Implementer 制定 Chunk throughput 调优与 alloc telemetry方案（<5 MB counters、>200 MB/s 目标），并把计划写入 `design-divergence-log.md` 与 `[MP-R10]`。
     3. 与 Architecture Mapper 协调 Grapheme telemetry ingestion：补 `[QA-Telemetry]` 实测数据、在 Stage D Playbook 和 Goal Tree 中记录触发条件；必要时更新 `document-structure-template.md` 与 CLI trace 采集说明。
+    4. 将 `export-serde-fixtures` 的 `--breaks-descriptors`/`--diff-regions`/`--search-spans` 作为脚本默认项，刷新 manifest + `[StageD::ParityAssets]`/`[QA-IngestionSmoke]`，并驱动 `StageDDescriptorLoaderTests` 扩展到 Breaks/Diff/Search DTO，确保新资产在 QA 证据链内闭环。
 - [推进中] 🧱 **Rust↔C# Skeleton Coverage**
   - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；C# Implementer 现已交付 `Tree/TreeBuilderTracer.cs` 并将 tracer 事件接入 `TreeBuilder`（`PushLeaf/PushNode/MergeLeaf/MergeInternal/PopFrame/Build/Reset`），同时完成 `Rope/Diagnostics/Descriptors/*` + `StageDDescriptorLoader` 与对应测试，`rope-port-mapping.md#[RPM-Matrix]`、`type-system-migration-log.md#[TS-B2]/#[TS-B3]`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]` 已记录 tracer/loader 状态与 manifest 依赖。
   - **目标**：把 skeleton 差异转化为 loader/Stage D 可执行 backlog，指导 C# Implementer/Rust Porter/QA 接力完成 manifest ingestion、slice trace replay 与 Breaks/Diff/Search 占位。
