@@ -18,7 +18,7 @@ _草案建立：2025-11-15_
 - **API 门面模块**：新增 `rope::api`，集中导出 `fn line_of_offset(&Rope, usize)`, `fn iter_chunks(&Rope, impl IntervalBounds)` 等高频函数，并提供 `prelude` re-export，供外部 `use rope::prelude::*;` 后直接调用。
 - **Helper 整理**：拆分 `helpers::leaf`、`helpers::metrics` 等内部模块，聚合字符串拆分、UTF-16/换行统计等逻辑；`rope.rs` 保留 `pub fn count_newlines(...)` 等 shim 函数调用 helper，实现内部复用 + 外部兼容。
 - **Delta/Transformer 包装层**：在 `delta::api`、`transformer::api` 中提供与 `RopeDelta`、`Transformer` 相关的公开函数式封装（如 `rope_delta_base_len`, `transform_offset`），内部继续调用现有 `pub(crate)` 方法并遵循 serde 的 feature guard。
-- **文档与脚本**：`docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs`、`docs/architecture/rope-port-mapping.md` 在每阶段刷新；`scripts/refresh_skeleton_docs.py`、`scripts/refresh_serialization_fixtures.ps1` 保持无改动但新增 runbook 步骤。
+- **文档与脚本**：`docs/skeleton/rope.md`、`docs/skeleton/xi.Core.decompiled.cs`、`docs/architecture/rope-port-mapping.md` 在每阶段刷新；`scripts/refresh_skeleton_docs.py`、`scripts/refresh_serialization_fixtures.ps1` 保持无改动但新增 runbook 步骤。
 
 ## 4. 模块拓扑提案
 ```

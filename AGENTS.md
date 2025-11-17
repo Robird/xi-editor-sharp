@@ -16,7 +16,7 @@
 - `StringLeafOperations` 抽离叶片拆分/合并/再平衡逻辑并实现 `ILeafOperations<string>`，配套 81 项测试；`leaf_split_parity_samples.json` 与 Rust helper 对拍样本持续扩充 UTF-8/UTF-16 差异记录。
 - **SubAgent 委派机制已建立**：通过 `runSubagent` 工具实现"AI 小组长"模式，可并行委派代码搜索、功能实现、Bug 修复、测试补充等任务，相关指南与案例已文档化于本文档"协作与工具心得"章节。
 - `scripts/stub_rust_functions.py` 保持 Rust skeleton 文档同步，支持增量刷新 `docs/reference/rust-skeleton.md`，减少上下文迭代成本。
-- 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
+- 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.decompiled.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 ## 工作节奏建议
 当前仅由人类开发者与 AI Coder 协作，执行节奏按单次 AI 会话推进；每次会话收尾前需同步更新本文件与相关计划文档。
@@ -321,7 +321,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
 3. **SharedNode Helper 双端封装（2025-11-14）**
   - 在 Rust `tree.rs` 中引入 `SharedNode` 封装，将所有 `Arc::make_mut` 调用集中到 `ensure_unique`，并通过 `clone_with_children`、`replace_child_range` 复用子节点拼接逻辑；`cargo test -p xi-rope` 完整通过。
   - C# `Tree/Node.cs` 采用对等的 `SharedNode` 内部类型，`EnsureUnique/CloneWithChildren/ReplaceChildRange` 成为唯一写时复制入口，`dotnet test tests/xi.Core.Tests`（81 项）通过验证。
-  - 更新 `docs/rust-refactor/shared-node-api.md`、`docs/skeleton/xi.Core.Rope.cs` 与 `AGENTS.md`，记录 helper 封装完成与后续诊断计划。
+  - 更新 `docs/rust-refactor/shared-node-api.md`、`docs/skeleton/xi.Core.decompiled.cs` 与 `AGENTS.md`，记录 helper 封装完成与后续诊断计划。
   4. **Metrics Helper 模块化（2025-11-14）**
     - 在 Rust `rope/src/metrics/` 下新增 `codepoint`、`lines`、`break_indices`、`identity` 模块，抽离 UTF-8 边界、换行定位、Breaks 索引与 Base 单位包装逻辑；`LinesMetric`/`BreaksMetric`/`Utf16CodeUnitsMetric` 统一改用 helper。
     - 保留 `rope.rs` 里的 `count_newlines`/`count_utf16_code_units` shim 以兼容其他 crate，并在 `docs/architecture/rope-port-mapping.md` 记录新 helper 与 C# 对映；`cargo test -p xi-rope`、`dotnet test tests/xi.Core.Tests` 全部通过。
@@ -573,7 +573,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
 ### 2025-11-16 (晚) (C# Rope Skeleton 清理)
 - **Skeletonizer 工具**：在 `tools/Skeletonizer` 下创建 Roslyn 小工具，自动定位方法/构造函数/访问器的 `BlockSyntax` 并输出占位注释，避免手工逐块编辑造成 diff 噪音。
 - **批量替换**：执行 `dotnet run -- tools/Skeletonizer ..\\..\\docs\\skeleton\\xi.Core.Rope.cs`，共 293 个函数体被替换为 `// Body removed for skeleton view.` 注释，保留了原始签名与结构层级。
-- **骨架收益**：`docs/skeleton/xi.Core.Rope.cs` 从 4k+ 行压缩至 1.3k 行，阅读时可以快速对齐类型/方法分布，同时方便未来将 Rust/C# 映射差异附加在注释旁。
+- **骨架收益**：`docs/skeleton/xi.Core.decompiled.cs` 从 4k+ 行压缩至 1.3k 行，阅读时可以快速对齐类型/方法分布，同时方便未来将 Rust/C# 映射差异附加在注释旁。
 - **紧凑注释版**：进一步把函数体内的换行与缩进内容替换成单行 `/* body removed for skeleton view. */` 注释，重新运行 Skeletonizer 以减少 token/行数消耗，方便在 chat 场景快速引用。
 
 ### 2025-11-16 (晚) (M3 Implementation Plan Creation)

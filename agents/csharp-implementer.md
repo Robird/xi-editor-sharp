@@ -179,8 +179,7 @@
 - `tests/xi.Core.Tests/RopeTestHelpers.cs` - 测试辅助工具
 
 ### 骨架参考
-- `docs/skeleton/xi.Core.Rope.cs` - C# Rope 类型骨架（ILSpy 导出 + 摘要化）
-- `docs/skeleton/xi.Core.Rope.full.cs` - 完整骨架（含实现细节）
+- `docs/skeleton/xi.Core.decompiled.cs` - C# Rope 类型骨架（ILSpy 导出 + 摘要化）
 - `docs/skeleton/rope.md` - Rust Rope 骨架文档
 - `docs/skeleton/core-lib.md` - Rust 核心库骨架
 - `docs/skeleton/plugin-lib.md` - Rust 插件库骨架
@@ -259,7 +258,7 @@
 **风险 / 后续**：深树 parity 已对齐，但 T1.2 叶片遍历仍需结合该 helper 观测 `_pathCache` 升降次数，并记录任何 Metric 边界计数偏差。
 
 ### 2025-11-16 - Round 1 Skeleton Gap Report（星形会议输入）
-**任务背景**：星形会议 Round 1 要求我从 `docs/skeleton/xi.Core.Rope.cs` 对照 `docs/skeleton/rope.md` 盘点 C# 端缺口、阻塞与后续计划，以便 11 月内补齐 “Rust ↔ C# 类型骨架映射”。
+**任务背景**：星形会议 Round 1 要求我从 `docs/skeleton/xi.Core.decompiled.cs` 对照 `docs/skeleton/rope.md` 盘点 C# 端缺口、阻塞与后续计划，以便 11 月内补齐 “Rust ↔ C# 类型骨架映射”。
 
 **关键结论**：
 1. ✅ **游标生态缺口**——C# 仅有 `NodeCursor`，尚未实现 `CursorDescriptor`、`CursorState` 以及相关 serde fixture loader，导致 Rust `cursor_descriptors.rs`（`rope.md` §2972-3050）无法对拍。

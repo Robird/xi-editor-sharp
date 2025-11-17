@@ -27,7 +27,7 @@
 ## Status Update（2025-11-14）
 - **Rust**：`rope/src/tree.rs` 已切换为 `Node` 持有 `SharedNode`，所有 `Arc::make_mut` 触点集中在 `SharedNode::ensure_unique` 内；`clone_with_children`、`replace_child_range` 覆盖 TreeBuilder/节点拼接路径，`cargo test -p xi-rope` 通过。
 - **C#**：`Tree/Node.cs` 引入对等的内部 `SharedNode` 类型，`EnsureUnique/CloneWithChildren/ReplaceChildRange` 成为唯一写时复制入口，维持 81 项 `xi.Core.Tests` 全部通过。
-- **文档同步**：`docs/skeleton/xi.Core.Rope.cs`、`rope-port-mapping.md` 与 `AGENTS.md` 已记录新的 helper API；本文件的调查结论转入实施经验回顾。
+- **文档同步**：`docs/skeleton/xi.Core.decompiled.cs`、`rope-port-mapping.md` 与 `AGENTS.md` 已记录新的 helper API；本文件的调查结论转入实施经验回顾。
 
 ## Compatibility & Risks
 - Requires auditing every call site touching `Arc::make_mut` to avoid missing stragglers.
@@ -93,4 +93,4 @@
 1. **Instrumentation**：提供 `shared_node_diagnostics`（或等效）特性开关，记录 `ensure_unique` / `clone_with_children` 调用次数，并设计与 C# 侧 `SharedNode` 调试计数器一致的输出格式。
 2. **测试补强**：新增针对共享叶片、内部节点子数组替换的回归测试，校验 instrumentation 打开/关闭时结果一致，并验证 `Arc::ptr_eq` 等指针语义未回归。
 3. **性能验证**：在 Rust `cargo bench` 与 C# `BenchmarkDotNet` 中补充最小基准，对照 instrumentation on/off 差异，确认 helper 抽象未引入额外分配或可观延迟。
-4. **文档同步**：持续更新 `rope-port-mapping.md`、`AGENTS.md` 与 `docs/skeleton/xi.Core.Rope.cs`，记录 instrumentation 字段、命名与迁移策略，确保双端实现保持对齐。
+4. **文档同步**：持续更新 `rope-port-mapping.md`、`AGENTS.md` 与 `docs/skeleton/xi.Core.decompiled.cs`，记录 instrumentation 字段、命名与迁移策略，确保双端实现保持对齐。

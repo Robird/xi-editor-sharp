@@ -90,7 +90,7 @@ Plan B 聚焦“收敛对外接口 + 模块化 helper”，分 4 个阶段推进
 
 ## 5. 文档与协同要求
 - 每个阶段完成后：
-  - 同步刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.Rope.cs`（脚本 `python scripts/refresh_skeleton_docs.py`）。
+  - 同步刷新 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs`（脚本 `python scripts/refresh_skeleton_docs.py`）。
   - 更新 `docs/architecture/rope-port-mapping.md` 对照表，记录新 wrapper/helper。
   - 在 `AGENTS.md` 记录阶段完成情况与风险。
 - Plan A 文档（`rope-generic-simplification.md`）保留历史记录，本 Plan B 作为现行策略。

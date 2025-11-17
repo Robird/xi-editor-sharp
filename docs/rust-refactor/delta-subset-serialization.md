@@ -96,5 +96,5 @@
 
 ## Communication & Documentation
 - Announce the staged plan in the weekly sync; solicit feedback from plugin authors.
-- After each stage, update `docs/skeleton/rope.md` and `docs/skeleton/xi.Core.Rope.cs` to keep cross-language references aligned.
+- After each stage, update `docs/skeleton/rope.md` and `docs/skeleton/xi.Core.decompiled.cs` to keep cross-language references aligned.
 - Record any downstream migration notes (e.g., ledger config changes) in `docs/rust-refactor/shared-node-api.md` or a new ledger-focused appendix.

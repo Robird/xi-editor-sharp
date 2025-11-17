@@ -105,7 +105,7 @@
 - **双端测试**：Rust 侧覆盖 `cursor_descriptor_roundtrip`、`cursor_state_randomized`、`cursor_state_preserves_navigation_*`（Base/Lines/Utf16）；C# 添加镜像 `NodeCursorDescriptorTests`、`NodeCursorTraversalTests`。
 - **随机编辑序列**：复用现有 Rope 随机测试框架（81 项）生成编辑操作，序列化为共享 JSON，在 Rust/C# 之间交叉验证。
 - **性能监控**：通过 opt-in 的调试计数器或日志临时记录 `Cursor::to_descriptor`/`apply_descriptor` 的 `Arc` 克隆次数、缓存命中率；验证完成后移除 instrumentation，维持编译与单元测试作为主要验证手段。
-- **文档同步**：完成阶段后刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.Rope.cs`，并在 `AGENTS.md` “当前聚焦事项”/“下一步行动”更新状态。
+- **文档同步**：完成阶段后刷新 `docs/skeleton/rope.md`、`docs/skeleton/xi.Core.decompiled.cs`，并在 `AGENTS.md` “当前聚焦事项”/“下一步行动”更新状态。
 
 ## 风险与缓解
 - **过期描述符导致错误恢复**：通过 `Arc::ptr_eq` + rope 版本号验证，并在失败时强制 `descend`。同时在 C# 端对 `SharedNode` 引用做引用相等检查。

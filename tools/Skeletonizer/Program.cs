@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 if (args.Length != 1)
 {
@@ -31,6 +32,8 @@ if (replacements.Length == 0)
 }
 
 var updated = ApplyReplacements(originalText, replacements);
+updated = updated.Replace("\n\n","\n");
+updated = Regex.Replace(updated, @"(?<=.)[\s\n]+\{", " {");
 File.WriteAllText(filePath, updated);
 Console.WriteLine($"Updated {replacements.Length} block bodies in {filePath}.");
 return 0;
@@ -52,7 +55,7 @@ static ImmutableArray<TextReplacement> CollectReplacements(CompilationUnitSyntax
 			continue;
 		}
 
-		var replacementText = "/* body removed for skeleton view. */";
+		var replacementText = "/*...*/";
 
 		builder.Add(new TextReplacement(interiorStart, interiorEnd, replacementText));
 	}
