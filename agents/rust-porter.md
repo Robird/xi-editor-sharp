@@ -106,6 +106,11 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Skeleton Metric/TreeBuilder/CursorState 路径连通加强版
+- ✅ 在 `blocking_model_core::skeleton` 中让 `DefaultMetricProvider` 默认实现串起 `Metric::measure/from_base_units/to_base_units`，同时扩展 `SampleNodeInfo`/`SampleLeaf` 保存 UTF-16 示例、`SampleRope` 样例经过 Base→Utf16→Base 的 roundtrip
+- ✅ 引入 `TreeBuilderEvent/TreeBuilderTracer`，`TreeBuilder::with_tracer/build_with_tracer` 记录 push/enter/build 事件，`Rope::edit/slice` 走 Builder → SharedNode → Cursor 转换，并在 `Cursor::restore/CursorState` 中模拟真实路径遍历
+- ✅ `tests/skeleton.rs` 添加 TreeBuilder trace、DefaultMetricProvider 转换与 `cursor_state` feature 测试，覆盖 `tree_builder_slice_trace` 行为 stub；`cargo test -p blocking_model_core` 及 `cargo test -p blocking_model_core --features cursor_state` 全部通过
+
 ### 2025-11-17 - Skeleton Metric/TreeBuilder/Cursor 路径补齐
 - ✅ 重写 `blocking_model_core::skeleton`，让 `Metric` trait 包含 `measure/to_base_units/from_base_units/is_boundary/prev/next/can_fragment`，并新增 `DefaultMetricProvider` 及 `BaseMetric/Utf16Metric` 占位实现；同步在 prelude 中 re-export
 - ✅ 在 `tree.rs` 补齐 `Interval`、`Leaf`/`NodeInfo`（含 `accumulate/compute_info/identity/interval`）、`NodeBody`、`NodeVal`、`SharedNode`、`Node` 方法（`from_leaf/from_children/len/height/is_leaf/ptr_eq`）以及 `PathFrame`/`Cursor`/`CursorDescriptor`/`CursorState`（feature gate）结构

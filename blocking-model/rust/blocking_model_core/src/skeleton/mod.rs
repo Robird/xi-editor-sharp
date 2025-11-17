@@ -6,12 +6,12 @@ pub mod tree;
 pub mod prelude {
     pub use super::metrics::{BaseMetric, DefaultMetricProvider, Metric, Utf16Metric};
     pub use super::rope::Rope;
-    pub use super::samples::{sample_rope, sample_rope_via_builder, SampleLeaf, SampleNodeInfo};
-    pub use super::tree::{
-        Cursor, CursorDescriptor, Interval, Leaf, Node, NodeBody, NodeInfo, NodeVal, PathFrame,
-        SharedNode, TreeBuilder,
-    };
+    pub use super::samples::{SampleLeaf, SampleNodeInfo, sample_rope, sample_rope_via_builder};
     #[cfg(feature = "cursor_state")]
     // Available only when the `cursor_state` feature flag is enabled.
     pub use super::tree::CursorState;
+    pub use super::tree::{
+        Cursor, CursorDescriptor, Interval, Leaf, Node, NodeBody, NodeInfo, NodeVal, PathFrame,
+        SharedNode, TreeBuilder, TreeBuilderEvent, TreeBuilderTracer,
+    };
 }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::tree::{Leaf, Node, NodeInfo};
+use super::tree::{Leaf, Node, NodeBody, NodeInfo, NodeVal};
 
 /// Mirrors xi-rope Metric trait while leaving behavior stubbed.
 pub trait Metric<N: NodeInfo<L>, L: Leaf>: Copy + Debug {
@@ -17,8 +17,13 @@ pub trait Metric<N: NodeInfo<L>, L: Leaf>: Copy + Debug {
 
 /// Bridge trait used by NodeInfo implementations to convert between metrics.
 pub trait DefaultMetricProvider<L: Leaf>: NodeInfo<L> {
-    fn convert_from_default<M: Metric<Self, L>>(node: &Node<Self, L>, offset: usize) -> usize;
-    fn convert_to_default<M: Metric<Self, L>>(node: &Node<Self, L>, offset: usize) -> usize;
+    fn convert_from_default<M: Metric<Self, L>>(node: &Node<Self, L>, offset: usize) -> M::Unit {
+        convert_from_default_impl::<Self, L, M>(node, offset)
+    }
+
+    fn convert_to_default<M: Metric<Self, L>>(node: &Node<Self, L>, units: M::Unit) -> usize {
+        convert_to_default_impl::<Self, L, M>(node, units)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -102,5 +107,51 @@ where
 
     fn can_fragment() -> bool {
         true
+    }
+}
+
+fn convert_from_default_impl<N, L, M>(node: &Node<N, L>, offset: usize) -> M::Unit
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+    M: Metric<N, L>,
+{
+    let clamped = offset.min(node.len());
+    let _total_in_metric = M::measure(node.info(), node.len());
+    let default_leaf = L::default();
+    let leaf = representative_leaf(node).unwrap_or(&default_leaf);
+    M::from_base_units(leaf, clamped)
+}
+
+fn convert_to_default_impl<N, L, M>(node: &Node<N, L>, units: M::Unit) -> usize
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+    M: Metric<N, L>,
+{
+    let _total_in_metric = M::measure(node.info(), node.len());
+    let default_leaf = L::default();
+    let leaf = representative_leaf(node).unwrap_or(&default_leaf);
+    M::to_base_units(leaf, units)
+}
+
+fn representative_leaf<'a, N, L>(node: &'a Node<N, L>) -> Option<&'a L>
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+{
+    find_leaf(node.shared().as_ref())
+}
+
+fn find_leaf<'a, N, L>(body: &'a NodeBody<N, L>) -> Option<&'a L>
+where
+    N: NodeInfo<L>,
+    L: Leaf,
+{
+    match &body.val {
+        NodeVal::Leaf(leaf) => Some(leaf),
+        NodeVal::Internal(children) => children
+            .iter()
+            .find_map(|child| find_leaf(child.shared().as_ref())),
     }
 }

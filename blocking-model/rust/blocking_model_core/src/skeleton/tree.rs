@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::mem;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -66,7 +67,9 @@ pub enum NodeVal<N: NodeInfo<L>, L: Leaf> {
 
 impl<N: NodeInfo<L>, L: Leaf> SharedNode<N, L> {
     pub fn new(body: NodeBody<N, L>) -> Self {
-        Self { arc: Arc::new(body) }
+        Self {
+            arc: Arc::new(body),
+        }
     }
 
     pub fn clone_handle(&self) -> Self {
@@ -95,6 +98,13 @@ impl<N: NodeInfo<L>, L: Leaf> SharedNode<N, L> {
         Arc::ptr_eq(&self.arc, &other.arc)
     }
 
+    pub fn child_at(&self, index: usize) -> Option<Node<N, L>> {
+        match &self.arc.val {
+            NodeVal::Internal(children) => children.get(index).cloned(),
+            NodeVal::Leaf(_) => None,
+        }
+    }
+
     pub fn from_children(children: Vec<Node<N, L>>) -> Self {
         debug_assert!(children.len() > 1, "requires at least two children");
         let height = children.first().map(|c| c.height() + 1).unwrap_or(1);
@@ -104,7 +114,12 @@ impl<N: NodeInfo<L>, L: Leaf> SharedNode<N, L> {
             len += child.len();
             info.accumulate(child.info());
         }
-        let body = NodeBody { height, len, info, val: NodeVal::Internal(children) };
+        let body = NodeBody {
+            height,
+            len,
+            info,
+            val: NodeVal::Internal(children),
+        };
         SharedNode::new(body)
     }
 }
@@ -112,10 +127,19 @@ impl<N: NodeInfo<L>, L: Leaf> SharedNode<N, L> {
 impl<N: NodeInfo<L>, L: Leaf> Node<N, L> {
     pub fn from_leaf(leaf: L) -> Self {
         let info = N::compute_info(&leaf);
-        let body = NodeBody { height: 0, len: leaf.len(), info, val: NodeVal::Leaf(leaf) };
+        let body = NodeBody {
+            height: 0,
+            len: leaf.len(),
+            info,
+            val: NodeVal::Leaf(leaf),
+        };
         Node {
             shared: SharedNode::new(body),
         }
+    }
+
+    pub fn from_shared(shared: SharedNode<N, L>) -> Self {
+        Node { shared }
     }
 
     pub fn from_children(children: Vec<Node<N, L>>) -> Self {
@@ -150,6 +174,10 @@ impl<N: NodeInfo<L>, L: Leaf> Node<N, L> {
 
     pub fn into_shared(self) -> SharedNode<N, L> {
         self.shared
+    }
+
+    pub fn child_at(&self, index: usize) -> Option<Node<N, L>> {
+        self.shared.child_at(index)
     }
 }
 
@@ -207,16 +235,65 @@ impl<N: NodeInfo<L>, L: Leaf> Cursor<N, L> {
     }
 
     pub fn restore(root: SharedNode<N, L>, descriptor: CursorDescriptor) -> Self {
-        let frames = descriptor
-            .into_path()
-            .into_iter()
-            .map(|child_index| PathFrame::new(root.clone_handle(), child_index))
-            .collect();
+        let mut frames = Vec::new();
+        let mut current = root.clone_handle();
+        for child_index in descriptor.into_path() {
+            let parent = current.clone_handle();
+            frames.push(PathFrame::new(parent.clone_handle(), child_index));
+            match parent.child_at(child_index) {
+                Some(child) => {
+                    current = child.into_shared();
+                }
+                None => break,
+            }
+        }
         Self { root, frames }
     }
 
     pub fn root(&self) -> &SharedNode<N, L> {
         &self.root
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TreeBuilderEvent {
+    PushLeaf {
+        len: usize,
+    },
+    PushNode {
+        len: usize,
+        height: usize,
+    },
+    EnterChild {
+        parent_len: usize,
+        child_index: usize,
+    },
+    BuildComplete {
+        total_len: usize,
+        height: usize,
+    },
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct TreeBuilderTracer {
+    events: Vec<TreeBuilderEvent>,
+}
+
+impl TreeBuilderTracer {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn record(&mut self, event: TreeBuilderEvent) {
+        self.events.push(event);
+    }
+
+    pub fn events(&self) -> &[TreeBuilderEvent] {
+        &self.events
+    }
+
+    pub fn into_events(self) -> Vec<TreeBuilderEvent> {
+        self.events
     }
 }
 
@@ -228,6 +305,14 @@ pub struct CursorState {
 
 #[cfg(feature = "cursor_state")]
 impl CursorState {
+    pub fn from_descriptor(descriptor: CursorDescriptor) -> Self {
+        Self { descriptor }
+    }
+
+    pub fn to_descriptor(&self) -> CursorDescriptor {
+        self.descriptor.clone()
+    }
+
     pub fn descriptor(&self) -> &CursorDescriptor {
         &self.descriptor
     }
@@ -236,34 +321,87 @@ impl CursorState {
 #[cfg(feature = "cursor_state")]
 impl<N: NodeInfo<L>, L: Leaf> Cursor<N, L> {
     pub fn state(&self) -> CursorState {
-        CursorState {
-            descriptor: self.to_descriptor(),
-        }
+        CursorState::from_descriptor(self.to_descriptor())
     }
 }
 
 pub struct TreeBuilder<N: NodeInfo<L>, L: Leaf> {
     pending: Vec<Node<N, L>>,
+    tracer: Option<TreeBuilderTracer>,
 }
 
 impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
     pub fn new() -> Self {
-        Self { pending: Vec::new() }
+        Self {
+            pending: Vec::new(),
+            tracer: None,
+        }
+    }
+
+    pub fn with_tracer(tracer: TreeBuilderTracer) -> Self {
+        Self {
+            pending: Vec::new(),
+            tracer: Some(tracer),
+        }
+    }
+
+    pub fn tracer(&self) -> Option<&TreeBuilderTracer> {
+        self.tracer.as_ref()
+    }
+
+    pub fn take_tracer(&mut self) -> Option<TreeBuilderTracer> {
+        self.tracer.take()
     }
 
     pub fn push_leaf(&mut self, leaf: L) {
+        let len = leaf.len();
+        self.record(TreeBuilderEvent::PushLeaf { len });
         self.push_node(Node::from_leaf(leaf));
     }
 
     pub fn push_node(&mut self, node: Node<N, L>) {
+        let len = node.len();
+        let height = node.height();
+        self.record(TreeBuilderEvent::PushNode { len, height });
         self.pending.push(node);
     }
 
-    pub fn build(mut self) -> SharedNode<N, L> {
-        match self.pending.len() {
+    pub fn build(self) -> SharedNode<N, L> {
+        self.finish().0
+    }
+
+    pub fn build_with_tracer(self) -> (SharedNode<N, L>, Option<TreeBuilderTracer>) {
+        self.finish()
+    }
+
+    fn finish(mut self) -> (SharedNode<N, L>, Option<TreeBuilderTracer>) {
+        let root = match self.pending.len() {
             0 => Node::from_leaf(L::default()).into_shared(),
             1 => self.pending.pop().unwrap().into_shared(),
-            _ => SharedNode::from_children(self.pending),
+            _ => {
+                let children = mem::take(&mut self.pending);
+                let parent_len: usize = children.iter().map(|child| child.len()).sum();
+                for (child_index, _) in children.iter().enumerate() {
+                    self.record(TreeBuilderEvent::EnterChild {
+                        parent_len,
+                        child_index,
+                    });
+                }
+                SharedNode::from_children(children)
+            }
+        };
+        let summary = TreeBuilderEvent::BuildComplete {
+            total_len: root.len(),
+            height: root.height(),
+        };
+        self.record(summary);
+        let tracer = self.tracer.take();
+        (root, tracer)
+    }
+
+    fn record(&mut self, event: TreeBuilderEvent) {
+        if let Some(tracer) = self.tracer.as_mut() {
+            tracer.record(event);
         }
     }
 }

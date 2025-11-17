@@ -173,6 +173,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Mini blocking model skeleton 增量同步
+#### 已完成任务
+- ✅ 复查 `blocking_model_core` skeleton（`metrics.rs/tree.rs/rope.rs/samples.rs/tests/skeleton.rs` + `Cargo.toml` feature）以确认 DefaultMetricProvider 转换、TreeBuilderTracer、`cursor_state` feature 测试的最新落点。
+- ✅ 更新 `docs/architecture/mini-blocking-model-skeleton-review.md`：改写背景、矩阵与建议，标注 Metric/Cursor 现已“结构齐全但逻辑为 stub”，并新增 TreeBuilder slice trace、真实 edit/slice、helpers、深树 fixture 等待办。
+- ✅ 检查 `docs/architecture/mini-blocking-model-plan.md` 与本次增量一致，确认无需编辑，仅在汇报中说明“计划文档无需更新”。
+
+#### 后续监控
+- 🔼 追踪 Rust Porter 对 `Rope::edit/slice`、`tree_builder_slice_trace` feature 与 helpers module 的落地节奏，准备下一轮文档同步。
+- 🧪 提醒 QA 在启用 `cursor_state` feature 时扩充深树 roundtrip 测试，并收集可回写文档的断言数据。
+- 📓 待 helpers/trace/fixture 补齐后，再评估是否需要同步 `mini-blocking-model-plan.md` 与 `rope-port-mapping.md` 的相关章节。
+
 ### 2025-11-17 - Mini blocking model skeleton 刷新状态记录
 #### 已完成任务
 - ✅ 复查 `blocking-model/rust/blocking_model_core/src/skeleton/{metrics.rs,tree.rs,rope.rs,samples.rs}` 与 `tests/skeleton.rs`，确认 Metric/Leaf/Node/SharedNode/TreeBuilder/Cursor/Rope API/feature gate 的最新骨架边界（含 `cursor_state` feature、`TreeBuilder` stub、`sample_rope_via_builder` 资产）。
