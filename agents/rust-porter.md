@@ -106,6 +106,11 @@
 
 ## 最近完成的工作
 
+### 2025-11-19 - Porting Brainstorm Rust Porter 回应 & Telemetry 计划
+- ✅ 依据主持人指示复盘 `docs/notebook/porting-rust-to-csharp.md` 与 `docs/architecture/porting-issues-catalog.md`，在 `docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md` 登记 Rust Porter 段落（代号 Ferrite），提出三条 Rust 端可执行策略：`CursorEditTelemetry`（支撑 Catalog O1/O2）、Tree Trace schema 内嵌（T1/T2/S3/S4）与 Chunk/Grapheme 互证基准（T3/F2/M1）。
+- ✅ 规划 CLI/基准交付路线：`export-serde-fixtures --cursor-telemetry/--chunk-benchmark-snapshots/--grapheme-fallback-snapshots` 以及 `export-tree-builder-trace --verify-schema`，并定义对应的 `cargo test`/`cargo bench` 守护测试、schema 文档与 QA 协作点。
+- ⚠️ 待办：11/19~11/21 完成上述 CLI/bench/schema 改造，协调 C# 实装 `TreeTraceSchemaKit` 与 QA 的 1 MB 基准执行窗口；进度需在下一次主持人同步会前回报。
+
 ### 2025-11-18 - Porting Issues Catalog 会议回应 & CLI 计划排期
 - ✅ 阅读 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/mini-blocking-model-plan.md` 与最新会议记录，评估类型骨架对位映射策略仍可行，并在 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md` 登记 Rust Porter 立场。
 - ✅ 复盘 `cursor_descriptors`/`chunk_descriptors`/`grapheme_descriptors` 资产现状，承诺在 11/19 13:00 前为 `--cursor-descriptors` 增加 `metadata.schema_version + rust_commit`，并同步 schema/ParityFixtureLoader 断言。

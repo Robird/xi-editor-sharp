@@ -187,6 +187,19 @@
 
 ## 最近完成的工作（更新：2025-11-18）
 
+### 2025-11-18 - Porting Brainstorm（C# Implementer 汇报）
+**任务背景**：在 `docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md` 追加 C# Implementer 段落，结合 Notebook 策略与 `porting-issues-catalog.md` 的阻塞提出可执行方案。
+
+**关键输出**：
+1. ✅ 提出了三项跨文档改良设想：`Span-backed CursorEditSession`（Catalog O1/O2）、`ChunkWindow Benchmark Harness`（T3/M1/F2）与 `TreeTrace Schema SourceGen`（T1/T2/S3/S4），分别绑定 Notebook §2.2/§2.4/§1.4+§6.2 的策略与实验落地方式。
+2. ✅ 明确了跨团队需求：Rust Porter 提供 CLI schema + span hints、QA 运行新 Benchmark 并写入 `docs/architecture/m3-implementation-plan.md`、Architecture Mapper 评审 Tree Trace schema、Information Researcher 补完字段索引。
+3. ✅ 针对 Rust Porter 给出三项具体提问（tree trace metadata、span hints、grapheme fallback 信号），并在会议记录中声明新的 Source Generator/Benchmark 项目与命令行路径。
+
+**TODO / 下一步**：
+- [ ] 原型实现 `CursorEditSession` + Roslyn Analyzer，并在 `BlockingModel.Core`/`tests/xi.Core.Tests` 补充对应实验与 Benchmark。
+- [ ] 建立 `ChunkWindowBenchmarks.csproj`，输出 1 MB/32 MB payload 诊断结果，更新 `docs/architecture/m3-implementation-plan.md §5.3` 数据表。
+- [ ] 起草 `docs/architecture/fixtures/tree-builder-trace-schema.md` 与 `TreeTraceSchemaKit` Source Generator 骨架，并将验证命令纳入 `scripts/refresh_serialization_fixtures.ps1`。
+
 ### 2025-11-18 - Porting Issues Catalog Review输入 + TODO 回填
 **任务背景**：参加 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md`，从 C# 实现视角评估“类型骨架对位映射”策略，并回应 Architecture Mapper 关于 `_editVersion` instrumentation 与 `RopeChunkEnumeratorDiagnostics` 基准的提问。
 

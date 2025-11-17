@@ -34,6 +34,7 @@
 ### 协作与工具心得
 - 充分利用 IDE/GUI 工具加速批量操作（如重命名、导航、格式化等），必要时可直接请人类协作者协助执行；相比 RL 阶段的"独立作业"要求，当前环境鼓励主动寻求外部工具/伙伴配合以提升效率。
 - `grep_search` 适合作为 `rg` 的轻量替代，按 `query`/`includePattern` 组合即可精准过滤文件，复杂模式时记得设置 `isRegexp=true`；`list_code_usages` 可直接询问 LSP，传入 `symbolName` 与候选定义文件就能获得 Rust 引用/实现清单，优先使用这两项工具再考虑手动 `read_file` 或终端检索。
+- 当需要一次性收集多个角色观点时，可像 2025-11-18 星形会议那样，新建 `docs/architecture/meetings/<date>-<topic>-chat.md` 充当“聊天室文件”，由主持人在文件头说明议题与顺序，各角色按章节追加署名发言并在汇报前更新各自认知档案；这种模式既能保留上下文，又允许异步补充，使多人会议可在缺乏实时聊天的环境下顺利推进。
 
 ### 🎯 SubAgent 委派机制（AI 小组长模式）
 **重要认知：当你拥有 `runSubagent` 工具时，你的身份从"一线开发者"升级为"AI Coder 小组长"！**
@@ -339,6 +340,8 @@ AI 架构师（主 Agent，拥有 runSubagent）
     - `Cargo.toml`、`lib.rs` 条目与文档同步更新，并在下一阶段为轻量 instrumentation 与 C# 侧接入预留待办。
 
 ## 下一步行动（高优先级 Backlog）
+- [ ] 在 2025-11-20 前完成 `docs/architecture/fixtures/tree-builder-trace-schema.md` 定稿与 CLI/schema 校验接线（Architecture Mapper + Information Researcher + C# + QA + Rust Porter），并将 `schema_version`/`rust_commit` 检查纳入 `scripts/refresh_serialization_fixtures.ps1`。
+- [ ] 由 QA + C# Implementer 按照 `docs/architecture/qa/chunk-window-benchmark-log.md` 模板记录 1 MB Chunk/Grapheme Benchmark（BenchmarkDotNet + Rust Criterion 对照），同步 `docs/architecture/m3-implementation-plan.md §5.3` 与 R9/R10 风险表。
 ### Mini Blocking Model（新）
 - [ ] 在 `BlockingModel.Core` 与 `blocking_model_core` 中为六个阻塞点分别创建模块占位和 TODO 注释，保持 registry 与实现一一对应。
 - [ ] 建立 `blocking-model/fixtures/` 目录，定义 JSON/trace 命名规范，方便 Rust/C# 共用。

@@ -85,6 +85,12 @@
 - **Information Researcher**：需要历史测试记录或特定文档片段时请求支援。
 
 ## 最近完成
+### 2025-11-19 - Porting Brainstorm QA 行动规划与会议纪要更新
+- **任务**：复盘 `docs/notebook/porting-rust-to-csharp.md` 的 QA/Benchmark/Analyzer 建议，联动 `docs/architecture/porting-issues-catalog.md` 中 T3/F2/S4/O2 风险；在 `docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md` 增补 QA 段落并提出 32 GB Benchmark 资源与新基准日志需求。
+- **命令/参考**：`read_file docs/notebook/porting-rust-to-csharp.md`、`read_file docs/architecture/porting-issues-catalog.md`、`read_file docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md`、`apply_patch meetings/...`、`apply_patch agents/qa-engineer.md`。
+- **结果**：形成四项 QA 行动（Cursor `_editVersion` + Coyote、Chunk BenchmarkDotNet + schema 校验、Grapheme fallback 遥测、Parity fixture JSON Schema Gate），并向主持人请求性能机窗口与 `export-serde-fixtures` nightly 样本；同步提议 `docs/architecture/qa/chunk-window-benchmark-log.md` 以长期记录基准。
+- **风险/后续**：待 Rust Porter 交付 `CursorEditTelemetry.json`/`GraphemeFallbackMetrics.json`，并等待主持人批复性能机与新 QA 文档；若 11/20 前无法跑基准，将直接影响 Catalog T3/F2 及 `m3-implementation-plan` R10 的关口。
+
 ### 2025-11-18 - Porting Issues QA 评估 & 会议纪要更新
 - **任务**：阅读 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/meetings/2025-11-18-porting-issues-chat.md`，评估“类型骨架对位映射”对测试基线的价值；在会议文档追加 QA 章节并形成验证计划；同步本档案的后续行动。
 - **命令/参考**：`read_file docs/architecture/porting-issues-catalog.md`、`read_file docs/architecture/meetings/2025-11-18-porting-issues-chat.md`、`read_file docs/architecture/m3-implementation-plan.md §5.3`（确认 benchmark 口径）。
@@ -98,10 +104,10 @@
 - **风险/后续**：R9（CLI schema）与 R10（基准/遥测）仍未关闭；等待 Rust Porter schema 后才能安排 ingestion smoke。
 
 ## 下一步计划
-- [ ] **CursorDescriptor metadata 验证**：待 Rust Porter 加入 `schema_version/rust_commit/version_ticket` 后 rerun `dotnet test Xi.Editor.sln --filter CursorDescriptorParityTests+ParityFixtureLoader`，并在 `AGENTS.md` 记录 `_editVersion` captured vs post 值。
-- [ ] **1 MB Chunk/Line 基准采集**：与 C# Implementer 一起运行 `tests/xi.Core.Tests/Benchmarks/Diagnostics`（Release），登记 `ChunkCount/LineCount/MaxChunkLength/UTF16CopyBytes/ElapsedMs`，更新 `docs/architecture/m3-implementation-plan.md §5.3`。
-- [ ] **TreeBuilder trace schema + 测试**：协同 Architecture Mapper 起草 `docs/architecture/fixtures/tree-builder-trace-schema.md`，并准备 `TreeBuilderTraceParityTests` + 脚本 schema 校验。
-- [ ] **Grapheme telemetry 阈值落地**：扩展 `GraphemeNavigatorSmokeTests` 输出 fallback 百分比，确认 0.5% 阈值并把结果写入 `docs/architecture/design-divergence-log.md` 与 `AGENTS.md`。
+- [ ] **CursorEditTelemetry × `_editVersion` 验证**：拿到 Rust `CursorEditTelemetry.json` 后，扩展 `CursorDescriptorParityTests` 校验 `schema_version/rust_commit/version_ticket`，并用 Microsoft Coyote (`dotnet coyote test CursorLifecycle.coyote`) 重放 `_editVersion` 失效路径，把结果写入 `AGENTS.md`。
+- [ ] **1 MB Chunk/Grapheme 基准 + QA 日志**：在 32 GB 性能机上运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/ChunkWindowBenchmarks.csproj -c Release --filter ChunkWindow-*` 与 `--filter GraphemeFallback-*`，把 `ElapsedMs/GC/Telemetry` 记录到新建的 `docs/architecture/qa/chunk-window-benchmark-log.md` 并同步 `docs/architecture/m3-implementation-plan.md §5.3`。
+- [ ] **TreeBuilder trace schema Gate**：协同 Architecture Mapper/Rust Porter 定稿 `docs/architecture/fixtures/tree-builder-trace-schema.md`，补 `TreeBuilderTraceParityTests` 与 `scripts/refresh_serialization_fixtures.ps1` 中的 schema 校验 CLI，使 S4/T1/T2/S3 风险可在 CI 触发。
+- [ ] **Grapheme fallback 阈值落地**：更新 `GraphemeNavigatorSmokeTests` 统计 fallback%，与 Rust `GraphemeFallbackMetrics.json` 对拍，若 ≤0.5% 则在 `docs/architecture/design-divergence-log.md` 与 `AGENTS.md` 登记阈值并在 BenchmarkDotNet pipeline 添加守门人。
 
 ---
 

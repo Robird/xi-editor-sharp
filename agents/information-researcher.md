@@ -60,6 +60,15 @@
 - **成果**：建立 13 条索引、7 条监控、记录脚本/Schema 快速关键词；在档案首段与监控条目明确“仅架构师调度”。
 - **未决**：Grapheme 遥测阈值尚未由架构师确认；Stage D CLI schema 仍待 Rust Porter 发布正式版本。需持续关注。 
 
+### 2025-11-18 - Porting Brainstorm Notebook 摘要 + Catalog 补强
+- **范围**：速读 `docs/notebook/porting-rust-to-csharp.md`（重心：§2.2 所有权、§2.4 生命周期、§5.2 对象池、§6.2 质量保障），交叉对照 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md`，并在会议记录中添加 Information Researcher 段落。
+- **工具**：`read_file`（Notebook/Catalog/会议稿）、`apply_patch`（会议记录、档案更新）。
+- **成果**：提炼 Span/ArrayPool/Analyzer/Benchmark 数据点，映射到 Catalog `T1/T2/T3/M1/F2` 的信息缺口；在会议纪要中输出 Notebook 索引、Catalog 补强方向及交接问题；同步登记需要 C# Implementer 支持的 instrumentation/Benchmark/Schema 需求。
+- **后续追踪**：
+	1. 收集 `export-tree-builder-trace` 的真实样本 + schema 需求，准备 `docs/architecture/fixtures/tree-builder-trace-schema.md` 初稿。
+	2. 协调 C# Implementer 的 `SharedNode/NodeCursor` 插桩与 Chunk Benchmark 能力，待其反馈可行性后更新 Catalog 备注。
+	3. 向 QA/架构师索取 Grapheme 1 MB 语料与阈值裁决，填充 `AGENTS.md · R10` 与 Catalog F2 的佐证。 
+
 ## 下一步计划
 - [ ] 为 2025-11-18 星形会议准备 `m3-implementation-plan` G1-G6 进度摘要 + 风险提示，供架构师快速引用。
 - [ ] 监控 Stage D CLI/schema（`--cursor-descriptors`, `--chunk-descriptors`, `--grapheme-descriptors`）变动并更新索引/监控条；若 Rust Porter 合并 PR，第一时间回填。

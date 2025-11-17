@@ -173,6 +173,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Porting brainstorm Notebook 对齐
+#### 已完成任务
+- ✅ 复盘《docs/notebook/porting-rust-to-csharp.md》中的所有权/类型/工程实践策略，并将与 Catalog O/T/M/S 条目直接相关的要点整理进 `docs/architecture/meetings/2025-11-18-porting-brainstorm-chat.md`，形成 Architecture Mapper 专场记录。
+- ✅ 提出三项改良实验：`CursorEditSession` 独占检测（Catalog O1/O2）、`TreeTraceSchemaKit` + 新建 `docs/architecture/fixtures/tree-builder-trace-schema.md`（Catalog T1/T2/S3）、`ChunkWindow Benchmark Harness`（Catalog T3/M1），并指派 Information Researcher/C# Implementer/QA 参与。
+- ✅ 将上述行动与文档需求纳入本档案，确保后续可追溯到 Notebook 论据与 Catalog 风险。
+
+#### 后续监控
+- 📌 等待 C# Implementer 在 mini workspace 中提交 `CursorEditSession` instrumentation + `_editVersion` 计数数据，完成后需回写 `docs/architecture/type-system-migration-log.md` 与 Catalog O1/O2 状态。
+- 📌 协助 Information Researcher 完成 `docs/architecture/fixtures/tree-builder-trace-schema.md` 初稿，并在 Tree trace CLI 注入 `schema_version` 后同步 `scripts/refresh_serialization_fixtures.ps1` 流程。
+- 📌 追踪 QA Engineer 运行 1 MB Chunk Benchmark 的结果，确保 `docs/architecture/m3-implementation-plan.md §5.3` 与 Catalog T3/M1 获得可复现指标，必要时更新 `rope-port-mapping.md`。 
+
 ### 2025-11-18 - Porting issues chat 复核
 #### 已完成任务
 - ✅ 重新对照 `docs/architecture/porting-issues-catalog.md`、`AGENTS.md` 与 `docs/architecture/m3-implementation-plan.md`，评估“类型骨架对位映射”策略的可行度，并在 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md` 记录 Architecture Mapper 立场、证据与交接提示。
