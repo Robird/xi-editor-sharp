@@ -23,8 +23,8 @@ cadence:
 ---
 
 ## 当前监控
-- **Stage D ingestion smoke `[QA-IngestionSmoke]`**：✅ 2025-11-17 本地完成 ingestion smoke；`sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` + `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 均通过。manifest/Playbook 哈希以 canonical JSON（`sort_keys=true`,`ensure_ascii=false`）计算，已用 `python - <<'PY' ...` 复核 `bd863f…/fe963d…/a2b840…`，与 `fixtures.manifest.json` 保持一致。
-- **1 MB chunk benchmark `[QA-ChunkBench]`**：脚本位于 `tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs`，参数集完成，尚缺最新跑分与 `ChunkCount/MaxChunkLength` 记录。预期阈值：吞吐 >200 MB/s、额外分配 <5 MB，结果需写回 `m3-implementation-plan.md §5.3` 与 `design-divergence-log.md`。
+- **Stage D ingestion smoke `[QA-IngestionSmoke]`**：✅ 2025-11-17 本地完成 ingestion smoke；`python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`,`ensure_ascii=False`）取代手工 `sha256sum` 作为默认校验，必要时仍可逐条 hash 复核。`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 通过；manifest 与 Playbook 哈希 `bd863f…/fe963d…/a2b840…` 保持一致。
+- **1 MB chunk benchmark `[QA-ChunkBench]`**：2025-11-17 rerun `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build`，输出 `ChunkCount=1,049`, `MaxChunkLength=1,000`, `TotalUtf16Chars=1,048,625`, `LineCount=8,389`；Chunk 12.62 ms（≈79 MiB/s 名义 / ≈159 MiB/s UTF-16），Line 14.99 ms（≈67 / 133 MiB/s）。吞吐未达 >200 MB/s 且缺少 <5 MB alloc 诊断，已在 Playbook + `m3-implementation-plan.md §5.3` 记档并将 anchor 标记 ⚠️。
 - **Grapheme fallback telemetry `[QA-Telemetry]`**：`GraphemeNavigatorSmokeTests` 已统计 fallback 命中率但未写 manifest。目标阈值 <=0.5%，若高于阈值需向 Architecture Mapper 报告并在 Stage D anchor 中登记。
 - **Stage D Baseline**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 已把 ingestion smoke、chunk bench、telemetry 的链路收口，等待 `[StageD::FixtureFlow]` manifest 线上化后同步 hash。
 
@@ -35,13 +35,13 @@ cadence:
 | 质量筛选 | ```dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj -v m --filter "CursorDescriptorParityTests|RopeChunkEnumeratorDiagnosticsTests|GraphemeNavigatorSmokeTests"``` | ✅ 2025-11-17 | 快速验证 Stage D ingest / Grapheme fallback / Chunk diag |
 | Rust serde 子集 | ```cargo test -p xi-rope --features serde subset delta engine_serialization_regression``` | ✅ 2025-11-15 | 由 Rust Porter 供证；QA 参考日志即可 |
 | `run_all_checks` | ```./run_all_checks --filter serde-fixtures``` | ✅ 2025-11-15 | 联动 `scripts/refresh_serialization_fixtures.ps1`；可在 PowerShell 用 `-Filter` 等价 |
-| Bench diag | ```dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/Diagnostics.csproj --configuration Release``` | ⏳ 待跑 | 产出 1 MB chunk/line 指标，与 `[QA-ChunkBench]` 对齐 |
+| Bench diag | ```dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build``` | ⚠️ 2025-11-17：Chunk 12.62 ms / Line 14.99 ms（<200 MB/s） | 1 MB baseline 已采集；需调优 + 增加 <5 MB alloc 监控 |
 
 ## Stage D & QA Anchors
 | Anchor | 目标 | 当前状态 | 关联文档 |
 | --- | --- | --- | --- |
 | `[QA-IngestionSmoke]` | `scripts/refresh_serialization_fixtures.ps1` 全链路 + manifest 比对 + ingestion smoke | ✅ 2025-11-17：`sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` 与 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 通过；hash 需用 canonical JSON（`ensure_ascii=false`）重算以对齐 manifest | `docs/csharp-refactor/rope-serialization-fixture-playbook.md`, `StageD::FixtureFlow` |
-| `[QA-ChunkBench]` | 1 MB chunk/line 架构基准，输出 `ChunkCount/LinesCount/MaxChunkLength/Duration` | Pending rerun；脚本 ready，需记录结果和 pass 阈值 | `docs/csharp-refactor/rope-serialization-fixture-playbook.md`, `docs/architecture/m3-implementation-plan.md §5.3` |
+| `[QA-ChunkBench]` | 1 MB chunk/line 架构基准，输出 `ChunkCount/LinesCount/MaxChunkLength/Duration` | ⚠️ 2025-11-17：1,049 chunks（max 1,000），Chunk 12.62 ms / Line 14.99 ms <200 MB/s，alloc telemetry 缺失 | `docs/csharp-refactor/rope-serialization-fixture-playbook.md`, `docs/architecture/m3-implementation-plan.md §5.3` |
 | `[QA-Telemetry]` | Grapheme fallback hit-rate + 失效样本留档 | Instrumentation ready，缺最新 telemetry dump + manifest entry | `docs/csharp-refactor/rope-serialization-fixture-playbook.md`, `docs/architecture/design-divergence-log.md` |
 | `[QA-StageDManual]` | Stage D Playbook QA Checklist & CLI flags | 模板锁定，待 manifest/hash 融入 `scripts/refresh_serialization_fixtures.ps1` | `docs/architecture/document-structure-template.md` |
 
@@ -65,20 +65,29 @@ cadence:
 	3. 若发现缺失 anchor，更新 Playbook/Goal Tree 后重跑；
 	4. 结果写入 `AGENTS.md`。
 
+### `scripts/verify_fixture_manifest.py`
+- **用途**：对 `fixtures.manifest.json` 中的 `fixtures[].payload_hash` 执行 canonical JSON（`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）哈希复核，自动标记缺失/漂移资产。
+- **运行**：```python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json```
+- **Checklist**：
+	1. 默认在 Stage D 刷新后运行，或通过 `python scripts/refresh_all_assets.py --only verify-stage-d` 独立触发；
+	2. 若脚本报错，优先排查路径/JSON 结构，再 fallback `sha256sum`；
+	3. 未来将追加 `--update` 以重写 manifest（TODO）。
+
 ### QA Diagnostics / Benchmark 脚本
 - **1 MB chunk bench**：```dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/Diagnostics.csproj --configuration Release -- --payloadMB 1 --export json```；记录 `ChunkCount`, `MaxChunkLengthBytes`, `ElapsedMs`。
 - **Grapheme fallback dump**：```dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj -v m --filter GraphemeNavigatorSmokeTests --logger "trx;LogFileName=grapheme.trx"```；解析日志写入 `[QA-Telemetry]`。
 - **Stage D ingestion smoke**：待 manifest 完成后，组合命令 `pwsh -File scripts/refresh_serialization_fixtures.ps1 -EmitManifestPath tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` + `dotnet test --filter CursorDescriptorParityTests`，必要时加 `./run_all_checks --filter serde-fixtures` 复核。
 
-## 最近完成
 - **2025-11-17 - Stage D ingestion smoke（hash + Serialization）**：在仓库根运行 `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` 并使用 `python - <<'PY' ... sort_keys=True, ensure_ascii=False` 计算 canonical SHA256，确认 chunk/cursor/grapheme/delta/engine/subset/leaf_split 与 `fixtures.manifest.json` 及 `[StageD::ParityAssets]` 匹配；随后执行 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization`（10/10 通过，2.5s）。下一步：持续监控 `refresh_all_assets.py --only stage-d-fixtures` 输出，并在资产漂移时重跑。
+- **2025-11-17 - Stage D manifest verifier automation**：新增 `scripts/verify_fixture_manifest.py`（canonical JSON SHA256，TODO `--update`），并把 `verify-stage-d` 步骤串入 `scripts/refresh_all_assets.py`（默认接在 `stage-d-fixtures` 之后）；更新 Playbook `[StageD::StageDChecklist]`/`[QA-IngestionSmoke]` 指南与本档案，明确脚本作为首选校验入口。
 - **2025-11-17 - QA 档案重整**：本次任务，依架构模板重写档案结构，补 front-matter、监控面板、Anchors、脚本 checklist，并把 dotnet 基线（169/169）与筛选命令写入；同步 Stage D ingestion smoke / chunk bench / telemetry 状态，确保与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 一致。
 - **2025-11-17 - QA Playbook Anchor Expansion**：已在 Playbook 中注册 `[QA-ChunkBench]`、`[QA-Telemetry]`，存档阈值与指令。
 - **2025-11-17 - QA 入职与资产确认**：完成 parity 夹具盘点、`scripts/refresh_serialization_fixtures.ps1` 选项确认，并记录 `dotnet test` 169/169 基线。
+- **2025-11-17 - 1 MB chunk bench rerun**：`cd /repos/xi-editor-sharp && dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build`；得到 `ChunkCount=1,049`, `MaxChunkLength=1,000`, `TotalUtf16Chars=1,048,625`, `LineCount=8,389`，Chunk 12.62 ms（≈79 MiB/s 名义 / ≈159 MiB/s UTF-16）、Line 14.99 ms（≈67 / 133 MiB/s）。吞吐 <200 MB/s，alloc <5 MB 未被脚本记录；结果写回 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[QA-ChunkBench]` 与 `docs/architecture/m3-implementation-plan.md §5.3` 并引入 `[MP-R10]` 跟踪。
 
 ## 待办 / 风险
 - [ ] **Manifest & Hash 自动化落地**（高优先）：`[QA-IngestionSmoke]` 2025-11-17 已验证，但 `scripts/refresh_serialization_fixtures.ps1` 仍缺 `--emit-manifest`/canonical SHA 写回自动化；需 Rust Porter 完成脚本参数与 Architecture Mapper 对齐 anchors，避免下次 smoke 依赖手工 `python - <<'PY'` 校验。
-- [ ] **1 MB Chunk Bench rerun**：需在 11/21 前跑完并把结果写入 Playbook + `m3-implementation-plan.md §5.3`；若未完成，`[MP-R10]` 将升高。
+- [ ] **1 MB Chunk Bench 调优**：2025-11-17 跑分已归档但 Chunk/Line ≈79/67 MiB/s（≈159/133 MiB/s UTF-16）低于 >200 MB/s，且缺少 alloc counter；需 Profiling + Telemetry 以关闭 `[MP-R10]`。
 - [ ] **Grapheme fallback Telemetry dump**：需产出最新 hit-rate 与失效样本，联动 `design-divergence-log.md`；若 >0.5%，立即向架构师报警。
 - [ ] **Stage D ingestion smoke rehearsal**：待 manifest ready 后，与 C# Implementer 对齐 ingest checklist，避免 CLI schema 漂移；风险在于 CLI 仍为草稿。
 

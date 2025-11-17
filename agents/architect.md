@@ -107,12 +107,12 @@
   - 维持每 2-3 天查阅 C# Implementer 档案的节奏；若文档重构影响 M3 里程碑需立即沟通。
 
 - [推进中] ⚙️ **一键刷新脚本与 Stage D 对接**
-  - **现状**：`scripts/refresh_all_assets.py`（2025-11-17）已把 Goal Tree → Rust skeleton → `dotnet build` → ILSpy → Skeletonizer 串成一键流程，并实测可触发 `--only stage-d-fixtures` 刷新以生成 manifest（QA ingestion smoke 已验证 chunk/cursor/grapheme 哈希 + Serialization 测试）。
-  - **目标**：把该脚本接入 `run_all_checks` / Stage D Playbook，形成默认刷新路径，并让 QA Anchors（`[QA-IngestionSmoke]`/`[QA-ChunkBench]`/`[QA-Telemetry]`）直接消费 manifest + 自动化哈希。
+  - **现状**：`scripts/refresh_all_assets.py`（2025-11-17）已把 Goal Tree → Rust skeleton → `dotnet build` → ILSpy → Skeletonizer 串成一键流程；`verify-stage-d` 步骤现默认运行 `scripts/verify_fixture_manifest.py`（canonical JSON hash lint），QA ingestion smoke引用该脚本 + Stage D Playbook 记录了最新 chunk bench（12.62 ms/14.99 ms，低于 200 MB/s）。
+  - **目标**：把该脚本接入 `run_all_checks` / Stage D Playbook，形成默认刷新路径，并让 QA Anchors（`[QA-IngestionSmoke]`/`[QA-ChunkBench]`/`[QA-Telemetry]`）直接消费 manifest、基准数据与遥测阈值。
   - **下一步**：
-    1. 规划 canonical hash/diff 自动化：拓展 `refresh_all_assets.py` 或单独脚本，产出 `fixtures.manifest.json` 对比结果并写回 QA 记录。
-    2. 与 QA/Architecture Mapper 协调 chunk bench & grapheme telemetry 数据流，确保 `[QA-ChunkBench]`、`[QA-Telemetry]`、`[StageD::ParityAssets]` 使用 manifest 元数据。
-    3. 在 Stage D Playbook/`document-structure-template.md` 标准化脚本调用与失败兜底说明，必要时追加 `refresh_serialization_fixtures.ps1`/`cargo test` 钩子或 CLI trace 采集选项。
+    1. 拓展 canonical hash/diff：在 `verify_fixture_manifest.py` 实现 `--update` 或差异报告，结合 `refresh_serialization_fixtures.ps1` 输出为 QA/CI 提供自动对比。
+    2. 与 QA/C# Implementer 制定 Chunk throughput 调优与 alloc telemetry方案（<5 MB counters、>200 MB/s 目标），并把计划写入 `design-divergence-log.md` 与 `[MP-R10]`。
+    3. 与 Architecture Mapper 协调 Grapheme telemetry ingestion：补 `[QA-Telemetry]` 实测数据、在 Stage D Playbook 和 Goal Tree 中记录触发条件；必要时更新 `document-structure-template.md` 与 CLI trace 采集说明。
 
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。

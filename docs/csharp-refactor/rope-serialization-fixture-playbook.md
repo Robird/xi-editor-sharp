@@ -16,7 +16,7 @@
 2. **验证 Rust 基线**：在 `xi-editor-ph7/rust` 运行 `./run_all_checks`（Bash）或 `./run_all_checks.ps1 -Filter serde-fixtures`（PowerShell），随后执行三个 `cargo test -p xi-rope --features serde <regression>` 用例，确保 `serde_fixtures` 常量与测试同步。
 3. **刷新夹具**：优先使用 `scripts/refresh_serialization_fixtures.ps1` 触发 exporter（默认启用 `-ExportParityFixtures`），如需调试可改用手动命令（见 `[StageD::FixtureFlow]`）。若希望与 goal tree / skeleton 流水线一键执行，可运行 `python scripts/refresh_all_assets.py`（默认包含 `stage-d-fixtures` 步骤），或使用 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 单独执行 Stage D。
 4. **快速 diff**：运行 `git status --short tests/xi.Core.Tests/Fixtures` 与定向 `git diff`，确认变化仅限目标 JSON；若结构调整，需先在 Rust helper/文档更新 schema。
-5. **测试矩阵**：执行 `dotnet test Xi.Editor.sln` 并重跑 `cargo test -p xi-rope --no-default-features`，结果链接到 `[QA-IngestionSmoke]` 报告。
+5. **校验 manifest + 测试矩阵**：先运行 `python scripts/verify_fixture_manifest.py`（基于 canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）核对 `fixtures.manifest.json`，如遇异常可 fallback 到 `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` 手工逐条比对；随后执行 `dotnet test Xi.Editor.sln` 并重跑 `cargo test -p xi-rope --no-default-features`，结果链接到 `[QA-IngestionSmoke]` 报告。
 6. **文档与日志**：在 `AGENTS.md`、`agents/rust-porter.md`、`agents/qa-engineer.md`、`docs/architecture/rope-cs-mirror-plan.md` 等文件记录操作；若 CLI/流程有变化，更新 `[Fixture-*]` 文档与本手册对应章节。
 
 ---
@@ -154,7 +154,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | 步骤 | 命令 | 期望 |
 | --- | --- | --- |
 | 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表。 |
-| 校验哈希 | `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出应与 `[StageD::ParityAssets]` 表一致；如不一致需重新导出或更新表。 |
+| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出应与 `[StageD::ParityAssets]` 表一致；如不一致需重新导出或更新表。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径，供下次对照。 |
 
@@ -185,6 +185,8 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | 运行基准 | `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release` | 命令同 `tests/xi.Core.Tests/Benchmarks/Diagnostics/README.md`（PowerShell/Bash 相同）。
 | 抓取指标 | 输出会打印 Chunk/Line 计数、最大 chunk 长度、总复制字节及枚举时长；人工记录 `chunkCount`, `maxChunkLength`, `bytesCopied`, `chunkEnumerationMs`, `lineEnumerationMs`。 | Screenshot/log 附在 `m3-implementation-plan.md §5.3` 与 `agents/qa-engineer.md`“最近完成”。
 | 校验阈值 | - 载荷：必须是 README 构造的 1 MB synthetic rope。<br>- 内存：GC/Process Alloc < **5 MB**。<br>- 吞吐：`1MB / chunkEnumerationMs` 与 `1MB / lineEnumerationMs` 推算 > **200 MB/s**。 | 若任一阈值失败，将结果写入 `docs/architecture/design-divergence-log.md` 并引用 `[QA-ChunkBench]`，同时在 `AGENTS.md` 标记为 Pending fix。
+
+> **Latest run — 2025-11-17**：`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build` 输出 `ChunkCount=1,049`, `MaxChunkLength=1,000`, `TotalUtf16Chars=1,048,625`, `LineCount=8,389`；Chunk 枚举 12.62 ms（≈79 MiB/s 名义 1 MB / ≈159 MiB/s UTF-16）与 Line 枚举 14.99 ms（≈67 / 133 MiB/s）。吞吐仍低于 `[MP-R10]` 200 MB/s 门槛，额外分配 <5 MB 缺少诊断信号，已在 `docs/architecture/m3-implementation-plan.md §5.3`、`agents/qa-engineer.md` 记档，并在 `[QA-ChunkBench]` 状态栏标记为 ⚠️。
 
 - **后续动作**：
   - 在 `AGENTS.md`「下一步行动」写入下次 rerun 日期，与 `[QA-IngestionSmoke]` hash 审计保持同频。
@@ -226,8 +228,8 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 <a id="StageD::ChangeLog"></a>
 
 | 日期 | 版本 | 作者 | 摘要 |
-| --- | --- | --- | --- |
 | 2025-11-19 | v2.0 | Architecture Mapper | 套用 `document-structure-template.md`：新增 front-matter、Stage D/QA anchors、资产哈希表、Feature Gate 策略、Automation backlog。 |
+| 2025-11-17 | v2.1 | QA Engineer | `[QA-IngestionSmoke]`/`[QA-ChunkBench]`：新增 canonical manifest 校验脚本指引、记录 1 MB chunk 基准（12.62 ms/14.99 ms，<200 MB/s）并标记风险。 |
 | 2025-11-15 | v1.1 | Rust Porter | 引入 `scripts/refresh_serialization_fixtures.ps1`、PowerShell `run_all_checks.ps1`，强化 Windows 指南。 |
 | 2025-11-11 | v1.0 | Rust Porter | 初版 Stage D 手册，记录 serde 回归/导出流程。 |
 

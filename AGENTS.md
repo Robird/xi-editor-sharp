@@ -550,6 +550,9 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **执行**：在仓库根运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures`（PowerShell step 调用 `scripts/refresh_serialization_fixtures.ps1 -Verbose`），串行完成 `run_all_checks`、serde 回归三套、`cargo export-serde-fixtures --emit-manifest` 与 `dotnet test Xi.Editor.sln`（173/173 通过），确认新管线可在 Linux + pwsh 环境落地。
 - **产物**：`tests/xi.Core.Tests/Fixtures/*.json` 与 `fixtures.manifest.json` 刷新至 Rust commit `7ac917a05be4bb526844d5cdaa842030411800e5`、CLI rev `0.3.0`、feature gate `serde`；chunk/cursor/grapheme 资产分别导出 20/11/668 条记录，对应 SHA256（chunk=`bd863f2237dd…`、cursor=`fe963d909d5c…`、grapheme=`a2b84031c5aa…`）。
 - **文档同步**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::ParityAssets]` 更新所有 hash，并追加 manifest 元数据；提醒 QA 在 `[QA-IngestionSmoke]` 登记本次刷新、Architecture Mapper 依据 manifest 更新 Goal Tree/Stage D anchor。
+
+### 2025-11-17 (Stage D manifest verifier automation)
+- **交付**：新增 `scripts/verify_fixture_manifest.py`（canonical JSON `sort_keys=True, ensure_ascii=False, separators=(
 ### 2025-11-19 (Architecture Docs Template Round 2)
 - **交付**：重构 `docs/architecture/m3-architect-decision.md`、`docs/architecture/fixtures/parity-fixture-schema.md`、`docs/architecture/ai-team-design-draft.md`，统一 front-matter 与 `[Decision-M3-*]`、`[Fixture-*]`、`[AIT-*]` 锚点，所有风险/行动/引用回指 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
 - **内容调整**：决策书现以概览/裁决/控制/行动表格呈现；Stage D schema 文档新增 change log 与 Stage D 链接；AI Team 草案加入阻塞表、ASCII 组织图与执行阶段路线。

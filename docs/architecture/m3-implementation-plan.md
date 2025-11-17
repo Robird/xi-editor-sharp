@@ -1,6 +1,6 @@
 # M3 实施计划：游标系统与泛型接口验证
 
-> **版本**：1.0  
+> **版本**：1.4  
 > **创建日期**：2025-11-16  
 > **状态**：已批准（2025-11-16 星形会议决策）  
 > **负责人**：AI 架构师 + C# Implementer + Rust Porter + Architecture Mapper  
@@ -404,10 +404,11 @@
 **现实基线**
 1. **版本票据 + 游标 parity**：`Rope` 编辑路径写入 `_editVersion`（`src/xi.Core/Rope/Rope.cs`），`NodeCursor` 结合版本号与 `ReferenceEquals` 做失效检测，`CursorDescriptorParityTests.cs` 11/11 用例及 `dotnet test -v m` 验证版本票据生效。
 2. **Diagnostics 插桩可用**：`RopeChunkEnumeratorDiagnostics` 与 `GraphemeNavigationMetrics` 已合入（参见 `RopeChunkEnumeratorDiagnosticsTests.cs`、`GraphemeNavigatorSmokeTests.cs`），可在 API 或微基准中观察 chunk 数量/最大 chunk/复制字节以及 Grapheme fallback 次数。
+3. **Chunk/Line 1 MB 基准**：2025-11-17 QA 运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build`，rope 含 1,048,625 UTF-16 chars（1,049 chunks，最大 chunk 1,000）；Chunk 枚举 12.62 ms（≈79 MiB/s 名义 1 MB / ≈159 MiB/s UTF-16），Line 枚举 14.99 ms（≈67 / 133 MiB/s）。结果低于 `[MP-R10]` >200 MB/s 要求，额外分配 <5 MB 因程序未输出 GC/alloc 指标而暂无法确认，已在 `[QA-ChunkBench]` 与 QA 档案标记为 ⚠️。
 
 **缺失组件与差距**
 1. **Stage D/CLI schema**：`export-serde-fixtures --cursor-descriptors/--chunk-descriptors/--grapheme-windows` 的 schema、路径与刷新流程尚未写入 Stage D 文档，`tests/xi.Core.Tests/Fixtures/*` 仍依赖手工样本。
-2. **Telemetry 阈值 + 基准**：Grapheme fallback 阈值（是否维持 0.5%）与 1 MB Chunk/Line 性能基准尚未由架构师/QA 复核，`m3-implementation-plan.md` §4/§5.3、`design-divergence-log.md` 仅记录临时提醒。
+2. **Telemetry 阈值 + 基准**：Grapheme fallback 阈值（是否维持 0.5%）仍待采集；1 MB Chunk/Line 基准虽已于 2025-11-17 记录，但吞吐（≈79/67 MiB/s，以 UTF-16 计算为 ≈159/133 MiB/s）仍低于 200 MB/s，且 <5 MB allocation 缺乏可观测指标，`design-divergence-log.md` 与 `[MP-R10]` 需追踪矫正计划。
 3. **CLI Ingestion Smoke**：QA 仍需在 Rust Porter 发布正式 schema 后验证 CLI→C# 流程，否者 R9/R10 无法收敛；Architecture Mapper 必须追踪执行窗口并在风险台账中保留加粗提醒。
 
 > 本小节取代原“全量测试已绿”的假设，供后续同步与周会引用；每次重新跑完 114 项测试、落地 CLI 夹具或补齐基准后需更新时间戳。
@@ -573,7 +574,7 @@
 ## 10. 变更日志
 
 | 日期 | 版本 | 修改者 | 变更内容 |
-|------|------|--------|----------|
+| 2025-11-17 | 1.4 | QA Engineer | §5.3 记录 1 MB chunk/line 基准（12.62 ms/14.99 ms、1,049 chunks、8,389 行），指出吞吐 <200 MB/s 与 <5 MB allocation 缺失并链接 `[QA-ChunkBench]`/`[MP-R10]`。 |
 | 2025-11-16 | 1.0 | Architecture Mapper | 初始版本，基于星形会议决策创建 |
 | 2025-11-16 | 1.1 | Rust Porter | 评审修改：<br>- §3.1 细化 Rust Porter 职责（样本格式、算法咨询）<br>- §3.2.1 补充协作接口输入输出规格<br>- §3.2.4 新增 CursorDescriptor JSON 样本清单（10 个 fixture）<br>- §4.1 R4 增强缓解措施（样本导出工具、应急预案）<br>- §5.0 新增算法咨询预案（5 类疑问 + 响应时效）<br>- §5.2 游标验收补充 Parity 样本数量要求<br>- §6.2.2 细化 Rust Porter 评审触发条件<br>- §9.2 补充 Rust 测试文件引用 |
 | 2025-11-16 | 1.2 | C# Implementer | 评审修改：<br>- §2.1.1 T1.6 工作量调整（1-1.5天 → 2-2.5天，增加 JSON 解析与调试缓冲）<br>- §2.2.2 T2.2 细化（0.5天 → 1天，补充接口设计与测试要求）<br>- §4.1 R6 增强缓解措施（接口隔离 + 降级备份方案）<br>- §4.1 R1 修正应急预案（版本号降级 + 假失效监控，而非全遍历）<br>- §3.2.1 明确 C# Implementer 输出包括算法疑问提案（含自查结果） |
@@ -583,5 +584,5 @@
 
 **维护人**：Architecture Mapper  
 **审批人**：AI 架构师  
-**最后更新**：2025-11-16  
+**最后更新**：2025-11-17  
 **下次审查**：M3 中期（预计 2025-11-23）

@@ -77,6 +77,17 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
             file=sys.stderr,
         )
 
+    steps.append(
+        Step(
+            name="verify-stage-d",
+            description="Run canonical JSON hash verification for fixtures.manifest.json",
+            command=[
+                sys.executable,
+                "scripts/verify_fixture_manifest.py",
+            ],
+        )
+    )
+
     steps.extend(
         [
             Step(
