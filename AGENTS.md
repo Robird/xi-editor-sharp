@@ -18,6 +18,12 @@
 - `scripts/stub_rust_functions.py` 保持 Rust skeleton 文档同步，支持增量刷新 `docs/reference/rust-skeleton.md`，减少上下文迭代成本。
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.Rope.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
+## 当前聚焦事项
+1. **Mini Blocking Model 分支启动（2025-11-17）**
+  - 目的：在独立 `blocking-model/{csharp,rust}` 工作区为阻塞移植问题构建最小可复现模型，降低上下文压力。
+  - 已完成：搭建 `BlockingModel.sln`/.NET 9 测试骨架、Rust workspace 及共享 `BlockingPointRegistry`（C#/Rust）、发布 `docs/architecture/mini-blocking-model-plan.md`。
+  - 进行中：为每个阻塞点创建模块/测试占位、筹备共享 fixtures 目录、把 mini workspace 测试命令纳入质量门禁提醒、评估是否启用 Type System Specialist 员工专职维护。
+
 ## 工作节奏建议
 当前仅由人类开发者与 AI Coder 协作，执行节奏按单次 AI 会话推进；每次会话收尾前需同步更新本文件与相关计划文档。
 1. **进入仓库**：优先阅读“当前聚焦事项”，确认阻塞与最新决策，必要时调整计划。
@@ -333,6 +339,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
     - `Cargo.toml`、`lib.rs` 条目与文档同步更新，并在下一阶段为轻量 instrumentation 与 C# 侧接入预留待办。
 
 ## 下一步行动（高优先级 Backlog）
+### Mini Blocking Model（新）
+- [ ] 在 `BlockingModel.Core` 与 `blocking_model_core` 中为六个阻塞点分别创建模块占位和 TODO 注释，保持 registry 与实现一一对应。
+- [ ] 建立 `blocking-model/fixtures/` 目录，定义 JSON/trace 命名规范，方便 Rust/C# 共用。
+- [ ] 将 `dotnet test blocking-model/csharp/BlockingModel.sln` 与 `cargo test --manifest-path blocking-model/rust/Cargo.toml` 纳入质量门禁提示，确保实验结果可复现。
+- [ ] 评估是否需要启用 `agents/type-system-specialist.md` 专职维护 mini workspace，并更新入职模板。
+
 文档同步 + schema/阈值待交付
 
 ### 🚀 M3 实施已启动（2025-11-16）
@@ -452,6 +464,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Mini Blocking Model Bootstrapping)
+- 在仓库根新增 `blocking-model/{csharp,rust}` mini workspace：`BlockingModel.sln`（.NET 9）含 `BlockingModel.Core` + `BlockingModel.Tests`，Rust workspace 含 `blocking_model_core` crate，二者共享 `BlockingPointRegistry`/测试。
+- 创建 `docs/architecture/mini-blocking-model-plan.md`，定义目标、范围、目录结构、SubAgent 指南与下一步行动；`blocking-model/README.md` 统筹使用说明。
+- 更新 `AGENTS.md`“当前聚焦事项”与“下一步行动”，标记 mini blocking model 为最高优先级，并纳入未来待办（模块占位、fixtures、质量门禁、Type System Specialist 评估）。
+- `BlockingModel.Core`/`blocking_model_core` 均以枚举 + Spec 形式列举 6 个阻塞点，xUnit/Rust tests 校验 registry 完整性，为后续每个模块扩展提供稳定入口。
+
 ### 2025-11-17 (QA/Info Researcher Onboarding)
 - **QA Engineer 入职**：基于 `agents/qa-engineer-template.md` 建立 `agents/qa-engineer.md`，补齐 8 条测试资产索引、169/169 `dotnet test -v m` 基线、R8/R9/R10 风险监控与 parity/Stage D 行动清单，为后续 ingestion smoke 与 1 MB 基准奠定资料来源。
 - **Information Researcher 入职**：创建 `agents/information-researcher.md`，填充 13 条索引与 7 条监控清单，并注明“仅接受架构师调度”限制；重点跟踪 AGENTS、m3 计划、Stage D schema、`refresh_serialization_fixtures.ps1` 新开关等差异。
