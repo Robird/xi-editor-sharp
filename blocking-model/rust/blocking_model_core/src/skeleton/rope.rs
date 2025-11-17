@@ -87,9 +87,7 @@ impl<N: NodeInfo<L>, L: Leaf> Rope<N, L> {
     }
 }
 
-pub fn rebuild_text_for_tests<N, L>(
-    text: &str,
-) -> (SharedNode<N, L>, Option<TreeBuilderTrace>)
+pub fn rebuild_text_for_tests<N, L>(text: &str) -> (SharedNode<N, L>, Option<TreeBuilderTrace>)
 where
     N: NodeInfo<L>,
     L: Leaf + From<String>,

@@ -3,17 +3,11 @@ name = "blocking_model_core"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1", optional = true }
-
 [features]
 default = []
 cursor_state = []
 tree_builder_slice_trace = []
-serde = ["dep:serde"]
-serde_json = ["serde", "dep:serde_json"]
-trace_cli = ["tree_builder_slice_trace", "serde_json"]
+trace_cli = ["tree_builder_slice_trace"]
 
 [[bin]]
 name = "export-tree-builder-trace"

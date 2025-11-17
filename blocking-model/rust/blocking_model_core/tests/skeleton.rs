@@ -26,20 +26,24 @@ fn tree_builder_trace_export_respects_feature_gate() {
     builder.push_leaf(SampleLeaf::from_str("beta"));
     let snapshot = builder.export_trace().expect("tracer must exist");
     if cfg!(feature = "tree_builder_slice_trace") {
-        assert!(snapshot
-            .events()
-            .iter()
-            .any(|event| matches!(event, TreeBuilderEvent::PushLeaf { .. })));
+        assert!(
+            snapshot
+                .events()
+                .iter()
+                .any(|event| matches!(event, TreeBuilderEvent::PushLeaf { .. }))
+        );
     } else {
         assert!(snapshot.events().is_empty());
     }
     let (_root, tracer) = builder.build_with_tracer();
     let trace = tracer.expect("missing tracer").export();
     if cfg!(feature = "tree_builder_slice_trace") {
-        assert!(trace
-            .events()
-            .iter()
-            .any(|event| matches!(event, TreeBuilderEvent::BuildComplete { .. })));
+        assert!(
+            trace
+                .events()
+                .iter()
+                .any(|event| matches!(event, TreeBuilderEvent::BuildComplete { .. }))
+        );
     } else {
         assert!(trace.events().is_empty());
     }
@@ -87,21 +91,11 @@ fn deep_tree_sample_supports_cursor_roundtrip() {
 #[cfg(feature = "tree_builder_slice_trace")]
 #[test]
 fn tree_builder_trace_serializes_to_json_payload() {
-    if !cfg!(feature = "serde_json") {
-        eprintln!("serde_json feature disabled; skipping serialization test");
-        return;
-    }
-
-    #[cfg(feature = "serde_json")]
-    {
-        let (_rope, trace) = sample_deep_tree_rope(2);
-        let trace = trace.expect("trace missing under trace feature");
-        let json = trace
-            .to_json_string()
-            .expect("failed to serialize tree builder trace");
-        assert!(json.contains("PushLeaf"));
-        assert!(json.contains("BuildComplete"));
-    }
+    let (_rope, trace) = sample_deep_tree_rope(2);
+    let trace = trace.expect("trace missing under trace feature");
+    let json = trace.to_json_string();
+    assert!(json.contains("PushLeaf"));
+    assert!(json.contains("BuildComplete"));
 }
 
 #[cfg(feature = "cursor_state")]

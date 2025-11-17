@@ -57,6 +57,7 @@
 4. Document schema (JSON keys, numeric units, ordering) in this file and link from `docs/rust-refactor/iterator-facade-export.md` if relevant.
 
 - **Progress (2025-11-14):** Added opt-in `serde` feature gating through `xi-core-lib` and workspace-level `serde` flag so `xi-rope/serde` is disabled by default; refreshed `xi-editor-ph7/rust/run_all_checks` to run `cargo test -p xi-rope` under both `--no-default-features` and `--features serde`.
+- **Progress (2025-11-18):** Removed the temporary `serde`/`serde_json` wiring from `blocking_model_core`, hand-wrote `TreeBuilderTrace::to_json_string()` so the trace CLI keeps emitting the same payload without bringing `serde` into the mini blocking-model dependency closure, and kept `trace_cli` scoped to `tree_builder_slice_trace` only.
 
 ## Validation Matrix
 - `cargo test -p xi-rope --features serde` (default) – must stay green throughout.

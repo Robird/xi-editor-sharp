@@ -173,6 +173,16 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Trace CLI 手写 JSON 基线同步
+#### 已完成任务
+- ✅ 复核 `blocking_model/rust/blocking_model_core/{Cargo.toml,src/skeleton/tree.rs,src/bin/export_tree_builder_trace.rs,tests/trace_cli.rs}`，确认 `serde`/`serde_json` 依赖已移除、`TreeBuilderTrace::to_json_string()` 手写 JSON 输出、CLI 仍能通过 `--text/--depth/--out` 导出 trace，测试仅验证括号成对。
+- ✅ 更新 `docs/architecture/mini-blocking-model-skeleton-review.md` 背景/矩阵/建议，标注“无 serde 依赖 + 手写 JSON + schema/脚本 TODO” 状态并扩写维护成本提示。
+- ✅ 更新 `docs/architecture/mini-blocking-model-plan.md` 阶段同步/下一步/Backlog，插入“trace CLI 现基于手写 JSON、待补 schema + 批处理脚本 + schema 验证” 的文字与待办。
+
+#### 后续监控
+- 🔼 Rust Porter/C# Implementer 提交 trace JSON schema 或脚本后需立即刷新文档、同步 Backlog。
+- 🧪 追踪 CLI 批处理/ingestion 与 snapshot 测试，确保手写 JSON 行为受到验证并能跨语言消费。
+
 ### 2025-11-18 - Trace CLI 文档同步 + Backlog 细化
 #### 已完成任务
 - ✅ 复盘 `blocking_model_core` 最新增量：`Cargo.toml` 新增 `serde`/`serde_json` 可选依赖与 `trace_cli` feature 叠加关系，`tree.rs` 的 serde 派生、`TreeBuilderTrace::to_json_string()`、`rope.rs::rebuild_text_for_tests`、`src/bin/export_tree_builder_trace.rs` 参数解析与 `tests/trace_cli.rs` 的 JSON 断言。

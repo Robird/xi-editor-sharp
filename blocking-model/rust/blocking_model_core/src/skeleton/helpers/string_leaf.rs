@@ -30,7 +30,9 @@ fn compute_split_point(text: &str, preferred: usize) -> usize {
     }
 
     let bounded_preferred = preferred.clamp(MIN_LEAF, MAX_LEAF);
-    let newline_window_end = bounded_preferred.saturating_add(NEWLINE_WINDOW).min(MAX_LEAF);
+    let newline_window_end = bounded_preferred
+        .saturating_add(NEWLINE_WINDOW)
+        .min(MAX_LEAF);
     let upper_bound = newline_window_end.min(text.len());
     let lower_bound = bounded_preferred.min(text.len().saturating_sub(MIN_LEAF));
 

@@ -10,7 +10,7 @@ pub mod prelude {
     pub use super::metrics::{BaseMetric, DefaultMetricProvider, Metric, Utf16Metric};
     pub use super::rope::Rope;
     pub use super::samples::{
-        sample_deep_tree_rope, sample_rope, sample_rope_via_builder, SampleLeaf, SampleNodeInfo,
+        SampleLeaf, SampleNodeInfo, sample_deep_tree_rope, sample_rope, sample_rope_via_builder,
     };
     #[cfg(feature = "cursor_state")]
     // Available only when the `cursor_state` feature flag is enabled.

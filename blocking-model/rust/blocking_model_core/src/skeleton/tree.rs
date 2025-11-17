@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Write};
 use std::mem;
 use std::sync::Arc;
 
@@ -255,7 +255,6 @@ impl<N: NodeInfo<L>, L: Leaf> Cursor<N, L> {
     }
 }
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TreeBuilderEvent {
     PushLeaf {
@@ -275,7 +274,6 @@ pub enum TreeBuilderEvent {
     },
 }
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TreeBuilderTrace {
     events: Vec<TreeBuilderEvent>,
@@ -293,12 +291,77 @@ impl TreeBuilderTrace {
     pub fn into_events(self) -> Vec<TreeBuilderEvent> {
         self.events
     }
+
+    /// Manual JSON serialization keeps trace exporting free from serde dependencies.
+    pub fn to_json_string(&self) -> String {
+        let mut out = String::from("[");
+        let mut first = true;
+        for event in &self.events {
+            if !first {
+                out.push(',');
+            }
+            first = false;
+            event.append_json(&mut out);
+        }
+        out.push(']');
+        out
+    }
 }
 
-#[cfg(feature = "serde_json")]
-impl TreeBuilderTrace {
-    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string(self.events())
+impl TreeBuilderEvent {
+    fn append_json(&self, out: &mut String) {
+        out.push('{');
+        match self {
+            Self::PushLeaf { len } => {
+                Self::append_variant(out, "PushLeaf", &[("len", *len)]);
+            }
+            Self::PushNode { len, height } => {
+                Self::append_variant(out, "PushNode", &[("len", *len), ("height", *height)]);
+            }
+            Self::EnterChild {
+                parent_len,
+                child_index,
+            } => {
+                Self::append_variant(
+                    out,
+                    "EnterChild",
+                    &[("parent_len", *parent_len), ("child_index", *child_index)],
+                );
+            }
+            Self::BuildComplete { total_len, height } => {
+                Self::append_variant(
+                    out,
+                    "BuildComplete",
+                    &[("total_len", *total_len), ("height", *height)],
+                );
+            }
+        }
+        out.push('}');
+    }
+
+    fn append_variant(out: &mut String, name: &str, fields: &[(&str, usize)]) {
+        out.push('"');
+        out.push_str(name);
+        out.push('"');
+        out.push(':');
+        out.push('{');
+        Self::append_fields(out, fields);
+        out.push('}');
+    }
+
+    fn append_fields(out: &mut String, fields: &[(&str, usize)]) {
+        let mut first = true;
+        for (name, value) in fields {
+            if !first {
+                out.push(',');
+            }
+            first = false;
+            out.push('"');
+            out.push_str(name);
+            out.push('"');
+            out.push(':');
+            let _ = write!(out, "{value}");
+        }
     }
 }
 

@@ -18,5 +18,8 @@ fn cli_outputs_json_brackets_for_text_input() {
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains('[') && stdout.contains(']'), "stdout: {stdout}");
+    assert!(
+        stdout.contains('[') && stdout.contains(']'),
+        "stdout: {stdout}"
+    );
 }

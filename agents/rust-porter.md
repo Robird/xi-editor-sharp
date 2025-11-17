@@ -106,6 +106,12 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - TreeBuilder Trace serde 剥离 & 手写 JSON
+- ✅ 移除了 `blocking_model_core` 中的 `serde`/`serde_json` 依赖与 feature 链接，让 `trace_cli` 只依赖 `tree_builder_slice_trace`。
+- ✅ 在 `TreeBuilderEvent/TreeBuilderTrace` 上实现手写 JSON 序列化（保持事件名为外层 key、字段名/顺序与 serde 版本一致），并切换 CLI 到无错误返回的 `to_json_string()`。
+- ✅ 更新 `docs/rust-refactor/delta-subset-serialization.md` 记录 mini blocking model 去 serde 的最小依赖策略。
+- 🧪 执行 `cargo test --manifest-path blocking-model/rust/Cargo.toml` 与 `cargo test --manifest-path blocking-model/rust/Cargo.toml --all-features`，确认默认与 `trace_cli` 路径均保持通过。
+
 ### 2025-11-18 - TreeBuilder Trace CLI & Serde Wiring
 - ✅ 在 `blocking_model_core/Cargo.toml` 中新增可选依赖 `serde`/`serde_json` 与 `trace_cli` feature，自动拉起 `tree_builder_slice_trace` 与序列化能力，并登记 `export-tree-builder-trace` 二进制（required-features）。
 - ✅ 为 `TreeBuilderEvent/TreeBuilderTrace` 加入 `serde::Serialize` 派生与 `TreeBuilderTrace::to_json_string()`，在 `rope.rs` 暴露 `rebuild_text_for_tests`，并实现 CLI（`src/bin/export_tree_builder_trace.rs`）支持 `--text/--depth/--out` 参数和 feature 检查。
