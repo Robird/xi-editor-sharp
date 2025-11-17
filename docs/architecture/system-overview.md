@@ -15,7 +15,7 @@
 
 | Subsystem | 状态概览（中文） | Key anchors / docs | Owner & signal |
 | --- | --- | --- | --- |
-| Rope Core | G1/G6 专注 `Node`/SharedNode/MetricAdapter，当前以字符串特化实现撑住功能，等待 `[TS-B2]` 的 MetricAdapter 测试合入后再推进 M4 泛型；`_editVersion` + 诊断已经在 `[MP-T1]` 轨道监控。 | `[BP-GoalTree]` · `[RPM-Matrix]` · `[TS-B2]` · `[MP-T1]` | Architecture Mapper + C# Implementer（见 `../../agents/architecture-mapper.md` · `../../agents/csharp-implementer.md`） |
+| Rope Core | G1/G6 专注 `Node`/SharedNode/MetricAdapter，当前以字符串特化实现撑住功能，等待 `[TS-B2]` 的 MetricAdapter 测试合入后再推进 M4 泛型；`_editVersion` + 诊断已经在 `[MP-T1]` 轨道监控。C# skeleton ready（BreakPlan/DiffBuilder/Finder），详情见 `[RPM-Matrix]`。 | `[BP-GoalTree]` · `[RPM-Matrix]` · `[TS-B2]` · `[MP-T1]` | Architecture Mapper + C# Implementer（见 `../../agents/architecture-mapper.md` · `../../agents/csharp-implementer.md`） |
 | Delta / Subset | Stage A/B JSON 已由 `[StageD::ParityAssets]` 维护，重点改为追踪 `[TS-B1]` CLI 交付以及 Goal Tree G1 里“版本票据 + parity”事项，确保 Rust/C# 互信不回退。 | `[BP-GoalTree]` · `[StageD::ParityAssets]` · `[TS-B1]` | Rust Porter + C# Implementer（`../../agents/rust-porter.md` · `../../agents/csharp-implementer.md`） |
 | Engine | Stage C 镜像完成并记录在 `[RPM-Matrix]`，当前只需在 Goal Tree G4/G5 巡检 Engine 依赖是否阻塞 Diff/Search handoff；任意刷新均需回写 `[StageD::ParityAssets]`。 | `[RPM-Matrix]` · `[StageD::ParityAssets]` · `[BP-GoalTree]` | Architecture Mapper + AI Architect（`../../agents/architect.md`） |
 | Stage D Fixture | Stage D 以 `[StageD::StageDChecklist]` → `[StageD::FixtureFlow]` → `[StageD::ParityAssets]` 串起 CLI、脚本与 manifest；`scripts/refresh_serialization_fixtures.ps1` 每次执行都要写回锚点。 | `[StageD::StageDChecklist]` · `[StageD::FixtureFlow]` · `[StageD::ParityAssets]` | Rust Porter + QA Engineer（`../../agents/rust-porter.md` · `../../agents/qa-engineer.md`） |

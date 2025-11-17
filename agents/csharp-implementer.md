@@ -108,6 +108,7 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-18** · Breaks/Diff/Search Stage D skeleton类型与 smoke tests：在 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 添增与 Rust 同名的 BreaksTree/BreakBuilder、LineHashDiff/DiffBuilder、Finder/SearchResult 等占位类型，并让新的 `Breaks/Diff/Search SkeletonTests` 绑定 Stage D descriptor view，保持 `StageDDescriptorLoaderTests` 绿灯。验证：`dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests"` 与 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D manifest ledger hashes（二次刷新）同步：`StageDDescriptorLoaderTests` 的 chunk/grapheme 以及 Breaks/Diff/Search optional ledger `payload_hash` 与当前 `fixtures.manifest.json` 对齐，确保 Stage D fixtures 在重复导出后保持稳定。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D descriptor loader tests刷新：`chunk/grapheme` ledger `payload_hash` 对齐 2025-11-18 manifest，并让可选资产断言真实 breaks/diff/search ledger（count=3 + 新 hash）。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D descriptor manifest/tests同步：恢复 `fixtures.manifest.json` ledger（chunk/grapheme/BDS hash）并让 `StageDDescriptorLoader` 元资料读取 manifest 计数，配套更新 `StageDDescriptorLoaderTests` 断言。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。

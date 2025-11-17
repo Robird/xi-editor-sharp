@@ -455,6 +455,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 > 更多执行细节、命令与验证可在“## 工作日志”与所列真相源文档中查询；2025-11-16 之前的完整历史亦可透过这些文档或 Git 历史追溯。
 
 ## 工作日志
+### 2025-11-19 (Breaks/Diff/Search skeleton smoke ✅)
+- **实现**：C# Implementer 补齐 `Rope/Breaks/BreaksTree.cs`（含 `BreakPlan`/`BreakBuilder`）、`Diff/DiffBuilder.cs`/`DiffRegion.cs`/`LineHashDiff.cs` 与 `Search/Finder.cs`/`SearchOptions.cs`/`SearchResult.cs`，为 `[TS-B5]` 要求的 Breaks/Diff/Search 模块提供最小占位树、diff builder 和 finder API，并让 `StageDDescriptorLoader` 可在 skeleton 阶段回放 sample manifest。
+- **验证**：`dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests"` 现作为 smoke 命令覆盖 Stage D loader + 三大 skeleton（BreakPlan materialization、DiffBuilder ops、Finder spans），结果 ✅；QA 只需等待 Rust exporter 写入 `breaks_descriptors.json`/`diff_regions.json`/`search_spans.json` 即可扩充数据面。
+- **文档**：Architecture Mapper 回写 `[RPM-Matrix]`/`[RPM-Actions]`、`docs/architecture/system-overview.md#[SO-Map]` 与本日志，记录状态从“Rust-only/Spec ready”跃迁至“Skeleton ready”，并在 `[SO-Map]` 引用“C# skeleton ready（BreakPlan/DiffBuilder/Finder）”以提示 Goal Tree G3/G4 的新事实来源。
 ### 2025-11-18 (Stage D exporter 稳定化 + refresh_all_assets 全绿)
 - **动作**：协调 Rust Porter 在 `chunk/grapheme/breaks/diff/search` exporter 内部读取既有 JSON，保留 `generated_at_unix_millis`，避免重复导出时仅因时间戳造成 hash 漂移；`./xi-editor-ph7/rust/run_all_checks --filter serde-fixtures` 再次通过。
 - **C#/QA**：C# Implementer 同步 `StageDDescriptorLoader`/Tests，采用 manifest ledger count + 实际 hash（chunk=`e62a4faa…`、grapheme=`c6b1721d…`、breaks=`ab2f746e…`、diff=`8c400ea4…`、search=`ce068c52…`），QA Engineer 三次运行 `python scripts/refresh_all_assets.py`（先失败→hash 更新→最终成功），记录 `StageDDescriptorLoaderTests`、`verify-stage-d`、hash 校验日志。
