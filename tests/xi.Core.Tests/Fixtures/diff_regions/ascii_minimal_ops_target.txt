@@ -1,0 +1,4 @@
+line zero
+line one patched
+line two
+line three added

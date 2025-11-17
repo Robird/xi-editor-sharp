@@ -85,7 +85,7 @@
 	1. 建立 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 目录，放置 `BreaksTree`, `BreakBuilder`, `LineHashDiff`, `DiffBuilder`, `Finder`, `SearchOptions`, `Spans<T>` 等骨架类型和对应 DTO，所有命名对齐 `[RPM-Matrix]`。
 	2. 扩展 `StageDDescriptorLoader` 或并列 loader，使其可读取新增的 manifest 节点（`breaks_descriptors`, `diff_regions`, `search_spans`）并暴露给 `tests/xi.Core.Tests` smoke；结果写回 `[QA-IngestionSmoke]`。
 	3. 为每个模块添加最小测试（Breaks 软换行、Diff fixture replay、Search regex smoke），并把 CLI 路径/Stage D 资产链接写进 `[StageD::FixtureFlow]`、`m3-implementation-plan.md` 的 QA 表。
-- **Status**: 🟥 Risk — 无骨架、无资产，已阻塞 G3/G4 并使 Stage D/QA anchor 失效。
+- **Status**: 🟠 Partial — CLI flag/schema/manifest 规范已更新且 C# skeleton/Stage D loader 已就绪（可 ingestion sample manifest），但 Rust exporter/真实 manifest 仍缺，Goal Tree G3/G4 依旧阻塞，QA 无法 claim coverage。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/rust-refactor/iterator-facade-export.md`
@@ -93,8 +93,8 @@
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 	- `docs/architecture/design-divergence-log.md#div-active`
 - **Next**:
-	1. **2025-11-20 – CLI/manifest 草案**：Architecture Mapper + Rust Porter 将新 flag/schema 写入 `[StageD::FixtureFlow]`、`[StageD::ParityAssets]`，并在 `fixtures.manifest.json` 添加空占位（`count=0`, `status=pending`）以便 QA 可跟踪 hash。（Owner: Rust Porter）
-	2. **2025-11-22 – C# skeleton drop**：C# Implementer 建立 `Rope/Breaks`, `Diff`, `Search` 目录与 DTO/test stub，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 填写状态，提交对应 TODO 以提示 Stage D 依赖。（Owner: C# Implementer）
+	1. **2025-11-20 – CLI/manifest 草案**：✅ 文档版已交付——`[StageD::FixtureFlow]`、`[StageD::ParityAssets]`、`fixtures/parity-fixture-schema.md` 描述 `--breaks-descriptors` / `--diff-regions` / `--search-spans`，manifest 占位策略已记录；下一步是实现 exporter +脚本 wiring 并将状态迁移到 Implementation。（Owner: Rust Porter）
+	2. **2025-11-22 – C# skeleton drop**：✅ 完成——`Rope/Breaks|Diff|Search` DTO + Stage D loader/test sample 已落地；下一步是把这些 DTO 接到未来的 `BreaksTree/LineHashDiff/Finder` 实现，并在 exporter 上线后切换到真实 manifest。（Owner: C# Implementer）
 	3. **2025-11-24 – Stage D smoke 扩展**：QA Engineer 把新资产接入 `StageDDescriptorLoaderTests` 与 `[QA-IngestionSmoke]` 报告，确认 `scripts/verify_fixture_manifest.py --update` 会校验新 hash，并在 `agents/qa-engineer.md` 登记结果。（Owner: QA）
 	4. **Fallback if CLI slips**：若 Rust CLI 无法在 11/24 前交付，Architecture Mapper 将 `[MP-R9]` 升级为高风险并在 `design-divergence-log.md` 挂出“Rust-only”提醒。
 

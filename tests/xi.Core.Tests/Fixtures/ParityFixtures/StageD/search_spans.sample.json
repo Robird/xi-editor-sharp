@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "sample-search",
+    "generated_at_unix_millis": 1731900000000,
+    "case_count": 1
+  },
+  "search_cases": [
+    {
+      "sample": "simple_query",
+      "query": "rope",
+      "is_regex": false,
+      "case_matching": "exact",
+      "text_len": 32,
+      "hits": [
+        {
+          "index": 0,
+          "range": { "start": 5, "end": 9 },
+          "line": 0,
+          "context_before": "folded ",
+          "context_after": " buffer"
+        }
+      ],
+      "span_windows": [
+        {
+          "range": { "start": 0, "end": 12 },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        }
+      ],
+      "notes": "Captures the first literal hit"
+    }
+  ]
+}

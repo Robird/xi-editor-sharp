@@ -1,0 +1,295 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "f740a440eacb14b59a1ed26388ebc137827e621d",
+    "generated_at_unix_millis": 1763409044656,
+    "case_count": 3
+  },
+  "diff_cases": [
+    {
+      "sample": "ascii_minimal_ops",
+      "base_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_base.txt",
+      "target_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_target.txt",
+      "line_count": 5,
+      "ops": [
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 0,
+            "end": 18
+          },
+          "target_range": {
+            "start": 0,
+            "end": 18
+          },
+          "byte_len": 18,
+          "line_span": {
+            "base": [
+              0,
+              2
+            ],
+            "target": [
+              0,
+              2
+            ]
+          }
+        },
+        {
+          "kind": "insert",
+          "target_range": {
+            "start": 18,
+            "end": 52
+          },
+          "byte_len": 34,
+          "line_span": {
+            "base": [
+              1,
+              1
+            ],
+            "target": [
+              1,
+              4
+            ]
+          },
+          "insert_preview": " patched\nline two\nline three added"
+        },
+        {
+          "kind": "delete",
+          "base_range": {
+            "start": 18,
+            "end": 27
+          },
+          "byte_len": 9,
+          "line_span": {
+            "base": [
+              1,
+              3
+            ],
+            "target": [
+              3,
+              3
+            ]
+          }
+        },
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 27,
+            "end": 28
+          },
+          "target_range": {
+            "start": 52,
+            "end": 53
+          },
+          "byte_len": 1,
+          "line_span": {
+            "base": [
+              2,
+              3
+            ],
+            "target": [
+              3,
+              4
+            ]
+          }
+        }
+      ],
+      "stats": {
+        "copied_bytes": 19,
+        "inserted_bytes": 34,
+        "deleted_bytes": 9
+      },
+      "notes": "ASCII edit inserts a new line and touches an existing row."
+    },
+    {
+      "sample": "crlf_normalization",
+      "base_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_base.txt",
+      "target_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_target.txt",
+      "line_count": 5,
+      "ops": [
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 0,
+            "end": 5
+          },
+          "target_range": {
+            "start": 0,
+            "end": 5
+          },
+          "byte_len": 5,
+          "line_span": {
+            "base": [
+              0,
+              1
+            ],
+            "target": [
+              0,
+              1
+            ]
+          }
+        },
+        {
+          "kind": "insert",
+          "target_range": {
+            "start": 5,
+            "end": 44
+          },
+          "byte_len": 39,
+          "line_span": {
+            "base": [
+              0,
+              0
+            ],
+            "target": [
+              0,
+              4
+            ]
+          },
+          "insert_preview": "\nbeta linux\ncarriage\nnormalized endings"
+        },
+        {
+          "kind": "delete",
+          "base_range": {
+            "start": 5,
+            "end": 30
+          },
+          "byte_len": 25,
+          "line_span": {
+            "base": [
+              0,
+              3
+            ],
+            "target": [
+              3,
+              3
+            ]
+          }
+        },
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 30,
+            "end": 31
+          },
+          "target_range": {
+            "start": 44,
+            "end": 45
+          },
+          "byte_len": 1,
+          "line_span": {
+            "base": [
+              2,
+              3
+            ],
+            "target": [
+              3,
+              4
+            ]
+          }
+        }
+      ],
+      "stats": {
+        "copied_bytes": 6,
+        "inserted_bytes": 39,
+        "deleted_bytes": 25
+      },
+      "notes": "Shows CRLF to LF normalization with additional trailing text."
+    },
+    {
+      "sample": "emoji_patch_block",
+      "base_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_base.txt",
+      "target_path": "../../tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_target.txt",
+      "line_count": 3,
+      "ops": [
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 0,
+            "end": 45
+          },
+          "target_range": {
+            "start": 0,
+            "end": 45
+          },
+          "byte_len": 45,
+          "line_span": {
+            "base": [
+              0,
+              2
+            ],
+            "target": [
+              0,
+              2
+            ]
+          }
+        },
+        {
+          "kind": "insert",
+          "target_range": {
+            "start": 45,
+            "end": 70
+          },
+          "byte_len": 25,
+          "line_span": {
+            "base": [
+              1,
+              1
+            ],
+            "target": [
+              1,
+              2
+            ]
+          },
+          "insert_preview": "patched with sparkles ✨"
+        },
+        {
+          "kind": "delete",
+          "base_range": {
+            "start": 45,
+            "end": 51
+          },
+          "byte_len": 6,
+          "line_span": {
+            "base": [
+              1,
+              2
+            ],
+            "target": [
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "kind": "copy",
+          "base_range": {
+            "start": 51,
+            "end": 52
+          },
+          "target_range": {
+            "start": 70,
+            "end": 71
+          },
+          "byte_len": 1,
+          "line_span": {
+            "base": [
+              1,
+              2
+            ],
+            "target": [
+              1,
+              2
+            ]
+          }
+        }
+      ],
+      "stats": {
+        "copied_bytes": 46,
+        "inserted_bytes": 25,
+        "deleted_bytes": 6
+      },
+      "notes": "Unicode diff exercises preview truncation with emoji."
+    }
+  ]
+}

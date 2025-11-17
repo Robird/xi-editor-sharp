@@ -108,6 +108,17 @@ interfaces:
 
 ## 最近完成
 
+### 2025-11-18 - Breaks/Diff/Search Stage D Skeleton + Loader 扩展
+**任务背景**：`[TS-B5]`/`[RPM-Matrix]` 将 Breaks/Diff/Search skeleton 缺口列为 Stage D 阻塞；Rust Porter 已提交 CLI/schema 文档，但 C# 端仍缺 DTO、loader、示例夹具与 smoke，导致 `[StageD::ParityAssets]` 无法 claim coverage。
+
+**关键输出**：
+1. ✅ 新建 `Rope/Breaks/BreaksDescriptor.cs`、`Diff/DiffCaseDescriptor.cs`、`Search/SearchDescriptor.cs`，提供 metadata DTO + read-only view（`record struct`）对齐 `breaks_descriptors@1.0.0`、`diff_regions@1.0.0`、`search_spans@1.0.0` schema，后续 Stage D/Stage G 均可直接引用。
+2. ✅ `StageDDescriptorLoader` 现解析 manifest 中的 `breaks_descriptors.json`、`diff_regions.json`、`search_spans.json` 条目：自动解析路径、抛出缺失文件异常、将 DTO 投影到 `BreaksDescriptors/DiffRegions/SearchSpans` 集合，并在 metadata 中记录新增计数。
+3. ✅ 在 `tests/xi.Core.Tests/Fixtures/ParityFixtures/StageD/` 提供体积极小的 sample JSON，并在 `StageDDescriptorLoaderTests` 中动态构造临时 manifest，验证 loader 能对 Breaks/Diff/Search 资产进行可选 ingestion。
+4. ✅ 更新 `[RPM-Matrix]`、`[RPM-ParityAssets]` 与 `[TS-B5]`，声明“C# skeleton ready (loader optional ingestion)”状态，便于 Architecture Mapper/Rust Porter 将阻塞限定在 Rust exporter/manifest。
+
+**验证**：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoader`
+
 ### 2025-11-18 - TreeBuilder Slice Trace Loader + Stage D Fixture Touchpoint
 **任务背景**：`[TS-B2]`/`[StageD::FixtureFlow]` 要 C# 端消费 Rust `tree_builder_slice_trace` 资产，但目前只有 tracer 接口，没有 loader/夹具/文档记录，Stage D CLI 无法验证 slice stack。 
 

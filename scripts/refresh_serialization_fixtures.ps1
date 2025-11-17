@@ -53,6 +53,9 @@ $treeTraceDir = Join-Path $csharpFixturesDir "tree_builder_slice"
 $cursorFixturesDir = Join-Path $csharpFixturesDir "cursor_descriptors"
 $chunkFixturesDir = Join-Path $csharpFixturesDir "chunk_descriptors"
 $graphemeFixturesDir = Join-Path $csharpFixturesDir "grapheme_descriptors"
+$breaksFixturesDir = Join-Path $csharpFixturesDir "breaks_descriptors"
+$diffFixturesDir = Join-Path $csharpFixturesDir "diff_regions"
+$searchFixturesDir = Join-Path $csharpFixturesDir "search_spans"
 if (-not $ManifestPath) {
     $ManifestPath = Join-Path $csharpFixturesDir "fixtures.manifest.json"
 }
@@ -121,7 +124,13 @@ if (-not $SkipCopy) {
                 "--chunk-descriptors",
                 $chunkFixturesDir,
                 "--grapheme-descriptors",
-                $graphemeFixturesDir
+                $graphemeFixturesDir,
+                "--breaks-descriptors",
+                $breaksFixturesDir,
+                "--diff-regions",
+                $diffFixturesDir,
+                "--search-spans",
+                $searchFixturesDir
             )
         }
         if ($ExportTreeTrace) {

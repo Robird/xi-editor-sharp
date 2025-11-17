@@ -1,24 +1,23 @@
 {
-  "rust_commit": "7ac917a05be4bb526844d5cdaa842030411800e5",
+  "rust_commit": "f740a440eacb14b59a1ed26388ebc137827e621d",
   "cli_rev": "0.3.0",
   "feature_gates": [
-    "serde",
-    "tree_builder_slice_trace"
+    "serde"
   ],
   "fixtures": [
     {
-      "name": "basic_slice_plan.json",
-      "path": "tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json",
+      "name": "breaks_descriptors.json",
+      "path": "tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json",
       "count": 3,
-      "schema_hash": "tree_builder_slice_trace@1.0.0",
-      "payload_hash": "22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e"
+      "schema_hash": "breaks_descriptors@1.0.0",
+      "payload_hash": "aa86d65ec274810d0f96ddc72369635e530b6151863d99eb9f4f4ad8f6fce046"
     },
     {
       "name": "chunk_descriptors.json",
       "path": "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
       "count": 20,
       "schema_hash": "chunk_descriptors@1.0.0",
-      "payload_hash": "52aa448cf565df821bd9798ead94caee73a0e4798e73fade542951d10fa6632e"
+      "payload_hash": "4c13cbf9f750f205f9d0e7857fb60ed552f032aebc7833cc19276b26539b81dd"
     },
     {
       "name": "cursor_descriptors.json",
@@ -35,6 +34,13 @@
       "payload_hash": "59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f"
     },
     {
+      "name": "diff_regions.json",
+      "path": "tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json",
+      "count": 3,
+      "schema_hash": "diff_regions@1.0.0",
+      "payload_hash": "9d02cc70179dd99b8a51842cb4ad0946c382b130cfe57f5e91afd87a81202934"
+    },
+    {
       "name": "engine_regression.json",
       "path": "tests/xi.Core.Tests/Fixtures/engine_regression.json",
       "count": 1,
@@ -46,7 +52,14 @@
       "path": "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
       "count": 668,
       "schema_hash": "grapheme_descriptors@1.0.0",
-      "payload_hash": "109d57d39b83618d0da2d091144ebd9ebe5e3fa53e4d1c00f720c7f721ab5e2a"
+      "payload_hash": "45c01de9d036e402f3a5f7a00b67fd7974a82427a31646da5a70483122c5ccd3"
+    },
+    {
+      "name": "search_spans.json",
+      "path": "tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json",
+      "count": 3,
+      "schema_hash": "search_spans@1.0.0",
+      "payload_hash": "52da5c45e9ae588a901663520535606193fca9da5bf8abe82f0e962bdef30fb9"
     },
     {
       "name": "subset_regression.json",

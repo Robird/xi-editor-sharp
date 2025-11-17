@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "f740a440eacb14b59a1ed26388ebc137827e621d",
+    "generated_at_unix_millis": 1763409044649,
+    "descriptor_count": 3
+  },
+  "break_sets": [
+    {
+      "sample": "ascii_guidance",
+      "rope_len": 198,
+      "wrap_width_units": 38,
+      "metric": "BreaksMetric",
+      "break_offsets": [
+        32,
+        62,
+        97,
+        134,
+        170,
+        198
+      ],
+      "break_count": 6,
+      "leaf_runs": [
+        {
+          "range": {
+            "start": 0,
+            "end": 198
+          },
+          "break_count": 6,
+          "path": []
+        }
+      ],
+      "text_excerpt": "Stage D exporter now emits real breaks fixtures so downstream automation can trust the data. The sample paragraph intentionally keeps a mix of short and medium sentences to exercise greedy wrapping.",
+      "tags": [
+        "ascii",
+        "breaks",
+        "narrative"
+      ]
+    },
+    {
+      "sample": "crlf_emoji_mix",
+      "rope_len": 98,
+      "wrap_width_units": 26,
+      "metric": "BreaksMetric",
+      "break_offsets": [
+        24,
+        47,
+        72,
+        98
+      ],
+      "break_count": 4,
+      "leaf_runs": [
+        {
+          "range": {
+            "start": 0,
+            "end": 98
+          },
+          "break_count": 4,
+          "path": []
+        }
+      ],
+      "text_excerpt": "Symbols 😀 keep CRLF\r\nspacing flowing across emoji-rich lines🚀 and sparkles ✨ for coverage.",
+      "tags": [
+        "breaks",
+        "crlf",
+        "emoji",
+        "surrogate"
+      ]
+    },
+    {
+      "sample": "delimited_tables",
+      "rope_len": 84,
+      "wrap_width_units": 24,
+      "metric": "BreaksMetric",
+      "break_offsets": [
+        24,
+        25,
+        49,
+        56,
+        80,
+        84
+      ],
+      "break_count": 6,
+      "leaf_runs": [
+        {
+          "range": {
+            "start": 0,
+            "end": 84
+          },
+          "break_count": 6,
+          "path": []
+        }
+      ],
+      "text_excerpt": "columns:alpha,beta,gamma\nrow0:aaaaabbbbbcccccdddddeeeee\nrow1:tabs\tvs spaces for wrap",
+      "tags": [
+        "breaks",
+        "lf",
+        "tab",
+        "table",
+        "tabs"
+      ]
+    }
+  ]
+}

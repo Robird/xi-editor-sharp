@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "sample-diff",
+    "generated_at_unix_millis": 1731900000000,
+    "case_count": 1
+  },
+  "diff_cases": [
+    {
+      "sample": "tiny_diff_case",
+      "base_path": "fixtures/diff/base.txt",
+      "target_path": "fixtures/diff/target.txt",
+      "line_count": 2,
+      "ops": [
+        {
+          "kind": "copy",
+          "base_range": { "start": 0, "end": 6 },
+          "target_range": { "start": 0, "end": 6 },
+          "byte_len": 6,
+          "line_span": { "base": [0, 1], "target": [0, 1] }
+        },
+        {
+          "kind": "delete",
+          "base_range": { "start": 6, "end": 11 },
+          "byte_len": 5,
+          "line_span": { "base": [1, 2], "target": [1, 1] }
+        },
+        {
+          "kind": "insert",
+          "target_range": { "start": 6, "end": 12 },
+          "byte_len": 6,
+          "line_span": { "base": [1, 1], "target": [1, 2] },
+          "insert_preview": "insert"
+        }
+      ],
+      "stats": { "copied_bytes": 6, "inserted_bytes": 6, "deleted_bytes": 5 },
+      "notes": "Diff spans copy/delete/insert for smoke coverage"
+    }
+  ]
+}

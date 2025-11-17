@@ -4,6 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Xi.Core.Diff;
+using Xi.Core.Rope.Breaks;
+using Xi.Core.Search;
 
 namespace Xi.Core.Rope.Diagnostics.Descriptors;
 
@@ -18,6 +21,14 @@ internal static class StageDDescriptorLoader
     private const string ChunkFileName = "chunk_descriptors.json";
     private const string GraphemeDirectoryName = "grapheme_descriptors";
     private const string GraphemeFileName = "grapheme_descriptors.json";
+    private const string BreaksDirectoryName = "breaks_descriptors";
+    private const string BreaksFileName = "breaks_descriptors.json";
+    private const string DiffDirectoryName = "diff_regions";
+    private const string DiffFileName = "diff_regions.json";
+    private const string SearchDirectoryName = "search_spans";
+    private const string SearchFileName = "search_spans.json";
+    private static readonly string FixtureDirectoryMarker =
+        $"tests{Path.DirectorySeparatorChar}xi.Core.Tests{Path.DirectorySeparatorChar}Fixtures";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -46,12 +57,18 @@ internal static class StageDDescriptorLoader
                 "Run 'python scripts/refresh_all_assets.py --only stage-d-fixtures' to regenerate the assets.");
         }
 
-        var manifest = Deserialize<FixtureManifest>(Path.Combine(fixtureDirectory, ManifestFileName), "manifest");
+        var manifestPath = Path.Combine(fixtureDirectory, ManifestFileName);
+        var manifest = Deserialize<FixtureManifest>(manifestPath, "manifest");
+        var fixtureEntries = manifest.Fixtures ?? new List<FixtureManifestEntry>();
+
+        var chunkEntry = RequireFixtureEntry(fixtureEntries, ChunkFileName);
+        var graphemeEntry = RequireFixtureEntry(fixtureEntries, GraphemeFileName);
+
         var chunkPayload = Deserialize<ChunkDescriptorPayload>(
-            Path.Combine(fixtureDirectory, ChunkDirectoryName, ChunkFileName),
+            ResolveLedgerPath(chunkEntry.Path, fixtureDirectory, Path.Combine(ChunkDirectoryName, ChunkFileName)),
             "chunk descriptor payload");
         var graphemePayload = Deserialize<GraphemeDescriptorPayload>(
-            Path.Combine(fixtureDirectory, GraphemeDirectoryName, GraphemeFileName),
+            ResolveLedgerPath(graphemeEntry.Path, fixtureDirectory, Path.Combine(GraphemeDirectoryName, GraphemeFileName)),
             "grapheme descriptor payload");
 
         if (chunkPayload.Metadata is null)
@@ -68,7 +85,52 @@ internal static class StageDDescriptorLoader
         var lineDescriptors = MaterializeList(chunkPayload.LineDescriptors);
         var graphemeDescriptors = MaterializeList(graphemePayload.GraphemeDescriptors);
 
-        var ledgerEntries = manifest.Fixtures
+        var breaksViews = new List<BreakSetDescriptorView>();
+        BreaksDescriptorMetadata? breaksMetadata = null;
+        var breaksEntry = TryGetFixtureEntry(fixtureEntries, BreaksFileName);
+        if (breaksEntry is not null)
+        {
+            var payload = Deserialize<BreaksDescriptorDocument>(
+                ResolveLedgerPath(breaksEntry.Path, fixtureDirectory, Path.Combine(BreaksDirectoryName, BreaksFileName)),
+                "breaks descriptor payload");
+            breaksMetadata = payload.Metadata;
+            breaksViews = payload.BreakSets
+                .Select(BreakSetDescriptorView.FromDescriptor)
+                .ToList();
+            ValidateLedgerEntry(breaksEntry, breaksMetadata.DescriptorCount, breaksMetadata.SchemaVersion);
+        }
+
+        var diffViews = new List<DiffCaseDescriptorView>();
+        DiffRegionsMetadata? diffMetadata = null;
+        var diffEntry = TryGetFixtureEntry(fixtureEntries, DiffFileName);
+        if (diffEntry is not null)
+        {
+            var payload = Deserialize<DiffRegionsDocument>(
+                ResolveLedgerPath(diffEntry.Path, fixtureDirectory, Path.Combine(DiffDirectoryName, DiffFileName)),
+                "diff regions payload");
+            diffMetadata = payload.Metadata;
+            diffViews = payload.DiffCases
+                .Select(DiffCaseDescriptorView.FromDescriptor)
+                .ToList();
+            ValidateLedgerEntry(diffEntry, diffMetadata.CaseCount, diffMetadata.SchemaVersion);
+        }
+
+        var searchViews = new List<SearchCaseDescriptorView>();
+        SearchSpansMetadata? searchMetadata = null;
+        var searchEntry = TryGetFixtureEntry(fixtureEntries, SearchFileName);
+        if (searchEntry is not null)
+        {
+            var payload = Deserialize<SearchSpansDocument>(
+                ResolveLedgerPath(searchEntry.Path, fixtureDirectory, Path.Combine(SearchDirectoryName, SearchFileName)),
+                "search spans payload");
+            searchMetadata = payload.Metadata;
+            searchViews = payload.SearchCases
+                .Select(SearchCaseDescriptorView.FromDescriptor)
+                .ToList();
+            ValidateLedgerEntry(searchEntry, searchMetadata.CaseCount, searchMetadata.SchemaVersion);
+        }
+
+        var ledgerEntries = fixtureEntries
             .Select(entry => new StageDFixtureLedgerEntry
             {
                 Name = entry.Name,
@@ -96,13 +158,11 @@ internal static class StageDDescriptorLoader
             "grapheme descriptor payload");
 
         ValidateLedgerEntry(
-            ledgerEntries,
-            ChunkFileName,
+            chunkEntry,
             chunkDescriptors.Count + lineDescriptors.Count,
             chunkPayload.Metadata.SchemaVersion);
         ValidateLedgerEntry(
-            ledgerEntries,
-            GraphemeFileName,
+            graphemeEntry,
             graphemeDescriptors.Count,
             graphemePayload.Metadata.SchemaVersion);
 
@@ -112,12 +172,18 @@ internal static class StageDDescriptorLoader
             RustCommit = FirstValue(
                 manifest.RustCommit,
                 chunkPayload.Metadata.RustCommit,
-                graphemePayload.Metadata.RustCommit) ?? string.Empty,
+                graphemePayload.Metadata.RustCommit,
+                breaksMetadata?.RustCommit,
+                diffMetadata?.RustCommit,
+                searchMetadata?.RustCommit) ?? string.Empty,
             CliRevision = NullIfEmpty(manifest.CliRevision),
             GeneratedAtUnixMillis = chunkPayload.Metadata.GeneratedAtUnixMillis,
             ChunkDescriptorCount = chunkPayload.Metadata.ChunkDescriptorCount,
             LineDescriptorCount = chunkPayload.Metadata.LineDescriptorCount,
             GraphemeDescriptorCount = graphemePayload.Metadata.DescriptorCount,
+            BreaksDescriptorCount = breaksMetadata?.DescriptorCount,
+            DiffCaseCount = diffMetadata?.CaseCount,
+            SearchCaseCount = searchMetadata?.CaseCount,
             FeatureGates = MaterializeList(manifest.FeatureGates)
         };
 
@@ -127,6 +193,9 @@ internal static class StageDDescriptorLoader
             ChunkDescriptors = chunkDescriptors,
             LineDescriptors = lineDescriptors,
             GraphemeDescriptors = graphemeDescriptors,
+            BreaksDescriptors = breaksViews,
+            DiffRegions = diffViews,
+            SearchSpans = searchViews,
             Fixtures = ledgerEntries
         };
     }
@@ -157,31 +226,73 @@ internal static class StageDDescriptorLoader
         return source ?? new List<T>();
     }
 
-    private static void ValidateLedgerEntry(
-        IList<StageDFixtureLedgerEntry> fixtures,
-        string requiredName,
-        int expectedCount,
-        string? expectedSchemaVersion)
+    private static FixtureManifestEntry RequireFixtureEntry(
+        IList<FixtureManifestEntry> fixtures,
+        string requiredName)
     {
-        var entry = fixtures.FirstOrDefault(f => string.Equals(f.Name, requiredName, StringComparison.OrdinalIgnoreCase));
+        var entry = TryGetFixtureEntry(fixtures, requiredName);
         if (entry is null)
         {
             throw new InvalidDataException(
                 $"Stage D manifest is missing the '{requiredName}' ledger entry. Re-run 'python scripts/refresh_all_assets.py --only stage-d-fixtures' to hydrate manifest metadata.");
         }
 
+        return entry;
+    }
+
+    private static FixtureManifestEntry? TryGetFixtureEntry(
+        IList<FixtureManifestEntry> fixtures,
+        string requiredName)
+    {
+        return fixtures.FirstOrDefault(f => string.Equals(f.Name, requiredName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static void ValidateLedgerEntry(
+        FixtureManifestEntry entry,
+        int expectedCount,
+        string? expectedSchemaVersion)
+    {
         if (entry.Count != expectedCount)
         {
             throw new InvalidDataException(
-                $"Stage D manifest entry '{requiredName}' reports {entry.Count} records but the JSON payload exposed {expectedCount}. Run the manifest verifier script to regenerate canonical hashes.");
+                $"Stage D manifest entry '{entry.Name}' reports {entry.Count} records but the JSON payload exposed {expectedCount}. Run the manifest verifier script to regenerate canonical hashes.");
         }
 
         if (!string.IsNullOrWhiteSpace(expectedSchemaVersion) &&
             !entry.SchemaHash.Contains(expectedSchemaVersion, StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"Stage D manifest entry '{requiredName}' recorded schema hash '{entry.SchemaHash}' which does not reference schema version '{expectedSchemaVersion}'.");
+                $"Stage D manifest entry '{entry.Name}' recorded schema hash '{entry.SchemaHash}' which does not reference schema version '{expectedSchemaVersion}'.");
         }
+    }
+
+    private static string ResolveLedgerPath(string? manifestPath, string fixtureDirectory, string relativeFallback)
+    {
+        if (!string.IsNullOrWhiteSpace(manifestPath))
+        {
+            var trimmed = manifestPath.Trim();
+            if (Path.IsPathRooted(trimmed))
+            {
+                return trimmed;
+            }
+
+            var normalized = trimmed
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            var markerIndex = normalized.IndexOf(FixtureDirectoryMarker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex >= 0)
+            {
+                var relativePortion = normalized
+                    .Substring(markerIndex + FixtureDirectoryMarker.Length)
+                    .TrimStart(Path.DirectorySeparatorChar);
+                return Path.Combine(fixtureDirectory, relativePortion);
+            }
+
+            return Path.Combine(fixtureDirectory, normalized);
+        }
+
+        return Path.Combine(fixtureDirectory, relativeFallback);
     }
 
     private static void ValidateCount(int actual, int expected, string fieldName, string payloadLabel)

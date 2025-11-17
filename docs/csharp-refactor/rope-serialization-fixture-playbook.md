@@ -73,6 +73,9 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
   --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors `
   --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors `
   --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors `
+  --breaks-descriptors tests/xi.Core.Tests/Fixtures/breaks_descriptors `
+  --diff-regions tests/xi.Core.Tests/Fixtures/diff_regions `
+  --search-spans tests/xi.Core.Tests/Fixtures/search_spans `
   --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 Set-Location "$env:XI_EDITOR_SHARP_ROOT"
 ```
@@ -86,11 +89,40 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures \
   --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors \
   --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors \
   --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors \
+  --breaks-descriptors tests/xi.Core.Tests/Fixtures/breaks_descriptors \
+  --diff-regions tests/xi.Core.Tests/Fixtures/diff_regions \
+  --search-spans tests/xi.Core.Tests/Fixtures/search_spans \
   --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 cd "$XI_EDITOR_SHARP_ROOT"
 ```
 
 > 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
+
+### 3.2 Breaks/Diff/Search Flag 规范
+
+| Asset | Flag | 输出目录 | 默认文件 | Schema Id | Feature Gate |
+| --- | --- | --- | --- | --- | --- |
+| Breaks descriptors | `--breaks-descriptors <dir>` | `tests/xi.Core.Tests/Fixtures/breaks_descriptors` | `breaks_descriptors.json` | `breaks_descriptors@1.0.0` | `serde` + `breaks_diagnostics`（计划） |
+| Diff regions | `--diff-regions <dir>` | `tests/xi.Core.Tests/Fixtures/diff_regions` | `diff_regions.json` | `diff_regions@1.0.0` | `serde` + `diff_regions`（计划） |
+| Search spans | `--search-spans <dir>` | `tests/xi.Core.Tests/Fixtures/search_spans` | `search_spans.json` | `search_spans@1.0.0` | `serde` + `search_traces`（计划） |
+
+- **Rust CLI 行为**：每个 flag 会生成一份汇总 JSON 并写入 manifest（`fixtures[].name` 与默认文件同名）。字段定义见 `docs/architecture/fixtures/parity-fixture-schema.md` 相应章节，依托 `docs/rust-refactor/breaks-metrics-templating.md`、`iterator-facade-export.md`、`rope/src/{breaks,diff,find}.rs` 中的结构。
+- **PowerShell**：`scripts/refresh_serialization_fixtures.ps1` 将新增 `-ExportBreaksDiffSearch`（占位）开关，把三条路径传给 exporter；在脚本落地前，可使用 `-ExtraCargoArgs "--breaks-descriptors ... --diff-regions ... --search-spans ..."` 手动透传 flag，并在日志中标注 “Breaks/Diff/Search spec rehearsal”。
+- **`refresh_all_assets.py`**：计划在 `stage-d-fixtures` 阶段追加 `breaks/diff/search` 子步骤或新增 `stage-d-breaks` 任务。实施前，可在运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 后立刻执行上面的 `cargo run` 命令，确保 hash 仍由同一 manifest 记录。
+- **Manifest 占位**：允许提前写入如下条目（`payload_hash="pending"`, `count=0`）以便 Goal Tree/QA 跟踪，待 Rust CLI 输出真实 hash 后再通过 `scripts/verify_fixture_manifest.py --update` 落实：
+
+```jsonc
+// status: pending — waiting for exporter implementation
+{
+  "name": "breaks_descriptors.json",
+  "path": "tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json",
+  "count": 0,
+  "schema_hash": "breaks_descriptors@1.0.0",
+  "payload_hash": "pending"
+}
+```
+
+> 同样的占位 JSON 适用于 `diff_regions.json` 与 `search_spans.json`，仅在 CLI 未落地前存在；实现完成后请删除 “pending” 注释并记录真实 hash。
 
 ### 3.1 Manifest 校验与写回
 
@@ -142,6 +174,9 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c…` | `[MP-T1]` 用于 NodeCursor parity。 |
 | Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `52aa448cf565…` | `[MP-T3]` Chunk/Line 诊断样本。 |
 | Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `109d57d39b83…` | `[MP-T4]` Grapheme fallback 遥测。 |
+| Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--breaks-descriptors`、schema `breaks_descriptors@1.0.0`、feature gate `breaks_diagnostics`（计划）。Manifest 需追加 `count`/`payload_hash`，目前允许写 `pending` 占位并在 exporter 落地后刷新。 |
+| Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--diff-regions`、schema `diff_regions@1.0.0`、feature gate `diff_regions`（计划）。记录 `LineHashDiff`/`DiffBuilder` ops（`copy/insert/delete`），并将统计写入 manifest 占位。 |
+| Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--search-spans`、schema `search_spans@1.0.0`、feature gate `search_traces`（计划）。包含 `CaseMatching`/regex 配置、`find()` 命中区间、`Spans<T>` snapshot；等待 exporter 写入 manifest。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
 | TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
@@ -161,6 +196,9 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | `serde` | ✅（运行 Stage D 必须） | 启用所有 JSON 导出路径 | 关闭时 exporter 无法生成任何资产。 |
 | `cursor_state` | ⛔ | 调试游标失效，扩充 descriptor payload | 仅在 `[MP-R8]` 调试时开启，并在 `[Fixture-FeatureGates]` 记录。 |
 | `tree_builder_slice_trace` | ⛔ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/`（通过 `-ExportTreeTrace` 启用），供 `TreeBuilder` 研究与 loader parity。 |
+| `breaks_diagnostics`（计划） | ⛔ | 配合 `--breaks-descriptors` 导出软换行栈、`BreaksMetric` 序列 | 默认关闭；仅当 `breaks_descriptors@1.0.0` 需要时启用，并在 manifest `feature_gates[]` 登记。 |
+| `diff_regions`（计划） | ⛔ | 暴露 `LineHashDiff`/`DiffBuilder` 快照 | 控制 `--diff-regions` 导出；避免在常规刷新中运行昂贵 diff。 |
+| `search_traces`（计划） | ⛔ | 捕获 `find.rs` 命中与 `Spans<T>` 状态 | 绑定 `--search-spans`，涉及 regex 跟踪与 cursor instrumentation。 |
 
 开启额外 gate 时，需：
 

@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using Xi.Core.Diff;
+using Xi.Core.Rope.Breaks;
+using Xi.Core.Search;
 
 namespace Xi.Core.Rope.Diagnostics.Descriptors;
 
@@ -23,6 +26,12 @@ internal sealed class StageDDescriptorManifestMetadata
 
     public int? GraphemeDescriptorCount { get; set; }
 
+    public int? BreaksDescriptorCount { get; set; }
+
+    public int? DiffCaseCount { get; set; }
+
+    public int? SearchCaseCount { get; set; }
+
     public IList<string> FeatureGates { get; set; } = new List<string>();
 }
 
@@ -39,6 +48,12 @@ internal sealed class StageDDescriptorManifest
     public IList<LineDescriptor> LineDescriptors { get; set; } = new List<LineDescriptor>();
 
     public IList<GraphemeDescriptor> GraphemeDescriptors { get; set; } = new List<GraphemeDescriptor>();
+
+    public IList<BreakSetDescriptorView> BreaksDescriptors { get; set; } = new List<BreakSetDescriptorView>();
+
+    public IList<DiffCaseDescriptorView> DiffRegions { get; set; } = new List<DiffCaseDescriptorView>();
+
+    public IList<SearchCaseDescriptorView> SearchSpans { get; set; } = new List<SearchCaseDescriptorView>();
 
     public IList<StageDFixtureLedgerEntry> Fixtures { get; set; } = new List<StageDFixtureLedgerEntry>();
 }

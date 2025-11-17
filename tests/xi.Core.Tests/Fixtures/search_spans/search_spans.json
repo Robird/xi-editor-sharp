@@ -1,0 +1,161 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "f740a440eacb14b59a1ed26388ebc137827e621d",
+    "generated_at_unix_millis": 1763409044664,
+    "case_count": 3
+  },
+  "search_cases": [
+    {
+      "sample": "literal_case_insensitive",
+      "query": "stage",
+      "is_regex": false,
+      "case_matching": "case_insensitive",
+      "text_len": 84,
+      "hits": [
+        {
+          "index": 0,
+          "range": {
+            "start": 20,
+            "end": 25
+          },
+          "line": 0,
+          "context_before": "Search spans ensure ",
+          "context_after": " D parity stays honest. stage lines repe"
+        },
+        {
+          "index": 1,
+          "range": {
+            "start": 49,
+            "end": 54
+          },
+          "line": 0,
+          "context_before": "ans ensure Stage D parity stays honest. ",
+          "context_after": " lines repeat to test folding."
+        }
+      ],
+      "span_windows": [
+        {
+          "range": {
+            "start": 20,
+            "end": 25
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        },
+        {
+          "range": {
+            "start": 49,
+            "end": 54
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        }
+      ],
+      "notes": "Case insensitive literal search across repeated tokens."
+    },
+    {
+      "sample": "regex_multiline_warnings",
+      "query": "^WARN:.*$",
+      "is_regex": true,
+      "regex_options": "multi_line",
+      "case_matching": "exact",
+      "text_len": 85,
+      "hits": [
+        {
+          "index": 0,
+          "range": {
+            "start": 23,
+            "end": 42
+          },
+          "line": 1,
+          "context_before": "INFO: startup complete\n",
+          "context_after": "\nWARN: exceeded threshold\nERROR: final l"
+        },
+        {
+          "index": 1,
+          "range": {
+            "start": 43,
+            "end": 67
+          },
+          "line": 2,
+          "context_before": "O: startup complete\nWARN: retry pending\n",
+          "context_after": "\nERROR: final line"
+        }
+      ],
+      "span_windows": [
+        {
+          "range": {
+            "start": 23,
+            "end": 42
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        },
+        {
+          "range": {
+            "start": 43,
+            "end": 67
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        }
+      ],
+      "notes": "Regex search captures all WARN-prefixed lines via multi-line anchors."
+    },
+    {
+      "sample": "emoji_literal_hits",
+      "query": "🚀",
+      "is_regex": false,
+      "case_matching": "exact",
+      "text_len": 94,
+      "hits": [
+        {
+          "index": 0,
+          "range": {
+            "start": 7,
+            "end": 11
+          },
+          "line": 0,
+          "context_before": "Rocket ",
+          "context_after": " boosters ready. Backup 🚀 stage stays id"
+        },
+        {
+          "index": 1,
+          "range": {
+            "start": 35,
+            "end": 39
+          },
+          "line": 0,
+          "context_before": "Rocket 🚀 boosters ready. Backup ",
+          "context_after": " stage stays idle. Emoji hits require ut"
+        }
+      ],
+      "span_windows": [
+        {
+          "range": {
+            "start": 7,
+            "end": 11
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        },
+        {
+          "range": {
+            "start": 35,
+            "end": 39
+          },
+          "style_id": 7,
+          "style_tag": "search-match",
+          "priority": 10
+        }
+      ],
+      "notes": "Emoji literal demonstrates multi-byte span capture."
+    }
+  ]
+}

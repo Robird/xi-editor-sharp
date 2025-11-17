@@ -1,0 +1,4 @@
+alpha
+beta linux
+carriage
+normalized endings

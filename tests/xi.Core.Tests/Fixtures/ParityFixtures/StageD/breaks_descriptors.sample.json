@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "rust_commit": "sample-breaks",
+    "generated_at_unix_millis": 1731900000000,
+    "descriptor_count": 1
+  },
+  "break_sets": [
+    {
+      "sample": "tiny_soft_wrap",
+      "rope_len": 48,
+      "wrap_width_units": 16,
+      "metric": "BreaksMetric",
+      "break_offsets": [16, 32, 48],
+      "break_count": 3,
+      "leaf_runs": [
+        {
+          "range": { "start": 0, "end": 24 },
+          "break_count": 2,
+          "path": [
+            { "node_height": 1, "node_len": 48, "child_index": 0, "child_offset": 0 }
+          ]
+        },
+        {
+          "range": { "start": 24, "end": 48 },
+          "break_count": 1,
+          "path": [
+            { "node_height": 1, "node_len": 48, "child_index": 1, "child_offset": 24 }
+          ]
+        }
+      ],
+      "text_excerpt": "alpha beta gamma delta",
+      "tags": ["ascii", "balanced"]
+    }
+  ]
+}

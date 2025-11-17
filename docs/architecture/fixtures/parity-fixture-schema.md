@@ -259,6 +259,207 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 
 ---
 
+## [Fixture-BreaksSchema] Breaks Descriptor Schema
+<a id="Fixture-BreaksSchema"></a>
+
+- **目录**：`tests/xi.Core.Tests/Fixtures/breaks_descriptors/`
+- **导出 flag**：`--breaks-descriptors <dir>`（默认文件 `breaks_descriptors.json`）
+- **来源**：`BreaksLeaf/BreaksInfo/BreakBuilder`（`rope/src/breaks.rs`）以及 `metrics::break_indices` helper，字段涵盖软换行基准、叶片分布与 `BreaksMetricHelper` 需要的计数。
+
+**Metadata**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `schema_version` | string | 当前 `1.0.0`，随字段调整递增 |
+| `rust_commit` | string | `xi-editor-ph7` 提交 SHA |
+| `generated_at_unix_millis` | integer | UTC 毫秒时间戳 |
+| `descriptor_count` | integer | `break_sets[]` 数量 |
+
+**BreakSetDescriptor**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `sample` | string | ✅ | 样本 ID，继承 `breaks_samples()` 约定 |
+| `rope_len` | integer | ✅ | Rope 长度（BaseMetric 单位，字节） |
+| `wrap_width_units` | integer | ✅ | 软换行宽度（BaseMetric 单位） |
+| `metric` | enum(`"BreaksMetric"`) | ✅ | 标识采样所用 metric，便于未来扩展 |
+| `break_offsets` | integer[] | ✅ | 软换行断点，按 BaseMetric 偏移升序排列 |
+| `break_count` | integer | ✅ | `break_offsets` 长度的重复字段，方便 manifest 统计 |
+| `leaf_runs` | [`LeafRunSnapshot`](#fixture-breaks-leafrun)[] | ✅ | 每个叶片的 Base 区间 + break 数量 |
+| `text_excerpt` | string | ⛔ | 可选，截取前 160 codepoints 便于调试 |
+| `tags` | string[] | ⛔ | 语义标签（如 `emoji`, `wide`, `crlf`） |
+
+**LeafRunSnapshot** <a id="fixture-breaks-leafrun"></a>
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `range` | [`RangeSnapshot`](#Fixture-Range) | 叶片 Base 范围 |
+| `break_count` | integer | 该叶片内的断点数量 |
+| `path` | [`PathFrameSnapshot`](#Fixture-PathFrame)[] | 指向叶片的路径，用于 C# loader 预热缓存 |
+
+```jsonc
+{
+  "metadata": {
+    "schema_version": "1.0.0",
+    "descriptor_count": 1
+  },
+  "break_sets": [
+    {
+      "sample": "soft_wrap_utf8",
+      "rope_len": 312,
+      "wrap_width_units": 80,
+      "metric": "BreaksMetric",
+      "break_offsets": [80, 160, 240, 312],
+      "break_count": 4,
+      "leaf_runs": [
+        { "range": { "start": 0, "end": 156 }, "break_count": 2 },
+        { "range": { "start": 156, "end": 312 }, "break_count": 2 }
+      ],
+      "tags": ["emoji", "mixed"]
+    }
+  ]
+}
+```
+
+> 兼容性：字段与 `BreaksMetricHelper` 输入结构一一对应，可直接驱动 C# soft-break 验证；若未来需要记录 `BreaksBaseMetric` 结果，可在相同 schema 中追加布尔或数值字段并 bump `schema_version`。
+
+---
+
+## [Fixture-DiffSchema] Diff Regions Schema
+<a id="Fixture-DiffSchema"></a>
+
+- **目录**：`tests/xi.Core.Tests/Fixtures/diff_regions/`
+- **导出 flag**：`--diff-regions <dir>`（默认文件 `diff_regions.json`）
+- **来源**：`Diff` trait（`rope/src/diff.rs`）、`LineHashDiff`、`DiffBuilder`/`DiffOp` + `DeltaElement::Insert`，用于在 C# 端重放 diff。
+
+**Metadata**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `schema_version` | string | 当前 `1.0.0` |
+| `rust_commit` | string | `xi-editor-ph7` 提交 SHA |
+| `generated_at_unix_millis` | integer | UTC 时间戳 |
+| `case_count` | integer | `diff_cases[]` 计数 |
+
+**DiffCase**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `sample` | string | ✅ | 样本键，例如 `rope_engine_vs_corelib` |
+| `base_path` / `target_path` | string | ✅ | 供 QA 查找文本（相对仓库路径） |
+| `base_sha` / `target_sha` | string | ⛔ | 可选 git blob 哈希 |
+| `line_count` | integer | ⛔ | `target` 行数，用于 sanity check |
+| `ops` | [`DiffOpSnapshot`](#fixture-diff-op)[] | ✅ | `DiffBuilder` 输出的序列，含 copy/insert/delete |
+| `stats` | object | ⛔ | `{ "copied_bytes": <int>, "inserted_bytes": <int>, "deleted_bytes": <int> }` |
+| `notes` | string | ⛔ | 解释样本的 Diff 目的 |
+
+**DiffOpSnapshot** <a id="fixture-diff-op"></a>
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `kind` | enum(`copy`,`insert`,`delete`) | 区分 `DiffOp` 语义 |
+| `base_range` | [`RangeSnapshot`](#Fixture-Range) | `copy/delete` 时必填（BaseMetric 单位） |
+| `target_range` | `RangeSnapshot` | `copy/insert` 时必填 |
+| `byte_len` | integer | 操作涉及的字节数（便于断言） |
+| `line_span` | object | `{ "base": [start,end], "target": [start,end] }` 行号区间 |
+| `insert_preview` | string | `insert` 时可选的 80 codepoint 预览 |
+
+```jsonc
+{
+  "metadata": { "schema_version": "1.0.0", "case_count": 1 },
+  "diff_cases": [
+    {
+      "sample": "engine_spellcheck",
+      "base_path": "fixtures/diff/base.txt",
+      "target_path": "fixtures/diff/target.txt",
+      "ops": [
+        { "kind": "copy", "base_range": { "start": 0, "end": 1024 }, "target_range": { "start": 0, "end": 1024 }, "byte_len": 1024 },
+        { "kind": "delete", "base_range": { "start": 1024, "end": 1150 }, "byte_len": 126 },
+        { "kind": "insert", "target_range": { "start": 1024, "end": 1180 }, "byte_len": 156, "insert_preview": "use xi_editor::diff" }
+      ],
+      "stats": { "copied_bytes": 1024, "inserted_bytes": 156, "deleted_bytes": 126 }
+    }
+  ]
+}
+```
+
+> 兼容性：C# 端 `LineHashDiff` 复刻可直接迭代 `ops[]` 重建 `RopeDelta`。新增字段（例如行对齐信息）时需 bump `schema_version` 并同步 Stage D 文档。
+
+---
+
+## [Fixture-SearchSchema] Search Span Schema
+<a id="Fixture-SearchSchema"></a>
+
+- **目录**：`tests/xi.Core.Tests/Fixtures/search_spans/`
+- **导出 flag**：`--search-spans <dir>`（默认文件 `search_spans.json`）
+- **来源**：`find.rs`（`find`, `find_progress`, `CaseMatching`, `FindResult`）与 `spans.rs`（`Spans<T>`, `SpansBuilder`）。
+
+**Metadata**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `schema_version` | string | 当前 `1.0.0` |
+| `rust_commit` | string | `xi-editor-ph7` 提交 SHA |
+| `generated_at_unix_millis` | integer | UTC 时间戳 |
+| `case_count` | integer | `search_cases[]` 数量 |
+
+**SearchCase**
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `sample` | string | ✅ | 案例 ID（如 `regex_multiline_block`） |
+| `query` | string | ✅ | 搜索字符串或正则 |
+| `is_regex` | bool | ✅ | 为 true 时 `regex_options` 描述 flags |
+| `regex_options` | string | ⛔ | 例如 `"multi_line|case_insensitive"` |
+| `case_matching` | enum(`exact`,`case_insensitive`) | ✅ | 映射 `CaseMatching` |
+| `text_len` | integer | ✅ | 目标文本 BaseMetric 长度 |
+| `hits` | [`SearchHit`](#fixture-search-hit)[] | ✅ | 命中列表 |
+| `span_windows` | [`SpanSegment`](#fixture-span-segment)[] | ⛔ | `Spans<T>` 导出的样式窗口 |
+| `notes` | string | ⛔ | 调试说明 |
+
+**SearchHit** <a id="fixture-search-hit"></a>
+
+| 字段 | 类型 | 说明 |
+| --- | --- |
+| `index` | integer | 命中序号（0-based） |
+| `range` | [`RangeSnapshot`](#Fixture-Range) | BaseMetric 范围 |
+| `line` | integer | 所在逻辑行（0-based） |
+| `context_before` / `context_after` | string | 采用 40 codepoint 滑窗，用于验证 UI 高亮 |
+
+**SpanSegment** <a id="fixture-span-segment"></a>
+
+| 字段 | 类型 | 说明 |
+| --- | --- |
+| `range` | `RangeSnapshot` | 覆盖范围 |
+| `style_id` | integer | `Spans<T>` 中的样式键 |
+| `style_tag` | string | 语义标签，如 `search-match`、`selection` |
+| `priority` | integer | 排序优先级，重现 `SpansBuilder` 行为 |
+
+```jsonc
+{
+  "metadata": { "schema_version": "1.0.0", "case_count": 1 },
+  "search_cases": [
+    {
+      "sample": "regex_word_boundary",
+      "query": "\\brope\\b",
+      "is_regex": true,
+      "case_matching": "exact",
+      "text_len": 2048,
+      "hits": [
+        { "index": 0, "range": { "start": 128, "end": 132 }, "line": 4, "context_before": "the ", "context_after": " state" }
+      ],
+      "span_windows": [
+        { "range": { "start": 120, "end": 140 }, "style_id": 7, "style_tag": "search-match", "priority": 10 }
+      ]
+    }
+  ]
+}
+```
+
+> 兼容性：`SearchHit` 内容映射至 C# `Finder`/`Spans` DTO，可驱动 UI 高亮与 `StageDDescriptorLoader` smoke。若导出 regex trace 需要额外状态，可在 `span_windows` 中追加字段并 bump 版本。
+
+---
+
 ## [Fixture-Validation] 验证流程
 <a id="Fixture-Validation"></a>
 1. 启用正确的 feature 组合（`serde` 必选；`cursor_state`、`tree_builder_slice_trace` 仅在诊断场景使用）。
