@@ -185,7 +185,21 @@
 - `docs/skeleton/core-lib.md` - Rust 核心库骨架
 - `docs/skeleton/plugin-lib.md` - Rust 插件库骨架
 
-## 最近完成的工作（更新：2025-11-17）
+## 最近完成的工作（更新：2025-11-18）
+
+### 2025-11-18 - Porting Issues Catalog Review输入 + TODO 回填
+**任务背景**：参加 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md`，从 C# 实现视角评估“类型骨架对位映射”策略，并回应 Architecture Mapper 关于 `_editVersion` instrumentation 与 `RopeChunkEnumeratorDiagnostics` 基准的提问。
+
+**关键输出**：
+1. ✅ 向会议记录追加“C# Implementer - Nova”段落，重申 169/169 测试、`CursorDescriptorParityTests`/`RopeChunkEnumeratorDiagnostics`/`GraphemeNavigator` 依赖对位映射 schema，并列出如果放弃该策略将失效的实现/测试/文档（`ParityFixtureLoader`、`rope-port-mapping.md`、Mini Blocking Model 模块等）。
+2. ✅ 说明 `_editVersion` 已在 `src/xi.Core/Rope/Rope.cs` + `NodeCursor` 合入、`BlockingModel.CursorLifecycle` 尚未接线，并承诺在 11/19 前把版本漂移事件写入 mini workspace + `docs/architecture/type-system-migration-log.md`。
+3. ✅ 汇报 1 MB chunk/line benchmark 的现状：`tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs` 可运行但尚未记录数据，并计划今晚跑 Release 版、把输出同步到 `docs/architecture/m3-implementation-plan.md §5.3` 与 `AGENTS.md`。
+4. ✅ 面向 Rust Porter 提出两项需求：正式发布 `export-serde-fixtures` schema（`--cursor-descriptors/--chunk-descriptors/--grapheme-windows`）以及扩展 `_editVersion` 相关样本字段，便于 Blocking Model/Parity Loader 加入断言。
+
+**TODO / 下一步**：
+- [ ] 在 `blocking-model/csharp/BlockingModel.Core/CursorLifecycle` 与 `BlockingModel.Tests` 中接入 `_editVersion` 版本漂移实验，并更新 `docs/architecture/type-system-migration-log.md` 记录。
+- [ ] 运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release`，把 Chunk/Line 统计结果写入 `docs/architecture/m3-implementation-plan.md §5.3` 与 `AGENTS.md` 的 R9/R10 状态。
+- [ ] 等 Rust Porter 发布 CLI schema/样本后，在 `ParityFixtureLoader` 中新增 `schema_version`/`rust_commit` 断言，确保对位映射链路可回溯。
 
 ### 2025-11-17 - EditVersion 感知游标 + Chunk Diagnostics/Benchmark 基线
 **任务背景**：星形会议将 `_editVersion` 票据、CursorDescriptor 11 份 JSON、以及 RopeChunkEnumerator 的诊断/微基准列为 T1/T3 紧急项，需要在 C# 端打通版本检测、Parity Loader、以及 1 MB chunk/line baseline。

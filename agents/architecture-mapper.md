@@ -173,6 +173,38 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Porting issues chat 复核
+#### 已完成任务
+- ✅ 重新对照 `docs/architecture/porting-issues-catalog.md`、`AGENTS.md` 与 `docs/architecture/m3-implementation-plan.md`，评估“类型骨架对位映射”策略的可行度，并在 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md` 记录 Architecture Mapper 立场、证据与交接提示。
+- ✅ 标记 TreeBuilder trace schema 缺失与 Chunk 1 MB 基准空缺为 R9/R10 的新增扩散点，要求在 11/20 前补齐 `docs/architecture/fixtures/tree-builder-trace-schema.md` + CLI ingestion 校验以及 `m3-implementation-plan.md §5.3` 基线数据。
+- ✅ 将 `_editVersion` instrumentation 在 `BlockingModel.CursorLifecycle` 的复现、Chunk diagnostics 基线回写等需求交接给 C# Implementer，确保后续度量可以同步到映射/计划文档。
+
+#### 后续监控
+- 📌 跟进 TreeBuilder trace schema 文档与脚本落地（需新增 `docs/architecture/fixtures/tree-builder-trace-schema.md` + `scripts/refresh_serialization_fixtures.ps1` 校验步骤），并在完成后更新 Catalog T2/S3。
+- 📌 等待 C# Implementer 提供 `_editVersion` instrumentation 在 mini workspace 的运行结果与 `RopeChunkEnumeratorDiagnostics` 1 MB 基准；拿到数据后回写 `docs/architecture/m3-implementation-plan.md §5.3` 与 `AGENTS.md` 风险台账。
+- 📌 CLI/schema 交付完成时刷新 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/type-system-migration-log.md`，并记录 R9/R10 风险降级条件。
+
+### 2025-11-18 - Porting Issues Catalog v2 对齐
+#### 已完成任务
+- ✅ 再次对照 `AGENTS.md`、“Mini Blocking Model”计划、`docs/architecture/m3-implementation-plan.md`、`docs/architecture/type-system-migration-log.md`、`docs/architecture/mini-blocking-model-skeleton-review.md` 与 `docs/architecture/fixtures/parity-fixture-schema.md`，核实 SharedNode/_editVersion、TreeBuilder trace、chunk/grapheme parity 以及 Breaks/Delta/Subset helper 的最新状态。
+- ✅ 重写 `docs/architecture/porting-issues-catalog.md`：更新分类说明、补齐 `ChunkDescriptor CLI + Diagnostics`、`GraphemeTelemetry & 阈值`、`BreaksTree & MetricAdapter`、`Parity fixture 刷新流程` 等条目，所有表格均附当前抽象（含 `BlockingPointRegistry`、测试、脚本路径）、风险与三步式验证建议。
+- ✅ 将开放问题与后续行动对齐 R8/R9/R10 与星形会议决议（cursor instrumentation 截止 11/19、Grapheme 遥测 11/20、TreeBuilder trace schema、Chunk 1 MB 基准、Breaks skeleton、Delta/Subset serde-less golden、Parity fixture CI 提醒），确保 catalog 与 `AGENTS.md`/`m3-implementation-plan.md` 的风险清单一致。
+
+#### 后续监控
+- 📌 关注 SharedNode/NodeCursor instrumentation 是否在 2025-11-19 前落地 mini workspace（catalog §O1/O2），并在 `docs/architecture/type-system-migration-log.md` 写入运行结果。
+- 📌 推动 TreeBuilder trace schema（catalog §T2/S3）落地：需要在 `docs/architecture/fixtures/` 新建章节，并为 `scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 增设校验。
+- 📌 与 QA 协调 chunk 1 MB 基准与 Grapheme 遥测阈值（catalog §T3/F2），准备在下一次 catalog 更新中标记完成并回写 `AGENTS.md`。
+
+### 2025-11-18 - Porting issues catalog 首版落地
+#### 已完成任务
+- ✅ 阅读 `docs/architecture/port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`mini-blocking-model-plan.md` 及 `docs/rust-refactor/delta-subset-serialization.md`，梳理 SharedNode/COW、TreeBuilder trace、cursor_state、metric/helper、serde-less fixture、Delta/Subset helper 等高风险特征的公共上下文。
+- ✅ 创建 `docs/architecture/porting-issues-catalog.md`，按语言语义/类型系统/运行时三层分类列出 9 个阻塞条目，覆盖 `SharedNode::ensure_unique`, `NodeCursor`, `cursor_state`, `tree_builder_slice_trace`, `export-tree-builder-trace`, `helpers/string_leaf.rs`, `Delta::iter_elements`, `Subset::segment_triples`, `TreeBuilderTrace::to_json_string` 等原名；为每项补充 mini blocking model 模块引用、风险假设与建议实验。
+- ✅ 在条目末尾输出开放问题清单，提醒 SharedNode instrumentation、cursor_state 裁决、Trace CLI schema、leaf split 双指标、Delta/Subset golden fixture 等待办事项，以便后续追踪。
+
+#### 后续监控
+- 🔼 若 Rust Porter/C# Implementer 在 SharedNode、Cursor、Trace CLI、Delta/Subset helper 上有新结论，需同步更新 catalog 并在本档案“待同步变更”区登记。
+- 📓 待 `porting-issues-catalog.md` 首次被其他角色引用后，确认是否需要在 `docs/architecture/port-blueprint.md` 或 `type-system-migration-log.md` 中加入交叉链接。
+
 ### 2025-11-18 - Trace CLI 手写 JSON 基线同步
 #### 已完成任务
 - ✅ 复核 `blocking_model/rust/blocking_model_core/{Cargo.toml,src/skeleton/tree.rs,src/bin/export_tree_builder_trace.rs,tests/trace_cli.rs}`，确认 `serde`/`serde_json` 依赖已移除、`TreeBuilderTrace::to_json_string()` 手写 JSON 输出、CLI 仍能通过 `--text/--depth/--out` 导出 trace，测试仅验证括号成对。

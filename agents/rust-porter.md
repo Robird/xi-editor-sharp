@@ -106,6 +106,12 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Porting Issues Catalog 会议回应 & CLI 计划排期
+- ✅ 阅读 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/mini-blocking-model-plan.md` 与最新会议记录，评估类型骨架对位映射策略仍可行，并在 `docs/architecture/meetings/2025-11-18-porting-issues-chat.md` 登记 Rust Porter 立场。
+- ✅ 复盘 `cursor_descriptors`/`chunk_descriptors`/`grapheme_descriptors` 资产现状，承诺在 11/19 13:00 前为 `--cursor-descriptors` 增加 `metadata.schema_version + rust_commit`，并同步 schema/ParityFixtureLoader 断言。
+- ✅ 规划 `_editVersion` parity 样本：决定在 CLI 导出中新增 `version_ticket`（含 captured/post edit version 与 make_mut 计数）与两条失效样本，依赖 `blocking_model_core::skeleton::rope` 新增轻量 `EditVersionCounter` stub；计划 11/19 晚交付草案，11/20 上午完成文档/测试。
+- ⚠️ 待办：推动主持人/Architecture Mapper 共建 `docs/architecture/fixtures/tree-builder-trace-schema.md`，并与 QA 协调在 cursor metadata/样本更新后复跑 `ParityFixtureLoader` 与 1 MB benchmark。
+
 ### 2025-11-18 - TreeBuilder Trace serde 剥离 & 手写 JSON
 - ✅ 移除了 `blocking_model_core` 中的 `serde`/`serde_json` 依赖与 feature 链接，让 `trace_cli` 只依赖 `tree_builder_slice_trace`。
 - ✅ 在 `TreeBuilderEvent/TreeBuilderTrace` 上实现手写 JSON 序列化（保持事件名为外层 key、字段名/顺序与 serde 版本一致），并切换 CLI 到无错误返回的 `to_json_string()`。

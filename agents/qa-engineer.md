@@ -85,6 +85,12 @@
 - **Information Researcher**：需要历史测试记录或特定文档片段时请求支援。
 
 ## 最近完成
+### 2025-11-18 - Porting Issues QA 评估 & 会议纪要更新
+- **任务**：阅读 `docs/architecture/porting-issues-catalog.md`、`docs/architecture/meetings/2025-11-18-porting-issues-chat.md`，评估“类型骨架对位映射”对测试基线的价值；在会议文档追加 QA 章节并形成验证计划；同步本档案的后续行动。
+- **命令/参考**：`read_file docs/architecture/porting-issues-catalog.md`、`read_file docs/architecture/meetings/2025-11-18-porting-issues-chat.md`、`read_file docs/architecture/m3-implementation-plan.md §5.3`（确认 benchmark 口径）。
+- **结果**：结论为“继续维持对位映射”——否则 `ParityFixtureLoader`、Stage D 刷新脚本、169/169 `dotnet test` 与六个 Mini Blocking Model 阻塞模块会失去 ground truth；在会议纪要中落下 QA 立场、`_editVersion`/TreeBuilder trace/1 MB 基准/Grapheme telemetry 的验证路径；将 11/20 设为 R9/R10 里的 schema+benchmark 门槛。
+- **风险/后续**：待 Rust Porter 补完 `cursor_descriptors` metadata + `version_ticket` 与 TreeBuilder trace schema owner；QA 需在 11/19-11/20 运行 1 MB benchmark、更新 `GraphemeNavigator` 遥测阈值，并在 `AGENTS.md` 登记。
+
 ### 2025-11-17 - QA 入职与资产确认
 - **任务**：阅读 `agents/qa-engineer-template.md`、`AGENTS.md`「下一步行动 & 风险」章节、`docs/architecture/m3-implementation-plan.md` §1/4/5.3；清点 parity 夹具与脚本开关；建档。
 - **命令**：`list_dir tests/xi.Core.Tests/Fixtures/*`、`read_file scripts/refresh_serialization_fixtures.ps1`、`read_file docs/architecture/m3-implementation-plan.md`（节选）。
@@ -92,9 +98,10 @@
 - **风险/后续**：R9（CLI schema）与 R10（基准/遥测）仍未关闭；等待 Rust Porter schema 后才能安排 ingestion smoke。
 
 ## 下一步计划
-- [ ] **Parity ingestion smoke**：在 Rust Porter 提交正式 CLI schema 后，使用 `scripts/refresh_serialization_fixtures.ps1`（默认 `-ExportParityFixtures`）刷新，并复查 `CursorDescriptor/Chunk/Grapheme` 套件日志。
-- [ ] **1 MB Chunk/Line 基准**：运行 `tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs`，记录 `ChunkCount/MaxChunkLength/Duration` 并写回 `m3-implementation-plan.md §5.3`。
-- [ ] **Stage D 复查**：与 Architecture Mapper 协作，补齐 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 中关于 `metadata.rust_commit`/`generated_at_unix_millis` 的留存策略，并复核 Grapheme fallback 遥测阈值。
+- [ ] **CursorDescriptor metadata 验证**：待 Rust Porter 加入 `schema_version/rust_commit/version_ticket` 后 rerun `dotnet test Xi.Editor.sln --filter CursorDescriptorParityTests+ParityFixtureLoader`，并在 `AGENTS.md` 记录 `_editVersion` captured vs post 值。
+- [ ] **1 MB Chunk/Line 基准采集**：与 C# Implementer 一起运行 `tests/xi.Core.Tests/Benchmarks/Diagnostics`（Release），登记 `ChunkCount/LineCount/MaxChunkLength/UTF16CopyBytes/ElapsedMs`，更新 `docs/architecture/m3-implementation-plan.md §5.3`。
+- [ ] **TreeBuilder trace schema + 测试**：协同 Architecture Mapper 起草 `docs/architecture/fixtures/tree-builder-trace-schema.md`，并准备 `TreeBuilderTraceParityTests` + 脚本 schema 校验。
+- [ ] **Grapheme telemetry 阈值落地**：扩展 `GraphemeNavigatorSmokeTests` 输出 fallback 百分比，确认 0.5% 阈值并把结果写入 `docs/architecture/design-divergence-log.md` 与 `AGENTS.md`。
 
 ---
 
