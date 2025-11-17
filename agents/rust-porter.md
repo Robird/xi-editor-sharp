@@ -75,6 +75,7 @@ cadence:
 5. **QA 介面**：QA 通过 manifest 中的 `schema_hash` + `payload_hash` 验证资产，并在 `tests/xi.Core.Tests/Fixtures/*` 中消费；若 hash mismatch，即触发 `StageD::FixtureFlow` 回归项。
 
 ## 最近完成
+- **2025-11-18 - Tree Trace Manifest & Refresh Flow**：`export-serde-fixtures` 现将 `--tree-builder-trace` 输出写入 manifest（含 `tree_builder_slice_trace@1.0.0` schema、事件计数、payload hash），`scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 在一次 `cargo run --features serde,tree_builder_slice_trace` 调用里同步生成 parity + trace + manifest，并通过 `pwsh -File scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace -SkipRust -SkipDotnet -SkipStageDLoaderTest`、`python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 验证链路；`cargo test -p xi-rope --features serde,tree_builder_slice_trace -- tree_builder_slice_trace` 佐证 feature wiring 未破坏现有测试。
 - **2025-11-17 - Exporter Manifest + Hash**：`export-serde-fixtures` 支持 `--emit-manifest` 默认写入 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，完成 canonical JSON + sha256 策略并把结果写入 `scripts/refresh_serialization_fixtures.ps1`/`[Fixture-Manifest]`，Stage D 现在可用 manifest 校验 parity 资产。
 - **2025-11-17 - Rust Porter 档案刷新**：按 front-matter + Stage D 结构重写认知档案，补齐 CLI 扩展、feature gate、Stage D 接口与 manifest/hash 策略，确保单一事实来源。
 - **2025-11-17 - Stage D 文档模板精简评审**：定义 Goal Tree + Stage D anchors 保留字段与 CLI/feature gate 落点，提出 exporter manifest → 脚本写回 → anchor lint 三步闭环。

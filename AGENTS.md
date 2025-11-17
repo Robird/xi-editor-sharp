@@ -585,6 +585,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **配套更新**：`agents/qa-engineer.md` “最近完成”登记了本次补档，提醒后续运行基准/遥测时需在 `m3-implementation-plan.md §5.3`、`AGENTS.md`、`design-divergence-log.md` 同步数据。
 - **后续**：QA Engineer 下一次执行 chunk/telemetry 任务时，应引用新章节并附带实际数值，若阈值被突破即刻升级 `[MP-R10]`。
 
+### 2025-11-19 (Tree Builder Trace Manifest Sync)
+- **资产更新**：Rust Porter 导出的 `tree_builder_slice/basic_slice_plan.json` 现由 manifest 管理（`tree_builder_slice_trace@1.0.0`, hash `22724af7fe8b…`）；`scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 单次 `cargo run --features serde,tree_builder_slice_trace` 即可产出 parity+trace+manifest。
+- **文档回写**：刷新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]/[StageD::FeatureGates]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]` 与 `docs/architecture/type-system-migration-log.md#[TS-B2]/[TS-B3]`，同步记录新哈希、feature gate 列表与 loader 能力。
+- **影响**：Stage D manifest 现含 tree builder/chunk/grapheme 最新哈希（`feature_gates=["serde","tree_builder_slice_trace"]`），C# loader/diagnostics可直接消费；下一步是把 loader smoke 接入 `[QA-IngestionSmoke]` 并驱动 `TreeBuilderTracer` 注入管线。 
+
 ### 2025-11-18 (Manifest updater + TreeBuilder trace loader)
 - **Manifest 维护**：QA Engineer 实现 `scripts/verify_fixture_manifest.py --update`（可重写 `payload_hash`、打印 `Manifest changes`、在写回后自动复验），并在 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]`/`agents/qa-engineer.md` 描述“manifest diff + loader smoke”证据链；`python scripts/verify_fixture_manifest.py` 与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 均返回 0，后者在无 drift 场景输出“manifest already in sync”。
 - **TreeBuilder slice trace**：C# Implementer 新增 `src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs`、`tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json` 与 `TreeBuilderSliceTraceLoaderTests`，可解析 `PushFrame`/`LeafSlice`/`EnterChild`/`MergePop` 事件并在目录缺失时抛明确信息；`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`（3/3 ✅）验证通过。

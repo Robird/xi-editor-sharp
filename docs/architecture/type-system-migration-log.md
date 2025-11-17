@@ -29,10 +29,10 @@
 	3. Script `scripts/refresh_serialization_fixtures.ps1` to always pass `--emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
-- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。`TreeBuilderTracer` 骨架虽已记录节点事件，但尚未注入 `TreeBuilder`，Stage D 仍需 Rust CLI 才能产生真实 slice trace（当前 `basic_slice_plan.json` 仅是示例）。
+- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。虽已拿到 `tree_builder_slice_trace@1.0.0` manifest 资产（`basic_slice_plan.json`），但 `TreeBuilderTracer` 仍未注入 `TreeBuilder`，Rust CLI 也尚未导出长 trace 供 replay。 
 - **Rust Plan**: 依托 `convert_lines_from_bytes` 等 shim 以及 `docs/rust-refactor/breaks-metrics-templating.md` 的模板输出度量 helper，逐步补齐 `edit_*`/`Breaks` shim。
 - **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并利用 `TreeBuilderSliceTraceLoader` + `TreeBuilderTracer` 骨架记录调试事件，写入 `[StageD::FixtureFlow]` 以便 CLI/fixture 同步。
-- **Status**: 🟡 Implementation (loader ready) — `_editVersion` 与 `TreeBuilderTracer` 骨架齐备，`TreeBuilderSliceTraceLoader`/`TreeBuilderSliceTraceEvent` + unit tests现可消费 `ParityFixtures/tree_builder_trace/*.json`，但仍等待 Rust CLI 输出真实 trace 以及 MetricAdapter 草案。
+- **Status**: 🟡 Implementation (loader ready) — `_editVersion` 与 `TreeBuilderTracer` 骨架齐备，`TreeBuilderSliceTraceLoader`/`TreeBuilderSliceTraceEvent` + tests 现直接消费 manifest 里的 `tree_builder_slice/basic_slice_plan.json`，但仍需 Rust CLI 注入 + C# tracer wiring 才能 replay 长 trace 并落地 `MetricAdapter`。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/csharp-refactor/node-generic-refactor-plan.md`
@@ -43,14 +43,14 @@
 - **Next**:
 	1. 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
 	2. 将 `TreeBuilderTracer` 注入 `TreeBuilder`，并把 Rust CLI 导出的 slice trace 与 C# tracer 对拍；完成后更新 `[StageD::FixtureFlow]`/`[StageD::ParityAssets]`。
-	3. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`tree_builder_trace` 记录），确保 CLI/manifest 可复现实验。
+	3. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（tree builder gate 已登记；MetricAdapter 若引入新 gate 需同步），确保 CLI/manifest 可复现实验。
 	4. 在 Stage D 文档中补上 `_editVersion` → tracer → adapter 依赖图，避免 G6 merge 时追溯困难。
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
 - **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据；虽然 Rust `export-serde-fixtures` 已通过 `fixtures.manifest.json` 输出 chunk/line/grapheme 描述符，但 QA/Stage D 自动化尚未把这些资产回灌到 dotnet 流水线，1 MB `ChunkBench` 仍缺 baseline。 
 - **Rust Plan**: 继续依赖 manifest-backed exporter（见 `docs/rust-refactor/iterator-facade-export.md`）维持 chunk/line/grapheme 样本，并在 schema 变动时更新 `fixtures.manifest.json` 哈希供 C# loader 校验。
 - **C# Plan**: 新增 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`，使用 manifest (`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`) + `chunk_descriptors/grapheme_descriptors` JSON hydrate `StageDDescriptorManifest`，并由 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 覆盖 metadata/chunk/grapheme 映射；下一步是把 loader 输出暴露给 `[QA-ChunkBench]`、`[QA-IngestionSmoke]` 与 Stage D CLI 流程。
-- **Status**: 🟡 Implementation (awaiting QA wiring) — Loader + tests landed (manifest hash `bd863f2237dd…` for chunk, `a2b84031c5aa…` for grapheme, `rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`),但 QA smoke、Stage D CLI 仍未调用 loader，基准仍缺口。
+- **Status**: 🟡 Implementation (awaiting QA wiring) — Loader + tests landed（chunk hash `52aa448cf565…`, grapheme hash `109d57d39b83…`, manifest `feature_gates=["serde","tree_builder_slice_trace"]`），但 QA smoke、Stage D CLI 仍未调用 loader，基准仍缺口。
 - **Links**:
 	- `docs/rust-refactor/iterator-facade-export.md`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`

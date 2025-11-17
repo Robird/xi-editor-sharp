@@ -140,11 +140,12 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `59c45336bace…` | Stage B（Delta）黄金串。 |
 | Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `8707d5de24e9…` | Stage C（Engine）黄金串。 |
 | Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c…` | `[MP-T1]` 用于 NodeCursor parity。 |
-| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `bd863f2237dd…` | `[MP-T3]` Chunk/Line 诊断样本。 |
-| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `a2b84031c5aa…` | `[MP-T4]` Grapheme fallback 遥测。 |
+| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `52aa448cf565…` | `[MP-T3]` Chunk/Line 诊断样本。 |
+| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `109d57d39b83…` | `[MP-T4]` Grapheme fallback 遥测。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
+| TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
-> 最新一次 `stage-d-fixtures`（`python scripts/refresh_all_assets.py --only stage-d-fixtures`，2025-11-17）生成的 `fixtures.manifest.json` 记录：`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，并确认 chunk/cursor/grapheme 描述符分别导出 20/11/668 条样本。
+> 最新一次 `stage-d-fixtures`（`python scripts/refresh_all_assets.py --only stage-d-fixtures`，2025-11-17）生成的 `fixtures.manifest.json` 记录：`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、`feature_gates=["serde","tree_builder_slice_trace"]`，并确认 tree builder slice trace 3 条、chunk/cursor/grapheme 描述符 20/11/668 条样本。
 
 > `StageDDescriptorLoader` 现已成为 ingestion 的默认实现（参见 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）；QA/Stage D 工具在引用 `[StageD::ParityAssets]` 时，应先通过 loader 或 `dotnet test --filter StageDDescriptorLoaderTests` 读取 manifest，再将返回的 `StageDDescriptorManifest` 注入 ChunkBench、CLI parity 或 Telemetry 脚本。
 
@@ -159,7 +160,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | --- | --- | --- | --- |
 | `serde` | ✅（运行 Stage D 必须） | 启用所有 JSON 导出路径 | 关闭时 exporter 无法生成任何资产。 |
 | `cursor_state` | ⛔ | 调试游标失效，扩充 descriptor payload | 仅在 `[MP-R8]` 调试时开启，并在 `[Fixture-FeatureGates]` 记录。 |
-| `tree_builder_slice_trace` | ⛔ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace`，供 `TreeBuilder` 研究。 |
+| `tree_builder_slice_trace` | ⛔ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/`（通过 `-ExportTreeTrace` 启用），供 `TreeBuilder` 研究与 loader parity。 |
 
 开启额外 gate 时，需：
 

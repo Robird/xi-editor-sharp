@@ -1,6 +1,6 @@
 # Parity Fixture Schema for `export-serde-fixtures`
 
-> **Scope**: Track the JSON schemas consumed by Stage D parity assets (`cursor`, `chunk/line`, `grapheme`).
+> **Scope**: Track the JSON schemas consumed by Stage D parity assets（`subset/delta/engine` baselines、`cursor`、`chunk/line`、`grapheme`、`tree_builder_slice_trace`）。
 > **Owner**: Rust Porter · QA Engineer
 > **Update Frequency**: After every CLI/schema tweak or Stage D export script change.
 > **Reviewers**: AI Architect · Architecture Mapper · C# Implementer
@@ -24,7 +24,7 @@
 | --- | --- | --- | --- |
 | `serde` | ❌（必显式开启） | 启用 JSON 序列化 helper、导出二进制与所有 parity 结构 | **所有** schema 必需 |
 | `cursor_state` | ❌ | 在 `CursorDescriptor` 导出期间捕获更丰富的调试快照，字段保持兼容 | 仅在调试游标失效时开启 |
-| `tree_builder_slice_trace` | ❌ | 启用 `--tree-builder-trace`（与 parity 资产共用 exporter，可并行生成 slice trace） | 与 parity schema 解耦，仅记录在 Stage D 附录 |
+| `tree_builder_slice_trace` | ❌ | 启用 `--tree-builder-trace`（与 parity 资产共用 exporter，可并行生成 slice trace） | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/` 并在 manifest 中登记 `tree_builder_slice_trace@1.0.0` |
 
 **组合命令（刷新全部 parity 资产）**
 
@@ -63,6 +63,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 | `cursor_descriptors.json` | `cursor_descriptors@1.1.0` | 同 `[StageD::ParityAssets]` 版本列。 |
 | `chunk_descriptors.json` | `chunk_descriptors@1.0.0` | count = chunk + line。 |
 | `grapheme_descriptors.json` | `grapheme_descriptors@1.0.0` | count = descriptor 数。 |
+| `tree_builder_slice/*.json` | `tree_builder_slice_trace@1.0.0` | count = 事件条目，记录 `TreeBuilder` push/pop/merge trace。 |
 
 - **哈希规则**：
   1. 读取导出的 JSON，解析为 `serde_json::Value`。
@@ -199,6 +200,43 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 | `sample` | string | ✅ | `grapheme_samples()` 中的 ID |
 | `cluster_index` | integer | ✅ | 0-based cluster 序号 |
 | `cluster` | string | ✅ | 完整 grapheme 文本 |
+
+---
+
+## [Fixture-TreeBuilderTrace] Tree Builder Slice Trace Schema
+<a id="Fixture-TreeBuilderTrace"></a>
+
+- **目录**：`tests/xi.Core.Tests/Fixtures/tree_builder_slice/`
+- **导出 flag**：`--tree-builder-trace <dir>`（需 `--features serde,tree_builder_slice_trace`，`scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 已封装）
+- **结构概览**：
+  - Manifest 版（默认）：JSON **数组**，每个元素为 Rust `TreeBuilderEvent` 序列化结果。
+  - 研究版：对象形式，包含 `metadata`（可选）与 `events[]`，如 `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json`。
+
+**TreeBuilderSliceTraceEvent**（数组元素 / `events[]` 项）
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `kind` | 对象 | Serde enum payload，含 `kind`（`"PushFrame"`, `"ExtendFrame"`, `"LeafSlice"`, `"EnterChild"`, `"MergePop"`）以及该 variant 的附加字段。未来会在 Rust 端展开为扁平字段，C# loader 目前会在读取时做展平。 |
+| `depth` | integer | 当前栈深度（0 = 根 frame）。 |
+| `node_height` | integer | 所指节点高度。 |
+| `node_len` | integer | 节点 Base 聚合长度。 |
+| `node_id` | integer | 调试用途的唯一 ID。 |
+| `reuse` | bool | `TreeBuilder` 是否复用了共享节点。 |
+| `interval` | `Range` | （LeafSlice）叶片内区间。 |
+| `merged_children` | integer | （MergePop）合并的子节点数量。 |
+| `requested` / `translated` | `Range` | （EnterChild）请求区间与实际命中区间。 |
+
+**范围结构**：`Range` = 对象 `{ "start": <int>, "end": <int> }`。
+
+**Metadata（对象模式）**
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `sample` / `sample_name` | string | Trace 名称（默认回退到文件名）。 |
+| `rust_commit` | string | 生成时 Git SHA。 |
+| `generated_at_unix_millis` | integer | UTC 时间戳。 |
+
+> Schema 目前仍是 Rust `TreeBuilderEvent` 的 serde 直接输出；`TreeBuilderSliceTraceLoader` 会兼容数组/对象两种包装，并在读取时将 `kind` payload 展平成 C# 诊断类型。待 `TreeBuilderTracer` 注入完成后，将按 `[TS-B2]` 的规划收集更长的 slice trace 并在 Stage D manifest 中登记。 
 | `byte_range` | `RangeSnapshot` | ✅ | Base 偏移 |
 | `utf16_range` | `RangeSnapshot` | ✅ | UTF-16 偏移 |
 | `scalar_count` | integer | ✅ | Unicode scalar 数量 |

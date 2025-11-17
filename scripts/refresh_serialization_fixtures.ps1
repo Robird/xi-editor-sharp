@@ -39,6 +39,7 @@ function Invoke-ExternalCommand {
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
+$ropeCrateRoot = Join-Path $rustRoot "rope"
 $runAllChecksBase = Join-Path $rustRoot "run_all_checks"
 $runAllChecksWindows = "$runAllChecksBase.ps1"
 $runAllChecks = if ($IsWindows -and (Test-Path $runAllChecksWindows)) {
@@ -58,6 +59,10 @@ if (-not $ManifestPath) {
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
+}
+
+if (-not (Test-Path $ropeCrateRoot)) {
+    throw "Missing xi-rope crate: $ropeCrateRoot"
 }
 
 if (-not (Test-Path $csharpFixturesDir)) {
@@ -87,14 +92,19 @@ if (-not $SkipRust) {
 }
 
 if (-not $SkipCopy) {
-    Push-Location $rustRoot
+    Push-Location $ropeCrateRoot
     try {
+        $featureList = "serde"
+        if ($ExportTreeTrace) {
+            $featureList = "serde,tree_builder_slice_trace"
+        }
+
         $arguments = @(
             "run",
             "-p",
             "xi-rope",
             "--features",
-            "serde",
+            $featureList,
             "--bin",
             "export-serde-fixtures",
             "--",
@@ -114,24 +124,16 @@ if (-not $SkipCopy) {
                 $graphemeFixturesDir
             )
         }
-        $manifestNote = " (manifest -> $ManifestPath)"
-        Invoke-ExternalCommand "rust: export-serde-fixtures$manifestNote" "cargo" $arguments
-
         if ($ExportTreeTrace) {
-            $treeArgs = @(
-                "run",
-                "-p",
-                "xi-rope",
-                "--features",
-                "serde,tree_builder_slice_trace",
-                "--bin",
-                "export-serde-fixtures",
-                "--",
-                "--tree-builder-trace",
-                $treeTraceDir
-            )
-            Invoke-ExternalCommand "rust: export-serde-fixtures (tree builder trace)" "cargo" $treeArgs
+            $arguments += @("--tree-builder-trace", $treeTraceDir)
         }
+
+        $manifestNote = " (manifest -> $ManifestPath"
+        if ($ExportTreeTrace) {
+            $manifestNote += ", tree trace -> $treeTraceDir"
+        }
+        $manifestNote += ")"
+        Invoke-ExternalCommand "rust: export-serde-fixtures$manifestNote" "cargo" $arguments
     }
     finally {
         Pop-Location
