@@ -87,6 +87,16 @@ impl<N: NodeInfo<L>, L: Leaf> Rope<N, L> {
     }
 }
 
+pub fn rebuild_text_for_tests<N, L>(
+    text: &str,
+) -> (SharedNode<N, L>, Option<TreeBuilderTrace>)
+where
+    N: NodeInfo<L>,
+    L: Leaf + From<String>,
+{
+    rebuild_from_text(text)
+}
+
 fn normalize_interval(interval: Interval, total_len: usize) -> (usize, usize) {
     let start = interval.start().min(total_len);
     let end = interval.end().min(total_len);

@@ -73,10 +73,14 @@ blocking-model/
 - `sample_deep_tree_rope(depth)` 可以产出 `TreeBuilderTrace` + cursor roundtrip，`tests/skeleton.rs` 在开启 `cursor_state` 与 `tree_builder_slice_trace` 时会断言 trace 非空，提供 Stage D 深树验证素材。
 - 该 fixture 仍需被 CLI/serde exporter 和 C# mini workspace 摄取，才能在 Stage D checklist 中形成“深树 ingestion” 步骤。
 
+### Trace CLI 交付
+- 新增 `trace_cli` feature 聚合 `tree_builder_slice_trace`、`serde`、`serde_json`，注册 `export-tree-builder-trace` bin，并让 `TreeBuilderTrace::to_json_string()` 可序列化事件；CLI `--text/--depth/--out` 路径分别通过 `rebuild_text_for_tests` 与 `sample_deep_tree_rope` 导出 JSON。
+- `tests/trace_cli.rs` 已验证 CLI 至少输出成对方括号，但尚未定义事件 schema/版本或提供 ingestion/校验脚本，`serde` 可选依赖的兼容矩阵也需要记录到风险/文档中。
+
 ### Stage D / CLI 串联待办
-- 将 `tree_builder_slice_trace` 输出串联到 Rust CLI/serde，明确事件 schema、chunk 限制与默认采样策略，并提供 C# parity 脚本。
-- 把 helpers 的 newline window、UTF-16 细节与 COW/incremental edit 的真实流程纳入 Stage D 任务，避免当前 flatten 重建掩盖性能或信息丢失风险。
-- 在 QA/文档侧新增“深树 roundtrip + trace 导出 + helper parity” 的联动检查，确保 Stage D 资产可直接支持主线 CLI 与 C# 端验证。
+- 在 `docs/architecture` 中落地 trace JSON schema + 版本策略、chunk 限制与采样约束，并提供导出/校验脚本，确保 CLI 输出可被追踪。
+- 把 CLI 输出串到 C#/QA ingestion：为 `sample_deep_tree_rope`、未来 Stage D fixture 设计刷新脚本与 parity 测试，避免只停留在文本重建。
+- 将 helpers newline window、真实 incremental edit/slice、serde feature 风险一起写入 Stage D checklist，形成“trace 导出 + helper parity + QA 断言” 的固定组合。
 
 ## SubAgent 指南
 - 召唤 AI 员工时，指示其先阅读 `agents/<role>.md` 与本文件，确认职责与上下文。
@@ -93,8 +97,8 @@ blocking-model/
 - [ ] 评估是否需要引入独立的 `agents/type-system-specialist.md` 来专职维护该 workspace。
 
 ## Backlog（新增）
-1. **串接 tree_builder_slice_trace 序列化 CLI**：在 mini workspace 先定义 `TreeBuilderTrace` 的 serde schema、导出命令与示例 JSON，再回写至 `xi-editor-ph7` CLI，Stage D 依赖该任务完成。
-2. **强化 helpers parity**：补充 newline window 诊断、UTF-16 多指标与 Breaks/Lines helper，让 Rust/C# 双端可引用相同常量/函数，并形成可回放的对拍测试。
-3. **深树 fixture ingestion**：把 `sample_deep_tree_rope` 输出的 trace/cursor JSON 纳入 CLI/QA/C#，建立“深树 roundtrip” baseline，并规划 fixture 刷新脚本。
-4. **真实 incremental edit/slice**：在 skeleton 里驱动 `Node::edit/SharedNode::make_mut`（或 stub），记录版本计数与 metrics delta，确保 Stage D 可观察 COW/缓存策略。
-5. **QA 联动脚本**：为 `cursor_state` + `tree_builder_slice_trace` 提供组合测试入口（PowerShell/pytest 均可），将结果写回 `AGENTS.md` 与主文档。
+1. **Trace JSON schema + CLI 脚本**：基于已交付的 `trace_cli`，在 `docs/architecture` 记录事件字段、版本策略、chunk 限制与示例 JSON，并提供导出/验证脚本，便于 Stage D/主仓沿用。
+2. **CLI ingestion + fixture 刷新**：让 `export-tree-builder-trace` 支持目录/批量导出，将 `sample_deep_tree_rope` 与后续 fixture 转成可被 C#/QA 摄入的资产，并规划刷新流程（含 PowerShell/Python 管道）。
+3. **真实 incremental edit/slice**：在 skeleton 里驱动 `Node::edit/SharedNode::make_mut`（或 stub），记录版本计数与 metrics delta，确保 Stage D 可观察 COW/缓存策略，而非单纯依赖 flatten 重建。
+4. **强化 helpers parity**：补充 newline window 诊断、UTF-16 多指标与 Breaks/Lines helper，让 Rust/C# 双端可引用相同常量/函数，并形成可回放的对拍测试。
+5. **QA 联动脚本**：为 `cursor_state` + `tree_builder_slice_trace` + `trace_cli` 组合提供自动化入口（PowerShell/pytest 均可），并把结果写回 `AGENTS.md` 与主文档，作为回归门禁。

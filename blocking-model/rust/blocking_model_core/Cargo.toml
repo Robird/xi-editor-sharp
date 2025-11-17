@@ -4,7 +4,21 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [features]
+default = []
 cursor_state = []
 tree_builder_slice_trace = []
+serde = ["dep:serde"]
+serde_json = ["serde", "dep:serde_json"]
+trace_cli = ["tree_builder_slice_trace", "serde_json"]
+
+[[bin]]
+name = "export-tree-builder-trace"
+path = "src/bin/export_tree_builder_trace.rs"
+required-features = ["trace_cli"]
+
+[dev-dependencies]
+assert_cmd = "2"

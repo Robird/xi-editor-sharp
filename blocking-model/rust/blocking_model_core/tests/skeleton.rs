@@ -84,6 +84,26 @@ fn deep_tree_sample_supports_cursor_roundtrip() {
     }
 }
 
+#[cfg(feature = "tree_builder_slice_trace")]
+#[test]
+fn tree_builder_trace_serializes_to_json_payload() {
+    if !cfg!(feature = "serde_json") {
+        eprintln!("serde_json feature disabled; skipping serialization test");
+        return;
+    }
+
+    #[cfg(feature = "serde_json")]
+    {
+        let (_rope, trace) = sample_deep_tree_rope(2);
+        let trace = trace.expect("trace missing under trace feature");
+        let json = trace
+            .to_json_string()
+            .expect("failed to serialize tree builder trace");
+        assert!(json.contains("PushLeaf"));
+        assert!(json.contains("BuildComplete"));
+    }
+}
+
 #[cfg(feature = "cursor_state")]
 #[test]
 fn cursor_state_roundtrip() {

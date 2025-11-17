@@ -106,6 +106,12 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - TreeBuilder Trace CLI & Serde Wiring
+- ✅ 在 `blocking_model_core/Cargo.toml` 中新增可选依赖 `serde`/`serde_json` 与 `trace_cli` feature，自动拉起 `tree_builder_slice_trace` 与序列化能力，并登记 `export-tree-builder-trace` 二进制（required-features）。
+- ✅ 为 `TreeBuilderEvent/TreeBuilderTrace` 加入 `serde::Serialize` 派生与 `TreeBuilderTrace::to_json_string()`，在 `rope.rs` 暴露 `rebuild_text_for_tests`，并实现 CLI（`src/bin/export_tree_builder_trace.rs`）支持 `--text/--depth/--out` 参数和 feature 检查。
+- ✅ 扩展 `tests/skeleton.rs` 与新增 `tests/trace_cli.rs`，覆盖 JSON 序列化与 CLI stdout 断言，确保 trace 行为仅随 feature 启用。
+- 🧪 执行 `cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core`、`cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core --features "cursor_state tree_builder_slice_trace"`、`cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core --features "trace_cli"`，验证默认/特性构建均通过。
+
 ### 2025-11-17 - Skeleton TreeBuilder Slice Trace & Rope Edit/Slice 改造
 - ✅ 抽离 `skeleton::helpers::string_leaf`，集中 `MIN_LEAF/MAX_LEAF/NEWLINE_WINDOW` 常量与 `split_for_insert/split_for_merge/count_utf16` 等函数；`SampleLeaf` 迁移到 helper，并实现 `From<String>/Into<String>` 以供 `Rope` 重建文本
 - ✅ 为 `TreeBuilderTracer` 加入 `tree_builder_slice_trace` feature gate，补充 `TreeBuilderTrace` 导出结构与 `TreeBuilder::set_tracer_enabled/export_trace` API，所有 trace 记录仅在 feature 打开时落地

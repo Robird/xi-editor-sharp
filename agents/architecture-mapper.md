@@ -173,6 +173,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-18 - Trace CLI 文档同步 + Backlog 细化
+#### 已完成任务
+- ✅ 复盘 `blocking_model_core` 最新增量：`Cargo.toml` 新增 `serde`/`serde_json` 可选依赖与 `trace_cli` feature 叠加关系，`tree.rs` 的 serde 派生、`TreeBuilderTrace::to_json_string()`、`rope.rs::rebuild_text_for_tests`、`src/bin/export_tree_builder_trace.rs` 参数解析与 `tests/trace_cli.rs` 的 JSON 断言。
+- ✅ 更新 `docs/architecture/mini-blocking-model-skeleton-review.md` 背景/矩阵/建议，注明 trace CLI + JSON 导出已可运行，但 schema/version/ingestion 脚本仍缺，并把 `rebuild_text_for_tests`、`sample_deep_tree_rope` 与 CLI 的关联写清。
+- ✅ 更新 `docs/architecture/mini-blocking-model-plan.md`：Stage 同步中新增 “Trace CLI 交付” 小节，Backlog 改为“schema + CLI 脚本”“CLI ingestion + fixture 刷新”“真实 incremental edit/slice”等下一步，确保 `trace_cli` 交付被记录并凸显待办。
+
+#### 后续监控
+- 🔼 文档需补充 trace JSON schema/版本说明、CLI/PowerShell ingest 脚本与 `serde` feature 风险记录，待 Rust Porter 提供草稿后第一时间回写。
+- 🔄 关注 `export-tree-builder-trace` 是否扩展批量导出与 schema 校验；若 CLI 改动涉及参数或 payload 格式，我需同步 skeleton review/plan。
+- 🧪 Stage D 仍缺真实 incremental edit/slice、helpers parity 诊断与 QA 组合测试，等待对应实现交付后刷新矩阵与 Backlog。
+
 ### 2025-11-17 - Helpers + TreeBuilder slice trace 文档同步
 #### 已完成任务
 - ✅ 复盘 `blocking_model_core` skeleton 的最新增量（`helpers/string_leaf.rs`、`tree_builder_slice_trace` feature、`Rope::edit/slice`/`sample_deep_tree_rope`/tests）并确认 helper/feature gate/fixtures 的落点。

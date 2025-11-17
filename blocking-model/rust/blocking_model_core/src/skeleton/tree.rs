@@ -255,6 +255,7 @@ impl<N: NodeInfo<L>, L: Leaf> Cursor<N, L> {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TreeBuilderEvent {
     PushLeaf {
@@ -274,6 +275,7 @@ pub enum TreeBuilderEvent {
     },
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TreeBuilderTrace {
     events: Vec<TreeBuilderEvent>,
@@ -290,6 +292,13 @@ impl TreeBuilderTrace {
 
     pub fn into_events(self) -> Vec<TreeBuilderEvent> {
         self.events
+    }
+}
+
+#[cfg(feature = "serde_json")]
+impl TreeBuilderTrace {
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self.events())
     }
 }
 
