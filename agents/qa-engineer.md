@@ -22,6 +22,9 @@ cadence:
 	fixture_refresh: Stage D 请求或 manifest/hash 漂移时立刻重跑
 ---
 
+## 最近完成
+- **2025-11-17**：Stage D loader smoke 自动化串联——`scripts/refresh_serialization_fixtures.ps1` 新增 `-SkipStageDLoaderTest`（默认执行 `StageDDescriptorLoaderTests`，即使 `-SkipDotnet` 亦会运行），`scripts/refresh_all_assets.py` 的 `stage-d-fixtures` 步骤描述/调用同步强调 “Export Rust fixtures + run Stage D loader smoke”，并在 Playbook `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 标注“刷新后默认运行 loader smoke、跳过需登记”，确保脚本、文档与 QA 控制面一致。
+
 ## 当前监控
 - **Stage D ingestion smoke `[QA-IngestionSmoke]`**：✅ 2025-11-17 本地完成 ingestion smoke；`python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`,`ensure_ascii=False`）取代手工 `sha256sum` 作为默认校验，必要时仍可逐条 hash 复核。`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` 通过；manifest 与 Playbook 哈希 `bd863f…/fe963d…/a2b840…` 保持一致。
 - **1 MB chunk benchmark `[QA-ChunkBench]`**：2025-11-17 rerun `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release --no-build`，输出 `ChunkCount=1,049`, `MaxChunkLength=1,000`, `TotalUtf16Chars=1,048,625`, `LineCount=8,389`；Chunk 12.62 ms（≈79 MiB/s 名义 / ≈159 MiB/s UTF-16），Line 14.99 ms（≈67 / 133 MiB/s）。吞吐未达 >200 MB/s 且缺少 <5 MB alloc 诊断，已在 Playbook + `m3-implementation-plan.md §5.3` 记档并将 anchor 标记 ⚠️。

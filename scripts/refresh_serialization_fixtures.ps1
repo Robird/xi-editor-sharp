@@ -2,10 +2,12 @@ param(
     [switch]$SkipRust,
     [switch]$SkipCopy,
     [switch]$SkipDotnet,
+    [Parameter(HelpMessage = "Skip the Stage D loader smoke (StageDDescriptorLoaderTests) step.")]
+    [switch]$SkipStageDLoaderTest,
     [switch]$DryRun,
     [switch]$Verbose,
     [switch]$ExportTreeTrace,
-    [switch]$ExportParityFixtures = $true,
+    [bool]$ExportParityFixtures = $true,
     [string]$ManifestPath
 )
 
@@ -138,6 +140,13 @@ if (-not $SkipCopy) {
 
 if (-not $SkipDotnet) {
     Invoke-ExternalCommand "dotnet: dotnet test Xi.Editor.sln" "dotnet" @("test", "Xi.Editor.sln")
+}
+
+if ($SkipStageDLoaderTest) {
+    Write-Host "Skipping Stage D loader smoke (StageDDescriptorLoaderTests)."
+}
+else {
+    Invoke-ExternalCommand "dotnet: Stage D loader smoke (StageDDescriptorLoaderTests)" "dotnet" @("test", "Xi.Editor.sln", "--filter", "StageDDescriptorLoaderTests")
 }
 
 Write-Host "All steps completed."

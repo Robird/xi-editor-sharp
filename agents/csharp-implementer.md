@@ -108,6 +108,18 @@ interfaces:
 
 ## 最近完成
 
+### 2025-11-17 - TreeBuilder Tracer Wiring + 单元测试
+**任务背景**：`[TS-B2]` 仍因 TreeBuilder tracer 未真正进执行路径而维持 ⚠️，需在 C# 端发出 push/merge/pop/build/reset 事件，才能后续与 Rust `tree_builder_slice_trace` 对拍。
+
+**关键输出**：
+1. ✅ `TreeBuilder` 现以 `PushLeaf`/`PushNode`/`MergeLeaf`/`MergeInternal`/`PopFrame`/`BuildCompleted`/`Reset` 事件驱动 `ITreeBuilderTracer`，仅在 `IsEnabled` 为真时计算 UTF-8 字节数与 32 字符 preview，避免无谓开销。
+2. ✅ `PushString` 直接调用新 `PushLeafSegment`，确保每个 leaf segment 只触发一次 `PushLeaf` 事件，不再经 `PushNode` 造成重复；`Merge*`/`PopStackNode`/`Reset` 均注入 stack depth/height/len 元数据。
+3. ✅ 新增 `TreeBuilderTracerTests`（`tests/xi.Core.Tests/Rope/Tree/TreeBuilderTracerTests.cs`）内建 `CapturingTreeBuilderTracer`，验证 `PushString`→`Build` 事件序列与 leaf preview/长度，`Reset` 事件 stack depth=0。
+
+**验证**：
+- `dotnet test Xi.Editor.sln -v m --filter TreeBuilderTracerTests`
+- `dotnet test Xi.Editor.sln -v m`
+
 ### 2025-11-17 - Stage D Descriptor Loader + 单元测试
 **任务背景**：`[TS-B3]`/`[StageD::ParityAssets]` 要求在 C# 端直接读取 manifest + chunk/grapheme JSON，以便 QA 验证 Rust exporter 产物；此前仅有 DTO，缺少真正的 loader，导致 Stage D QA 仍要回退到 Python/手工脚本。
 

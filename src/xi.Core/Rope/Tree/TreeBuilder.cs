@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Xi.Core.Rope.Tree;
 
@@ -9,6 +10,8 @@ namespace Xi.Core.Rope.Tree;
 public sealed class TreeBuilder
 {
     private readonly List<List<Node>> _stack = new();
+    private const int LeafPreviewLimit = 32;
+    private static readonly UTF8Encoding Utf8NoBomEncoding = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
     /// <summary>
     /// TODO(TS-B2): Replace the no-op tracer with a Stage&nbsp;D slice trace once Rust/C# manifests align.
     /// </summary>
@@ -23,7 +26,7 @@ public sealed class TreeBuilder
 
         foreach (var segment in SplitIntoLeaves(text))
         {
-            PushNode(Node.FromLeaf(segment));
+            PushLeafSegment(segment);
         }
     }
 
@@ -50,12 +53,14 @@ public sealed class TreeBuilder
         }
 
         PushNodeInternal(node);
+        TraceNodeEvent(TreeBuilderEventKind.PushNode, node);
     }
 
     public Node Build()
     {
         if (_stack.Count == 0)
         {
+            TraceNodeEvent(TreeBuilderEventKind.BuildCompleted, Node.Empty, stackDepthOverride: 0);
             return Node.Empty;
         }
 
@@ -65,10 +70,32 @@ public sealed class TreeBuilder
             result = Node.Concat(PopStackNode(), result);
         }
 
+        TraceNodeEvent(TreeBuilderEventKind.BuildCompleted, result, stackDepthOverride: 0);
         return result;
     }
 
-    public void Reset() => _stack.Clear();
+    public void Reset()
+    {
+        _stack.Clear();
+        TraceNodeEvent(TreeBuilderEventKind.Reset, Node.Empty, stackDepthOverride: 0);
+    }
+
+    private void PushLeafSegment(string segment)
+    {
+        if (string.IsNullOrEmpty(segment))
+        {
+            return;
+        }
+
+        var leaf = Node.FromLeaf(segment);
+        if (leaf.IsEmpty)
+        {
+            return;
+        }
+
+        PushNodeInternal(leaf);
+        TraceNodeEvent(TreeBuilderEventKind.PushLeaf, leaf, segment);
+    }
 
     private void PushNodeInternal(Node node)
     {
@@ -136,10 +163,12 @@ public sealed class TreeBuilder
         var lastIndex = _stack.Count - 1;
         var frame = _stack[lastIndex];
         _stack.RemoveAt(lastIndex);
-        return frame.Count == 1 ? frame[0] : Node.FromNodes(frame);
+        var node = frame.Count == 1 ? frame[0] : Node.FromNodes(frame);
+        TraceNodeEvent(TreeBuilderEventKind.PopFrame, node);
+        return node;
     }
 
-    private static void MergeLeafIntoFrame(List<Node> frame, Node incoming)
+    private void MergeLeafIntoFrame(List<Node> frame, Node incoming)
     {
         if (frame.Count == 0)
         {
@@ -150,6 +179,8 @@ public sealed class TreeBuilder
         {
             throw new InvalidOperationException("Leaf merge requires a leaf node.");
         }
+
+        TraceNodeEvent(TreeBuilderEventKind.MergeLeaf, incoming);
 
         var baseIndex = frame.Count - 1;
         var baseLeaf = frame[baseIndex];
@@ -186,7 +217,7 @@ public sealed class TreeBuilder
         }
     }
 
-    private static void MergeInternalIntoFrame(List<Node> frame, Node incoming)
+    private void MergeInternalIntoFrame(List<Node> frame, Node incoming)
     {
         if (frame.Count == 0)
         {
@@ -197,6 +228,8 @@ public sealed class TreeBuilder
         {
             throw new InvalidOperationException("Internal merge requires non-leaf nodes.");
         }
+
+        TraceNodeEvent(TreeBuilderEventKind.MergeInternal, incoming);
 
         var lastIndex = frame.Count - 1;
         var last = frame[lastIndex];
@@ -246,5 +279,43 @@ public sealed class TreeBuilder
     private static IEnumerable<string> SplitIntoLeaves(string text)
     {
         return LeafSplitter.Split(text);
+    }
+
+    private void TraceNodeEvent(TreeBuilderEventKind kind, Node node, string? leafTextOverride = null, int? stackDepthOverride = null)
+    {
+        if (!Tracer.IsEnabled)
+        {
+            return;
+        }
+
+        var stackDepth = stackDepthOverride ?? _stack.Count;
+        var utf16Length = node.Info.Utf16Length;
+        var byteLength = utf16Length;
+        string? preview = null;
+
+        if (node.IsLeaf)
+        {
+            var text = leafTextOverride ?? node.GetLeaf() ?? string.Empty;
+            byteLength = text.Length == 0 ? 0 : Utf8NoBomEncoding.GetByteCount(text);
+            preview = CreateLeafPreview(text);
+        }
+
+        var traceEvent = new TreeBuilderEvent(kind, stackDepth, node.Height, byteLength, utf16Length, preview);
+        Tracer.Trace(traceEvent);
+    }
+
+    private static string? CreateLeafPreview(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        if (text.Length <= LeafPreviewLimit)
+        {
+            return text;
+        }
+
+        return text.AsSpan(0, LeafPreviewLimit).ToString();
     }
 }

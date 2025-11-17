@@ -4,7 +4,7 @@ namespace Xi.Core.Rope.Tree;
 
 /// <summary>
 /// Traces TreeBuilder activity so Stage&nbsp;D slice traces can correlate with C# events.
-/// TODO(TS-B2): hook this into <see cref="TreeBuilder"/> once the CLI trace is ready.
+/// Implementations can capture diagnostics when <see cref="Tree.TreeBuilder"/> raises lifecycle events.
 /// </summary>
 internal interface ITreeBuilderTracer
 {

@@ -24,7 +24,7 @@
 ## [StageD::FixtureFlow] Fixture 刷新流程
 <a id="StageD::FixtureFlow"></a>
 
-> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures` 步骤自动串入。
+> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动触发 `StageDDescriptorLoaderTests`（Stage D loader smoke），即使指定 `-SkipDotnet` 也会运行，只有在显式传入 `-SkipStageDLoaderTest` 时才会跳过。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader smoke”）自动串入。
 
 ### 1. 环境变量与分支
 
@@ -92,13 +92,13 @@ cd "$XI_EDITOR_SHARP_ROOT"
 
 ### 4. 使用 StageDDescriptorLoader 校验 manifest
 
-`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`。刷新 fixture 后立即运行：
+`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`。`scripts/refresh_serialization_fixtures.ps1` 会在流程末尾自动执行 `StageDDescriptorLoaderTests`；仅在需要隔离 exporter 问题或调试 dotnet 环境时，才使用 `-SkipStageDLoaderTest`。手动复核命令如下：
 
 ```bash
 dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests
 ```
 
-> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]` 与 payload 计数是否匹配（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。
+> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]` 与 payload 计数是否匹配（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。若出于调试目的跳过 smoke，QA 需在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录 `-SkipStageDLoaderTest` 的使用原因。
 
 ### 5. 差异审计与格式化
 
@@ -165,11 +165,11 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 
 | 步骤 | 命令 | 期望 |
 | --- | --- | --- |
-| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表。 |
+| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后会运行 `StageDDescriptorLoaderTests` 作为 loader smoke，除非显式传入 `-SkipStageDLoaderTest`。 |
 | 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出应与 `[StageD::ParityAssets]` 表一致；如不一致需重新导出或更新表。 |
-| Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；QA smoke 需缓存 `StageDDescriptorManifest` 并将其结果写到 `agents/qa-engineer.md`。 |
+| Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；脚本默认为 QA 运行该 smoke，如因调试跳过需补跑并在 `agents/qa-engineer.md` 说明。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
-| 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径，供下次对照。 |
+| 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest`，在两份档案中记录跳过理由与补偿动作。 |
 
 ---
 
