@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Xi.Core.Rope.Diagnostics.Descriptors;
 
@@ -11,18 +12,24 @@ internal sealed class ChunkDescriptor
 {
     public string Sample { get; set; } = string.Empty;
 
+    [JsonPropertyName("chunk_index")]
     public int ChunkIndex { get; set; }
 
     public string Text { get; set; } = string.Empty;
 
+    [JsonPropertyName("byte_range")]
     public DescriptorRange ByteRange { get; set; } = new();
 
+    [JsonPropertyName("utf16_range")]
     public DescriptorRange Utf16Range { get; set; } = new();
 
+    [JsonPropertyName("leaf_range")]
     public DescriptorRange LeafRange { get; set; } = new();
 
+    [JsonPropertyName("contains_crlf")]
     public bool ContainsCrlf { get; set; }
 
+    [JsonPropertyName("is_empty")]
     public bool IsEmpty { get; set; }
 
     public IList<string> Tags { get; set; } = new List<string>();

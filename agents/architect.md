@@ -114,12 +114,12 @@
     2. 与 QA/C# Implementer 制定 Chunk throughput 调优与 alloc telemetry方案（<5 MB counters、>200 MB/s 目标），并把计划写入 `design-divergence-log.md` 与 `[MP-R10]`。
     3. 与 Architecture Mapper 协调 Grapheme telemetry ingestion：补 `[QA-Telemetry]` 实测数据、在 Stage D Playbook 和 Goal Tree 中记录触发条件；必要时更新 `document-structure-template.md` 与 CLI trace 采集说明。
 - [推进中] 🧱 **Rust↔C# Skeleton Coverage**
-  - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；2025-11-17 C# Implementer 交付 `Tree/TreeBuilderTracer.cs` 与 `Rope/Diagnostics/Descriptors/*`，`rope-port-mapping.md#[RPM-Matrix]`、`type-system-migration-log.md#[TS-B2]/#[TS-B3]`、`design-divergence-log.md#[Div-Active]` 均已记录“C# 端骨架就绪、待 loader/trace 接线”的状态。
+  - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；C# Implementer 现已交付 `Tree/TreeBuilderTracer.cs`、`Rope/Diagnostics/Descriptors/*` 以及 `StageDDescriptorLoader` + 对应测试，`rope-port-mapping.md#[RPM-Matrix]`、`type-system-migration-log.md#[TS-B2]/#[TS-B3]`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]` 均记录 loader 状态与 manifest 依赖。
   - **目标**：把 skeleton 差异转化为 loader/Stage D 可执行 backlog，指导 C# Implementer/Rust Porter/QA 接力完成 manifest ingestion、slice trace replay 与 Breaks/Diff/Search 占位。
   - **下一步**：
-    1. 驱动 C# Implementer 实现 Stage D manifest loader + tracer注入（ `[TS-B2]`/`[TS-B3]`），并在 Stage D Playbook 展示 CLI→Loader→QA 的证据链。
-    2. 要求 QA Engineer 以 manifest loader 为入口刷新 `[QA-ChunkBench]`/`[QA-IngestionSmoke]`，记录 1 MB baseline + Grapheme telemetry，再把结果回写 `[RPM-Actions]`。
-    3. 持续推动 Rust Porter 提供 Breaks/Diff/Search skeleton/CLI 计划，让 Architecture Mapper 能在 `[TS-B5]` 和 `[RPM-Matrix]` 建立对应的 C# 占位与降级说明。
+    1. 协调 QA Engineer 把 `StageDDescriptorLoader`（或 `StageDDescriptorLoaderTests`）纳入 `[QA-IngestionSmoke]`/`[QA-ChunkBench]`，形成 CLI→Loader→QA 的闭环并记录 baseline/telemetry。
+    2. 推动 C# Implementer 完成 `TreeBuilderTracer` 注入与 slice trace replay，准备消费 Rust `tree_builder_slice_trace` 资产并输出 C# 端诊断。
+    3. 持续驱动 Rust Porter 提供 Breaks/Diff/Search skeleton/CLI 计划，让 Architecture Mapper 能在 `[TS-B5]` 和 `[RPM-Matrix]` 建立对应的 C# 占位与降级说明。
 
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。
@@ -165,6 +165,10 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
+### 2025-11-17（Stage D loader + 文档联动）
+- **子任务**：驱动 C# Implementer 交付 `StageDDescriptorLoader` + DTO 注解 + `StageDDescriptorLoaderTests`，确认 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` 与全量 `dotnet test -v m`（176/176）通过；并让 Architecture Mapper 更新 `[TS-B3]`、`[RPM-Matrix]/[RPM-Actions]`、Stage D Playbook 以反映 loader 就绪及后续 QA 接线。
+- **影响**：`[TS-B3]` 状态从 Skeleton 提升为“Implementation (awaiting QA wiring)”；Stage D Playbook `[StageD::FixtureFlow]/[StageD::ParityAssets]/[QA-IngestionSmoke]` 说明如何使用 loader 校验 manifest；下一步聚焦让 QA/Stage D CLI 直接消费该 API，并推进 `TreeBuilderTracer` 注入。
+- **风险/跟进**：尚需 QA ingestion 自动化与 slice trace replay 证据；待 Rust Porter 输出 Breaks/Diff/Search skeleton 时同步更新 `[TS-B5]`。
 ### 2025-11-17（白天）
 - **落地自动化刷新脚本 v1**：创建 `scripts/refresh_all_assets.py`，封装 Goal Tree 同步、Rust skeleton 刷新、`dotnet build Xi.Editor.sln`、`ilspycmd` 反编译与 `tools/Skeletonizer` 精简，提供 `--list/--only/--skip/--dry-run/--continue-on-error` 选项，默认一键跑完。
 - **验证**：在仓库根执行 `./scripts/refresh_all_assets.py`，完整跑通 5 步，确认会更新 `docs/architecture/port-blueprint.md`/`m3-implementation-plan.md` meta、`docs/skeleton/*.md`、`src/xi.Core/bin/Debug/net9.0/xi.Core.dll`，末尾 Skeletonizer 报告 316 个函数体被剥离。

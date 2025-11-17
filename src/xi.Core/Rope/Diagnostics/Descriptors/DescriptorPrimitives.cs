@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Xi.Core.Rope.Diagnostics.Descriptors;
 
@@ -32,12 +33,16 @@ internal sealed class DescriptorContext
 /// </summary>
 internal sealed class DescriptorNodePathEntry
 {
+    [JsonPropertyName("node_height")]
     public int NodeHeight { get; set; }
 
+    [JsonPropertyName("node_len")]
     public int NodeLength { get; set; }
 
+    [JsonPropertyName("child_index")]
     public int ChildIndex { get; set; }
 
+    [JsonPropertyName("child_offset")]
     public int ChildOffset { get; set; }
 }
 

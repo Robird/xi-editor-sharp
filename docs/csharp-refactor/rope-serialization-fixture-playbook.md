@@ -90,7 +90,17 @@ cd "$XI_EDITOR_SHARP_ROOT"
 
 > 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
 
-### 4. 差异审计与格式化
+### 4. 使用 StageDDescriptorLoader 校验 manifest
+
+`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`。刷新 fixture 后立即运行：
+
+```bash
+dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests
+```
+
+> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]` 与 payload 计数是否匹配（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。
+
+### 5. 差异审计与格式化
 
 ```powershell
 git status --short tests/xi.Core.Tests/Fixtures
@@ -101,7 +111,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 - 数值字段（`pos`, `len`, `priority`、`descriptor_count` 等）若出现大幅波动，需要回到 Rust helper 查证。
 - 空数组/可选字段应遵循 serde `skip_serializing_if` 约定，若 diff 中出现 `null` 字段，说明 Rust 端需要修复。
 
-### 5. 文档同步
+### 6. 文档同步
 
 刷新完成后务必更新：
 
@@ -126,6 +136,8 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
 
 > 最新一次 `stage-d-fixtures`（`python scripts/refresh_all_assets.py --only stage-d-fixtures`，2025-11-17）生成的 `fixtures.manifest.json` 记录：`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，并确认 chunk/cursor/grapheme 描述符分别导出 20/11/668 条样本。
+
+> `StageDDescriptorLoader` 现已成为 ingestion 的默认实现（参见 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）；QA/Stage D 工具在引用 `[StageD::ParityAssets]` 时，应先通过 loader 或 `dotnet test --filter StageDDescriptorLoaderTests` 读取 manifest，再将返回的 `StageDDescriptorManifest` 注入 ChunkBench、CLI parity 或 Telemetry 脚本。
 
 > 所有哈希采用 `sha256sum` 计算。刷新资产时需更新本表并在 PR 描述附带新旧哈希 diff，以便 QA 记录在 `[QA-IngestionSmoke]`。
 
@@ -155,6 +167,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | --- | --- | --- |
 | 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表。 |
 | 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出应与 `[StageD::ParityAssets]` 表一致；如不一致需重新导出或更新表。 |
+| Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；QA smoke 需缓存 `StageDDescriptorManifest` 并将其结果写到 `agents/qa-engineer.md`。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径，供下次对照。 |
 

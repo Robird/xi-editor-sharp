@@ -68,6 +68,7 @@ last_updated: 2025-11-17
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-19 – Stage D loader doc sync**：更新 `docs/architecture/type-system-migration-log.md#[TS-B3]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-Actions]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow][StageD::ParityAssets][QA-IngestionSmoke]`，记录 `StageDDescriptorLoader` + `StageDDescriptorLoaderTests` 已交付，并提示 QA/Stage D 流程下一步需调用 loader/manifest 校验（待与 QA 工程师对接接线 plan）。
 - **2025-11-17 – TreeBuilder tracer + descriptor 文档回写**：同步 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，记录 C# 端已新增 `TreeBuilderTracer` 骨架与 `Diagnostics/Descriptors/*` DTO，并将 `[RPM-Actions]`、`[TS-B2]`、`[TS-B3]` 的下一步聚焦在 loader/Stage D 接线 + QA 钩子验证。
 - **2025-11-17 – Stage D parity assets updated**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest (`rust_commit=7ac917a0`, `cli_rev=0.3.0`, `feature_gates=["serde"]`, cursor/chunk/grapheme hashes) 并在 `[RPM-ParityAssets]` 纪录“Manifest-backed”状态，同时同步 QA 的 `[QA-IngestionSmoke]` ✅ 结论与后续动作。
 - **2025-11-17 – Rope doc sync for G1/G2**：更新 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，写入 `_editVersion`/`CursorDescriptorParityTests` 证据、Stage D manifest (`fixtures.manifest.json`) 引用，以及 Chunk/Grapheme diagnostics + 1 MB baseline 降级策略。

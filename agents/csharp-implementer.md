@@ -108,6 +108,23 @@ interfaces:
 
 ## 最近完成
 
+### 2025-11-17 - Stage D Descriptor Loader + 单元测试
+**任务背景**：`[TS-B3]`/`[StageD::ParityAssets]` 要求在 C# 端直接读取 manifest + chunk/grapheme JSON，以便 QA 验证 Rust exporter 产物；此前仅有 DTO，缺少真正的 loader，导致 Stage D QA 仍要回退到 Python/手工脚本。
+
+**关键输出**：
+1. ✅ `StageDDescriptorLoader`（`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）同步解析 manifest/chunk/grapheme JSON，容错 line_descriptors 缺席，并对缺失文件/元数据给出易读异常。
+2. ✅ 为 `ChunkDescriptor`/`LineDescriptor`/`GraphemeDescriptor`/`DescriptorNodePathEntry` 添加 `JsonPropertyName` 映射，使用 `System.Text.Json` + `PropertyNameCaseInsensitive = true` 覆盖 snake_case 字段。
+3. ✅ 新增 `StageDDescriptorLoaderTests`（`tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`），直接读取 `Tests/Fixtures` 并断言 manifest metadata（rust_commit/cli_rev/counts）、chunk `emoji_cluster_block` 的 UTF-16 末尾、grapheme `zwj_family` ZWJ/fallback 标志。
+
+**验证**：
+- `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`
+- `dotnet test Xi.Editor.sln -v m`
+
+**后续建议**：
+- 1) 将该 loader 挂入 QA/Stage D CLI（`[StageD::FixtureFlow]`）脚本，自动对比 manifest/hash；
+- 2) 等 Rust Porter 提供 line-only 夹具后扩展 loader 以处理独立 `line_descriptors.json`；
+- 3) 把 Grapheme fallback 指标写到 `GraphemeNavigationMetrics`, 结合 loader 输出生成差异报告。
+
 ### 2025-11-17 - TreeBuilderTracer 骨架 + Stage D 描述符 DTO 落地
 **任务背景**：`[TS-B2]`/`[TS-B3]` 要求先补齐 C# 端骨架，才能把 Rust 导出的 `tree_builder_slice_trace` 与 chunk/line/grapheme 资产接到 Stage D CLI。
 

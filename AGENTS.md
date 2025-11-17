@@ -454,6 +454,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Stage D descriptor loader + 文档联动)
+- **实现落地**：委派 C# Implementer 在 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 建立 manifest/chunk/grapheme loader，并新增 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 读取真实夹具校验 metadata、`emoji_cluster_block` chunk 与 `zwj_family` grapheme；为 DTO 添增 `JsonPropertyName` 注解。`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` 及全量 `dotnet test Xi.Editor.sln -v m`（176/176 ✅）皆通过。
+- **文档同步**：Architecture Mapper 更新 `[TS-B3]`、`[RPM-Matrix]`/`[RPM-Actions]` 与 Stage D Playbook `[StageD::FixtureFlow]/[StageD::ParityAssets]/[QA-IngestionSmoke]`，说明 loader 现可直接消费 manifest，并记录下一步需把 QA smoke/Stage D CLI 接线到该 API。
+- **下一步**：驱动 QA Engineer 把 loader 纳入 `[QA-IngestionSmoke]` 自动化，联动 Stage D CLI/`refresh_all_assets.py`；后续推进 `TreeBuilderTracer` 注入与 slice trace replay，关闭 `[TS-B2]/[TS-B3]` 的剩余动作。
 ### 2025-11-17 (TreeBuilder tracer skeleton + Stage D descriptor DTO 回写)
 - **实现落地**：C# Implementer 增加 `Tree/TreeBuilderTracer.cs`（`TreeBuilderEventKind/Event/ITreeBuilderTracer/NoOpTreeBuilderTracer`）并在 `TreeBuilder` 注入占位属性，同时创建 `Rope/Diagnostics/Descriptors/*` DTO（Chunk/Line/Grapheme + manifest metadata），作为 `[TS-B2]`/`[TS-B3]` Skeleton Coverage 的 C# 端映射。
 - **验证**：执行 `dotnet test Xi.Editor.sln -v m`（173/173 ✅）确认新增文件未破坏基线；Architecture Mapper 将成果同步到 `rope-port-mapping.md#[RPM-Matrix]`/`[RPM-Actions]`、`type-system-migration-log.md#[TS-B2]/#[TS-B3]` 与 `design-divergence-log.md#[Div-Active]`。

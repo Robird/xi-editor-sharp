@@ -45,19 +45,21 @@
 	4. 在 Stage D 文档中补上 `_editVersion` → tracer → adapter 依赖图，避免 G6 merge 时追溯困难。
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
-- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出虽已写入 `fixtures.manifest.json`，但 C# 端仅新增 `Rope/Diagnostics/Descriptors/{ChunkDescriptor,LineDescriptor,GraphemeDescriptor,StageDDescriptorManifest}.cs` DTO，尚无 loader/QA 钩子把 JSON manifest hydrate 成对象，1 MB `ChunkBench` 基线依旧缺席。
-- **Rust Plan**: 通过 `iterator-facade-export.md` 评估 owned descriptor/visitor 输出，并在 `export-serde-fixtures` 添加 chunk/line flags。
-- **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并把 Rust JSON + manifest (`[Fixture-Manifest]`) 作为单一事实；新 DTO 只做“镜像”用途，下一步是实现 loader + manifest 绑定、把 1 MB 微基准挂到 `[QA-ChunkBench]`，并暴露 QA 钩子供 Stage D 使用。
-- **Status**: ⚠️ Watch — DTO 与 manifest 资产已就绪，但 loader、QA 钩子与 1 MB baseline 仍缺位。
+- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据；虽然 Rust `export-serde-fixtures` 已通过 `fixtures.manifest.json` 输出 chunk/line/grapheme 描述符，但 QA/Stage D 自动化尚未把这些资产回灌到 dotnet 流水线，1 MB `ChunkBench` 仍缺 baseline。 
+- **Rust Plan**: 继续依赖 manifest-backed exporter（见 `docs/rust-refactor/iterator-facade-export.md`）维持 chunk/line/grapheme 样本，并在 schema 变动时更新 `fixtures.manifest.json` 哈希供 C# loader 校验。
+- **C# Plan**: 新增 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`，使用 manifest (`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`) + `chunk_descriptors/grapheme_descriptors` JSON hydrate `StageDDescriptorManifest`，并由 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 覆盖 metadata/chunk/grapheme 映射；下一步是把 loader 输出暴露给 `[QA-ChunkBench]`、`[QA-IngestionSmoke]` 与 Stage D CLI 流程。
+- **Status**: 🟡 Implementation (awaiting QA wiring) — Loader + tests landed (manifest hash `bd863f2237dd…` for chunk, `a2b84031c5aa…` for grapheme, `rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`),但 QA smoke、Stage D CLI 仍未调用 loader，基准仍缺口。
 - **Links**:
 	- `docs/rust-refactor/iterator-facade-export.md`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 	- `tests/xi.Core.Tests/RopeChunkEnumeratorTests.cs`
+	- `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`
+	- `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`
 - **Next**:
-	1. 实现 `StageDDescriptorManifest` loader，将 `fixtures.manifest.json` hydrate 成 DTO 并暴露最小 QA API（供 `[QA-ChunkBench]`/`[QA-IngestionSmoke]`）。
-	2. QA 复跑 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release`，把 1 MB 指标写进 `[QA-ChunkBench]` 并同步到 `design-divergence-log.md`。
-	3. 将 loader/DTO 接入 chunk/grapheme diagnostics，把 Stage D manifest ingestion 结果写入 `[RPM-ParityAssets]` 与 `[Div-Active]` exit criteria。
-	4. 为 `ChunkDescriptor`/`LineDescriptor`/`GraphemeDescriptor` 添加 schema 版本守卫与 QA 钩子，确保 CLI schema 变更可通过测试暴露。
+	1. 将 `StageDDescriptorLoader` 接入 `[QA-IngestionSmoke]`（可直接运行 `dotnet test --filter StageDDescriptorLoaderTests` 或通过 QA 工具调用），并把结果回写到 `agents/qa-engineer.md`。
+	2. 在 Stage D CLI 流程中引用 loader（或其 manifest DTO）验证 chunk/line/grapheme 计数及哈希，然后再运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release` 记录 1 MB baseline 至 `[QA-ChunkBench]`。
+	3. 挂钩 chunk/grapheme diagnostics，使 Stage D manifest ingestion 结果写入 `[RPM-ParityAssets]`、`[Div-Active]` 和 `design-divergence-log.md`，并在 CLI schema 变更时加 schema 版本守卫。
+	4. 将 loader 作为 Stage D CLI/Litmus 的输入源，确保 `scripts/refresh_all_assets.py --only stage-d-fixtures` 产物每次刷新后自动运行 canonical hash diff并提醒 QA。
 
 ### [TS-B4] Grapheme 降级策略
 <a id="TS-B4"></a>
