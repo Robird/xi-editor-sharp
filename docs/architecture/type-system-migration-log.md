@@ -76,15 +76,27 @@
 
 ### [TS-B5] Breaks/Diff/Search 骨架缺口
 <a id="TS-B5"></a>
-- **Problem**: `breaks.rs`, `diff.rs`, `find.rs` 对应的 C# 目录、CLI schema、Stage D 资产均缺席，导致 G3/G4/G5 依赖无法落地。Skeleton Coverage 列表也证实：Rust 已有 `BreaksLeaf`、`BreaksInfo`、`BreakBuilder`、`DiffBuilder`、`Finder` 等类型，而 C# 连占位命名空间都未创建。
-- **Rust Plan**: 基于 `breaks-metrics-templating.md`, `iterator-facade-export.md`, `delta-subset-serialization.md` 输出新的 shim 与 CLI flag，确保 `export-serde-fixtures` 可导出 Breaks/Diff/Search 描述符。
-- **C# Plan**: 在 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 建骨架；把 CLI/fixture 规划写入 `[StageD::FixtureFlow]`，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` G3/G4 行追踪依赖。
-- **Status**: 🟥 Risk — 无骨架、无资产，已阻塞 G3/G4。
+- **Problem**: `rope/breaks.rs`, `rope/diff.rs`, `rope/find.rs`（含 `spans.rs`/`compare.rs`）在 Rust 侧已经提供 `BreaksLeaf/BreaksInfo/BreakBuilder`, `Diff` trait + `LineHashDiff/DiffBuilder`, `FindResult/CaseMatching/Spans<T>` 等类型，但 C# 没有对应目录、DTO、或测试，也没有任何 Stage D CLI flag/manifest entry 能导出 Breaks/Diff/Search 诊断数据。Goal Tree G3/G4/G5 依赖无法验证，Stage D/QA 亦缺乏证据链。
+- **Rust Plan**:
+	1. 用 `docs/rust-refactor/breaks-metrics-templating.md`, `docs/rust-refactor/iterator-facade-export.md`, `docs/rust-refactor/delta-subset-serialization.md` 中的类型清单，整理 `export-serde-fixtures` 拓展点，新增 `--breaks-descriptors`, `--diff-regions`, `--search-spans`（名称暂定）并写入 `fixtures.manifest.json`。
+	2. 为新资产定 schema（`breaks_descriptors@1.0.0`, `diff_regions@1.0.0`, `search_hits@1.0.0` 等），把字段定义同步到 `docs/architecture/fixtures/parity-fixture-schema.md`，并在 CLI 中沿用 chunk/grapheme 的 manifest 写入流程，保证 `[StageD::ParityAssets]` 能引用。
+	3. 更新 Stage D 文档脚本（`scripts/refresh_all_assets.py` + `scripts/refresh_serialization_fixtures.ps1`）以便一次性导出 Breaks/Diff/Search 资产，并在 `agents/rust-porter.md` 记录 refresh 步骤。
+- **C# Plan**:
+	1. 建立 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 目录，放置 `BreaksTree`, `BreakBuilder`, `LineHashDiff`, `DiffBuilder`, `Finder`, `SearchOptions`, `Spans<T>` 等骨架类型和对应 DTO，所有命名对齐 `[RPM-Matrix]`。
+	2. 扩展 `StageDDescriptorLoader` 或并列 loader，使其可读取新增的 manifest 节点（`breaks_descriptors`, `diff_regions`, `search_spans`）并暴露给 `tests/xi.Core.Tests` smoke；结果写回 `[QA-IngestionSmoke]`。
+	3. 为每个模块添加最小测试（Breaks 软换行、Diff fixture replay、Search regex smoke），并把 CLI 路径/Stage D 资产链接写进 `[StageD::FixtureFlow]`、`m3-implementation-plan.md` 的 QA 表。
+- **Status**: 🟥 Risk — 无骨架、无资产，已阻塞 G3/G4 并使 Stage D/QA anchor 失效。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
+	- `docs/rust-refactor/iterator-facade-export.md`
 	- `docs/rust-refactor/delta-subset-serialization.md`
-	- `docs/architecture/port-blueprint.md#bp-goaltree`
-- **Next**: 2025-11-26 前提交 Breaks shim 草案与 CLI 参数矩阵，并在 Stage D playbook 添加 refresh 步骤；若 CLI 延迟，升级 `[MP-R9]` 风险等级。同时在 `src/xi.Core/Rope/Breaks`、`src/xi.Core/Diff`、`src/xi.Core/Search` 建立骨架（namespace + TODO 类），并把“Rust-only”状态登记到 `[StageD::FixtureFlow]`/`[Design-Div]`，避免后续遗忘。
+	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
+	- `docs/architecture/design-divergence-log.md#div-active`
+- **Next**:
+	1. **2025-11-20 – CLI/manifest 草案**：Architecture Mapper + Rust Porter 将新 flag/schema 写入 `[StageD::FixtureFlow]`、`[StageD::ParityAssets]`，并在 `fixtures.manifest.json` 添加空占位（`count=0`, `status=pending`）以便 QA 可跟踪 hash。（Owner: Rust Porter）
+	2. **2025-11-22 – C# skeleton drop**：C# Implementer 建立 `Rope/Breaks`, `Diff`, `Search` 目录与 DTO/test stub，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 填写状态，提交对应 TODO 以提示 Stage D 依赖。（Owner: C# Implementer）
+	3. **2025-11-24 – Stage D smoke 扩展**：QA Engineer 把新资产接入 `StageDDescriptorLoaderTests` 与 `[QA-IngestionSmoke]` 报告，确认 `scripts/verify_fixture_manifest.py --update` 会校验新 hash，并在 `agents/qa-engineer.md` 登记结果。（Owner: QA）
+	4. **Fallback if CLI slips**：若 Rust CLI 无法在 11/24 前交付，Architecture Mapper 将 `[MP-R9]` 升级为高风险并在 `design-divergence-log.md` 挂出“Rust-only”提醒。
 
 ## [TS-Retired] Retired Blockers
 <a id="TS-Retired"></a>
