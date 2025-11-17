@@ -176,9 +176,9 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375` | `[MP-T1]` NodeCursor parity；manifest 记录 `count=11`。 |
 | Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `e62a4faa936a20b261b167ddbd2be3b4d3566f3099149b2be215fbfafeecd756` | `[MP-T3]` Chunk/Line 样本；`2025-11-18 稳定刷新` 已锁定 `count=20`，manifest 哈希与表格同步。 |
 | Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `c6b1721d29286f01e67d2b7491361c2636a6a6affcc9e15206fb31c2fa5d1f0e` | `[MP-T4]` Grapheme fallback 遥测；`2025-11-18 稳定刷新` 记录 `count=668`。 |
-| Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | `--breaks-descriptors`（Stage D exporter 默认传入） | `breaks_descriptors@1.0.0` | `ab2f746e2bdd945e69b0acf9cd275c068a5ba6546f52a820144244f3b0e6e22e` | 状态：已导出；`2025-11-18 稳定刷新` 首次纳入 manifest（`count=3`），无需额外 feature gate。 |
-| Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | `--diff-regions`（Stage D exporter 默认传入） | `diff_regions@1.0.0` | `8c400ea433b77d9aa4f7b0cb57cbbcd6d1b935d52ff7e61101ad7a8babac5076` | 状态：已导出；`2025-11-18 稳定刷新` 记下 `count=3`，CLI 默认包含 `--diff-regions`。 |
-| Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | `--search-spans`（Stage D exporter 默认传入） | `search_spans@1.0.0` | `ce068c5217d2c45d213609d538e5a30280d10559894ef81bb9692d75d23c3502` | 状态：已导出；`2025-11-18 稳定刷新` 记录 `count=3`，hash 供 Stage D Loader 校验。 |
+| Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | `--breaks-descriptors`（Stage D exporter 默认传入） | `breaks_descriptors@1.0.0` | `ab2f746e2bdd945e69b0acf9cd275c068a5ba6546f52a820144244f3b0e6e22e` | 状态：C# skeleton + smoke tests 已上线，用以在 Rust CLI 尚未写出真实 JSON/manifest 时覆盖 loader + 型骨架；待 exporter 落地后改回真实 ingestion。 |
+| Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | `--diff-regions`（Stage D exporter 默认传入） | `diff_regions@1.0.0` | `8c400ea433b77d9aa4f7b0cb57cbbcd6d1b935d52ff7e61101ad7a8babac5076` | 状态：C# skeleton + smoke tests 已上线，Rust exporter 写 manifest 前暂以 skeleton 维持监控，落地后切回 manifest backed ingestion。 |
+| Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | `--search-spans`（Stage D exporter 默认传入） | `search_spans@1.0.0` | `ce068c5217d2c45d213609d538e5a30280d10559894ef81bb9692d75d23c3502` | 状态：沿用 C# skeleton + smoke tests 进行守护，待 Rust exporter 输出并写入 manifest 后即可替换为真实 ingestion。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
 | TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
@@ -224,6 +224,16 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；脚本默认为 QA 运行该 smoke，如因调试跳过需补跑并在 `agents/qa-engineer.md` 说明。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest`，在两份档案中记录跳过理由与补偿动作。 |
+
+### Skeleton 备用路径
+
+当 Rust CLI 尚未导出 Breaks/Diff/Search JSON 时，可运行：
+
+```bash
+dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests"
+```
+
+该命令串联 loader smoke 与 C# skeleton 用例，确保 QA 仍能监控 Stage D Breaks/Diff/Search 链路。Rust exporter 一旦能写回 manifest，即用默认的 manifest diff + loader smoke 流程替换此备用方案。
 
 ---
 
