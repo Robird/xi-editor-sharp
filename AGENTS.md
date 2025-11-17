@@ -458,6 +458,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **信息采集**：激活 Information Researcher 梳理 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs` 中的 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme 类型，形成 Rust↔C# 对照清单并登记在 `agents/information-researcher.md`。
 - **文档更新**：在 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` 新增“Skeleton Coverage”列，逐行标记 Rust skeleton 现状与 C# 覆盖差距（TreeBuilderTracer、CursorDescriptor DTO、Breaks tree、Chunk/Grapheme exporter 等），为后续骨架映射方案提供单一事实来源。
 - **后续聚焦**：依据新列输出，准备为 C# Implementer 制定 Breaks/Chunk/Grapheme skeleton 接入计划，并将缺口同步至 `[TS-B2]`/`[TS-B3]`/`[TS-B5]`。 
+### 2025-11-17 (TS Blocker & Divergence Alignment)
+- **Blocker细化**：在 `docs/architecture/type-system-migration-log.md` 中为 `[TS-B2]/[TS-B3]/[TS-B5]` 补充 Skeleton Coverage 事实（TreeBuilderTracer、Chunk/Line DTO、Breaks/Diff/Search 目录），并新增“建骨架占位”“记录 Rust-only slice trace”等具体 next steps。
+- **降级登记**：`docs/architecture/design-divergence-log.md#[Div-Active]` 新增“TreeBuilder slice trace (Rust-only)”项，说明目前完全依赖 Rust exporter，并将 Stage D Playbook 作为解锁出口。
+- **成果**：Skeleton 缺口现在同时体现在 `[RPM-Matrix]`、`[TS-Bx]` 与 `[Div-*]`，后续 PDCA 可直接引用文档驱动行动。
 ### 2025-11-17 (Stage D ingestion smoke + Serialization filter)
 - **命令执行**：在仓库根依次运行 `find tests/xi.Core.Tests/Fixtures -name '*.json' -print0 | sort -z | xargs -0 sha256sum`（再用 `python - <<'PY' ... sort_keys=True, ensure_ascii=False` 复算 canonical SHA256）以及 `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization`，10/10 用例 2.5s 通过，hash 与 `fixtures.manifest.json`/`[StageD::ParityAssets]` 完全一致。
 - **QA 档案同步**：`agents/qa-engineer.md` 的“当前监控”“[QA-IngestionSmoke]”与“最近完成”记录此次 smoke，风险从“Blocked”降为“✅ Manifest-backed”，后续待办转向 `refresh_all_assets.py --only stage-d-fixtures` 的 canonical hash 自动化。

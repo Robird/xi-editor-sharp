@@ -30,7 +30,7 @@
 
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
-- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。
+- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。`[RPM-Matrix]` Skeleton Coverage 进一步指出：Rust 侧仍暴露 `TreeBuilderTracer`、`TreeBuilderEventKind` 与 `helpers/string_leaf.rs` 中的分裂 helper，而 C# 端连占位类型都没有，导致 Stage D slice trace 只能依赖 Rust CLI，MetricAdapter 也缺少调试信号。
 - **Rust Plan**: 依托 `convert_lines_from_bytes` 等 shim 以及 `docs/rust-refactor/breaks-metrics-templating.md` 的模板输出度量 helper，逐步补齐 `edit_*`/`Breaks` shim。
 - **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并记录到 `[StageD::FeatureGates]` 以便 CLI/fixture 同步。
 - **Status**: ⚠️ Watch — 设计已定稿且 `_editVersion` 为 adapter 铺路，但实现/文档尚未绑定 Stage D manifest，阻碍泛型切换。
@@ -43,10 +43,11 @@
 	1. 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
 	2. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`cursor_state` 记录），确保 CLI/manifest 可复现实验。
 	3. Call out `_editVersion` -> adapter 依赖图于 Stage D 文档，避免 G6 merge 时追溯困难。
+	4. 在 `src/xi.Core/Rope/Tree/` 建立 `TreeBuilderTracer`/`TreeBuilderEventKind`/`TreeBuilderEvent` 骨架（哪怕暂时抛出 `NotImplementedException`），并在 `[StageD::FixtureFlow]` 标注“Rust-only slice trace”降级，待 CLI trace 需要时可接线。
 
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
-- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出尚未写入 `fixtures.manifest.json`，1 MB `ChunkBench` 基线缺席。
+- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出尚未写入 `fixtures.manifest.json`，1 MB `ChunkBench` 基线缺席。Skeleton Coverage 显示 Rust 侧已具备 `ChunkIter`、`LinesRaw`、`ChunkDescriptor`/`LineDescriptor` 导出结构，而 C# 仍只有 diagnostics，没有 DTO/CLI 入口，导致 Stage D manifest 只能依赖 Rust。
 - **Rust Plan**: 通过 `iterator-facade-export.md` 评估 owned descriptor/visitor 输出，并在 `export-serde-fixtures` 添加 chunk/line flags。
 - **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并把 Rust JSON + manifest (`[Fixture-Manifest]`) 作为单一事实，一旦 CLI 稳定即把 1 MB 微基准挂到 `[QA-ChunkBench]`。
 - **Status**: ⚠️ Watch — 诊断与 telemetry 有数据，但 manifest 与 1 MB baseline 双双缺口。
@@ -58,6 +59,7 @@
 	1. Rust Porter 11/19 demo CLI 输出 -> Architecture Mapper 11/20 前将 `chunk_descriptors.json` 与 `fixtures.manifest.json` 写入 `[RPM-ParityAssets]`。
 	2. QA 复跑 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release`，把 1 MB 指标写进 `[QA-ChunkBench]` 并同步到 `design-divergence-log.md`。
 	3. Once manifest + baseline exist, C# 实现把 copy-on-read 降级策略更新到 `[Div-Active]` exit criteria。
+	4. 在 C# 侧补建 `ChunkDescriptor`/`LineDescriptor` DTO（可先放于 `Xi.Core.Rope.Diagnostics` 命名空间）并写明如何消费 Rust manifest，以免 CLI schema 更新时缺少编译期守卫。
 
 ### [TS-B4] Grapheme 降级策略
 <a id="TS-B4"></a>
@@ -72,7 +74,7 @@
 
 ### [TS-B5] Breaks/Diff/Search 骨架缺口
 <a id="TS-B5"></a>
-- **Problem**: `breaks.rs`, `diff.rs`, `find.rs` 对应的 C# 目录、CLI schema、Stage D 资产均缺席，导致 G3/G4/G5 依赖无法落地。
+- **Problem**: `breaks.rs`, `diff.rs`, `find.rs` 对应的 C# 目录、CLI schema、Stage D 资产均缺席，导致 G3/G4/G5 依赖无法落地。Skeleton Coverage 列表也证实：Rust 已有 `BreaksLeaf`、`BreaksInfo`、`BreakBuilder`、`DiffBuilder`、`Finder` 等类型，而 C# 连占位命名空间都未创建。
 - **Rust Plan**: 基于 `breaks-metrics-templating.md`, `iterator-facade-export.md`, `delta-subset-serialization.md` 输出新的 shim 与 CLI flag，确保 `export-serde-fixtures` 可导出 Breaks/Diff/Search 描述符。
 - **C# Plan**: 在 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 建骨架；把 CLI/fixture 规划写入 `[StageD::FixtureFlow]`，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` G3/G4 行追踪依赖。
 - **Status**: 🟥 Risk — 无骨架、无资产，已阻塞 G3/G4。
@@ -80,7 +82,7 @@
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/rust-refactor/delta-subset-serialization.md`
 	- `docs/architecture/port-blueprint.md#bp-goaltree`
-- **Next**: 2025-11-26 前提交 Breaks shim 草案与 CLI 参数矩阵，并在 Stage D playbook 添加 refresh 步骤；若 CLI 延迟，升级 `[MP-R9]` 风险等级。
+- **Next**: 2025-11-26 前提交 Breaks shim 草案与 CLI 参数矩阵，并在 Stage D playbook 添加 refresh 步骤；若 CLI 延迟，升级 `[MP-R9]` 风险等级。同时在 `src/xi.Core/Rope/Breaks`、`src/xi.Core/Diff`、`src/xi.Core/Search` 建立骨架（namespace + TODO 类），并把“Rust-only”状态登记到 `[StageD::FixtureFlow]`/`[Design-Div]`，避免后续遗忘。
 
 ## [TS-Retired] Retired Blockers
 <a id="TS-Retired"></a>
