@@ -7,3 +7,4 @@ edition = "2024"
 
 [features]
 cursor_state = []
+tree_builder_slice_trace = []

@@ -173,6 +173,17 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Helpers + TreeBuilder slice trace 文档同步
+#### 已完成任务
+- ✅ 复盘 `blocking_model_core` skeleton 的最新增量（`helpers/string_leaf.rs`、`tree_builder_slice_trace` feature、`Rope::edit/slice`/`sample_deep_tree_rope`/tests）并确认 helper/feature gate/fixtures 的落点。
+- ✅ 更新 `docs/architecture/mini-blocking-model-skeleton-review.md`：背景补充 helper + feature + 深树 fixture，矩阵同步 `Feature gate/helper`/`Rope API`/`TreeBuilder` 剩余差距，建议聚焦 CLI、真实 edit、helper parity、深树 ingestion 与 QA 联动。
+- ✅ 更新 `docs/architecture/mini-blocking-model-plan.md`：新增“阶段同步（2025-11-17）”描述 helper + feature gate + 深树 fixture 的完成度，并在 Backlog 中登记 tree_builder_slice_trace CLI、helper parity、深树 ingest、真实 incremental edit、QA 联动脚本等待办。
+
+#### 后续监控
+- 🔼 Rust Porter 需将 `tree_builder_slice_trace` trace 接到 CLI/serde exporter，并提供 schema/示例 JSON；完成后我将刷新 skeleton review 与计划中的状态与依赖。
+- 🔄 C# Implementer 需 ingest `sample_deep_tree_rope` fixture + trace，并在 Stage D 任务中串联真实 incremental edit/SharedNode COW；待代码落地后同步 `mini-blocking-model-plan.md` 与 `rope-port-mapping.md`。
+- 🧪 QA Engineer 要在启用 `cursor_state` + `tree_builder_slice_trace` 组合时扩充深树 roundtrip + helper 拆分断言，必要时提供 PowerShell/pytest 脚本以满足 Backlog #5。
+
 ### 2025-11-17 - Mini blocking model skeleton 增量同步
 #### 已完成任务
 - ✅ 复查 `blocking_model_core` skeleton（`metrics.rs/tree.rs/rope.rs/samples.rs/tests/skeleton.rs` + `Cargo.toml` feature）以确认 DefaultMetricProvider 转换、TreeBuilderTracer、`cursor_state` feature 测试的最新落点。

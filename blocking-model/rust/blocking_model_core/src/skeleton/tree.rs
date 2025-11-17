@@ -274,8 +274,28 @@ pub enum TreeBuilderEvent {
     },
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct TreeBuilderTrace {
+    events: Vec<TreeBuilderEvent>,
+}
+
+impl TreeBuilderTrace {
+    pub fn new(events: Vec<TreeBuilderEvent>) -> Self {
+        Self { events }
+    }
+
+    pub fn events(&self) -> &[TreeBuilderEvent] {
+        &self.events
+    }
+
+    pub fn into_events(self) -> Vec<TreeBuilderEvent> {
+        self.events
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct TreeBuilderTracer {
+    #[cfg(feature = "tree_builder_slice_trace")]
     events: Vec<TreeBuilderEvent>,
 }
 
@@ -285,15 +305,47 @@ impl TreeBuilderTracer {
     }
 
     pub fn record(&mut self, event: TreeBuilderEvent) {
-        self.events.push(event);
+        #[cfg(feature = "tree_builder_slice_trace")]
+        {
+            self.events.push(event);
+        }
+        #[cfg(not(feature = "tree_builder_slice_trace"))]
+        {
+            let _ = event;
+        }
     }
 
     pub fn events(&self) -> &[TreeBuilderEvent] {
-        &self.events
+        #[cfg(feature = "tree_builder_slice_trace")]
+        {
+            &self.events
+        }
+        #[cfg(not(feature = "tree_builder_slice_trace"))]
+        {
+            &[]
+        }
     }
 
     pub fn into_events(self) -> Vec<TreeBuilderEvent> {
-        self.events
+        #[cfg(feature = "tree_builder_slice_trace")]
+        {
+            self.events
+        }
+        #[cfg(not(feature = "tree_builder_slice_trace"))]
+        {
+            Vec::new()
+        }
+    }
+
+    pub fn export(&self) -> TreeBuilderTrace {
+        #[cfg(feature = "tree_builder_slice_trace")]
+        {
+            TreeBuilderTrace::new(self.events.clone())
+        }
+        #[cfg(not(feature = "tree_builder_slice_trace"))]
+        {
+            TreeBuilderTrace::default()
+        }
     }
 }
 
@@ -328,6 +380,7 @@ impl<N: NodeInfo<L>, L: Leaf> Cursor<N, L> {
 pub struct TreeBuilder<N: NodeInfo<L>, L: Leaf> {
     pending: Vec<Node<N, L>>,
     tracer: Option<TreeBuilderTracer>,
+    tracer_enabled: bool,
 }
 
 impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
@@ -335,6 +388,7 @@ impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
         Self {
             pending: Vec::new(),
             tracer: None,
+            tracer_enabled: cfg!(feature = "tree_builder_slice_trace"),
         }
     }
 
@@ -342,6 +396,7 @@ impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
         Self {
             pending: Vec::new(),
             tracer: Some(tracer),
+            tracer_enabled: cfg!(feature = "tree_builder_slice_trace"),
         }
     }
 
@@ -351,6 +406,14 @@ impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
 
     pub fn take_tracer(&mut self) -> Option<TreeBuilderTracer> {
         self.tracer.take()
+    }
+
+    pub fn set_tracer_enabled(&mut self, enabled: bool) {
+        self.tracer_enabled = enabled && cfg!(feature = "tree_builder_slice_trace");
+    }
+
+    pub fn export_trace(&self) -> Option<TreeBuilderTrace> {
+        self.tracer.as_ref().map(|tracer| tracer.export())
     }
 
     pub fn push_leaf(&mut self, leaf: L) {
@@ -400,8 +463,12 @@ impl<N: NodeInfo<L>, L: Leaf> TreeBuilder<N, L> {
     }
 
     fn record(&mut self, event: TreeBuilderEvent) {
-        if let Some(tracer) = self.tracer.as_mut() {
-            tracer.record(event);
+        if self.tracer_enabled {
+            if let Some(tracer) = self.tracer.as_mut() {
+                tracer.record(event);
+            }
+        } else {
+            let _ = event;
         }
     }
 }

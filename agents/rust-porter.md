@@ -106,6 +106,12 @@
 
 ## 最近完成的工作
 
+### 2025-11-17 - Skeleton TreeBuilder Slice Trace & Rope Edit/Slice 改造
+- ✅ 抽离 `skeleton::helpers::string_leaf`，集中 `MIN_LEAF/MAX_LEAF/NEWLINE_WINDOW` 常量与 `split_for_insert/split_for_merge/count_utf16` 等函数；`SampleLeaf` 迁移到 helper，并实现 `From<String>/Into<String>` 以供 `Rope` 重建文本
+- ✅ 为 `TreeBuilderTracer` 加入 `tree_builder_slice_trace` feature gate，补充 `TreeBuilderTrace` 导出结构与 `TreeBuilder::set_tracer_enabled/export_trace` API，所有 trace 记录仅在 feature 打开时落地
+- ✅ 改写 `Rope::edit/slice`，通过扁平化叶片 → helper 分片 → `TreeBuilder` 重建路径串起 `SharedNode/Cursor`，并新增深树样本 `sample_deep_tree_rope` 与更接近真实路径的测试
+- 🧪 执行 `cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core` 与 `cargo test --manifest-path blocking-model/rust/Cargo.toml -p blocking_model_core --features "cursor_state tree_builder_slice_trace"`，默认/特性开启均通过
+
 ### 2025-11-17 - Skeleton Metric/TreeBuilder/CursorState 路径连通加强版
 - ✅ 在 `blocking_model_core::skeleton` 中让 `DefaultMetricProvider` 默认实现串起 `Metric::measure/from_base_units/to_base_units`，同时扩展 `SampleNodeInfo`/`SampleLeaf` 保存 UTF-16 示例、`SampleRope` 样例经过 Base→Utf16→Base 的 roundtrip
 - ✅ 引入 `TreeBuilderEvent/TreeBuilderTracer`，`TreeBuilder::with_tracer/build_with_tracer` 记录 push/enter/build 事件，`Rope::edit/slice` 走 Builder → SharedNode → Cursor 转换，并在 `Cursor::restore/CursorState` 中模拟真实路径遍历

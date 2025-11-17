@@ -1,29 +1,30 @@
 # Mini Blocking Model Skeleton Review
 
 ## 背景
-- 依据 `docs/architecture/mini-blocking-model-plan.md`，`blocking-model/rust/blocking_model_core/src/skeleton` 仍以复刻 `xi-editor-ph7/rust/rope` 的类型关系与调用路径为目标，用最小 stub 验证 Cursor、GenericNode、Metric、Chunk 等阻塞点。
-- `metrics.rs` 中的 `DefaultMetricProvider::convert_*` 现已通过 `representative_leaf` 与 `Metric::measure` 建立最小 roundtrip，`tree.rs` 提供 `TreeBuilderTracer`/`TreeBuilderEvent`，`tests/skeleton.rs` 亦加入 `default_metric_provider_roundtrips_utf16_units`、`tree_builder_tracer_records_events` 与 `#[cfg(feature = "cursor_state")] cursor_state_roundtrip`，证实 tracer 与 `cursor_state` feature 均可用。
-- `Rope::edit/slice` 仍为占位逻辑，尚未对接真实叶片复制、`TreeBuilder` slice trace（`tree_builder_slice_trace` feature）、`helpers/string_leaf`、深树 fixture 以及 Cursor 恢复的版本计数；矩阵与建议需持续标记这些差距。
+- Mini workspace 仍以还原 `xi-editor-ph7/rust/rope` 的类型关系为目标，但 Rust Porter 已把 `helpers/string_leaf.rs` 并入 skeleton，提供 `MIN_LEAF`/`MAX_LEAF`/`NEWLINE_WINDOW`、UTF-16 计数与拆分策略，并让 `SampleLeaf`/`Rope`/tests 全量引用该 helper。
+- `blocking_model_core/Cargo.toml` 现在同时暴露 `cursor_state` 与 `tree_builder_slice_trace` feature；`TreeBuilderTracer` 只有在后者启用时才会记录/导出 `TreeBuilderTrace`，`tests/skeleton.rs::tree_builder_trace_export_respects_feature_gate` 用来验证 gate 行为。
+- `Rope::edit`/`slice` 改为 flatten 原树 → 归一化区间 → 使用 helpers 拆分文本 → 通过 `TreeBuilder` 重建并在启用 `tree_builder_slice_trace` 时收集事件，`rope_edit_rebuilds_text_with_helpers` 与 `rope_slice_returns_interval_contents` 已覆盖新版流程。
+- `sample_deep_tree_rope` 新增深层 fixture，结合 `deep_tree_sample_supports_cursor_roundtrip` 与 `cursor_state_roundtrip`（feature 开启）确保多层 descriptor/state 能复原，并在 trace feature 打开时附带非空事件。
 
 ## 组件矩阵
 | 组件/关系 | 状态 | 备注 |
 | --- | --- | --- |
-| Metric | Aligned | `Metric<N,L>` 与 `DefaultMetricProvider` 完整暴露，`convert_*` 现会通过 `representative_leaf`、`Metric::measure` 和 `SampleLeaf` stub 做 roundtrip；`tests/skeleton.rs::default_metric_provider_roundtrips_utf16_units` 可验证结构，但尚未覆盖多叶片拆分、Breaks/Lines shim。 |
-| Leaf | Aligned | `Leaf` trait 暴露 `len/is_ok_child/push_maybe_split` 并由 `SampleLeaf` 的字符串实现佐证拆分策略，后续仅需把 `helpers/string_leaf.rs` 的常量/诊断移植进来。 |
+| Metric | Aligned | `Metric<N,L>` 与 `DefaultMetricProvider` 已能通过 `representative_leaf` 和 helpers 的 UTF-16 计数完成 roundtrip，`default_metric_provider_roundtrips_utf16_units` 佐证结构；仍欠多叶片拆分、Breaks/Lines shim 与 CLI 对拍。 |
+| Leaf | Aligned | `Leaf` trait 现由 `SampleLeaf` + `helpers/string_leaf` 的 `MIN_LEAF/MAX_LEAF/NEWLINE_WINDOW` 驱动拆分与容量检查，UTF-16 计数也复用 helper；仍需把 newline window/诊断输出同步到 CLI。 |
 | Node | Partially aligned | `NodeBody/NodeVal/PathFrame` 与 `Node::from_leaf/from_children` 已齐全，但缺少 `edit/concat/ensure_unique` 入口，COW 写入与 metric 累积仍未在 skeleton 内被驱动。 |
 | SharedNode | Partially aligned | `Arc` 句柄、`clone_handle`、`ptr_eq` 已可复用，仍缺少 `make_mut` 与高度重算，导致 Cursor 恢复时只能读取静态 info。 |
-| TreeBuilder | Partially aligned | `TreeBuilderTracer`、`TreeBuilderEvent` 与 `TreeBuilder::with_tracer` 均就绪（`tests/skeleton.rs::tree_builder_tracer_records_events` 覆盖），但未接入 `tree_builder_slice_trace` feature、chunk 限制或 slice trace 导出。 |
-| Cursor | Aligned | `Cursor`、`CursorDescriptor` 与 `Cursor::restore` 现在会按 descriptor 路径逐层还原，并在 `cursor_state` feature 下注入 `CursorState` + roundtrip 测试，仍需后续扩展版本计数与 cache 失效检测。 |
-| Rope API | Partially aligned | `Rope::new/from_root/cursor/apply_descriptor/measure` 结构完整，`Rope::edit/slice` 已串上 `TreeBuilderTracer` 与 `DefaultMetricProvider` roundtrip，但仍只返回默认叶片、缺少真实 splice/slice 行为。 |
-| Feature gate/helper | Partially aligned | `blocking_model_core/Cargo.toml` 仅定义 `cursor_state` feature，TreeBuilder tracer 直接随构造暴露；`tree_builder_slice_trace` feature、`helpers/string_leaf`、metrics helper CLI 仍未移植到 mini workspace。 |
-| Fixtures | Aligned | `sample_rope`/`sample_rope_via_builder` 结合 `TreeBuilderTracer`、`sample_rope_via_builder` 内的 roundtrip 断言，已提供基础与 builder 路径样本，尚欠深树/多 metric fixture。 |
+| TreeBuilder | Partially aligned | `TreeBuilderTracer`、`TreeBuilderEvent`、`TreeBuilderTrace::export` 与 feature gate 均落地，`tree_builder_trace_export_respects_feature_gate` 验证默认关闭时不录制；仍缺 chunk 限制、slice trace CLI 导出与真实 rebalance。 |
+| Cursor | Aligned | `Cursor`、`CursorDescriptor`、`CursorState`（feature）在 `deep_tree_sample_supports_cursor_roundtrip`、`cursor_state_roundtrip` 中覆盖，证明 descriptor/state 可往返；仍需版本计数与缓存失效检测。 |
+| Rope API | Partially aligned | `Rope::edit/slice` 会 flatten 文本、标准化区间、复用 helpers 重切叶片并经 `TreeBuilder` 重建、在 trace feature 打开时消费事件，但仍未驱动真实 COW/metrics 累积或 chunk diagnostics。 |
+| Feature gate/helper | Partially aligned | Cargo 现包含 `cursor_state` + 默认关闭的 `tree_builder_slice_trace`，`helpers/string_leaf` 也已挂到所有 leaf/samples/tests；尚未把 trace 导出串到 CLI/serde，也缺 metrics helper CLI。 |
+| Fixtures | Aligned | `sample_rope`/`sample_rope_via_builder` 覆盖基础与 builder 场景，`sample_deep_tree_rope` 补上多层 fixture 并在 trace feature 打开时带事件；仍需多 metric/多 feature（helpers parity）样本给 CLI/QA 食用。 |
 
 ## 建议
-1. **补齐真实 edit/slice 行为**：在 `blocking_model_core/src/skeleton/rope.rs` 内让 `Rope::edit/slice` 复制 interval 内的实际叶片并驱动 `TreeBuilderTracer`，以便后续可以对 splice/slice 的 metric 结果做最小断言。
-2. **引入 helpers 模块**：把 `xi-editor-ph7/rust/rope/helpers/string_leaf.rs` 与 metrics helper shim 的常量迁入 mini workspace，并在 `SampleLeaf::push_maybe_split` 之外提供统一 helper，使 `DefaultMetricProvider` 能覆盖 break/line metric 的转换。
-3. **复刻 TreeBuilder slice trace**：新增 `tree_builder_slice_trace` feature gate，与 `TreeBuilderTracer` 对接 CLI/serde 输出，明确 chunk 限制与 EnterChild 样本生成流程，方便 C# 端共享事件序列。
-4. **扩展 cursor_state 覆盖**：在 `tests/skeleton.rs` 添加深树 fixture（多层 builder + descriptor）并在开启 `cursor_state` feature 时验证还原路径、版本计数与 `SharedNode::ptr_eq`；同时为 `sample_rope_via_builder` 增加多 metric 场景。
-5. **强化文档/测试协同**：待上述能力合入后，通知 QA 在 mini workspace 刷新 TreeBuilder/Metric/cursor_state 用例，并预留深树 fixture 以供 `docs/architecture/mini-blocking-model-plan.md` 下一次同步引用。
+1. **串接 TreeBuilder slice trace CLI**：把 `tree_builder_slice_trace` feature 录得的 `TreeBuilderTrace` 连接到 CLI/serde exporter，并定义默认输出 schema（含 chunk 限制与 EnterChild 样本），供 C#/QA ingestion。
+2. **实现真实 incremental edit/slice**：让 `Rope::edit/slice` 逐叶驱动 `Node::edit`/`SharedNode::make_mut`、按 COW 规则重建信息，同时记录 metrics delta，避免长文本 flatten 重建造成性能错判。
+3. **强化 helpers parity**：扩展 `helpers/string_leaf` 与 future metrics helper 的 newline window、UTF-16 累积、Breaks/Lines 诊断，确保常量/行为与 `xi-editor-ph7` 完全一致，并输出可比对数据给 CLI。
+4. **深树 fixture ingestion**：把 `sample_deep_tree_rope`（含 trace）挂进 mini CLI、C# tests 与 QA pipeline，建立 Stage D “deep tree roundtrip” checklist，以验证 cursor/export 组合。
+5. **QA 联动与特性矩阵**：在 QA 触发器中同时启用 `cursor_state` + `tree_builder_slice_trace`，补充 deep-tree roundtrip、helpers 拆分与 trace 空/非空断言，形成跨角色共享的判据。
 
 ## 验证方法
 - **静态检查**：在新增接口后运行 `cargo check -p blocking_model_core`，确保 skeleton trait 仍可独立编译；并用 `cargo test -p blocking_model_core skeleton` 保证样例覆盖基本类型协作。  
