@@ -40,6 +40,40 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 
 ---
 
+## [Fixture-Manifest] Manifest & Hash
+<a id="Fixture-Manifest"></a>
+
+- **命令**：`export-serde-fixtures` 始终带有 `--emit-manifest <path>`（默认为 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，可通过脚本参数或 CLI 覆盖）。刷新 parity 资产时请把 manifest 路径写入 `[StageD::FixtureFlow]` 日志，供 Goal Tree/QA 校验。
+- **结构**：
+
+| 字段 | 说明 |
+| --- | --- |
+| `rust_commit` | `git rev-parse HEAD` 的结果（`xi-editor-sharp` 仓库）。 |
+| `cli_rev` | `env!("CARGO_PKG_VERSION")`，标识 exporter 版本。 |
+| `feature_gates[]` | 本次 build 启用的 feature（`serde`、`cursor_state`、`tree_builder_slice_trace` 等），供 QA 复现。 |
+| `fixtures[]` | 每个输出 JSON 一条记录，包含：`name`（文件名）、`path`（相对 repo 路径）、`count`（样本数量，chunk 文件为 chunk+line 总数）、`schema_hash`（下表）、`payload_hash`（canonical JSON → SHA256）。 |
+
+- **schema_hash 对应表**：
+
+| Asset | schema_hash | 备注 |
+| --- | --- | --- |
+| `subset_regression.json` | `serde_fixtures::subset` | Stage A baseline，计数恒为 1。 |
+| `delta_regression.json` | `serde_fixtures::delta` | Stage B baseline。 |
+| `engine_regression.json` | `serde_fixtures::engine` | Stage C baseline。 |
+| `cursor_descriptors.json` | `cursor_descriptors@1.1.0` | 同 `[StageD::ParityAssets]` 版本列。 |
+| `chunk_descriptors.json` | `chunk_descriptors@1.0.0` | count = chunk + line。 |
+| `grapheme_descriptors.json` | `grapheme_descriptors@1.0.0` | count = descriptor 数。 |
+
+- **哈希规则**：
+  1. 读取导出的 JSON，解析为 `serde_json::Value`。
+  2. 对象字段按 key 排序，去除所有多余空白（canonical JSON），数组及标量保持原值。
+  3. 对 canonical 字符串取 `sha256` 并写入 `payload_hash`（小写十六进制）。
+  4. `schema_hash` 永远引用本节表格中的版本字符串，变更时须更新文档与 exporter 常量。
+
+> QA 需在 `scripts/refresh_serialization_fixtures.ps1` 输出中记录 manifest 路径与 `feature_gates[]`，并把 `fixtures.manifest.json` 附在 Stage D MR/PR 里，Goal Tree 的 `[StageD::FixtureFlow]` 会据此同步 hash。
+
+---
+
 ## [Fixture-CursorSchema] Cursor Descriptor Schema
 <a id="Fixture-CursorSchema"></a>
 

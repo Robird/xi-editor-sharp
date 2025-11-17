@@ -13,13 +13,13 @@
 <a id="RPM-Matrix"></a>
 | Module | Rust Source | C# Target | Status | Notes |
 | --- | --- | --- | --- | --- |
-| Node / SharedNode / TreeBuilder | `rope/tree.rs` | `Tree/Node*.cs`, `TreeBuilder.cs`, `Tree/LeafSplitter.cs`, `Tree/StringLeafOperations.cs` | Implementing | SharedNode helpers + `_editVersion` shipped; remaining work is hooking `MetricAdapter` (`[TS-B2]`) before the M4 generic switch. |
-| Cursor stack | `rope/tree.rs::Cursor` | `Tree/NodeCursor.cs`, `tests/.../CursorDescriptorParityTests.cs` | Active | Version tickets + 11/11 JSON parity green; CLI schema + Stage D manifest pending `[TS-B1]`. |
+| Node / SharedNode / TreeBuilder | `rope/tree.rs` | `Tree/Node*.cs`, `TreeBuilder.cs`, `Tree/LeafSplitter.cs`, `Tree/StringLeafOperations.cs` | Implementing | SharedNode helpers + `_editVersion` shipped; remaining work is hooking `MetricAdapter` (`[TS-B2]`) before the M4 generic switch and mirroring the `NodeCursorState` docs in `[StageD::FixtureFlow]`. |
+| Cursor stack | `rope/tree.rs::Cursor` | `Tree/NodeCursor.cs`, `tests/.../CursorDescriptorParityTests.cs` | Active | `_editVersion` + invalidation probes are live and covered by `CursorDescriptorParityTests` (`dotnet test Xi.Editor.sln -v m` -> 169/169); exporter still needs to emit `cursor_descriptors.json` + `fixtures.manifest.json` via `[StageD::FixtureFlow]`/`[Fixture-Manifest]` so QA can lock `[TS-B1]`. |
 | Rope core & metrics | `rope/rope.rs` | `Rope.cs`, `RopeInfo.cs`, `Metrics.cs`, `IMetric.cs` | Implementing | `StringLeafOperations` + `BreaksMetricHelper` landed; conversion shim still mirrors Rust via `[MP-T1]`. |
 | Delta / Transformer | `rope/delta.rs` | `Rope/Delta*.cs` | Implementing | Stage B JSON parity lives in `[StageD::ParityAssets]`; `Transformer`/`factor` tracked under `[MP-T1]`. |
 | Engine / Undo ledger | `rope/engine.rs` | `Rope/Engine*.cs` | Done | Stage C fixtures frozen; no open TODO beyond perf tuning. |
-| Chunk + Line enumerators | `rope/rope.rs::ChunkIter`, `Lines*` | `RopeChunkEnumerator*.cs`, `RopeLineEnumerator*.cs`, diagnostics harness | Diagnostics only | Copy-on-read enumerators emit telemetry; awaiting `--chunk-descriptors` ingestion + `[QA-ChunkBench]` baseline (`[TS-B3]`). |
-| Grapheme navigation | `rope/rope.rs::GraphemeCursor` | `Navigation/DegradedGraphemeNavigator.cs`, `GraphemeNavigationMetrics.cs` | Degraded (monitor) | Surrogate-safe fallback accepted (see `[Div-Active]`); telemetry piped into `[QA-Telemetry]`. |
+| Chunk + Line enumerators | `rope/rope.rs::ChunkIter`, `Lines*` | `RopeChunkEnumerator*.cs`, `RopeLineEnumerator*.cs`, diagnostics harness | Diagnostics only | Copy-on-read enumerators + telemetry counters act as the downgrade plan; we wait for `export-serde-fixtures --chunk-descriptors --emit-manifest …/fixtures.manifest.json` so `[QA-ChunkBench]` can ingest the Stage D manifest (`[TS-B3]`, `[Fixture-Manifest]`). |
+| Grapheme navigation | `rope/rope.rs::GraphemeCursor` | `Navigation/DegradedGraphemeNavigator.cs`, `GraphemeNavigationMetrics.cs` | Degraded (monitor) | Surrogate-safe fallback accepted (see `[Div-Active]`); Grapheme descriptors remain manifest-backed via `[StageD::FixtureFlow]` and get policed by `[QA-Telemetry]`. |
 | Breaks tree bridge | `rope/breaks.rs` | `Rope/BreaksMetricHelper.cs` + planned `Rope/Breaks/` | TODO | Helper exists but tree integration + CLI schema live in `[TS-B5]`; no fixtures exported yet. |
 | Diff / Compare | `rope/diff.rs`, `rope/compare.rs` | Planned `src/xi.Core/Diff/` | Planned | Will unlock once G4 plan publishes; currently referenced only in `m3-implementation-plan.md` §1.7. |
 | Search / Spans | `rope/find.rs`, `rope/spans.rs` | Planned `src/xi.Core/Search/` | Planned | Depends on Diff+Cursor maturity; until then point consumers to Rust helpers.
@@ -30,11 +30,12 @@
 <a id="RPM-ParityAssets"></a>
 | Asset | Path | Status | Source / Notes |
 | --- | --- | --- | --- |
-| Serde baseline (Subset/Delta/Engine) | `tests/xi.Core.Tests/Fixtures/{subset,delta,engine}_serialization/` | ✅ Current | Refreshed via `scripts/refresh_serialization_fixtures.ps1`; manifests tracked under `[StageD::ParityAssets]`. |
-| Cursor descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/` | ⚠️ Awaiting CLI schema | Hand-authored JSON unblocks tests; replace with `export-serde-fixtures --cursor-descriptors` output once `[TS-B1]` closes. |
-| Chunk descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/` | ⚠️ Diagnostics only | Requires Rust CLI demo + `[QA-ChunkBench]` ingestion per `[TS-B3]`. |
-| Grapheme windows | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/` | ⚠️ Pending export | Stub directory only; telemetry relies on `GraphemeNavigationMetrics` until `[TS-B4]` finishes CLI work. |
-| Stage D scripts | `scripts/refresh_serialization_fixtures.ps1` | ⏳ Updates planned | Needs iterator façade flag wiring per G5 / `[StageD::FixtureFlow]`. |
+| Serde baseline (Subset/Delta/Engine) | `tests/xi.Core.Tests/Fixtures/{subset,delta,engine}_serialization/` | ✅ Current | Refreshed via `scripts/refresh_serialization_fixtures.ps1`; `dotnet test Xi.Editor.sln -v m` -> 169/169 gets attached to `[QA-IngestionSmoke]` whenever these change. |
+| Cursor descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/` | ⚠️ Awaiting CLI schema | Current JSON comes from `CursorDescriptorParityTests`; replace with `export-serde-fixtures --cursor-descriptors --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` once `[TS-B1]` lands (`[StageD::FixtureFlow]`). |
+| Chunk descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/` | ⚠️ Diagnostics only | Diagnostics rely on copy enumerators + telemetry; Stage D manifest entry (per `[Fixture-Manifest]`) is required before `[QA-ChunkBench]` logs the 1 MB baseline (`[TS-B3]`). |
+| Grapheme windows | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/` | ⚠️ Pending export | Telemetry funnels through `GraphemeNavigationMetrics`; need manifest-backed export to feed `[QA-Telemetry]` and retire degraded mode once `[TS-B4]` is resolved. |
+| Fixture manifest ledger | `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` | ⚠️ Missing cursor/chunk/grapheme entries | `[StageD::FixtureFlow]` now mandates this file; keep schema in sync with `[Fixture-Manifest]` so QA can trace CLI version + hashes. |
+| Stage D scripts | `scripts/refresh_serialization_fixtures.ps1` | ⏳ Updates planned | Needs iterator façade + manifest flag wiring per G5 / `[StageD::FixtureFlow]`. |
 
 ## [RPM-Actions] Open Actions
 <a id="RPM-Actions"></a>
@@ -59,6 +60,8 @@
 [Div-Active]: design-divergence-log.md#div-active
 [QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
 [QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
+[QA-IngestionSmoke]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-IngestionSmoke
 [StageD::ParityAssets]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::ParityAssets
 [StageD::FeatureGates]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FeatureGates
 [StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow
+[Fixture-Manifest]: fixtures/parity-fixture-schema.md#fixture-manifest

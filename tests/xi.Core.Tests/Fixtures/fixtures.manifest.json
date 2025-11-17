@@ -1,0 +1,16 @@
+{
+  "rust_commit": "2b56d8b2504dade067191502af1f3a71357423a7",
+  "cli_rev": "0.3.0",
+  "feature_gates": [
+    "serde"
+  ],
+  "fixtures": [
+    {
+      "name": "cursor_descriptors.json",
+      "path": "tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json",
+      "count": 11,
+      "schema_hash": "cursor_descriptors@1.1.0",
+      "payload_hash": "fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375"
+    }
+  ]
+}

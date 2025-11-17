@@ -75,13 +75,13 @@ cadence:
 5. **QA 介面**：QA 通过 manifest 中的 `schema_hash` + `payload_hash` 验证资产，并在 `tests/xi.Core.Tests/Fixtures/*` 中消费；若 hash mismatch，即触发 `StageD::FixtureFlow` 回归项。
 
 ## 最近完成
+- **2025-11-17 - Exporter Manifest + Hash**：`export-serde-fixtures` 支持 `--emit-manifest` 默认写入 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，完成 canonical JSON + sha256 策略并把结果写入 `scripts/refresh_serialization_fixtures.ps1`/`[Fixture-Manifest]`，Stage D 现在可用 manifest 校验 parity 资产。
 - **2025-11-17 - Rust Porter 档案刷新**：按 front-matter + Stage D 结构重写认知档案，补齐 CLI 扩展、feature gate、Stage D 接口与 manifest/hash 策略，确保单一事实来源。
 - **2025-11-17 - Stage D 文档模板精简评审**：定义 Goal Tree + Stage D anchors 保留字段与 CLI/feature gate 落点，提出 exporter manifest → 脚本写回 → anchor lint 三步闭环。
 - **2025-11-17 - Parity Fixture Schema Freeze & Wiring**：冻结 `--cursor|chunk|grapheme` schema，扩展 PowerShell 刷新脚本默认导出 parity 资产，并记录 CLI 示例与样本计数。
 - **2025-11-16 - Cursor Descriptor Fixture Exporter**：实现 `--cursor-descriptors` CLI、测试与 JSON schema，C# `CursorDescriptorParityTests` 已消费 11/11 样本。
 
 ## 待办 / 风险
-- [TODO] `export-serde-fixtures --emit-manifest`: 需实现 sha256 hash、feature gate 列表与 CLI 版本写回；脚本与 Goal Tree 靠此识别资产（紧急，Stage D D+2 截止）。
 - [TODO] `--cursor-descriptors` v2：参数化 `build_deep_rope`、注入 Breaks metric + 失效路径；依赖 Architecture Mapper 提供 schema 字段确认与样本目标数。
 - [TODO] `--chunk-descriptors`/`--grapheme-windows`/`--breaks-descriptors`: 完成 CLI + 测试 + manifest wiring；需 QA 提供 ingest 计划避免资产漂移。
 - [RISK] Iterator Façade：若 M2 内无法交付 visitor/Façade，将影响 C# chunk iterator 性能；需在 `StageD::FeatureGates.iterator_facade` 标注降级策略。

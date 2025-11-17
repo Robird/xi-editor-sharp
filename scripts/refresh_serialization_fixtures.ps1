@@ -5,7 +5,8 @@ param(
     [switch]$DryRun,
     [switch]$Verbose,
     [switch]$ExportTreeTrace,
-    [switch]$ExportParityFixtures = $true
+    [switch]$ExportParityFixtures = $true,
+    [string]$ManifestPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,6 +50,9 @@ $treeTraceDir = Join-Path $csharpFixturesDir "tree_builder_slice"
 $cursorFixturesDir = Join-Path $csharpFixturesDir "cursor_descriptors"
 $chunkFixturesDir = Join-Path $csharpFixturesDir "chunk_descriptors"
 $graphemeFixturesDir = Join-Path $csharpFixturesDir "grapheme_descriptors"
+if (-not $ManifestPath) {
+    $ManifestPath = Join-Path $csharpFixturesDir "fixtures.manifest.json"
+}
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -93,7 +97,9 @@ if (-not $SkipCopy) {
             "export-serde-fixtures",
             "--",
             "--dir",
-            $csharpFixturesDir
+            $csharpFixturesDir,
+            "--emit-manifest",
+            $ManifestPath
         )
 
         if ($ExportParityFixtures) {
@@ -106,7 +112,8 @@ if (-not $SkipCopy) {
                 $graphemeFixturesDir
             )
         }
-        Invoke-ExternalCommand "rust: export-serde-fixtures" "cargo" $arguments
+        $manifestNote = " (manifest -> $ManifestPath)"
+        Invoke-ExternalCommand "rust: export-serde-fixtures$manifestNote" "cargo" $arguments
 
         if ($ExportTreeTrace) {
             $treeArgs = @(

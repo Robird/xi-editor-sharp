@@ -14,39 +14,50 @@
 
 ### [TS-B1] Cursor 生命周期与 Descriptor 管道
 <a id="TS-B1"></a>
-- **Problem**: C# `NodeCursor` 仍依赖字符串特化实现，缺少可被 Stage D 工具消费的 `CursorDescriptor` schema；`_editVersion`/票据虽已上线但尚未写入 CLI/文档。
+- **Problem**: C# `NodeCursor` 现已改为 `_editVersion` + `ReferenceEquals` 判定，但缺少可被 Stage D 工具消费的 `CursorDescriptor` schema与 `NodeCursorState` 文档，CLI 亦未产出 manifest。
 - **Rust Plan**: 继续以 `CursorDescriptor` 为跨语言基线，并在需要时启用 `cursor_state` feature；由 `export-serde-fixtures --cursor-descriptors` 导出 10+ JSON 资产（见 `xi-editor-ph7` `cursor_descriptor.rs`）。
-- **C# Plan**: 复用版本票据 + `ReferenceEquals` 判定，巩固 `CursorDescriptorParityTests`，并将 schema/manifest 迁移到 `[StageD::ParityAssets]`；在 `rope-port-mapping.md` 标记状态并把 ingestion 步骤写入 Stage D playbook。
-- **Status**: ⚠️ Watch — 实现可测试，但 CLI/文档尚未锁定。
+- **C# Plan**: 复用 `_editVersion` 票据 + `CursorDescriptorParityTests`，把结果写入 `[RPM-Matrix]` 并持续运行 `dotnet test Xi.Editor.sln -v m`（169/169）；同时将 schema/manifest 迁移到 `[StageD::ParityAssets]` 并以 `[Fixture-Manifest]` 作为唯一事实。
+- **Status**: ⚠️ Watch — NodeCursor 可以测试且 parity 绿，但 CLI manifest 与 Stage D 文档尚未锁定。
 - **Links**:
 	- `docs/rust-refactor/CursorCache.md`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 	- `tests/xi.Core.Tests/CursorDescriptorParityTests.cs`
-- **Next**: 与 Rust Porter 在 2025-11-19 前冻结 CLI schema，随后更新 `[StageD::ParityAssets]`、`rope-port-mapping.md` 与 `m3-implementation-plan.md` 风险表，并 rerun `dotnet test -v m` 确认 11/11 parity 仍绿。
+	- `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` (`[Fixture-Manifest]`)
+- **Next**:
+	1. 与 Rust Porter 在 2025-11-19 前冻结 CLI schema，随后更新 `[StageD::ParityAssets]`、`rope-port-mapping.md` 与 `m3-implementation-plan.md` 风险表，并 rerun `dotnet test -v m` 确认 11/11 parity 仍绿。
+	2. Document `NodeCursorState` 在 `[StageD::FixtureFlow]` 中的触发点，使 CLI -> manifest 路径可复制。
+	3. Script `scripts/refresh_serialization_fixtures.ps1` to always pass `--emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。
 
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
 - **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。
 - **Rust Plan**: 依托 `convert_lines_from_bytes` 等 shim 以及 `docs/rust-refactor/breaks-metrics-templating.md` 的模板输出度量 helper，逐步补齐 `edit_*`/`Breaks` shim。
 - **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并记录到 `[StageD::FeatureGates]` 以便 CLI/fixture 同步。
-- **Status**: ⚠️ Watch — 设计已定稿但尚未编码，仍阻碍泛型切换。
+- **Status**: ⚠️ Watch — 设计已定稿且 `_editVersion` 为 adapter 铺路，但实现/文档尚未绑定 Stage D manifest，阻碍泛型切换。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/csharp-refactor/node-generic-refactor-plan.md`
 	- `tests/xi.Core.Tests/GenericNodeInterfaceTests.cs`
-- **Next**: 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
+	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
+- **Next**:
+	1. 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
+	2. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`cursor_state` 记录），确保 CLI/manifest 可复现实验。
+	3. Call out `_editVersion` -> adapter 依赖图于 Stage D 文档，避免 G6 merge 时追溯困难。
 
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
-- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 尚未被 C# 摄入，缺失 1 MB `ChunkBench` 基线。
+- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出尚未写入 `fixtures.manifest.json`，1 MB `ChunkBench` 基线缺席。
 - **Rust Plan**: 通过 `iterator-facade-export.md` 评估 owned descriptor/visitor 输出，并在 `export-serde-fixtures` 添加 chunk/line flags。
-- **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并准备摄入 Rust JSON，一旦 CLI 稳定即把微基准挂到 `[QA-ChunkBench]`。
-- **Status**: ⚠️ Watch — 诊断已可观测，但资产与基准仍缺口。
+- **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并把 Rust JSON + manifest (`[Fixture-Manifest]`) 作为单一事实，一旦 CLI 稳定即把 1 MB 微基准挂到 `[QA-ChunkBench]`。
+- **Status**: ⚠️ Watch — 诊断与 telemetry 有数据，但 manifest 与 1 MB baseline 双双缺口。
 - **Links**:
 	- `docs/rust-refactor/iterator-facade-export.md`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 	- `tests/xi.Core.Tests/RopeChunkEnumeratorTests.cs`
-- **Next**: Rust Porter 11/19 demo CLI 输出 → Architecture Mapper 11/20 前更新 `[StageD::FixtureFlow]` 与 `rope-port-mapping.md`，QA 复跑 `1MB` 基准并写入 `[QA-ChunkBench]` 注记。
+- **Next**:
+	1. Rust Porter 11/19 demo CLI 输出 -> Architecture Mapper 11/20 前将 `chunk_descriptors.json` 与 `fixtures.manifest.json` 写入 `[RPM-ParityAssets]`。
+	2. QA 复跑 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release`，把 1 MB 指标写进 `[QA-ChunkBench]` 并同步到 `design-divergence-log.md`。
+	3. Once manifest + baseline exist, C# 实现把 copy-on-read 降级策略更新到 `[Div-Active]` exit criteria。
 
 ### [TS-B4] Grapheme 降级策略
 <a id="TS-B4"></a>
@@ -84,4 +95,5 @@
 [StageD::FixtureFlow]: ../csharp-refactor/rope-serialization-fixture-playbook.md#StageD::FixtureFlow
 [QA-ChunkBench]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-ChunkBench
 [QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
+[Fixture-Manifest]: fixtures/parity-fixture-schema.md#fixture-manifest
 [MP-R9]: m3-implementation-plan.md#r9

@@ -57,7 +57,10 @@ Set-Location "$env:XI_EDITOR_SHARP_ROOT"
 ./scripts/refresh_serialization_fixtures.ps1 -Verbose `
   -ExportParityFixtures:$true `
   -ExtraCargoFeatures "serde"        # 追加 `cursor_state` 或 `tree_builder_slice_trace` 以收集诊断
+  -ManifestPath "tests/xi.Core.Tests/Fixtures/fixtures.manifest.json"
 ```
+
+> Manifest：脚本默认把 `--emit-manifest <path>` 传给 exporter，并将路径记入日志；不传 `-ManifestPath` 时会写入 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。刷新后应在 `[Fixture-Manifest]` 所述位置看到新的 `rust_commit` 与哈希。
 
 **手动命令（Windows PowerShell）**
 
@@ -67,7 +70,8 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
   --dir tests/xi.Core.Tests/Fixtures `
   --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors `
   --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors `
-  --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors
+  --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors `
+  --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 Set-Location "$env:XI_EDITOR_SHARP_ROOT"
 ```
 
@@ -79,11 +83,12 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures \
   --dir tests/xi.Core.Tests/Fixtures \
   --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors \
   --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors \
-  --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors
+  --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors \
+  --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 cd "$XI_EDITOR_SHARP_ROOT"
 ```
 
-> 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因。
+> 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
 
 ### 4. 差异审计与格式化
 
