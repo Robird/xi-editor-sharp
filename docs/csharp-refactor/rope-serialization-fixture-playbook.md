@@ -117,13 +117,15 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 
 | Asset | Path | Export Flag | Schema / Version | SHA256 (2025-11-19) | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| Subset Regression | `tests/xi.Core.Tests/Fixtures/subset_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::subset` | `88c815d87b7f…` | Stage A（Subset）黄金串，回归测试直接消费。 |
-| Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `d23af6d6bcd3…` | Stage B（Delta）黄金串。 |
-| Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `e08196711c79…` | Stage C（Engine）黄金串。 |
-| Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `2a6a076efaf8…` | `[MP-T1]` 用于 NodeCursor parity。 |
-| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `12267b734ca6…` | `[MP-T3]` Chunk/Line 诊断样本。 |
-| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `a56d6e2489d4…` | `[MP-T4]` Grapheme fallback 遥测。 |
+| Subset Regression | `tests/xi.Core.Tests/Fixtures/subset_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::subset` | `28fa3c807f83…` | Stage A（Subset）黄金串，回归测试直接消费。 |
+| Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `59c45336bace…` | Stage B（Delta）黄金串。 |
+| Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `8707d5de24e9…` | Stage C（Engine）黄金串。 |
+| Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c…` | `[MP-T1]` 用于 NodeCursor parity。 |
+| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `bd863f2237dd…` | `[MP-T3]` Chunk/Line 诊断样本。 |
+| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `a2b84031c5aa…` | `[MP-T4]` Grapheme fallback 遥测。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
+
+> 最新一次 `stage-d-fixtures`（`python scripts/refresh_all_assets.py --only stage-d-fixtures`，2025-11-17）生成的 `fixtures.manifest.json` 记录：`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，并确认 chunk/cursor/grapheme 描述符分别导出 20/11/668 条样本。
 
 > 所有哈希采用 `sha256sum` 计算。刷新资产时需更新本表并在 PR 描述附带新旧哈希 diff，以便 QA 记录在 `[QA-IngestionSmoke]`。
 

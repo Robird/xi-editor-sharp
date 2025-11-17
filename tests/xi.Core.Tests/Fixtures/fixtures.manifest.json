@@ -1,16 +1,51 @@
 {
-  "rust_commit": "2b56d8b2504dade067191502af1f3a71357423a7",
+  "rust_commit": "7ac917a05be4bb526844d5cdaa842030411800e5",
   "cli_rev": "0.3.0",
   "feature_gates": [
     "serde"
   ],
   "fixtures": [
     {
+      "name": "chunk_descriptors.json",
+      "path": "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
+      "count": 20,
+      "schema_hash": "chunk_descriptors@1.0.0",
+      "payload_hash": "bd863f2237ddede207a234318a785271a975604da299fc19247aae179d08dccb"
+    },
+    {
       "name": "cursor_descriptors.json",
       "path": "tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json",
       "count": 11,
       "schema_hash": "cursor_descriptors@1.1.0",
       "payload_hash": "fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375"
+    },
+    {
+      "name": "delta_regression.json",
+      "path": "tests/xi.Core.Tests/Fixtures/delta_regression.json",
+      "count": 1,
+      "schema_hash": "serde_fixtures::delta",
+      "payload_hash": "59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f"
+    },
+    {
+      "name": "engine_regression.json",
+      "path": "tests/xi.Core.Tests/Fixtures/engine_regression.json",
+      "count": 1,
+      "schema_hash": "serde_fixtures::engine",
+      "payload_hash": "8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2"
+    },
+    {
+      "name": "grapheme_descriptors.json",
+      "path": "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
+      "count": 668,
+      "schema_hash": "grapheme_descriptors@1.0.0",
+      "payload_hash": "a2b84031c5aa8d11f5f3a2a0d3c3537cf93f4bc0bb7bfb68bfe29fdf4f37f98d"
+    },
+    {
+      "name": "subset_regression.json",
+      "path": "tests/xi.Core.Tests/Fixtures/subset_regression.json",
+      "count": 1,
+      "schema_hash": "serde_fixtures::subset",
+      "payload_hash": "28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f"
     }
   ]
 }
