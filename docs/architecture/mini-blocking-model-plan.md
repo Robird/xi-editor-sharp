@@ -16,6 +16,7 @@
   4. **ChunkEnumeration**：Chunk/Line owned descriptor + diagnostics。
   5. **GraphemeNavigation**：降级策略 + telemetry 阈值。
   6. **BreaksTree**：Breaks descriptor + search shim。
+- 若阻塞点之间存在强耦合（例如 Cursor + Chunk），优先在同一实验中建模，让跨模块依赖在 mini workspace 中一次性暴露。
 - 后续若新增阻塞点，需在本文件追加条目并同步 `BlockingPointRegistry`（C#/Rust）与 `AGENTS.md`。
 
 ## 工程结构
@@ -40,9 +41,15 @@ blocking-model/
   - 通过 `[Trait]` 或命名约定区分实验阶段，便于选择性运行。
 
 ### Rust 工作区
-- `blocking_model_core` 镜像 C# registry，提供相同的枚举/Spec。
-- 后续每个阻塞点新增 module（`mod cursor_lifecycle;` 等）+ `tests/` 目录内的 parity 测试。
+- `blocking_model_core` 镜像 C# registry，提供相同的枚举/Spec，并新增 `skeleton/` 模块维护 `Node/SharedNode/Cursor/Rope` 最小骨架。
+- 每个阻塞点可以直接在同一 crate 内通过 module/feature 展开，保留 `xi-editor-ph7/rust/rope` 的静态签名与调用路径，具体逻辑用占位返回值代替。
 - CLI/fixture 草案也在该 workspace 中先行建模，再迁回主仓 `xi-editor-ph7`。
+
+## Rust Skeleton 指南
+- **目标**：在不引入业务逻辑的前提下，保留 `xi-editor-ph7/rust/rope` 中核心类型（`Metric`、`NodeInfo`、`Leaf`、`Node`、`SharedNode`、`Cursor`、`CursorDescriptor`、`Rope`）的签名、约束与调用关系。
+- **结构**：`blocking_model_core::skeleton` 暴露 `metrics/tree/rope/samples` 四个子模块，并提供 `prelude` 便于快速引用；`samples.rs` 内含 `SampleNodeInfo`/`SampleLeaf`，可用于快速生成 `Rope` 与 `Cursor`。
+- **测试**：`tests/skeleton.rs` 只验证“类型能协同工作”与“descriptor roundtrip”两类约束，确保未来扩展时能保持静态关系；任何新增 skeleton API 都需同步加入类似的约束测试。
+- **演进**：当需要针对特定阻塞点扩展结构（如 chunk descriptor、CursorState），优先在 skeleton module 内添加类型/接口，再通过占位实现保证不会与主仓逻辑冲突。
 
 ## 实施流程
 1. **登记任务**：在 `docs/architecture/mini-blocking-model-plan.md` 记录新的阻塞点或实验阶段，同时更新 `AGENTS.md` 的“当前聚焦事项”。

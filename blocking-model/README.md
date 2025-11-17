@@ -4,8 +4,8 @@
 
 ## 目录
 
-- `csharp/`：.NET 9 解决方案，包含 `BlockingModel.Core` 与 `BlockingModel.Tests`，用于建模 C# 端的接口、诊断与最小测试。
-- `rust/`：Rust workspace（Cargo），用于镜像 C# 阻塞点所需的 helper/trait 骨架。
+ `csharp/`：.NET 9 解决方案，包含 `BlockingModel.Core` 与 `BlockingModel.Tests`，用于建模 C# 端的接口、诊断与最小测试。
+ `rust/`：Rust workspace（Cargo），当前提供 `blocking_model_core` crate，既包含阻塞点 registry，也维护 `xi-editor-ph7/rust/rope` 的 `skeleton/` 模块。
 
 ## 使用方式
 

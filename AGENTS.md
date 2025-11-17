@@ -470,6 +470,12 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - 更新 `AGENTS.md`“当前聚焦事项”与“下一步行动”，标记 mini blocking model 为最高优先级，并纳入未来待办（模块占位、fixtures、质量门禁、Type System Specialist 评估）。
 - `BlockingModel.Core`/`blocking_model_core` 均以枚举 + Spec 形式列举 6 个阻塞点，xUnit/Rust tests 校验 registry 完整性，为后续每个模块扩展提供稳定入口。
 
+### 2025-11-17 (Rust Rope Skeleton 建模)
+- 在 `blocking_model_core` 内新增 `skeleton/{metrics,tree,rope,samples}` 模块，复刻 `xi-editor-ph7/rust/rope` 的核心类型签名（`Metric`、`NodeInfo`、`Leaf`、`Node`、`SharedNode`、`Cursor`、`CursorDescriptor`、`Rope`），保留静态约束与调用关系但移除业务逻辑。
+- 提供 `samples.rs` + `prelude` 便于快速拼装 `Rope<SampleNodeInfo, SampleLeaf>`，并在 `tests/skeleton.rs` 中验证 cursor descriptor roundtrip 与 `SharedNode` 引用语义，确保未来扩展仍有编译期护栏。
+- 更新 `docs/architecture/mini-blocking-model-plan.md`、`blocking-model/README.md` 说明 Rust skeleton 的目标与用法，将“耦合阻塞点联合建模”写入范围约束。
+- 执行 `cargo fmt --manifest-path blocking-model/rust/Cargo.toml`、`cargo test --manifest-path blocking-model/rust/Cargo.toml`，确认 skeleton 代码与 tests/registry/cursor 约束全数通过。
+
 ### 2025-11-17 (QA/Info Researcher Onboarding)
 - **QA Engineer 入职**：基于 `agents/qa-engineer-template.md` 建立 `agents/qa-engineer.md`，补齐 8 条测试资产索引、169/169 `dotnet test -v m` 基线、R8/R9/R10 风险监控与 parity/Stage D 行动清单，为后续 ingestion smoke 与 1 MB 基准奠定资料来源。
 - **Information Researcher 入职**：创建 `agents/information-researcher.md`，填充 13 条索引与 7 条监控清单，并注明“仅接受架构师调度”限制；重点跟踪 AGENTS、m3 计划、Stage D schema、`refresh_serialization_fixtures.ps1` 新开关等差异。
