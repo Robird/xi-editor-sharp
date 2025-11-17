@@ -445,16 +445,15 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - `xi-editor-ph7` 子模块未在 `.gitmodules` 注册，`git submodule update`/`git restore` 等命令无法回滚至索引记录的 `89213f6`；若误切至远端 `master` 最新提交（如 `f600b85`），需手动 `git -C xi-editor-ph7 checkout 89213f6` 或补齐 `.gitmodules` 才能清理“modified: xi-editor-ph7 (new commits)” 状态。
 
 ## 已完成事项
-- **Cursor 缓存 Phase 1/2 基础设施（2025-11-15）**：在 Rust `tree.rs` 中完成 `CursorDescriptor` 并引入可选 `cursor_state` 特性下的 `CursorState`/`Cursor::state()`，新增 round-trip、深层路径、编辑失效与 Base/Lines/Utf16 导航对拍测试，`cargo test -p xi-rope` 及 `cargo test -p xi-rope --features cursor_state` 均通过，同时刷新相关文档记录语义一致性与后续 C# 接入计划。
-- **Rope 字符串 helper 模块化（2025-11-15）**：抽离 `MIN_LEAF`/`MAX_LEAF`/拆分策略至 `rope/src/helpers/string_leaf.rs` 并补充 newline 偏好、代理对安全、容量边界与 UTF-16 计数单元测试；`rope.rs` 改为复用 helper，库入口声明 `helpers` 模块，文档与 `AGENTS.md` 增补 UTF-8 byte vs UTF-16 `char` 偏移说明。
-- **C# 序列化镜像 Stage C（Engine）（2025-11-14）**：交付不可变 `Engine`/`Revision`/`RevisionOperation` 类型与 `EngineJson` 序列化器，引入 `engine_regression.json` 黄金串及 `EngineSerializationTests`（序列化匹配、反序列化回写、`RevisionLog` 验证），同步更新 `docs/csharp-refactor/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md`、`AGENTS.md` 并执行 `dotnet test` 全量通过。
-- **C# 序列化镜像 Stage B（Delta）（2025-11-14）**：交付 `Delta<TInfo, TLeaf>`/`DeltaElement`/`CopyElement`/`InsertElement` 骨架与 helper，完成 `DeltaJson` 序列化/反序列化并引入 `delta_regression.json` 黄金串、`DeltaSerializationTests`，`dotnet test`（含新增用例）通过，文档（`docs/csharp-refactor/rope-cs-mirror-plan.md`、`docs/architecture/rope-port-mapping.md`、`AGENTS.md`）同步更新。
-- **工程骨架与测试基线（2025-11-11）**：建立 `.NET 9` 解决方案骨架（`Xi.Editor.sln`），创建 `xi.Core`/`xi.Core.Tests` 并通过首轮 `dotnet test` 验证基础编译与测试链路。
-- **架构规划资产（2025-11-11）**：产出初版 `xi-core-structure.md`、`module-migration-plan.md` 与 `api-contract.md`（现已整合至 `docs/architecture/port-blueprint.md` 及相应专题文档），梳理迁移路线、API 契约和阶段目标；同步撰写《Xi.Editor 迁移目标与路线图》确定阶段里程碑。
-- **Rope/Delta 研究成果（2025-11-11）**：整理 `reference/rust` 资料并形成 `docs/csharp-refactor/rope-delta-notes.md`（原分散草案已并入此文件），明确 Rope/Delta 迁移要点与后续实施参考。
-- **Rope 基础实现（2025-11-11）**：引入 `ITextBuffer` 契约、`RopeInfo` 与 Metric 体系，完成 `Node`、`TreeBuilder` 与 `Rope` 最小可用实现及配套测试，支持切片、插入、删除、替换等核心操作。
-- **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
-- **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
+| 时间 | 交付 | 摘要 | 真相源 |
+| --- | --- | --- | --- |
+| 2025-11-19 | Stage D manifest ledger & Playbook 模板对齐 | `StageDDescriptorLoader` 校验 manifest ledger，`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 对齐 Stage D/QA anchors，`docs/architecture/system-overview.md` 建立跨文档地图。 | docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]；docs/architecture/system-overview.md#[SO-Map] |
+| 2025-11-18 | TreeBuilder slice trace loader + manifest 校验脚本 | `TreeBuilderSliceTraceLoader`/tests 产出，`scripts/verify_fixture_manifest.py --update` 支持 canonical hash，`refresh_all_assets.py` 接入 Stage D 步骤。 | docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]；docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets] |
+| 2025-11-17 | Stage D descriptor loader + TreeBuilder tracer + 文档模板 rollout | `StageDDescriptorLoader`/tests 交付，TreeBuilder tracer 注入 + 测试，Architecture 文档模板与 `scripts/refresh_all_assets.py` 上线，形成 goal-tree ↔ Stage D 单一事实源。 | docs/architecture/type-system-migration-log.md#[TS-B2]；docs/architecture/port-blueprint.md#[BP-GoalTree] |
+| ≤2025-11-16 | Stage A/B/C baseline + SharedNode/AI Team 建设 | Node 写时复制、StringLeafOperations parity、Subset/Delta/Engine JSON 镜像、AI Team + SubAgent 机制完成。 | docs/architecture/port-blueprint.md#[BP-Milestones]；docs/architecture/design-divergence-log.md#[Div-Active] |
+
+> 更多执行细节、命令与验证可在“## 工作日志”与所列真相源文档中查询；2025-11-16 之前的完整历史亦可透过这些文档或 Git 历史追溯。
+
 ## 工作日志
 ### 2025-11-18 (Stage D Breaks/Diff/Search readiness audit)
 - **Rust exporter现状**：梳理 `serde_fixtures/breaks_descriptors.rs`、`diff_regions.rs`、`search_spans.rs` 与共享辅助 `snapshots.rs`，确认 `RangeSnapshot`/`PathFrameSnapshot`/`frames_from_descriptor` 已支撑 Breaks/Diff/Search 导出，`export-serde-fixtures` 中的 `--breaks-descriptors`/`--diff-regions`/`--search-spans` 选项可以把 JSON 写入 `tests/xi.Core.Tests/Fixtures/` 对应目录。
@@ -684,109 +683,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **风险定位**：R8（NodeCursor 版本票据）、R9（CLI schema & Stage D 集成）、R10（Chunk/Grapheme 遥测 + 基准）仍敞开，若 48h 内不更新文件与脚本，M3 里程碑将失去复现依据。
 - **行动项**：指派 C# Implementer 负责 `_editVersion`、chunk diagnostics 与基准脚本；Rust Porter 整理 CLI schema/feature 说明；Architecture Mapper 回写三份核心文档并协调阈值；QA 负责 parity ingestion smoke + 微基准。
 
-### 2025-11-16 (Rope Port Mapping Divergence Sync)
-- 对照 `docs/architecture/design-divergence-log.md` 更新 `docs/architecture/rope-port-mapping.md`，将 Grapheme 降级策略标记为既定方案，撤除对 Rust 端新增 helper 的阻塞描述，并调整 C# 侧设计建议为监控型任务。
-- 在文档的改造建议、阻塞评估与主要缺口章节补充“设计分歧”引用，确保跨文档叙述一致。
-- 进一步依据 `docs/rust-refactor/CursorCache.md` 梳理 `cursor_state` feature gate 作用域，明确 `CursorDescriptor` 为移植必需、`CursorState` 为可选增强，并同步更新 `docs/architecture/rope-port-mapping.md` 与 `docs/architecture/type-system-migration-log.md` 的游标章节。
-- 复用 runSubAgent 对 Metric shim 与 Chunk/Lines 迭代器做深度调研，将具体函数列表、现有 shim 现状与 C# 动态实现差异写回 `docs/architecture/type-system-migration-log.md`，形成后续移植的行动项与降级策略。
-
-### 2025-11-15 (Design Divergence Log)
-- 创建 `docs/architecture/design-divergence-log.md`，首批登记 UTF-16 叶片与 Grapheme 降级两项与 Rust 的刻意差异。
-- 在 `AGENTS.md` 当前聚焦事项中加入“设计分歧登记”提醒，为后续新增差异提供唯一记录入口。
-- 约定后续每次新增差异时同步更新该日志并在里程碑复盘。
-### 2025-11-15 (Stage D Fixture Consolidation)
-- 分别运行 `cargo test -p xi-rope --features serde subset_serialization_regression`, `cargo test -p xi-rope --features serde delta_serialization_regression` 与 `cargo test -p xi-rope --features serde engine_serialization_regression`，确认 `serde_fixtures` 常量与回归预期一致。
-- 执行 `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir tests/xi.Core.Tests/Fixtures` 并通过 `scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -Verbose` 验证 CLI 覆写路径无副作用。
-- 更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，强调脚本参数与 exporter 流程，记录最新操作指引。
-- 同步 `AGENTS.md` 反映 Stage D 验证结果与后续动作。
-- 校对 `docs/architecture/port-blueprint.md` 的模块映射表，标记 `Interval` 结构与 Subset/Delta/Engine JSON 转换器已完成功能，对齐当前实现状态。
-- 进一步对照仓库现状修订 `docs/architecture/port-blueprint.md` 的映射章节，补充 `Node.Generic.cs`/`StringLeafOperations.cs` 等目标文件、将 `BreaksMetricHelper` 标记为已完成，并明确 `Diff/`、`Search/` 模块尚未建目录。
-- 试用 `grep_search` 与 `list_code_usages` 检索 `Rope` 引用，确认 `grep_search` 能按 `includePattern` 与正则定位匹配，`list_code_usages` 能在 Rust 侧返回 400+ 个调用点，作为后续替代终端 `rg`/手动遍历的首选方案。
-### 2025-11-15 (Cursor State Feature Gate)
-- 在 `xi-editor-ph7/rust/rope/src/tree.rs` 引入可选 `cursor_state` 特性下的 `CursorState` 结构与 `Cursor::state()`，补齐状态重建、失效与路径同步逻辑。
-- 更新 `Cargo.toml` 与 `lib.rs` 暴露新特性，并在 `rope/tests/cursor_descriptor.rs` 添加 `CursorState` round-trip、深层路径与编辑失效测试。
-- 重跑 `cargo test -p xi-rope` 与 `cargo test -p xi-rope --features cursor_state` 确认默认/启用特性下均通过。
-- 同步 `docs/rust-refactor/CursorCache.md`、`docs/architecture/port-blueprint.md`、`docs/architecture/rope-port-mapping.md` 标记 Phase 2 状态与后续轻量 instrumentation/ C# 接入要求，更新 `AGENTS.md` 记录。
-### 2025-11-15 (Leaf Split Parity Samples)
-- 新增 `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json`，收录 `newline_outside_char_window`（Rust 513-byte newline 命中 vs C# 64-char 默认拆分）与 `surrogate_guard_post_truncation`（Rust 尾端最小字节保护 vs C# 代理对回退）两组拆分对拍样本。
-- 更新 `docs/rust-refactor/rope-generic-simplification-g.md` Phase 4 勾选状态与说明，并在 `docs/csharp-refactor/rope-cow-rebalance-plan.md` 新增 `Base Metric 对齐` 小节，记录拆分偏差案例、parity fixture 与后续自动化提示。
-### 2025-11-15 (Rope String Helper Extraction)
-- 将 `MIN_LEAF`/`MAX_LEAF`/拆分与 UTF-16 计数函数迁移至 `rope/src/helpers/string_leaf.rs`，为 helper 新增 newline 偏好、代理对安全、容量边界与 UTF-16 计数测试，并在 `rope.rs` 及 `rope/src/lib.rs` 接入新模块。
-- 引入 `NEWLINE_WINDOW` 常量并调整拆分实现以使用统一窗口表达，加在测试中验证窗口范围，避免未使用警告。
-- 运行 `python scripts/refresh_skeleton_docs.py --verbose` 刷新 skeleton；执行 `cargo test -p xi-rope --manifest-path xi-editor-ph7/rust/Cargo.toml` 以及分别针对 `subset_serialization_regression`、`delta_serialization_regression`、`engine_serialization_regression` 的 serde 回归测试，全部通过（仅保留增量构建硬链接告警）。
-- 针对 `diff::tests::test_larger_diff` 触发的 `MAX_LEAF` 超限 panic，收紧 `find_leaf_split` 的上下界并保留换行优先策略，重跑 `cargo test -p xi-rope` 与 serde 回归全部通过。
-- 更新 `docs/architecture/rope-port-mapping.md`、`docs/csharp-refactor/node-generic-refactor-plan.md`、`docs/rust-refactor/rope-generic-simplification-g.md` 与 `AGENTS.md`，强调 Rust helper 与 C# `StringLeafOperations` 在 UTF-8 byte / UTF-16 `char` 偏移上的差异，并记录新常量与测试落地。
-- C# 侧新增 `StringLeafOperations.NewlinePreferenceWindow` 以转发 `LeafSplitter` 常量，并在 docstring 注明 UTF-16 vs UTF-8 偏移；`StringLeafOperationsTests` 增补窗口转发断言，`dotnet test tests/xi.Core.Tests --filter StringLeafOperations` 通过。
-
-### 2025-11-15 (Metric Conversion Doc Repair)
-- 修复 `docs/rust-refactor/MetricConversionAndEditIntoNode.md` 中因未转义泛型导致的缺失段落，补回 `Node::count`/`DefaultMetricProvider` 等关键引用，并明确 C#/Rust 间的 shim 方案。
-- 二次调整 `docs/rust-refactor/MetricConversionAndEditIntoNode.md`，梳理调研结论、四阶段 shim 计划（Rope → Breaks → C# 对接 → 文档自动化）、验证策略与风险，确保跨语言互操作路径更清晰可执行。
-### 2025-11-15 (Metric Shim Feasibility Review)
-- 评估 `docs/rust-refactor/MetricConversionAndEditIntoNode.md` 中提出的 `Rope` 互操作 shim 动议，逐项核对 `xi-editor-ph7/rust/rope/src/tree.rs`、`rope.rs` 与 `core-lib/src/linewrap.rs` 的实际调用，确认 `count`/`count_base_units` 主要聚焦在 `Rope` 与 `Breaks` 两条路径。
-- 校验 C# 端当前已引入 `IDefaultMetricProvider` 静态接口但尚未落地节点级度量转换 API，记录 shim 能缓解首轮移植压力，却无法直接覆盖 `Breaks` 系列需求。
-- 建议若推进 shim，应限制在 `Rope` 常规入口并补充 parity 测试，同时预留是否为 `Breaks` 提供对等包装的后续决策项；一旦落地需同步更新 `docs/architecture/rope-port-mapping.md`。
-### 2025-11-15 (Breaks Shim Scoping Research)
-- 复盘 `xi-editor-ph7/rust/core-lib/src/linewrap.rs`、`line_offset.rs` 以及 `rope/src/breaks.rs`，确认软换行与可视行逻辑广泛调用 `Breaks::count::<BreaksMetric>` 与 `count_base_units::<BreaksMetric>`，说明若 C# 需实现 wrap 相关功能，等价 shim 为必要依赖。
-- runSubAgent 检索表明调用主要集中在 LineWrap 管线（`Lines::visual_line_of_offset`、`Lines::after_edit`、`MergedBreaks::offset_of_line` 等）和 Breaks 模块自测，范围可控；外部 crate 未直接暴露 Breaks 度量转换。
-- 记录后续评估方向：在 Rust 端添加 `Breaks::count_breaks_up_to`/`Breaks::offset_of_break` 等辅助方法，以及 C# 侧规划 `Breaks` 树封装与 parity 测试，确保 shim 扩展保持与 wrap 流程一致。
-
-### 2025-11-15 (Rope Metric Interop Tests)
-- C# `Rope.ConvertBytesFromLines` 现对末尾 sentinel 行返回整段长度，对齐 Rust `offset_of_line` 的 `line == lines + 1` 情况。
-- 扩充 `RopeMetricInteropTests`，在 UTF-16 边界上校验行计数与 UTF-16/默认度量互换，并引入辅助方法生成行起点与代码单元边界。
-- `dotnet test Xi.Editor.sln`（102 项）验证通过，确认新的互操作 API 与测试基线稳定。
-### 2025-11-15 (TreeBuilder Slice Trace Study)
-- 深度审阅 `TreeBuilder::push`/`push_slice`/`pop` 与区间 helper 的栈行为，并确认 C# `TreeBuilder` 当前缺失复用/平衡语义。
-- 在 `docs/rust-refactor/TreeBuilderSliceStack.md` 补充价值、合理性、可行性评估；提出 `tree_builder_slice_trace` feature gate、事件模型与导出流程。
-- 建议将 slice trace 与 Stage D 导出链路结合，追加 `scripts/refresh_serialization_fixtures.ps1` 的采集开关，并规划 C# 消费测试。
-### 2025-11-15 (TreeBuilder Slice Trace Implementation)
-- 完成 Rust 端 `tree_builder_slice_trace` feature：新增 `TreeBuilderEvent{Kind}`、`TreeBuilderTracer` 与 `TreeBuilder::with_tracer`，在 `push`/`push_slice`/`push_leaf_slice`/`pop` 发出 `PushFrame`、`ExtendFrame`、`LeafSlice`、`EnterChild`、`MergePop` 事件。
-- 更新 `TreeBuilderSliceStack.md` 记录落地情况，并新增测试 `rope/tests/tree_builder_slice_trace.rs` 验证 feature 启用时能捕获事件。
-- 运行 `cargo test -p xi-rope` 及 `cargo test --features tree_builder_slice_trace`（在 `xi-editor-ph7/rust/rope` 下）确认默认/启用模式均通过。
-### 2025-11-15 (TreeBuilder Trace Exporter)
-- 扩展 `export-serde-fixtures` 支持 `--tree-builder-trace` / `--tree-builder-dir` 参数，启用新 feature 时可输出 `basic_slice_plan.json`（稳定节点 ID + 区间元数据）。
-- 若未启用 `tree_builder_slice_trace`，CLI 会提示缺少 feature；默认序列化导出逻辑保持不变，可同时指定 `--dir` 与 `--tree-builder-trace`。
-- `Cargo.toml` 引入常规依赖 `serde_json`，并在 `cargo check`, `cargo check --features serde,tree_builder_slice_trace` 下验证通过。
-- `scripts/refresh_serialization_fixtures.ps1` 新增 `-ExportTreeTrace` 开关，可在刷新黄金夹具时同时调用 CLI 生成 `tree_builder_slice` 目录下的 trace 资产。
-
-### 2025-11-16 (SubAgent Capability Exploration)
-- **能力验证**：通过两次实战测试确认 SubAgent 与主 Agent 能力几乎对等（相同模型/工具集/系统提示词），仅缺少 `runSubagent` 递归分派能力。
-  - **测试 1（代码搜索）**：委派搜索 `ILeafOperations` 相关文件，SubAgent 自主并行使用 `grep_search`/`semantic_search`/`read_file`，返回 11 个文件清单 + 接口签名 + 设计意图分析。
-  - **测试 2（功能实现）**：委派为 `Node.Generic.cs` 实现 `ValidateInvariants` 与 `ToDebugString` 方法，SubAgent 独立完成设计、编码、测试（新增 7 个单元测试），并自主运行 `dotnet build` + `dotnet test` 验证通过。
-- **文档化工作模式转变**：在 `AGENTS.md` 新增"🎯 SubAgent 委派机制（AI 小组长模式）"章节（约 140 行），涵盖：
-  - 能力边界说明（对等工具集、多轮调用、无状态、单向通信、无递归）
-  - 工作模式对比图（传统模式 vs 小组长模式）
-  - 适用场景判断表（单模块实现、Bug 修复、代码搜索、文档调研等 8 类任务）
-  - 委派任务五项原则（任务边界、指令自包含、产物格式、避免递归、文件记忆）
-  - 委派模板示例与实战案例参考（2 个真实案例）
-  - 并行任务编排策略（识别独立任务 → 批量委派 → 收集产物 → 综合验收 → 更新记忆）
-  - 失败处理与迭代指南、注意事项
-- **认知提醒机制**：明确 SubAgent 也会读取本文档但缺少 `runSubagent`，确保"未来的自己"在不同会话中能识别当前身份（主 Agent / SubAgent）并采用对应工作模式。
-- **测试基线更新**：`dotnet test Xi.Editor.sln` 从 102 项增至 106 项（新增泛型 Node 诊断测试），全部通过。
-
-### 2025-11-16（晚）（星形会议：类型系统阻塞点可行性评估）
-- **会议目标**：评估 `type-system-migration-log.md` 中 4 个阻塞点是否可解决，决定是否坚持骨架映射策略。
-- **会议形式**：星形会议（AI 架构师通过 `runSubagent` 邀请 3 位核心成员发言），共 3 轮深度讨论。
-- **第 1 轮（阻塞点分类）**：
-  - Architecture Mapper：将 4 个阻塞点分类为"必须解决/可降级/已确认降级"，提出 M3 检查点（2 周）立即行动项。
-  - Rust Porter：确认当前 Rust 能力（`CursorDescriptor` + 4 个 shim）已解除核心依赖，强烈支持坚持骨架映射。
-  - C# Implementer：评估游标/泛型/Chunk/字素实现难度，建议泛型节点分两阶段（M3 接口验证，M4 完整切换）。
-- **第 2 轮（泛型节点时机分歧）**：
-  - Architecture Mapper 对比方案 A（M3 完整接入）与方案 B（M3 接口验证 + M4 切换），推荐方案 B 以降低风险、保持文档可信度、符合渐进式演进原则。
-  - 提出 10 项架构管控措施（文档/代码/进度/回退四维度）。
-- **第 3 轮（执行细节确认）**：
-  - C# Implementer 立即执行代码管控措施：新增 `TypeAliases.cs`（global using 别名）、`Node.cs` 警告注释、`TreeBuilder.Generic.cs` + 8 项泛型接口测试。
-  - 测试基线从 106 项增至 114 项全部通过（新增 8 项 `GenericNodeInterfaceTests`）。
-- **会议决策**：**✅ 一致通过方案 B（坚持骨架映射，M3 接口验证 + M4 完整切换）**
-- **阻塞点分类结果**：
-  - 游标生命周期：✅ 必须解决，M3 基于字符串特化实现（5-7 天）
-  - Metric 互操作：⚠️ 可部分降级，M3 保留动态 `IMetric` + 泛型接口验证
-  - Chunk 迭代器：⚠️ 可降级但有代价，M3 临时返回 `ReadOnlyMemory<char>`（3-4 天）
-  - 字素导航：✅ 已确认降级，M3 实现 surrogate 安全 + 遥测（2 天）
-- **M3 工作量**：15-20 天（约 2-3 周），包含游标、泛型接口验证、Chunk 骨架、字素降级。
-- **架构管控**：10 项措施已提出并部分落地（TypeAliases.cs、警告注释、泛型 Builder + 8 项测试已完成）。
-- **文档更新**：`type-system-migration-log.md` 新增会议决策章节，记录方案 B 核心要点与测试验收。
-- **下一步**：Architecture Mapper 更新 `port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`；C# Implementer 推进 M3 实施。
-
-### 2025-11-14 及以前（摘要）
-- 与 Stage A/B/C 相关的 Subset/Delta/Engine 序列化镜像、Rope 字符串 helper 抽离与 Cursor 缓存等成果，均已在"已完成事项"对应条目中完整记录。
-- Rust 工作区瘦身、TreeBuilder Trace/Metric helper 试点以及早期文档整合等行动，详见"已完成事项"，此处仅保留概览以减轻日志冗长。
+### 2025-11-16 及以前（摘要）
+- 2025-11-16：完成 rope-port-mapping/design-divergence 互证、SubAgent 机制沉淀、M3 实施计划定稿与 Skeletonizer 批量精简，基线测试扩展到 114 项。
+- 2025-11-15：打通 Stage D CLI 与夹具刷新链路、启用 CursorState feature gate、完善字符串 helper/leaf parity、TreeBuilder slice trace 研究→实现→导出闭环，并完成 Metric/Breaks shim 可行性调研。
+- 2025-11-14 及更早：Stage A/B/C 基线（SharedNode、StringLeafOperations、subset/delta/engine fixtures）落地，Rust 工作区瘦身与早期文档/Helper 建设见 "已完成事项"。

@@ -68,16 +68,11 @@ last_updated: 2025-11-19
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
-- **2025-11-19 – Tree builder trace manifest对齐**：更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]/[StageD::FeatureGates]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]`、`docs/architecture/type-system-migration-log.md#[TS-B2]/[TS-B3]`，记录 `tree_builder_slice_trace@1.0.0` 资产的 manifest/hash 以及 chunk/grapheme 新哈希，并提醒下一步在 `[QA-IngestionSmoke]`/`[TS-B2]` 继续追踪 tracer 注入与 loader wiring。
-- **2025-11-19 – Stage D loader doc sync**：更新 `docs/architecture/type-system-migration-log.md#[TS-B3]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-Actions]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow][StageD::ParityAssets][QA-IngestionSmoke]`，记录 `StageDDescriptorLoader` + `StageDDescriptorLoaderTests` 已交付，并提示 QA/Stage D 流程下一步需调用 loader/manifest 校验（待与 QA 工程师对接接线 plan）。
-- **2025-11-18 – Breaks/Diff/Search skeleton mapping**：梳理 `breaks.rs`/`diff.rs`/`find.rs` 类型，补齐 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]/[RPM-Actions]` 行，细化 `type-system-migration-log.md#[TS-B5]` Rust/C#/Stage D 计划，并在 `design-divergence-log.md#[Div-Active]` 记录“Rust-only”状态供 QA/Goal Tree 复用。
-- **2025-11-17 – TreeBuilder tracer + descriptor 文档回写**：同步 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，记录 C# 端已新增 `TreeBuilderTracer` 骨架与 `Diagnostics/Descriptors/*` DTO，并将 `[RPM-Actions]`、`[TS-B2]`、`[TS-B3]` 的下一步聚焦在 loader/Stage D 接线 + QA 钩子验证。
-- **2025-11-17 – Stage D parity assets updated**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest (`rust_commit=7ac917a0`, `cli_rev=0.3.0`, `feature_gates=["serde"]`, cursor/chunk/grapheme hashes) 并在 `[RPM-ParityAssets]` 纪录“Manifest-backed”状态，同时同步 QA 的 `[QA-IngestionSmoke]` ✅ 结论与后续动作。
-- **2025-11-17 – Rope doc sync for G1/G2**：更新 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，写入 `_editVersion`/`CursorDescriptorParityTests` 证据、Stage D manifest (`fixtures.manifest.json`) 引用，以及 Chunk/Grapheme diagnostics + 1 MB baseline 降级策略。
-- **2025-11-17 – 档案升级 + Anchor 维护计划**：重写本档案为 front-matter + 五大章节结构，明确 Goal Tree/Stage D 流程、template 治理与跨角色接口，满足 AI 架构师“认知档案”要求。
-- **2025-11-17 – Goal Tree YAML 草案 & 锚点审计**：完成 G1-G6 字段对齐、14+3 字段 schema、锚点缺口清单，并记录在 `待办/风险`。
-- **2025-11-19 – 文档模板扩散 Round 2**：为 `m3-architect-decision.md`、`fixtures/parity-fixture-schema.md`、`ai-team-design-draft.md` 加入 front-matter 与锚点网，表格化决策与 fixture schema。
-- **2025-11-17 – Leaf/Cursor parity 巡检**：确认 `StringLeafOperations` 与 `CursorDescriptorParityTests` 11/11 状态，收集 `dotnet test -v m` 169/169 证据，准备写回核心文档。
+- **2025-11-19 – Tree builder trace + Stage D loader回写**：在 `[StageD::ParityAssets]`、`[StageD::FeatureGates]`、`[RPM-Matrix]/[RPM-Actions]` 以及 `[TS-B2]/[TS-B3]/[QA-IngestionSmoke]` 中登记 `tree_builder_slice_trace@1.0.0` manifest/hash 与 `StageDDescriptorLoader` 交付，明确 loader wiring 与 QA ingest 校验路径。
+- **2025-11-18 – Breaks/Diff/Search skeleton mapping**：为 `[RPM-Matrix]`、`[RPM-ParityAssets]`、`[TS-B5]`、`[Div-Active]` 填充 Rust/C#/Stage D 事实行，标注 “Rust-only” 差异以供 QA/Goal Tree 复用。
+- **2025-11-17 – Stage D parity assets refresh**：通过 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest，回写 `[StageD::ParityAssets]`、`[RPM-ParityAssets]`、`[QA-IngestionSmoke]`，并把 Leaf/Cursor parity 与 1 MB baseline 证据锁定在 `[TS-B2]`。
+- **2025-11-17 – Goal Tree 档案重构**：重写本档案与 `goal-tree.yaml` 草案，完成 `[BP-GoalTree]`、`[MP-GoalTree]`、`AGENTS.md#Document Compliance` 的锚点审计基线。
+> 历史细节与逐日日志请见 `AGENTS.md##工作日志`。
 
 ## 待办 / 风险
 

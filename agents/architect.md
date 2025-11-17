@@ -166,53 +166,11 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
-### 2025-11-18（manifest updater + slice trace loader）
-- **子任务**：驱动 QA Engineer 实现 `scripts/verify_fixture_manifest.py --update`，允许在检测到 hash drift 时自动重写 `payload_hash` 并输出 `Manifest changes` 摘要；默认校验也会生成 canonical 表格，Stage D Playbook `[StageD::FixtureFlow]`、`[QA-IngestionSmoke]` 与 QA 档案已描述“manifest diff + loader smoke”证据链。
-- **子任务**：驱动 C# Implementer 交付 `TreeBuilderSliceTraceLoader`（含 DTO）、示例 fixture `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json` 与 `TreeBuilderSliceTraceLoaderTests`，确保 `PushFrame`/`LeafSlice`/`EnterChild`/`MergePop` 事件可解析并在目录缺失时抛出明确异常。
-- **验证**：`python scripts/verify_fixture_manifest.py` 与 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 均返回 0；`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`（3/3 ✅）。
-- **影响**：Stage D 刷新现在具备“manifest diff + loader smoke”组合；`[TS-B2]`、`[RPM-Matrix]`、`[RPM-ParityAssets]` 记录 slice trace loader 状态，为将来 Rust `--tree-builder-trace` 实际产出提供 C# 接点。
-- **风险/跟进**：仍需 Rust Porter 导出真实 slice trace 并把 `tree_builder_trace` 纳入 manifest；QA 下次刷新需粘贴 `--update` 日志并与 loader smoke 一同归档。
-### 2025-11-17（夜间）
-- **子任务**：指导 QA Engineer 在 `scripts/refresh_serialization_fixtures.ps1` 默认执行 `dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`（除非显式 `-SkipStageDLoaderTest`），并在 `scripts/refresh_all_assets.py`/Stage D Playbook 标注“Stage D 刷新 = Rust 导出 + loader smoke”；同时驱动 C# Implementer 将 `ITreeBuilderTracer` 注入实际 `TreeBuilder` 路径（`PushLeaf`/`PushNode`/`MergeLeaf`/`PopFrame`/`BuildCompleted`/`Reset`），仅在 `Tracer.IsEnabled` 时计算 UTF-8 字节与 32 字符预览，落地 `TreeBuilderTracerTests`。
-- **验证**：`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`、`dotnet test Xi.Editor.sln -v m --filter TreeBuilderTracerTests` 及全量 `dotnet test Xi.Editor.sln -v m`（178/178 ✅）全部通过，确保自动化与 tracer 注入不会破坏基线。
-- **影响**：Stage D 夹具刷新流程现自带 loader smoke 证据链，`TreeBuilderTracer` 准备好消费 Rust `tree_builder_slice_trace` 资产；`[StageD::FixtureFlow]`、`[QA-IngestionSmoke]`、`[TS-B2]`/`[TS-B3]` 的状态均已更新为“待对接 Rust trace / QA automation”。
-- **风险/跟进**：下一轮需让 QA ingestion 在 CI 中记录 loader smoke 日志（含 manifest hash），并等 Rust Porter 提供 slice trace fixture 以对拍 `TreeBuilderTracer` 事件；同时规划 chunk/line/glyph 基准与遥测落地，避免 `[QA-ChunkBench]`/`[QA-Telemetry]` 再度失联。
-### 2025-11-17（Stage D loader + 文档联动）
-- **子任务**：驱动 C# Implementer 交付 `StageDDescriptorLoader` + DTO 注解 + `StageDDescriptorLoaderTests`，确认 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` 与全量 `dotnet test -v m`（176/176）通过；并让 Architecture Mapper 更新 `[TS-B3]`、`[RPM-Matrix]/[RPM-Actions]`、Stage D Playbook 以反映 loader 就绪及后续 QA 接线。
-- **影响**：`[TS-B3]` 状态从 Skeleton 提升为“Implementation (awaiting QA wiring)”；Stage D Playbook `[StageD::FixtureFlow]/[StageD::ParityAssets]/[QA-IngestionSmoke]` 说明如何使用 loader 校验 manifest；下一步聚焦让 QA/Stage D CLI 直接消费该 API，并推进 `TreeBuilderTracer` 注入。
-- **风险/跟进**：尚需 QA ingestion 自动化与 slice trace replay 证据；待 Rust Porter 输出 Breaks/Diff/Search skeleton 时同步更新 `[TS-B5]`。
-### 2025-11-17（白天）
-- **落地自动化刷新脚本 v1**：创建 `scripts/refresh_all_assets.py`，封装 Goal Tree 同步、Rust skeleton 刷新、`dotnet build Xi.Editor.sln`、`ilspycmd` 反编译与 `tools/Skeletonizer` 精简，提供 `--list/--only/--skip/--dry-run/--continue-on-error` 选项，默认一键跑完。
-- **验证**：在仓库根执行 `./scripts/refresh_all_assets.py`，完整跑通 5 步，确认会更新 `docs/architecture/port-blueprint.md`/`m3-implementation-plan.md` meta、`docs/skeleton/*.md`、`src/xi.Core/bin/Debug/net9.0/xi.Core.dll`，末尾 Skeletonizer 报告 316 个函数体被剥离。
-- **管控点**：运行前检查 `ilspycmd` 是否在 PATH，若缺失脚本会直接抛出指引；后续需把该脚本挂到 Stage D 手册或 `run_all_checks`，并考虑新增 Refresh Fixtures / QA 基准步骤。
+- **2025-11-18 – Manifest / Trace 链路封顶**：协调 QA Engineer 与 C# Implementer 完成 `scripts/verify_fixture_manifest.py --update`、`TreeBuilderSliceTraceLoader` 及其测试与夹具，对齐 `[TS-B2]`、`[RPM-ParityAssets]`、`[StageD::FixtureFlow]` 记录；验证命令：`python scripts/verify_fixture_manifest.py (--update)`、`dotnet test --filter TreeBuilderSliceTraceLoaderTests`。
+- **2025-11-17 – Stage D Loader & Tracer 自动化**：落地 `StageDDescriptorLoader`/tests、`TreeBuilderTracer` 注入与 `scripts/refresh_all_assets.py`；同步 Stage D Playbook、`[TS-B2]/[TS-B3]`、`[QA-IngestionSmoke]`，构建“导出→loader smoke”闭环；验证：`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests|TreeBuilderTracerTests`。
+- **2025-11-16 – 类型系统阻塞评审 + AI Team 扩编**：完成星形会议决策（坚持骨架映射、M3 接口验证）、交付 TypeAliases + GenericTreeBuilder + 8 项泛型测试，并建立 AI Team 档案/ SubAgent 流程；详见 `docs/architecture/type-system-migration-log.md#[TS-B2]`、`docs/architecture/ai-team-design-draft.md#[AIT-ExecutionPlan]` 与本档案“成功经验”。
 
-### 2025-11-17（晚）
-- **主持元任务：用户提示词设计与改良**
-  - **目标**：设计一个能让用户快速激活 AI Team Leader 模式的提示词，使架构师迅速进入工作状态
-  - **方法**：采用"先调研 → 再设计 → 最后验证"策略
-    1. 读取 `agents/architect.md`（当前档案）+ `AGENTS.md`（全局记忆）+ `system-overview.md`（子系统地图），了解现有 AI Team 组织结构与工作流程
-    2. 通过 runSubagent 激活 Architecture Mapper，从文档治理者视角评估提示词缺失元素（9 项优先级排序：P0 必须补充 4 项、P1 应该补充 3 项、P2 可选 2 项）
-    3. 通过 runSubagent 激活 C# Implementer，从一线实施者视角评估提示词实用性（认知档案优先级、委派指令改进、阻塞响应机制、收尾清单重要性）
-    4. 架构师整合两位员工的深度评审报告（共 2 份，约 5000 字），提炼核心需求
-    5. 设计最终版提示词（200+ 行，包含 5 步认知恢复、委派模板、7 项收尾清单、阻塞响应机制）
-  - **关键发现**：
-    - **Architecture Mapper 视角**：当前提示词的"XXX"占位导致无法定位具体计划，缺少文档读取顺序（可能陷入文档迷宫），缺少会话收尾提醒（容易遗忘更新记忆）
-    - **C# Implementer 视角**：委派指令需补充"文件路径明确性""测试覆盖要求""依赖明确性"，阻塞响应需显式化触发词（"⚠️ 阻塞"），收尾清单中"员工档案更新确认"和"测试基线验证"是 P0 级别
-    - **共同建议**：提供标准 5 步启动序列（3-5 分钟恢复上下文）、采用"双层锚点"设计（`architect.md § 当前聚焦` + 动态文档选择）、强制 5 项 P0-P1 收尾清单
-  - **交付物**：
-    - `scripts/user-root-prompt.md`（200+ 行完整指南，从 1 句话扩展）
-    - `AGENTS.md` § 摘要 Agent 提示（新增用户提示词升级说明）
-    - `agents/architect.md` § 当前聚焦（新增用户提示词优化任务）
-  - **验证计划**：下次用户使用新提示词时，观察架构师是否能在 3-5 分钟内恢复上下文并启动工作
-
-### 2025-11-17（早）
-- **主持 Architecture 文档整合星形会议**：与 Architecture Mapper、C# Implementer、Rust Porter 讨论“合并型 vs 文档职责正交”策略，决定采用“共享目标树 + 文档正交 + 个别精简”方案，保留 `m3-implementation-plan.md` 作为唯一计划书，并将 `m3-architect-decision.md` 改写为决策摘要/变更日志。
-- **对齐行动项**：Architecture Mapper 负责目标树模板与引用规范（含 Owner/Status/Due/Evidence/Next + Rust Commit/Feature Gates/CLI 版本字段）；C# Implementer 提供 G1-G3 节点对应的代码/测试/夹具链接；Rust Porter 将 Stage D/CLI/schema 元数据映射到模板字段并更新相关锚点。
-- **交付**：整合四位角色的评审结果并创建 `docs/architecture/document-structure-template.md`，明确 front-matter、目标树 YAML 真源、QA/Stage D 锚点与自动化脚本要求，全员在各自档案中记录认可。
-- **复审**：再次组织 Architecture Mapper/C# Implementer/Rust Porter/QA Engineer 传阅模板，精简目标树字段至“14 核心 + 3 可选锚点”，把 Stage D/QA 细节改为链接、压缩 per-doc 章节与治理描述，更新 `docs/architecture/document-structure-template.md` 并同步记录。
-
-### 2025-11-16（晚）
-- **主持类型系统阻塞点可行性会议**（星形会议模式）：
+> 更早的详细行动日志可在 `AGENTS.md##工作日志` 和对应专题文档中查阅。
   - 议题：评估 `type-system-migration-log.md` 中 4 个阻塞点（游标/Metric/Chunk/字素）是否可解决，决定是否坚持骨架映射策略
   - 形式：通过 `runSubagent` 邀请 Architecture Mapper、Rust Porter、C# Implementer 发言，共 3 轮深度讨论
   - **第 1 轮**：阻塞点分类评估
@@ -521,5 +479,5 @@
 
 ---
 
-**最后更新**：2025-11-16  
-**状态**：✅ 成功经验已总结，M3 实施启动，准备进入具体工程挑战阶段
+**最后更新**：2025-11-18  
+**状态**：✅ Manifest / Stage D 链路完成压缩记录，M3 执行聚焦游标与 Chunk 诊断
