@@ -26,9 +26,17 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
-def _default_steps(repo_root: Path) -> List[Step]:
+def _powershell_command() -> str | None:
+    for candidate in ("pwsh", "powershell", "powershell.exe"):
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    return None
+
+
+def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> List[Step]:
     dll_path = repo_root / "src/xi.Core/bin/Debug/net9.0/xi.Core.dll"
-    return [
+    steps: List[Step] = [
         Step(
             name="goal-tree",
             description="Sync architecture goal tree snippets from YAML",
@@ -44,29 +52,59 @@ def _default_steps(repo_root: Path) -> List[Step]:
             description="Build the Xi.Editor solution to produce xi.Core binaries",
             command=["dotnet", "build", "Xi.Editor.sln"],
         ),
-        Step(
-            name="ilspy",
-            description="Decompile xi.Core.dll into docs/skeleton using ilspycmd",
-            command=[
-                "ilspycmd",
-                "-o",
-                "docs/skeleton",
-                str(dll_path),
-            ],
-        ),
-        Step(
-            name="csharp-skeleton",
-            description="Strip method bodies from the ILSpy output via Skeletonizer",
-            command=[
-                "dotnet",
-                "run",
-                "--project",
-                "tools/Skeletonizer/Skeletonizer.csproj",
-                "--",
-                "docs/skeleton/xi.Core.decompiled.cs",
-            ],
-        ),
     ]
+
+    powershell_exe = _powershell_command()
+    if powershell_exe:
+        steps.append(
+            Step(
+                name="stage-d-fixtures",
+                description="Export Rust serde fixtures + manifest and run dotnet tests",
+                command=[
+                    powershell_exe,
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(repo_root / "scripts/refresh_serialization_fixtures.ps1"),
+                    "-Verbose",
+                ],
+            )
+        )
+    elif warn_if_missing_powershell:
+        print(
+            "Skipping 'stage-d-fixtures' step because PowerShell (pwsh/powershell) is not available on PATH.",
+            file=sys.stderr,
+        )
+
+    steps.extend(
+        [
+            Step(
+                name="ilspy",
+                description="Decompile xi.Core.dll into docs/skeleton using ilspycmd",
+                command=[
+                    "ilspycmd",
+                    "-o",
+                    "docs/skeleton",
+                    str(dll_path),
+                ],
+            ),
+            Step(
+                name="csharp-skeleton",
+                description="Strip method bodies from the ILSpy output via Skeletonizer",
+                command=[
+                    "dotnet",
+                    "run",
+                    "--project",
+                    "tools/Skeletonizer/Skeletonizer.csproj",
+                    "--",
+                    "docs/skeleton/xi.Core.decompiled.cs",
+                ],
+            ),
+        ]
+    )
+
+    return steps
 
 
 def _parse_csv(value: str | None) -> set[str]:
@@ -125,7 +163,7 @@ def main() -> int:
     args = parser.parse_args()
 
     repo_root = _repo_root()
-    steps = _default_steps(repo_root)
+    steps = _default_steps(repo_root, warn_if_missing_powershell=not args.list)
     name_to_step = {step.name: step for step in steps}
 
     if args.list:

@@ -530,6 +530,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **引用关系**：所有 Stage D/QA anchor 现可被 `m3-implementation-plan.md`、`fixtures/parity-fixture-schema.md`、`rope-port-mapping.md`、Goal Tree `stageDAnchors` 字段直接引用；`[Fixture-FeatureGates]` 回指本手册的 Feature Gate 表。
 - **质量保障**：按模板要求覆盖 `StageD::StageDChecklist`→`FixtureFlow`→`ParityAssets`→`QA-IngestionSmoke`→`QA-StageDManual`→`AutomationBacklog`→`ChangeLog` 链路，并记录更新要求（AGENTS/agents/*.md/rope-cs-mirror-plan）。
 - **后续**：下一轮刷新需根据 exporter 输出更新哈希表并在 `agents/qa-engineer.md` 中登记测试结果；若引入 `goal_tree_sync.py` 校验，应扩展至 Stage D anchors。
+
+### 2025-11-19 (Refresh All Assets Stage D Hook)
+- **动作**：在 `scripts/refresh_all_assets.py` 新增 `stage-d-fixtures` 步骤（自动使用 `pwsh` 调用 `scripts/refresh_serialization_fixtures.ps1`），并暴露 `--only stage-d-fixtures` 供定向刷新；`python scripts/refresh_all_assets.py --list` 现会列出该步骤。
+- **文档更新**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::StageDChecklist]` 与 `[StageD::FixtureFlow]` 补充“refresh_all_assets 一键执行”说明，提醒 goal tree / skeleton 流程与 Stage D 可并行维护。
+- **影响**：全量 `refresh_all_assets` 现自动跑通 goal tree → skeleton → Stage D → ILSpy → Skeletonizer，符合 Stage D 自动化 backlog 要求；缺少 PowerShell 时脚本会提示跳过该步骤。
 ### 2025-11-19 (Architecture Docs Template Round 2)
 - **交付**：重构 `docs/architecture/m3-architect-decision.md`、`docs/architecture/fixtures/parity-fixture-schema.md`、`docs/architecture/ai-team-design-draft.md`，统一 front-matter 与 `[Decision-M3-*]`、`[Fixture-*]`、`[AIT-*]` 锚点，所有风险/行动/引用回指 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
 - **内容调整**：决策书现以概览/裁决/控制/行动表格呈现；Stage D schema 文档新增 change log 与 Stage D 链接；AI Team 草案加入阻塞表、ASCII 组织图与执行阶段路线。
