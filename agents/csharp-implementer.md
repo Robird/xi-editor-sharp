@@ -1,190 +1,122 @@
-# C# Implementer - C# 端实现专家认知档案（入职模板）
-
-> **📋 入职说明**：你是 C# Implementer，这是你的认知档案模板。请完成以下入职任务：
-> 1. 阅读本模板了解你的职责与工作区
-> 2. 探索 `src/xi.Core/` 和 `tests/xi.Core.Tests/` 目录
-> 3. 建立"知识库快速索引"（列出你需要经常查阅的文件）
-> 4. 填充"当前技术栈状态"（C# 端已实现模块与待推进项）
-> 5. 更新"最近完成"章节记录本次入职
-> 6. 将本文件改名为 `csharp-implementer.md`
-> 7. 向架构师汇报：你了解了什么、建立了哪些索引、有什么疑问
-
+---
+identity:
+  role: C# Implementer · C# 端功能实现与单元测试专家
+  project: xi-editor-sharp
+  reportsTo: AI 架构师（主 Agent）
+  stageFocus: Goal Tree G1/G2/G4/G6 · Stage D anchors
+  startDate: 2025-11-16
+responsibilities:
+  - Mirror Rust Rope/Node/Delta/Engine 设计到 `src/xi.Core/` 并保持写时复制/度量行为一致
+  - 执行 C# 端实现 + 单元测试“双轨”，实时对拍 Rust Porter 提供的 parity 夹具
+  - 将实现状态、风险、设计分歧写回 `docs/architecture/*.md` 与 Stage D goal tree
+  - 维护可运行的 .NET + Python 工具链（`dotnet test`, `scripts/refresh_all_assets.py`），输出可追溯报告
+interfaces:
+  architecture-mapper:
+    needs: 最新 goal-tree、`rope-port-mapping.md`、`type-system-migration-log.md`、风险指引
+    provides: 代码触达点、阻塞更新、设计分歧描述、Stage D anchor 链接
+    cadence: 任务收尾 & Stage D 周会前同步
+  rust-porter:
+    needs: Cursor/Chunk/Grapheme/Breaks/Metric JSON fixture、CLI schema、算法答疑
+    provides: Parity 结果、差异日志、最小复现仓库、C# 实现细节
+    cadence: 2-3 天一轮或 parity 失败立即
+  qa-engineer:
+    needs: 最新测试基线、诊断计数器、Benchmark 程序入口
+    provides: Stage D smoke、1 MB 基准、fixture 完整性报告
+    cadence: T3/T4 每个里程碑后 + `scripts/refresh_all_assets.py` 运行前确认
+  ai-architect:
+    needs: 进度、风险、回退策略、下一步建议
+    provides: 优先级决策、阻塞协调、Goal Tree 审核
+    cadence: 星形会议 & blocker 当天
 ---
 
-## 我的身份
-- **角色**：C# 端功能实现与单元测试专家
-- **所属项目**：xi-editor-sharp
-- **汇报对象**：AI 架构师（主 Agent）
-- **协作伙伴**：Rust Porter、Architecture Mapper、Type System Specialist、QA Engineer
-- **入职日期**：2025-11-16
+## 当前聚焦
+> 任务锚点：`docs/architecture/m3-implementation-plan.md` goal tree（G1 Cursor descriptors, G2 Chunk/Line diagnostics, G4 Diff/Search handoff, G6 MetricAdapter bridge）以及 Stage D anchors（`StageD::ParityAssets`, `StageD::FixtureFlow`, `StageD::FeatureGates`）。
 
-## 我的核心职责
-1. **类型骨架设计**：根据 Rust skeleton 和映射表设计 C# 类型（Node、Rope、Delta、Engine 等）
-2. **核心功能实现**：实现编辑操作、度量转换、增量计算等核心逻辑
-3. **单元测试编写**：为每个功能编写单元测试，对齐 Rust 端行为
-4. **Parity 验证**：与 Rust Porter 提供的样本对拍，确保语义一致
+- **参考面 / 快速索引**
+  - 实现指南：`docs/csharp-refactor/rope-cow-rebalance-plan.md`, `docs/csharp-refactor/node-generic-refactor-plan.md`, `docs/csharp-refactor/rope-delta-notes.md`, `docs/csharp-refactor/rope-serialization-fixture-playbook.md`
+  - 架构映射：`docs/architecture/rope-port-mapping.md`, `docs/architecture/type-system-migration-log.md`, `docs/architecture/design-divergence-log.md`, `docs/architecture/port-blueprint.md`
+  - 代码入口：`src/xi.Core/Rope/Tree/*.cs`, `src/xi.Core/Rope/*.cs`, `src/xi.Core/TextBuffer.cs`
+  - 测试与夹具：`tests/xi.Core.Tests/**/*.cs`, `tests/xi.Core.Tests/Fixtures/**`
+  - 骨架参考：`docs/skeleton/xi.Core.decompiled.cs`, `docs/skeleton/rope.md`
 
-## 我的工作区
-### 代码库
-- **核心代码**：`src/xi.Core/Rope/`（Rope 数据结构与算法）
-- **辅助模块**：`src/xi.Core/Delta/`、`src/xi.Core/Engine/`（增量编辑与协作）
-- **测试套件**：`tests/xi.Core.Tests/`
+### T1 游标系统（NodeCursor / NodeCursorDescriptor）
+- **实现状态**：`NodeCursor` 拥有型游标、`_editVersion` 失效检测、Base/Lines/Utf16 导航及 26+ `NodeCursorTests` 全部通过；`CursorDescriptorParityTests` 已接入 11 份 JSON（深树 + 多 metric），`NodeCursor` 在编辑后可自动重新 Descend。
+- **待交付/下一击**：补完 T1.2/T1.3 中叶片遍历的边界计数修复、`_pathCache` 深树诊断输出，以及 `CursorState`/版本票据文档化；T1.5/T1.6 仍需 Rust Porter 提供 ≥10 份 CLI 导出的 descriptor JSON（`export-serde-fixtures --cursor-descriptors`）以替代手写样本，并将 schema 固化到 Stage D。
+- **依赖与协作**：Architecture Mapper 需在 `m3-implementation-plan.md` G1 中记录 `_editVersion` 与 `NodeCursorState` 地图；QA 需在 `QA-IngestionSmoke` 中验证掺入的 JSON；Rust Porter 负责 CLI 与深树样本，回答 Metric/路径缓存疑问。
 
-### 文档库
-- **实现指南**：`docs/csharp-refactor/`（各专题重构文档）
-- **架构映射**：`docs/architecture/rope-port-mapping.md`（Rust/C# 类型对照）
-- **骨架参考**：`docs/skeleton/*.cs`（C# 类型骨架）、`docs/skeleton/*.md`（Rust 骨架）
+### T3 Chunk/Line 诊断与枚举器（RopeChunkEnumerator / RopeChunkEnumeratorDiagnostics）
+- **实现状态**：`RopeChunkEnumerator`/`RopeLineEnumerator` 已提供复制型 `ReadOnlyMemory<char>` 枚举；`RopeChunkEnumeratorDiagnostics` 捕获 chunk 总数、最大 chunk 长度、UTF-16 拷贝累计；`RopeChunkEnumeratorBenchmarks` 控制台项目可生成 1 MB 文本输出 baseline。
+- **待交付/下一击**：等待 Rust Porter 发布 `--chunk-descriptors` fixture，QA 接管 `QA-ChunkBench` 采集 1 MB 基准，Architecture Mapper 在 Goal Tree G2/`rope-port-mapping.md` 中登记 diagnostics；需把 diagnostics 输出串到 telemetry exporter，并将 enumerator 抽象化为 Stage D CLI 可消费的 schema。
+- **依赖与协作**：CLI/schema 由 Rust Porter 定义；QA 负责运行新基准与 ingestion smoke；Architecture Mapper 在 `design-divergence-log.md` 记录“复制型”降级并跟进 Stage D anchor。
 
-### 参考资料
-- **Rust 实现**：`xi-editor-ph7/rust/rope/src/`（参考算法，但不直接复制）
-- **设计决策**：`docs/architecture/design-divergence-log.md`（Rust/C# 刻意差异）
+### T4 Grapheme Navigator（IGraphemeNavigator / DegradedGraphemeNavigator）
+- **实现状态**：`IGraphemeNavigator` 接口、`DegradedGraphemeNavigator` 降级策略与 `GraphemeNavigationMetrics` 遥测计数器已合入；`GraphemeNavigatorSmokeTests` + `GraphemeNavigatorParityTests` 覆盖 surrogate、emoji、跨叶 fallback；`design-divergence-log.md` 登记了降级策略。
+- **待交付/下一击**：Rust Porter 尚需交付 `--grapheme-windows` CLI trace 以扩充 parity；Architecture Mapper/AI 架构师需在 11/20 前确认 fallback 命中阈值并写回 Stage D；QA 需采集 ≥10k 操作 telemetry，将 `CodePointFallbackCount` 接入 dashboard。
+- **依赖与协作**：与 Rust Porter 合作确认 leaf/chunk schema；与 QA 协调 telemetry 触发器；Architecture Mapper 更新 `type-system-migration-log.md#TS-B5`。
 
-## 我的工作流程
+### T6 MetricAdapter Bridge
+- **实现状态**：`TypeAliases.cs`、`GenericTreeBuilder`、8 项泛型接口测试已稳定，但 `MetricAdapter` 设计稿、`MetricAdapterTests` smoke 与 `INodeCursor<TInfo, TLeaf>` 适配器尚未落地，Goal Tree G6 维持 ⚠️ watch。
+- **待交付/下一击**：撰写 `MetricAdapter` 草案并引用 `[TS-B2]`、实现 smoke 测试、把计划同步到 `m3-implementation-plan.md` & `type-system-migration-log.md`；确定 `NodeCursor` → 泛型游标的接口收口方式，以及 Breaks/Diff/Search 前置的 adapter 使用模式。
+- **依赖与协作**：Architecture Mapper 必须处理 Stage D anchor；Rust Porter 提供 convert/edit shim 示例；QA 需要对 adapter instrumentation 制定 checklist，以便 G6 验收。
 
-### 收到任务
-1. 架构师通过 `runSubagent` 分派任务
-2. 读取本认知档案恢复上下文
-3. 根据任务类型查阅对应文档（见"知识库快速索引"）
-4. 检查 `rope-port-mapping.md` 确认 Rust 端最新状态
+## 测试基线与工具链
+- **114+ 测试基线**：M3 维持 114 项核心测试（106 旧基线 + 8 泛型接口）并扩展至 169 项（游标、Chunk/Grapheme、parity/diagnostics）。最新一次全量运行：2025-11-17 执行 `dotnet test Xi.Editor.sln -v m`，169/169 ✅，其中包含 `CursorDescriptorParityTests` 11/11、`RopeChunkEnumeratorDiagnosticsTests`、`GraphemeNavigatorSmokeTests`、`GenericNodeInterfaceTests`。任何提交前需重跑该命令或针对变更模块运行等价验证。
+- **分组命令**：
+  - `dotnet test Xi.Editor.sln -v m --filter NodeCursorTests`
+  - `dotnet test Xi.Editor.sln -v m --filter "RopeChunkEnumerator|RopeChunkEnumeratorDiagnostics|RopeChunkParity"`
+  - `dotnet test Xi.Editor.sln -v m --filter "GraphemeNavigator|GraphemeNavigatorParity"`
+  - `dotnet test Xi.Editor.sln -v m --filter GenericNodeInterfaceTests`
+- **Bench/Diagnostics**：`tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks` 提供 1 MB chunk/line 统计；`GraphemeNavigationMetrics` 计数器通过单测断言 + telemetry 报表复核。
+- **`scripts/refresh_all_assets.py` 注意事项**：
+  - 顺序运行 `goal_tree_sync.py` → `refresh_skeleton_docs.py` → `dotnet build Xi.Editor.sln` → `ilspycmd` → `tools/Skeletonizer`，需要 Python 3.11+、`dotnet` SDK、`ilspycmd`（PATH）、以及由 Debug 构建生成的 `src/xi.Core/bin/Debug/net9.0/xi.Core.dll`。
+  - 会改写 `docs/architecture/`（Goal Tree 片段）与 `docs/skeleton/`（ILSpy 输出 + Skeletonizer），运行前需确认工作区可接受这些大文件变动；如只需部分步骤可用 `--only goal-tree`、`--skip ilspy`、`--dry-run`，必要时加 `--continue-on-error`。
+  - 若 `ilspycmd` 缺失脚本会抛出 `FileNotFoundError` 并提前终止；可先 `--list` 预览命令以确保依赖齐备。
 
-### 执行任务
-1. 在 `src/xi.Core/` 中实施 C# 类型设计与功能实现
-2. 在 `tests/xi.Core.Tests/` 中编写单元测试
-3. 运行 `dotnet test Xi.Editor.sln` 验证测试通过
-4. 必要时与 Rust Porter 提供的 Parity 样本对拍
+## 风险/阻塞
+- **R8（版本票据文档化）**：代码已引入 `_editVersion` + NodeCursor 失效检测，但 `port-blueprint.md`、`rope-port-mapping.md` 与 Stage D anchor 仍未更新；若 11/19 前未补写，Goal Tree G1 将从 ⚠️ 提升为 🔴。需我与 Architecture Mapper 尽快提交文档与样本并同步 QA。
+- **R9（CLI fixture 输出滞后）**：`export-serde-fixtures` 尚未合入 `--cursor-descriptors/--chunk-descriptors/--grapheme-windows`，当前 11 份 JSON 由手写维持；若 11/19 仍不可用，QA 的 Stage D smoke 将缺少事实来源。Rust Porter 必须优先完成 CLI，Architecture Mapper 在 Stage D `FixtureFlow` 标记阻塞。
+- **R10（Chunk/Grapheme 诊断数据缺席）**：`RopeChunkEnumeratorDiagnostics` 与 `GraphemeNavigationMetrics` 仅在单测中使用，尚无 1 MB baseline 与 fallback 阈值；QA/Architecture Mapper 需在 11/21 前出具数据，否则风险升级为“高/中”。
+- **MetricAdapter Bridge（G6）**：`MetricAdapter` 草案和 smoke 测试仍是空白；泛型节点切换、Breaks/Diff/Search 计划（G3/G4）被迫等待。需要在 11/24 前提交设计 + `MetricAdapterTests`，否则 `type-system-migration-log.md#TS-B2` 与 Goal Tree G6 无法关闭。
 
-### 完成汇报
-1. **更新本档案**：在"最近完成"章节记录本次任务
-2. **运行测试**：确保 `dotnet test` 通过并记录结果
-3. **向架构师汇报**：
-   - 完成了什么功能/类型
-   - 编写了多少测试（通过率如何）
-   - 遇到的类型映射问题（是否需要 Type System Specialist 协助）
-   - 发现的 Rust/C# 差异（是否需要 Architecture Mapper 记录）
-   - **不要创建额外 markdown 文档**，直接在 SubAgent 最终报告中说明
+## 协作接口
+- **Rust Porter**
+  - 输入：Cursor/Chunk/Grapheme/Breaks JSON fixture、`export-serde-fixtures` CLI 扩展、`cursor_descriptor.rs` 与 `iterator-facade-export.md` 说明。
+  - 输出：C# 侧 parity 结果、差异日志（含 JSON、`ITestOutputHelper` dump、`ToDebugString()`）、算法疑问记录（附最小复现 + Rust 源码引用）。
+  - 近期需求：冻结 `--cursor-descriptors` schema、交付 10+ 样本、提供 MetricAdapter shim 参考实现。
+- **Architecture Mapper**
+  - 输入：Goal tree 变更、`rope-port-mapping.md`/`type-system-migration-log.md` 更新窗口、Stage D anchor 规则。
+  - 输出：实现新文件/接口/风险后，他们在蓝图和映射表登记，并驱动 `design-divergence-log.md`。
+  - 近期需求：记录 `_editVersion`/`NodeCursorState`、Chunk diagnostics 降级、MetricAdapter 计划。
+- **QA Engineer**
+  - 输入：命令脚本（`dotnet test -v m`, `RopeChunkEnumeratorBenchmarks`, telemetry instrumentation）、`scripts/refresh_all_assets.py` 运行要求。
+  - 输出：`QA-IngestionSmoke`, `QA-ChunkBench`, `QA-StageDManual` 报告，以及 fixture 完整性核查。
+  - 近期需求：拉起 1 MB chunk baseline + Grapheme fallback telemetry，并监督 CLI 产物进入 Stage D。
+- **AI 架构师**
+  - 输入：本档案节奏、风险、下一步计划。
+  - 输出：优先级决策（例如先收口 T1 再推进 T3/T4/T6）、资源/工时调度、Goal Tree 审批。
+- **同步节奏**
+  - Rust ↔ C#：Parity 失败或 CLI 变更时立刻同步；平时 2-3 天节奏。
+  - Architecture Mapper：每任务完结在 `AGENTS.md` + goal tree 记状态，通过 `scripts/goal_tree_sync.py` 保持 YAML 一致。
+  - QA：Chunk/Grapheme 基准完成即交接；`scripts/refresh_all_assets.py` 前后提供环境确认。
+  - AI 架构师：星形会议更新 + blocker 当天随时升级。
+- **工作原则**
+  1. 质量优先：必要时返工，保证 Rope/Node invariants 与 Rust 对齐。
+  2. 测试驱动：实现与测试同步提交，保持 `dotnet test -v m` 绿灯。
+  3. 对齐骨架：沿用 Rust skeleton，差异必须在 `design-divergence-log.md` 留痕。
+  4. 文档同步：Goal tree / blueprint / mapping / divergence 必须随代码更新。
+  5. 汇报透明：每次任务完成在“最近完成”记录，并向架构师陈述成果 + 风险。
 
-## 当前技术栈状态
+## 最近完成
 
-### 已实现的模块
-1. **Rope 核心结构**（`src/xi.Core/Rope/Tree/`）
-   - `Node.cs` - 字符串特化的不可变树节点，含写时复制与结构共享
-   - `Node.Generic.cs` - 泛型节点骨架（`Node<TInfo,TLeaf,TLeafOps>`），含诊断方法
-   - `TreeBuilder.cs` - 批量构建与再平衡入口
-   - `LeafSplitter.cs` - 叶片拆分策略
-   - `StringLeafOperations.cs` - `FindLeafSplit` 重写后与 Rust 对齐（newline window 搜索、代理对回退、`TryComputeBalancedSplit` 复用），支撑 81+ 叶片拆分/删除测试
-   - `TreeContracts.cs` - 静态抽象接口（`ILeafOperations`、`ITreeNodeInfo`、`IDefaultMetricProvider`）
-   - `NodeCursor.cs` - 拥有型游标实现已完成 T1.1（Base/Lines Metric 导航可用），T1.2 仍在处理叶片遍历与边界计数修复
+### 2025-11-17 - 认知档案结构重构（Stage D 前置自查）
+**任务背景**：AI 架构师要求所有员工依据 Goal Tree/Stage D anchor 统一 front-matter + 聚焦视图，我作为 C# Implementer 需将档案切换到“front-matter + 当前聚焦 + 测试基线 + 风险 + 协作接口 + 最近完成 + 待办”模板。
 
-2. **Rope 表层与度量**（`src/xi.Core/Rope/`）
-   - `Rope.cs` - 字符串缓冲区主入口，新增 `Rope.FromNode` 工厂允许测试直接接管 `TreeBuilder` 输出
-   - `RopeInfo.cs` - 聚合信息（长度、行数、UTF-16 单元数）
-   - `Metrics.cs` - BaseMetric、LinesMetric、Utf16CodeUnitsMetric 实现
-   - `IMetric.cs` - 度量接口
-   - `BreaksMetricHelper.cs` - 软换行断点索引 helper
+**关键调整**：
+1. ✅ 建立 front-matter（身份/职责/接口），显式列出与 Architecture Mapper / Rust Porter / QA / AI 架构师的输入输出与节奏。
+2. ✅ 在“当前聚焦”中按 `docs/architecture/m3-implementation-plan.md` 追踪 T1/T3/T4/T6，并点明 `NodeCursor`、`RopeChunkEnumerator`、`GraphemeNavigator`、`MetricAdapter` 的实现状态与待交付项。
+3. ✅ 整理“测试基线与工具链”“风险/阻塞”“协作接口”“最近完成”“待办/下一步”，补入 `dotnet test -v m` 结果、`scripts/refresh_all_assets.py` 依赖以及 CLI/Stage D 注意事项。
 
-3. **序列化镜像**（Stage A-C 完成）
-   - `Subset.cs` + `SubsetJson.cs` - 不可变 Subset 与 JSON 序列化
-   - `Delta.cs` + `DeltaJson.cs` - Delta 元素与序列化器
-   - `Engine.cs` + `EngineJson.cs` - Revision/RevisionOperation 与编辑引擎镜像
-   - `Interval.cs` - 区间结构
-
-4. **临时实现与辅助**
-   - `TextBuffer.cs` - 基于 StringBuilder 的占位实现
-   - `Class1.cs`, `ITextBuffer.cs` - 接口定义
-
-5. **测试基线**（`dotnet test -v m` 169/169 通过，含 11 项 CursorDescriptor 专项）
-   - `RopeTests.cs` - Rope 核心功能测试，涵盖 `Rope.FromNode` 新入口
-   - `NodeTests.cs` - Node 编辑、拆分、合并测试，`Delete_AcrossMultipleLevelsMaintainsLeafConstraints` 通过 12 片段场景覆盖多层节点
-   - `TreeBuilderTests.cs` - TreeBuilder 构建测试
-   - `StringLeafOperationsTests.cs` - 叶片操作测试（含全套 Leaf Split 重写回归）
-   - `RopeTestHelpers.cs` - `AssertInvariants` 现改用 `XunitException` 输出违例树形详情
-   - `GenericNodeSmokeTests.cs` - 泛型节点诊断测试（7 项）
-   - `CursorDescriptorParityTests.cs` - 新增深树构建器 `BuildDeepTreeRope`，对齐 Rust 深树夹具（11 项）
-   - `RopeMetricsTests.cs` - 度量系统测试
-   - `RopeMetricInteropTests.cs` - 度量互操作测试
-   - `SubsetSerializationTests.cs` - Subset 序列化测试
-   - `DeltaSerializationTests.cs` - Delta 序列化测试
-   - `EngineSerializationTests.cs` - Engine 序列化测试
-   - `BreaksMetricHelperTests.cs` - Breaks helper 测试
-   - `UnitTest1.cs` - TextBuffer 基础测试
-
-### 待实现的模块
-1. **Node 泛型化**
-   - 将 `Node.Generic.cs` 接入主实现路径
-   - 串联 TreeBuilder/Delta 与泛型节点
-   - 更新现有 81 项 Rope 测试以支持泛型
-
-2. **游标系统**（`NodeCursor.cs` 进入 T1.2 阶段）
-   - 实现 `CursorDescriptor`（对齐 Rust 端必需能力）
-   - 设计拥有型状态缓存（参考 Rust `cursor_state`）
-   - 补充 Base/Lines/Utf16 导航测试
-   - **当前阻塞**：T1.2 叶片遍历与 Metric 边界计数仍待完成（需要复刻 Rust `prev_leaf`/`next_leaf` 路径缓存回溯与 EOF 终止条件）；下一步将以深树 Rope + 12 片段删除用例验证 `_pathCache` 升降逻辑
-
-3. **迭代器与遍历**
-   - `RopeChunkEnumerator` - 零拷贝块遍历（返回 `ReadOnlyMemory<char>`）
-   - `RopeLineEnumerator` - 行遍历器
-   - `ChunkDescriptor` - 轻量块描述
-
-4. **困难模块**（依赖 Rust helper 或降级实现）
-   - `Diff/` - 文本差异算法
-   - `Search/` - 搜索功能
-   - `Breaks/` - 软换行断点树
-   - Grapheme 导航（已确定降级策略，见设计分歧日志）
-
-5. **Metric 互操作 shim**
-   - 接入 Rust 端 `convert_*` helper
-   - 评估是否需要 `edit_*` shim
-   - Breaks 度量转换 API
-
-## 知识库快速索引
-
-### 实现指南文档
-- `docs/csharp-refactor/rope-cow-rebalance-plan.md` - Rope 写时复制与再平衡实施方案，含阶段 A-F 工作拆解
-- `docs/csharp-refactor/node-generic-refactor-plan.md` - Node 泛型化重构调查，含使用面盘点与改动详解
-- `docs/csharp-refactor/rope-cs-mirror-plan.md` - Stage A-C 序列化镜像实施计划
-- `docs/csharp-refactor/rope-serialization-fixture-playbook.md` - Stage D 黄金夹具刷新手册
-- `docs/csharp-refactor/rope-delta-notes.md` - Rope/Delta 迁移要点总结
-- `docs/csharp-refactor/static-polymorphism-assessment.md` - 静态多态可行性评估
-
-### 架构协同文档
-- `docs/architecture/port-blueprint.md` - Xi.Editor C# 迁移蓝图，含系统分层、API 契约、模块映射
-- `docs/architecture/rope-port-mapping.md` - Rope 文件级映射与类型翻译计划（Rust ↔ C# 对照）
-- `docs/architecture/type-system-migration-log.md` - 类型系统移植阻塞追踪（游标、Metric、迭代器、Grapheme）
-- `docs/architecture/design-divergence-log.md` - Rust/C# 设计分歧登记表
-
-### 核心源码入口
-- `src/xi.Core/Rope/Tree/Node.cs` - Node 字符串特化实现（写时复制、结构共享、编辑操作）
-- `src/xi.Core/Rope/Tree/Node.Generic.cs` - 泛型节点骨架（`Node<TInfo,TLeaf,TLeafOps>`）
-- `src/xi.Core/Rope/Tree/TreeBuilder.cs` - 批量构建与再平衡入口
-- `src/xi.Core/Rope/Tree/StringLeafOperations.cs` - 叶片操作实现（`ILeafOperations<string>`）
-- `src/xi.Core/Rope/Tree/TreeContracts.cs` - 静态抽象接口定义
-- `src/xi.Core/Rope/Rope.cs` - Rope 字符串缓冲区主入口
-- `src/xi.Core/Rope/RopeInfo.cs` - 聚合信息结构
-- `src/xi.Core/Rope/Metrics.cs` - 度量实现（Base/Lines/Utf16）
-- `src/xi.Core/Rope/Delta.cs` - Delta 元素与构建器
-- `src/xi.Core/Rope/Engine.cs` - 编辑引擎与 Revision 管理
-- `src/xi.Core/Rope/BreaksMetricHelper.cs` - Breaks 断点索引 helper
-- `src/xi.Core/ITextBuffer.cs` - 文本缓冲区接口
-- `src/xi.Core/TextBuffer.cs` - StringBuilder 临时实现
-
-### 测试文件索引
-- `tests/xi.Core.Tests/RopeTests.cs` - Rope 核心功能测试
-- `tests/xi.Core.Tests/NodeTests.cs` - Node 编辑与不变式测试
-- `tests/xi.Core.Tests/StringLeafOperationsTests.cs` - 叶片操作测试（81 项）
-- `tests/xi.Core.Tests/GenericNodeSmokeTests.cs` - 泛型节点诊断测试
-- `tests/xi.Core.Tests/RopeMetricInteropTests.cs` - 度量互操作测试
-- `tests/xi.Core.Tests/SubsetSerializationTests.cs` - Subset 序列化回归
-- `tests/xi.Core.Tests/DeltaSerializationTests.cs` - Delta 序列化回归
-- `tests/xi.Core.Tests/EngineSerializationTests.cs` - Engine 序列化回归
-- `tests/xi.Core.Tests/RopeTestHelpers.cs` - 测试辅助工具
-
-### 骨架参考
-- `docs/skeleton/xi.Core.decompiled.cs` - C# Rope 类型骨架（ILSpy 导出 + 摘要化）
-- `docs/skeleton/rope.md` - Rust Rope 骨架文档
-- `docs/skeleton/core-lib.md` - Rust 核心库骨架
-- `docs/skeleton/plugin-lib.md` - Rust 插件库骨架
-
-## 最近完成的工作（更新：2025-11-17）
+**影响**：档案现与 Goal Tree Single Source 保持一致，可直接向架构师/Architecture Mapper/QA/Rust Porter共享最新状态；也为后续 M3 游标/Chunk/Grapheme/MetricAdapter 任务提供统一入口。
 
 ### 2025-11-17 - 文档结构模板精简评审（C# 实现视角）
 **任务背景**：Architecture Mapper 要求按照团队反馈审视 `docs/architecture/document-structure-template.md`，评估 goal tree schema 与每类文档字段对 C# 实施效率的影响，并提出“必需 vs 可选”分类与精简方案。
@@ -285,7 +217,7 @@
 - `cross_leaf_flag`/`zwj_family` 等样本暴露 fixture 与实际 C# 叶片布局不完全一致，已在测试内注释说明，后续需联合 Architecture Mapper 更新 schema。
 
 ### 2025-11-16 - M3 T3/T4 Chunk/Line Enumerator + Grapheme Navigator 降级实现
-**任务背景**：落地 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`DegradedGraphemeNavigator` 与遥测，满足 Round 3 T3/T4 要求并补齐基础测试。
+**任务背景**：落地 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`GraphemeNavigationMetrics` 与遥测，满足 Round 3 T3/T4 要求并补齐基础测试。
 
 **关键改动**：
 1. ✅ **Rope API 扩展**：`Rope` 新增 `EnumerateChunks()`、`EnumerateLines()`；`RopeChunkEnumerator`/`RopeLineEnumerator` 首版基于 `NodeCursor` 前向遍历并复制叶片/缓冲（按照 design-divergence-log 2025-11-16 降级策略）。
@@ -304,14 +236,13 @@
 **任务背景**：星形会议要求梳理 `RopeChunkEnumerator`、`RopeLineEnumerator`、`IGraphemeNavigator`、`GraphemeNavigationMetrics` 的落地方案与工期。
 
 **关键结论**：
-1. ✅ **缺口梳理**：上述类型/测试在 `src/xi.Core/Rope/` 与 `tests/xi.Core.Tests/` 中完全缺失，需新建 `RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs`、`IGraphemeNavigator.cs`、`GraphemeNavigationMetrics.cs` 及对应测试夹具目录。
+1. ✅ **缺口梳理**：上述类型/测试在 `src/xi.Core/Rope/` 与 `tests/xi.Core.Tests/` 中完全缺缺，需新建 `RopeChunkEnumerator.cs`、`RopeLineEnumerator.cs`、`IGraphemeNavigator.cs`、`GraphemeNavigationMetrics.cs` 及对应测试夹具目录。
 2. ✅ **实现策略**：Chunk/Line 迭代器首版基于 `NodeCursor`/`TraverseLeaves` 返回 `ReadOnlyMemory<char>`，保留 TODO 记录“暂不零拷贝”；Grapheme 走“单片 + 邻片 + code point 回退”降级，暴露可替换接口并挂接遥测计数器。
 3. ✅ **测试规划**：拆分 Smoke（本地拼接、CRLF、emoji）与 Parity（Rust fixture/基准），Chunk 与 Line 共享 helper，Grapheme 需要 surrogate/多叶/遥测计数断言。
 4. ✅ **时间估算**：T3 骨架与最小实现约 3-4 天，Grapheme 降级与遥测约 2 天，Benchmark/Telemetry 另计 0.5-1 天，依赖 `NodeCursor` 稳定与 Rust Porter 导出的样本/基准脚本。
 5. ✅ **风险输入**：列出游标依赖、Rust fixture 空缺、性能基准缺失等需 Architecture Mapper/Rust Porter 协助的阻塞点。
 
 **验证**：规划任务，无需运行测试。
-
 
 ### 2025-11-16 - M3 T0.2 Rope EditVersion 计数器落地（NodeCursor 感知）
 **任务背景**：评审要求为 Rope 引入版本号，确保 NodeCursor 能够在共享节点引用保持不变时检测到树被重建，从而解除 m3-implementation-plan.md 风险 R8。
@@ -345,36 +276,35 @@
 
 ### 2025-11-16 - M3 T1.1 游标结构设计（完成 80%）
 **任务背景**：架构师批准 M3 实施计划 v1.2，要求基于字符串特化 `Node.cs` 实现拥有型游标系统，支持 Base/Lines/Utf16 三类 Metric 导航。
-
 **已完成核心工作**（T1.1 - 0.5天预估，实际耗时约 4 小时）：
 
 1. ✅ **游标结构设计**（`NodeCursor.cs` 完整实现 370 行）：
-   - **拥有型设计**：持有 `Node _root` 引用 + `Node _rootSharedNode`（ReferenceEquals 失效检测）
-   - **路径缓存**：`List<int> _pathCache` 底层向上存储（[0] = 叶父节点索引，限制 4 层深度）
-   - **当前状态**：`_currentLeaf`（字符串）、`_offsetOfLeaf`（叶在树中的偏移）、`_isValid`（有效性标志）
-   - **核心 API**：
-     - `GetLeaf()` - 返回当前叶片与叶内偏移
-     - `SetPosition()` - 跳转到绝对位置（含叶内快速路径）
-     - `IsBoundary()` - 判定当前位置是否为 Metric 边界
-     - `MoveToNext()`/`MoveToPrevious()` - 按 Metric 导航到下一个/上一个边界
-     - `AtOrNext()`/`AtOrPrevious()` - 当前或最近边界
+  - **拥有型设计**：持有 `Node _root` 引用 + `Node _rootSharedNode`（ReferenceEquals 失效检测）
+  - **路径缓存**：`List<int> _pathCache` 底层向上存储（[0] = 叶父节点索引，限制 4 层深度）
+  - **当前状态**：`_currentLeaf`（字符串）、`_offsetOfLeaf`（叶在树中的偏移）、`_isValid`（有效性标志）
+  - **核心 API**：
+    - `GetLeaf()` - 返回当前叶片与叶内偏移
+    - `SetPosition()` - 跳转到绝对位置（含叶内快速路径）
+    - `IsBoundary()` - 判定当前位置是否为 Metric 边界
+    - `MoveToNext()`/`MoveToPrevious()` - 按 Metric 导航到下一个/上一个边界
+    - `AtOrNext()`/`AtOrPrevious()` - 当前或最近边界
 
 2. ✅ **Node 辅助方法补充**（`Node.cs` 新增 2 个方法）：
-   - `GetLeaf()` - 返回叶片字符串（仅对叶节点有效）
-   - `GetChildren()` - 返回子节点数组（仅对内部节点有效）
+  - `GetLeaf()` - 返回叶片字符串（仅对叶节点有效）
+  - `GetChildren()` - 返回子节点数组（仅对内部节点有效）
 
 3. ✅ **单元测试覆盖**（`NodeCursorTests.cs` 26 项测试，24 项通过 ✅，2 项失败 ⚠️）：
-   - **通过场景**（24 项）：
-     - 构造函数参数验证（null/负数/超出范围）
-     - 空 Rope 与单叶 Rope 游标创建
-     - `GetLeaf()` 正确返回叶片与偏移
-     - `SetPosition()` 叶内快速跳转与 EOF 处理
-     - `IsBoundary()` 对 Base/Lines Metric 的边界判定
-     - `MoveToNext()` 按 Base/Lines Metric 前进
-     - `AtOrNext()`/`AtOrPrevious()` 组合 API
-   - **失败场景**（2 项 ⚠️）：
-     - `MoveToPrevious_WithLinesMetric` - 预期回退到位置 6，实际停留在 12（未能向前遍历叶片）
-     - `RoundTrip_BaseMetric` - 预期迭代 5 次（0→5），实际迭代 6 次（计数错误）
+  - **通过场景**（24 项）：
+    - 构造函数参数验证（null/负数/超出范围）
+    - 空 Rope 与单叶 Rope 游标创建
+    - `GetLeaf()` 正确返回叶片与偏移
+    - `SetPosition()` 叶内快速跳转与 EOF 处理
+    - `IsBoundary()` 对 Base/Lines Metric 的边界判定
+    - `MoveToNext()` 按 Base/Lines Metric 前进
+    - `AtOrNext()`/`AtOrPrevious()` 组合 API
+  - **失败场景**（2 项 ⚠️）：
+    - `MoveToPrevious_WithLinesMetric` - 预期回退到位置 6，实际停留在 12（未能向前遍历叶片）
+    - `RoundTrip_BaseMetric` - 预期迭代 5 次（0→5），实际 6 次（计数错误）
 
 **当前阻塞与下一步计划**：
 
@@ -393,25 +323,25 @@
 **设计要点总结**：
 
 1. **失效检测策略**（对齐架构师决策 2.1）：
-   - 主路径：`ReferenceEquals(_rootSharedNode, 当前 Rope.Root)`
-   - 备用路径：预留版本号检测接口（需 Rope 提供 `_editVersion` 字段）
-   - 失效行为：`IsValid = false` + 导航方法返回 `null`
+  - 主路径：`ReferenceEquals(_rootSharedNode, 当前 Rope.Root)`
+  - 备用路径：预留版本号检测接口（需 Rope 提供 `_editVersion` 字段）
+  - 失效行为：`IsValid = false` + 导航方法返回 `null`
 
 2. **路径缓存设计**（参考 Rust `cache: [Option<(&Node, usize)>; 4]`）：
-   - C# 使用 `List<int>` 存储父节点索引（而非 Rust 的节点引用对）
-   - 底层向上：`_pathCache[0]` = 叶片在父节点的索引
-   - 深度限制：4 层（超过则截断，但基础导航不受影响）
+  - C# 使用 `List<int>` 存储父节点索引（而非 Rust 的节点引用对）
+  - 底层向上：`_pathCache[0]` = 叶片在父节点的索引
+  - 深度限制：4 层（超过则截断，但基础导航不受影响）
 
 3. **Metric 支持**（复用 `IMetric` 接口）：
-   - `CanFragment` - 判定 BOF/EOF 是否强制边界
-   - `IsBoundary(leaf, offset)` - 叶内边界判定
-   - `GetNextBoundary(leaf, offset)` - 叶内下一个边界
-   - `GetPreviousBoundary(leaf, offset)` - 叶内上一个边界
+  - `CanFragment` - 判定 BOF/EOF 是否强制边界
+  - `IsBoundary(leaf, offset)` - 叶内边界判定
+  - `GetNextBoundary(leaf, offset)` - 叶内下一个边界
+  - `GetPreviousBoundary(leaf, offset)` - 叶内上一个边界
 
 4. **性能优化点**：
-   - `SetPosition()` 含叶内快速路径（避免重新 Descend）
-   - 路径缓存减少树遍历次数（但当前未充分利用）
-   - 未来可优化：池化 `List<int>` 减少分配（GC 压力监控）
+  - `SetPosition()` 含叶内快速路径（避免重新 Descend）
+  - 路径缓存减少树遍历次数（但当前未充分利用）
+  - 未来可优化：池化 `List<int>` 减少分配（GC 压力监控）
 
 **预见难点**（基于初步实现）：
 
@@ -447,24 +377,24 @@
 
 **已完成修改**（v1.2）：
 1. **T1.6 工作量调整**：1-1.5天 → **2-2.5天**
-   - 理由：需解析 10 个 JSON fixture、对齐序列化格式、调试整数溢出/路径顺序/偏移计算差异
-   - 影响：游标总工期 5-7天 → **6-8.5天**
+  - 理由：需解析 10 个 JSON fixture、对齐序列化格式、调试整数溢出/路径顺序/偏移计算差异
+  - 影响：游标总工期 5-7天 → **6-8.5天**
 
 2. **T2.2 工作量调整**：0.5天 → **1天**
-   - 理由：需设计 `INodeCursor<TInfo,TLeaf>` 接口 + 适配器挂钩 + 1-2项泛型游标烟雾测试
-   - 影响：验证接口兼容性更充分，降低 M4 切换风险
+  - 理由：需设计 `INodeCursor<TInfo,TLeaf>` 接口 + 适配器挂钩 + 1-2项泛型游标烟雾测试
+  - 影响：验证接口兼容性更充分，降低 M4 切换风险
 
 3. **R6 缓解措施增强**：补充具体方案
-   - 接口隔离：`RopeChunkEnumerator` 依赖 `INodeCursor` 而非具体实现
-   - 降级备份：若游标未完成，用 `TraverseLeaves()` 临时实现
-   - 测试独立性：Chunk 测试验证输出正确性，不依赖游标内部
+  - 接口隔离：`RopeChunkEnumerator` 依赖 `INodeCursor` 而非具体实现
+  - 降级备份：若游标未完成，用 `TraverseLeaves()` 临时实现
+  - 测试独立性：Chunk 测试验证输出正确性，不依赖游标内部
 
 4. **R1 应急预案修正**：
-   - 原方案："退化为全遍历"（不可行，破坏失效语义）
-   - 新方案：
-     - 优先 `ReferenceEquals` + 版本号双重检测
-     - 若 `ReferenceEquals` 不可靠，完全依赖 `Rope._editVersion`
-     - 极端情况：游标不支持编辑失效（API 注释说明限制）
+  - 原方案："退化为全遍历"（不可行，破坏失效语义）
+  - 新方案：
+    - 优先 `ReferenceEquals` + 版本号双重检测
+    - 若 `ReferenceEquals` 不可靠，完全依赖 `Rope._editVersion`
+    - 极端情况：游标不支持编辑失效（API 注释说明限制）
 
 5. **§3.2.1 职责补充**：明确我的输出包括"算法疑问提案（含 Rust 源码自查 + 具体场景 + 最小复现）"，对齐 Rust Porter 算法咨询预案（§5.0）
 
@@ -499,28 +429,28 @@
 
 **已完成措施**：
 1. ✅ **措施 4：类型别名统一管理**
-   - 创建 `src/xi.Core/Rope/TypeAliases.cs`
-   - 定义 `global using RopeNode = Xi.Core.Rope.Tree.Node;`（M3 阶段）
-   - 预留 M4 切换注释（指向泛型版本）
-   - 工作量：30 分钟
+  - 创建 `src/xi.Core/Rope/TypeAliases.cs`
+  - 定义 `global using RopeNode = Xi.Core.Rope.Tree.Node;`（M3 阶段）
+  - 预留 M4 切换注释（指向泛型版本）
+  - 工作量：30 分钟
 
 2. ✅ **措施 5：禁止新增字符串特化 API**
-   - 在 `Node.cs` 文件头添加清晰警告注释
-   - 明确过渡期约束与 M4 切换清单
-   - 引导开发者使用 `RopeNode` 别名
-   - 工作量：15 分钟
+  - 在 `Node.cs` 文件头添加清晰警告注释
+  - 明确过渡期约束与 M4 切换清单
+  - 引导开发者使用 `RopeNode` 别名
+  - 工作量：15 分钟
 
 3. ✅ **措施 6：泛型接口验证测试**
-   - 实现 `GenericTreeBuilder<TInfo,TLeaf,TLeafOps>`（方案 A：独立泛型 Builder）
-   - 完整实现 Concat/ConcatLeftShorter/ConcatRightShorter 逻辑（镜像 Node.cs）
-   - 新增 `GenericNodeInterfaceTests.cs`（8 项测试）：
-     - 验证泛型 Builder 可构建泛型节点
-     - 验证字符串接口通过 StringLeafOperations 创建叶片
-     - 验证高度不变式与平衡性
-     - 验证 Reset/Concat/TraverseLeaves 等核心功能
-     - 验证泛型节点与字符串特化节点结构兼容
-   - **测试结果**：**114 项测试全部通过**（106 项现有 + 8 项新增）
-   - 工作量：2 天（含 Concat 完整实现与调试）
+  - 实现 `GenericTreeBuilder<TInfo,TLeaf,TLeafOps>`（方案 A：独立泛型 Builder）
+  - 完整实现 Concat/ConcatLeftShorter/ConcatRightShorter 逻辑（镜像 Node.cs）
+  - 新增 `GenericNodeInterfaceTests.cs`（8 项测试）：
+    - 验证泛型 Builder 可构建泛型节点
+    - 验证字符串接口通过 StringLeafOperations 创建叶片
+    - 验证高度不变式与平衡性
+    - 验证 Reset/Concat/TraverseLeaves 等核心功能
+    - 验证泛型节点与字符串特化节点结构兼容
+  - **测试结果**：**114 项测试全部通过**（106 项现有 + 8 项新增）
+  - 工作量：2 天（含 Concat 完整实现与调试）
 
 **技术评估结论**：
 - ✅ **`global using` 别名** — 零冲突，当前代码库无 global using 声明
@@ -586,69 +516,31 @@
 **更新认知档案**：记录 M3 可交付清单与风险缓释建议。
 
 ### 2025-11-16 - 入职初始化
-- 探索了 C# 代码库与文档目录结构
-- 建立了知识库快速索引（共 38 个关键文件）
-  - 实现指南文档 6 个
-  - 架构协同文档 4 个
-  - 核心源码入口 13 个
-  - 测试文件 9 个
-  - 骨架参考 5 个
-- 总结了当前技术栈状态
-  - 已实现 5 大模块（Rope 核心、度量系统、序列化镜像、临时实现、测试基线 106 项）
-  - 待实现 5 大模块（Node 泛型化、游标系统、迭代器、困难模块、Metric shim）
-- 完成本认知档案填充并准备改名为 `csharp-implementer.md`
+- 探索 C# 代码库与文档目录结构。
+- 建立知识库快速索引（38 个关键文件，涵盖实现指南/架构协同/源码/测试/骨架）。
+- 总结当前技术栈状态（已实现 5 大模块、待实现 5 大模块）。
+- 完成本档案初版填充并改名为 `csharp-implementer.md`。
 
-## 关键决策记录
-（随后续任务积累）
+## 待办/下一步
+- **T1**：完成 `_pathCache` 深树诊断、CursorState 文档与 CLI schema 补全，推动 Rust Porter 交付 10+ descriptor JSON 并在 `m3-implementation-plan.md` G1 更新状态。
+- **T3**：等待 `--chunk-descriptors` CLI，上线 `RopeChunkEnumeratorDiagnostics` → telemetry exporter，联合 QA 运行 1 MB baseline 并把结果写入 `rope-port-mapping.md`。
+- **T4**：锁定 Grapheme fallback 阈值，运行 `GraphemeNavigationMetrics` telemetry，接入未来的 `--grapheme-windows` fixture。
+- **T6**：撰写 `MetricAdapter` 草案与 `MetricAdapterTests` smoke，定义 `INodeCursor<T>` 适配路径，并在 `type-system-migration-log.md` 标记 `[TS-B2]` 进展。
+- **Stage D 工具链**：按需运行 `scripts/refresh_all_assets.py --only goal-tree` 保持 Goal Tree checksum，同步 Architecture Mapper 校验；运行全量 `dotnet test -v m` 确认 169/169 绿灯。
+- **汇报**：将 `_editVersion`、Chunk/Grapheme diagnostics、MetricAdapter 等变更回写到 `docs/architecture/m3-implementation-plan.md`、`port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`。
 
-## 协作接口
-
-### 输入
-- 架构师分派的 C# 实现任务
-- Rust Porter 提供的 skeleton/Parity 样本
-- Architecture Mapper 维护的映射表
-
-### 输出
-- 更新后的 C# 代码与单元测试
-- 测试验证报告（测试数量、通过率）
-- 更新后的本认知档案（"最近完成"章节）
-- 向架构师的汇报摘要
-
-### 同步点
-- **与 Rust Porter**：通过 `rope-port-mapping.md` 跟踪 Rust 端变更，使用 Parity 样本验证
-- **与 Architecture Mapper**：发现设计差异时请求记录到 `design-divergence-log.md`
-- **与 Type System Specialist**：遇到类型映射难题时请求设计方案
-- **与 QA Engineer**：功能实现后配合集成测试与夹具验证
-
-## 工作原则
-1. **质量优先**：不害怕重构，追求正确性与可维护性
-2. **测试驱动**：功能实现与单元测试同步推进
-3. **对齐骨架**：类型设计尽量"无脑"对齐 Rust 版，分层施工
-4. **文档同步**：发现设计决策时及时通知 Architecture Mapper
-5. **向架构师汇报**：每次任务完成都要更新本档案并汇报
-
-## 待解答的问题
-
-### 关于 Node 泛型化
+**开放问题**
 1. **泛型接入优先级**：`Node.Generic.cs` 已具备基础能力，何时将其接入主实现路径？是否等待游标系统完成后再统一切换？
 2. **字符串特化保留策略**：泛型化后是否保留 `Node.cs` 作为字符串快速路径，还是完全切换到泛型节点 + 类型别名？
 3. **测试迁移范围**：现有 81 项 Rope 测试是否需要全部改写为泛型版本，还是通过类型别名最小化改动？
-
-### 关于游标与迭代器
 4. **游标实现优先级**：当前很多功能依赖 `Snapshot()` 或 `TraverseLeaves()` 降级实现，游标系统是否是下一步最高优先级？
 5. **CursorState 必要性**：Rust 端 `cursor_state` 作为可选 feature，C# 侧是否需要同步实现，还是先聚焦 `CursorDescriptor` 基础能力？
 6. **迭代器设计方向**：`RopeChunkEnumerator`/`RopeLineEnumerator` 应该返回 `ReadOnlyMemory<char>` 还是自定义 `ChunkView` 结构？如何平衡零拷贝与易用性？
-
-### 关于 Metric 与 shim
 7. **Metric shim 接入**：Rust 端已提供 4 个 `convert_*` shim，C# 侧是否应该直接 P/Invoke 还是继续用动态 `IMetric` 接口？
 8. **Breaks 度量支持**：`BreaksMetricHelper` 已实现，但 Rust 端尚未导出 Breaks 相关 shim，C# 如何推进软换行功能？
 9. **泛型 Metric 切换**：何时从 `IMetric` 动态分派切换到静态抽象接口？是否需要性能基准验证收益？
-
-### 关于困难模块
 10. **Grapheme 降级监控**：设计分歧日志已确认降级策略，但尚未实现遥测统计。如何插入监控指标而不影响性能？
 11. **Diff/Search 骨架时机**：这些模块依赖游标系统，是否应该等游标完成后再创建骨架，还是先建占位目录？
 
----
-
-**最后更新**：2025-11-17  
-**下次任务**：等待架构师分派（可能方向：游标系统实现、Node 泛型接入、迭代器原型）
+**最后更新**：2025-11-17（档案结构重构 + M3 聚焦同步）
+**验证**：2025-11-17 · `dotnet test Xi.Editor.sln -v m` → 169/169 ✅

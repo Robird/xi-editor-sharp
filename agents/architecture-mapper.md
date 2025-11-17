@@ -1,521 +1,114 @@
-# Architecture Mapper - 架构映射维护者认知档案（入职模板）
-
-> **📋 入职说明**：你是 Architecture Mapper，这是你的认知档案模板。请完成以下入职任务：
-> 1. 阅读本模板了解你的职责与工作区
-> 2. 探索 `docs/architecture/` 目录
-> 3. 建立"知识库快速索引"（列出你需要经常查阅的文件）
-> 4. 填充"当前文档状态"（架构文档完整性与同步情况）
-> 5. 更新"最近完成"章节记录本次入职
-> 6. 将本文件改名为 `architecture-mapper.md`
-> 7. 向架构师汇报：你了解了什么、建立了哪些索引、有什么疑问
-
+---
+identity: Architecture Mapper
+role: 架构映射维护者（跨语言同步）
+reports_to: AI 架构师
+interfaces:
+  - Rust Porter（CLI schema、Serde fixtures、Goal Tree 证据）
+  - C# Implementer（Rope API parity、测试基线）
+  - QA Engineer（Stage D 锚点、遥测/基准数据）
+responsibilities:
+  - 维护 port-blueprint / rope-port-mapping / type-system-migration-log / design-divergence-log
+  - 管理 Goal Tree & Stage D anchor schema 以及自动化脚本
+  - 执行 document-structure-template.md 的落地与巡检
+timezone: UTC+8
+cadence:
+  doc_sync: 每日晚 22:00 前
+  anchor_audit: 每周三、周六
+last_updated: 2025-11-17
 ---
 
-## 我的身份
-- **角色**：架构映射维护者与跨端同步协调员
-- **所属项目**：xi-editor-sharp
-- **汇报对象**：AI 架构师（主 Agent）
-- **协作伙伴**：Rust Porter、C# Implementer、Type System Specialist、QA Engineer
-- **入职日期**：2025-11-16
+## 当前聚焦
+- Goal Tree YAML + Stage D anchors：用 `docs/architecture/templates/goal-tree.yaml` 作为单一事实来源，手工镜像 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]`，等待 `scripts/goal_tree_sync.py` 自动化上线。
+- Leaf/Cursor/Chunk/Grapheme 事实表：在 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 回写 Cursor 深树 parity、StringLeafOperations 对齐与 Stage D anchor 证据，防止 Rust/C# 状态漂移。
+- Template 执行力：推动所有 Stage 3+ 文档按照 `document-structure-template.md` 填满 front-matter、Goal Tree 片段、QA/Stage D 引用，建立 lint 脚本清单。
+- QA/Rust Porter 接口：封装 CLI schema/fixture 需求（cursor/leaf/chunk/grapheme）并同步 QA 的 Stage D 触发条件与 1 MB 基准排程。
 
-## 我的核心职责
-1. **维护映射表**：更新 `port-blueprint.md`（模块映射）、`rope-port-mapping.md`（类型映射）
-2. **追踪阻塞项**：在 `type-system-migration-log.md` 记录困难模块与降级方案
-3. **登记设计分歧**：在 `design-divergence-log.md` 记录 Rust/C# 刻意差异
-4. **同步决策**：确保 Rust Porter 和 C# Implementer 的改动及时反映到文档
+## Goal Tree / Stage D 锚点维护计划
 
-## 我的工作区
-### 核心文档
-- **模块映射**：`docs/architecture/port-blueprint.md`
-- **类型映射**：`docs/architecture/rope-port-mapping.md`
-- **困难模块**：`docs/architecture/type-system-migration-log.md`
-- **设计分歧**：`docs/architecture/design-divergence-log.md`
+### Goal Tree 同步流
+1. **来源**：维护 `docs/architecture/templates/goal-tree.yaml`，字段涵盖 `goalId/title/status/due/owner/next/qaAnchors/stageDAnchors/evidence/rustCommit/dotnetCommit/cliVersion/fixtures`。
+2. **流程**：
+   - 收集 Rust Porter / C# Implementer / QA 的状态更新，更新 YAML 并附上占位值或引用。
+   - 运行（或在脚本就绪前模拟）`scripts/goal_tree_sync.py --check --update`，将 YAML 渲染到 `port-blueprint.md` 与 `m3-implementation-plan.md` 的 `<goal-tree>` 包围段。
+   - 用 `git diff` 验证两个 goal-tree 片段 hash 是否一致，若脚本失败则手工同步并附注 `<!-- synced:YYYY-MM-DD -->`。
+3. **守护指标**：对照 `AGENTS.md` 的 Stage D/QA anchor 列表，确保每个 Goal Tree 项至少指向一个 `[QA-*]` 与一个 `[StageD::*]`（如 `[StageD::ParityAssets]`）。
 
-### 参考文档
-- **Rust 重构日志**：`docs/rust-refactor/*.md`（了解 Rust 端变更）
-- **C# 重构日志**：`docs/csharp-refactor/*.md`（了解 C# 端变更）
-- **骨架文档**：`docs/skeleton/*.md`、`docs/skeleton/*.cs`（类型骨架）
+### Stage D 锚点与资产
+- **锚点族**：`[StageD::*]`（流程/资产）、`[QA-*]`（测试/监控）、`[Fixture-*]`（schema/样本）。所有锚点定义集中在 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 与 `docs/architecture/fixtures/parity-fixture-schema.md`。
+- **资产同步**：
+  1. Rust Porter 完成 `export-serde-fixtures --cursor-descriptors --chunk-descriptors --grapheme-windows` 后，将 CLI 版本号与 manifest hash 写入 YAML，并通知 QA 运行 ingestion smoke。
+  2. QA 提供 Stage D 运行结果（CLI exit code、fixture 统计、基准数据），我回写至 `rope-port-mapping.md#[RPM-ParityAssets]` 与 `type-system-migration-log.md#[TS-Bx]`。
+  3. 对 Stage D 缺口（如 Breaks/Diff/Search）保留 `pending` 占位并在 `待办/风险` 表中追踪 owner/due。
+- **巡检节奏**：每周 anchor audit（周三/周六） + 里程碑前 24 小时加跑一次；若发现断链立即在 `AGENTS.md` 登记并 ping 责任人。
 
-## 我的工作流程
-
-### 收到任务
-1. 架构师通过 `runSubagent` 分派任务（通常是"同步 Rust/C# 双端的最新变更"）
-2. 读取本认知档案恢复上下文
-3. 根据任务类型查阅对应文档（见"知识库快速索引"）
-
-### 执行任务
-1. **同步变更**：
-   - 阅读 Rust Porter 和 C# Implementer 的认知档案"最近完成"章节
-   - 检查 `docs/rust-refactor/*.md` 和 `docs/csharp-refactor/*.md` 的更新
-   - 更新 `port-blueprint.md` 和 `rope-port-mapping.md` 反映最新状态
-2. **追踪阻塞项**：
-   - 识别新的困难模块或类型映射问题
-   - 在 `type-system-migration-log.md` 中记录阻塞项与降级方案
-3. **登记分歧**：
-   - 发现 Rust/C# 刻意差异时，在 `design-divergence-log.md` 中记录原因与影响
-
-### 完成汇报
-1. **更新本档案**：在"最近完成"章节记录本次任务
-2. **向架构师汇报**：
-   - 更新了哪些架构文档
-   - 发现了哪些新的阻塞项或设计分歧
-   - Rust/C# 双端是否保持同步
-   - 有什么需要架构师决策的问题
-   - **不要创建额外 markdown 文档**，直接在 SubAgent 最终报告中说明
-
-## 当前文档状态
-
-### 架构文档完整性检查
-- **`port-blueprint.md`**：✅ 完整性良好
-  - 已覆盖 Rope、Delta、Engine、Subset/Interval 等核心模块
-  - 包含 6 个里程碑（M0-M7）的清晰路线图
-  - 记录了 Rust/C# 双向协同机制与骨架同步流程
-  - 缺口：Diff/Search/Breaks 模块仅为规划状态，未建立骨架
-  
-- **`rope-port-mapping.md`**：✅ 同步状态良好
-  - 详细记录 Rust/C# 文件级映射与状态标签
-  - 包含 Helper 对齐记录（SharedNode、Metric、Delta、Engine）
-  - 包含类型翻译范式与命名映射规则
-  - 最新更新：2025-11-15（游标缓存与 Grapheme 策略）
-  - 待完善：Chunk/行迭代器的 C# 映射仍为占位
-  
-- **`type-system-migration-log.md`**：⚠️ 需要持续更新
-  - 当前记录 4 个主要阻塞项（游标生命周期、Metric 互操作、Chunk 迭代器、Grapheme 导航）
-  - 每项包含 Rust 策略、C# 策略、降级方案与最新进展
-  - 游标部分已更新至 CursorDescriptor/cursor_state 最新状态（2025-11-15）
-  - 待补充：Breaks/Diff/Search 模块的类型困难记录
-  
-- **`design-divergence-log.md`**：✅ 已记录关键分歧
-  - 已登记 2 项刻意差异：
-    1. UTF-16 vs UTF-8 叶片存储（2025-11-13）
-    2. Grapheme 降级策略（2025-11-15）
-  - 每项包含决策背景、影响范围与后续观察点
-  - 需关注：遥测与监控指标尚未落地
-
-### 待同步的变更
-#### 文档同步提醒（2025-11-17）
-- `docs/architecture/rope-port-mapping.md`：补记 `StringLeafOperations` parity 完成、`Rope.FromNode` 工厂与深树夹具行，并在 Cursor 区段追加“CursorDescriptorParityTests 11/11 + dotnet test -v m 169/169”验证说明。
-- `docs/architecture/design-divergence-log.md`：注记“Leaf split 已追平，仅监控 surrogate fallback”以及“Cursor 深树 parity fixture 已落地，持续观察 CLI/fixture 管线节奏”。
-- `docs/architecture/type-system-migration-log.md`：更新 Cursor/Leaf section 时间戳，写入游标 T1.2 下一步、Chunk CLI 依赖与 Rust Porter fixture schema 协同方式，并引用上述通过数据作为佐证。
-#### Rust Porter 最近完成（来自 `agents/rust-porter.md`）
-- ✅ SharedNode API 封装（tree.rs）- 集中 COW 触点
-- ✅ Metrics Helper 模块化（metrics/）- 抽离 UTF-8 边界、换行定位、Breaks 索引
-- ✅ Cursor 缓存 Phase 1/2 - 完成 CursorDescriptor 与可选 cursor_state feature
-- ✅ 字符串 Helper 抽离（helpers/string_leaf.rs）
-- ✅ TreeBuilder Slice Trace（tree_builder_slice_trace feature）
-- ✅ Breaks Metric Helper（metrics/break_indices.rs）
-- ✅ Serde Fixtures 导出工具（export-serde-fixtures bin）
-
-**待推进的 Rust 改造**：
-- Iterator Façade 可行性评估
-- Breaks Shim 方法设计
-- Metric 互操作 Shim
-- Grapheme 导航追平评估
-- Chunk 元数据 API
-- 叶片拆分双指标返回
-
-#### C# Implementer 最近完成（来自 `agents/csharp-implementer.md`）
-- ✅ Rope 核心结构（Node、TreeBuilder、LeafSplitter、StringLeafOperations、TreeContracts）
-- ✅ Rope 表层与度量（Rope、RopeInfo、Metrics、IMetric、BreaksMetricHelper）
-- ✅ 序列化镜像 Stage A-C（Subset、Delta、Engine + JSON）
-- ✅ 测试基线（106 项全部通过）
-
-**待实现的 C# 功能**：
-- Node 泛型化（Node.Generic.cs 接入主实现）
-- 游标系统（NodeCursor.cs 当前为占位）
-- 迭代器与遍历（RopeChunkEnumerator、RopeLineEnumerator）
-- 困难模块（Diff/Search/Breaks - 依赖 Rust helper 或降级实现）
-- Metric 互操作 shim
-
-### 需要补充的映射
-1. **Diff 模块**：需在 `port-blueprint.md` 和 `rope-port-mapping.md` 中建立 Diff/ 骨架映射
-2. **Search 模块**：需建立 Search/ 骨架映射与依赖关系说明
-3. **Breaks 树封装**：BreaksMetricHelper 已实现，但与树的再平衡入口尚未整合
-4. **游标遍历接口**：需补充 Cursor 相关的迭代器 C# 映射（RopeCursorEnumerator 等）
-5. **Grapheme 遥测**：设计分歧已登记，但监控指标与测试样本待补充
-
-## 知识库快速索引
-
-### 架构核心文档
-- `docs/architecture/port-blueprint.md` - Xi.Editor C# 迁移蓝图（系统分层、API 契约、里程碑路线图）
-- `docs/architecture/rope-port-mapping.md` - Rope 文件级映射与类型翻译计划（Rust ↔ C# 对照）
-- `docs/architecture/type-system-migration-log.md` - 类型系统移植阻塞追踪（困难模块与解法思路）
-- `docs/architecture/design-divergence-log.md` - C# Port 设计分歧日志（刻意差异登记表）
-- `docs/architecture/ai-team-design-draft.md` - AI Team 组织设计草案（职能分工与协作机制）
-
-### Rust 端参考
-- `docs/rust-refactor/shared-node-api.md` - SharedNode 封装说明与 COW instrumentation 计划
-- `docs/rust-refactor/CursorCache.md` - 游标缓存 Phase 0-3 路线图与跨文档对齐策略
-- `docs/rust-refactor/rope-generic-simplification-g.md` - 字符串 helper 抽离 Plan G 与 UTF-8/UTF-16 偏移对拍
-- `docs/rust-refactor/breaks-metrics-templating.md` - Metrics helper 模块化设计与执行计划
-- `docs/rust-refactor/TreeBuilderSliceStack.md` - TreeBuilder 事件追踪 feature 与 C# 对照策略
-- `docs/rust-refactor/GraphemeNavigation.md` - Grapheme 导航降级策略与 trace helper 预研
-- `docs/rust-refactor/iterator-facade-export.md` - Iterator façade 可行性调研与迁移步骤
-- `docs/rust-refactor/MetricConversionAndEditIntoNode.md` - Metric 互操作 shim 动议与四阶段计划
-- `docs/rust-refactor/delta-subset-serialization.md` - Delta/Subset 序列化方案（待确认）
-- `docs/rust-refactor/cursor-lifetime-refactor.md` - Cursor 生命周期重构计划
-- `docs/rust-refactor/simd-optionalization.md` - SIMD 优化策略（待确认）
-- `docs/rust-refactor/rust-workspace-slimming.md` - Rust 工作区精简计划
-
-### C# 端参考
-- `docs/csharp-refactor/rope-cow-rebalance-plan.md` - Rope 写时复制与再平衡实施方案（阶段 A-F 工作拆解）
-- `docs/csharp-refactor/node-generic-refactor-plan.md` - Node 泛型化重构调查（使用面盘点与改动详解）
-- `docs/csharp-refactor/rope-cs-mirror-plan.md` - Stage A-C 序列化镜像实施计划
-- `docs/csharp-refactor/rope-serialization-fixture-playbook.md` - Stage D 黄金夹具刷新手册
-- `docs/csharp-refactor/rope-delta-notes.md` - Rope/Delta 迁移要点总结
-- `docs/csharp-refactor/static-polymorphism-assessment.md` - 静态多态可行性评估
-
-### 员工认知档案
-- `agents/architect.md` - AI 架构师认知档案（主 Agent）
-- `agents/rust-porter.md` - Rust Porter 移植专家认知档案
-- `agents/csharp-implementer.md` - C# Implementer 实现专家认知档案
-- `agents/architecture-mapper.md` - Architecture Mapper 认知档案（本档案）
-
-## 最近完成的工作
-
-### 2025-11-17 - Goal Tree YAML 草案 + 字段缺口梳理
-#### 已完成任务
-- ✅ 复查 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]`，确认 G1-G6 字段一致并提取 ID/Title/Status/Due/Owner/Next/QA+Stage D 链路作为脚本输入基线。
-- ✅ 对照 `document-structure-template.md` §2.2-2.5，起草包含 14 个必填字段 + 3 个可选字段的 YAML（Rust/Dotnet commit、CLI 版本、feature gates、assetRefs、QA/Stage D anchors 等），补全代码/测试/夹具引用。
-- ✅ 标注缺失元数据（commit/manifest hash/schema version/rust CLI tag），将统一占位符 `pending` 写入 YAML，并整理责任人（Rust Porter / C# Implementer / QA）供后续追补。
-
-#### 缺口与后续
-- ⚠️ `rustCommit`、`dotnetCommit`、`rustCliVersion`、`schemaVersion`、夹具 manifest/hash 仍待提供；需与 Rust Porter + QA Engineer 确认 `export-serde-fixtures` 输出与 Stage D manifest 方案。
-- ⚠️ Breaks/Diff/Search/Iterator 相关夹具目前不存在，仅在 YAML 中占位需在 CLI 扩展完成后立即回填并更新 `goal_tree_sync.py` 数据源。
-- 🔄 等待 `goal_tree_sync.py` 落地后，将本次 YAML 写入 `docs/architecture/templates/goal-tree.yaml` 并用脚本刷新 Blueprint/Plan 片段。
-
-### 2025-11-17 - M3 锚点修复验证（6 个关键锚点 ✅）
-#### 已完成任务
-- ✅ 验证新添加的 6 个 M3 关键锚点全部存在：`[MP-T1]`、`[MP-T3]`、`[MP-T4]`、`[MP-R8]`、`[MP-R9]`、`[MP-R10]`（通过 `grep_search` 确认 `<a id="MP-*">` 标记）。
-- ✅ 检查所有 `[MP-*]` 跨文档引用（82 处匹配），确认无其他缺失锚点（未发现 `[MP-T2]` 或其他未定义锚点引用）。
-- ✅ 确认 `[MP-GoalTree]` 已在第一次深度审计中验证，本次聚焦新增的任务与风险锚点。
-
-#### 关键发现
-1. **6 个锚点全部到位**：
-   - `[MP-T1]` (§2.1) - 游标系统实现
-   - `[MP-T3]` (§2.3) - Chunk 迭代器骨架
-   - `[MP-T4]` (§2.4) - Grapheme 降级实现
-   - `[MP-R8]` (§4.1) - Rope 版本计数器风险
-   - `[MP-R9]` (§4.1) - CLI 工具风险
-   - `[MP-R10]` (§4.1) - Chunk/Grapheme 骨架风险
-2. **跨文档引用完整性**：
-   - 82 处 `[MP-*]` 引用分布在 `port-blueprint.md`（13 处）、`rope-port-mapping.md`（4 处）、`m3-architect-decision.md`（31 处）、`type-system-migration-log.md`（2 处）、`system-overview.md`（12 处）、`m3-implementation-plan.md`（内部引用）。
-   - 所有引用均指向已定义的锚点，无断链。
-3. **§2.2 任务 2 不需要锚点**：已标记为"已完成 ✅"，仅在 M3 期间有维护工作，未被跨文档引用，因此不需要 `[MP-T2]` 锚点。
-4. **60+ 跨文档引用已全部解除阻塞**：`port-blueprint.md` 的风险表、`m3-architect-decision.md` 的裁决表、`system-overview.md` 的角色矩阵现在可以直接跳转至 M3 计划的具体章节。
-
-#### 后续监控
-- ✅ **P0 阻塞已解除**：第一次审计发现的 7 个缺失锚点（包括 `[MP-GoalTree]` + 本次新增的 6 个）已全部修复，架构文档互链系统恢复完整性。
-- 🔄 下次文档巡检（预计 2025-11-20）需确认是否有新的 `[MP-*]` 锚点需求（如后续添加新任务或风险时）。
-- 📝 建议在 `document-structure-template.md` 中补充"锚点添加规范"：当新增任务/风险/决策时，需同时添加 `<a id="...">` 标记并更新跨文档引用。
-
-### 2025-11-17 - 深度验证：7 文档锚点与 Goal Tree 同步审计
-#### 已完成任务
-- ✅ 系统性提取 7 个核心文档中所有 `[XXX-*]` 形式的锚点引用（200+ 处）。
-- ✅ 验证所有被引用锚点在目标文档中的存在性（通过 `grep_search` 锚点定义）。
-- ✅ 对比 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]` 的 6 个目标（G1-G6），确认 ID/Title/Status/Due/Owner/Next/QA列完全一致，手动同步注释存在。
-- ✅ 验证所有 7 个文档的 front-matter（Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree）完整性，全部符合 `document-structure-template.md` 要求。
-- ✅ 验证 QA 与 Stage D 锚点（`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`、`[QA-StageDManual]`、`[StageD::*]` 系列）在 `rope-serialization-fixture-playbook.md` 中全部定义。
-- ✅ 识别 **P0 阻塞性问题**：`m3-implementation-plan.md` 中 7 个关键锚点（`[MP-T1]`、`[MP-T3]`、`[MP-T4]`、`[MP-R8]`、`[MP-R9]`、`[MP-R10]`、`[MP-GoalTree]`）被跨文档引用 60+ 次，但**仅 `[MP-GoalTree]` 存在锚点定义**，其余 6 个使用中文标题未添加锚点标记。
-- ✅ 生成验证报告：包含锚点完整性表、Goal Tree diff 结果、front-matter 检查清单、修复建议（P0 级 7 个锚点补充方案）。
-
-#### 关键发现
-1. **锚点缺失影响范围**：
-   - `[MP-T1]` 被 `port-blueprint.md`（3 处）、`m3-architect-decision.md`（5 处）、`rope-port-mapping.md`（2 处）、`rope-serialization-fixture-playbook.md`（3 处）、`design-divergence-log.md`（1 处）跨文档引用，共 14+ 处引用全部失效。
-   - `[MP-R8]`/`[MP-R9]`/`[MP-R10]` 各被引用 10-12 次，风险追踪链路断裂。
-2. **Goal Tree 镜像质量高**：
-   - 两处 Goal Tree 片段字段顺序、标点符号、emoji 状态标记完全一致。
-   - 手动同步注释 `<!-- goal-tree:start -->` / `<!-- goal-tree:end -->` 及"等待 `goal_tree_sync.py`"说明已到位。
-3. **QA/Stage D 引用规范**：
-   - 所有 QA 与 Stage D 锚点遵循 `[QA-*]` / `[StageD::*]` 命名约定，无重复或冲突。
-   - `parity-fixture-schema.md` 引用的 `[Fixture-*]` 锚点全部在自身文档定义。
-4. **Front-matter 一致性**：
-   - 7 个文档均包含 Scope/Owner/Update Frequency/Reviewers/Anchor Prefix/Last Synced Goal Tree 字段。
-   - Anchor Prefix 与实际锚点命名匹配（BP/RPM/TS/Div/MP/Decision-M3/StageD/QA/Fixture）。
-
-#### 后续监控
-- ⚠️ **P0 阻塞**：`m3-implementation-plan.md` 必须在 48 小时内补充 `[MP-T1]`/`[MP-T3]`/`[MP-T4]`/`[MP-R8]`/`[MP-R9]`/`[MP-R10]` 锚点定义（建议在章节标题中添加 `[MP-*]` 前缀，或在标题下方添加 `<a id="MP-*">` 标记），否则跨文档链接验证无法通过 `./run_all_checks` 审计（一旦 anchor lint 脚本上线）。
-- 🔄 等待 C# Implementer 或 AI Architect 确认锚点添加方式：保留中文标题+独立 `<a>` 标记（推荐），或改用 `### [MP-T1] 任务 1：...` 混合格式。
-- 🔄 Goal Tree 手动同步机制需持续执行，直到 `scripts/goal_tree_sync.py` 脚本上线；每次编辑 Blueprint 或 M3 计划时需同步更新对端片段并验证 hash 一致性。
-- 📝 在下次文档巡检（预计 2025-11-20）时重新运行锚点验证，确认 `[MP-*]` 修复完成并更新验证报告时间戳。
-
-### 2025-11-19 - Template Rollout Round 2（Decision & Stage D & Org Docs）
-#### 已完成任务
-- ✅ 为 `docs/architecture/m3-architect-decision.md` 添加 front-matter 与 `[Decision-M3-*]` 锚点，将评审摘要、裁决、监控、执行动作与变更记录整理为表格，并确保所有条目指回 `[MP-*]`、`[QA-*]`、`[StageD::*]`。
-- ✅ 为 `docs/architecture/fixtures/parity-fixture-schema.md` 引入 front-matter 与 `[Fixture-*]` 结构，保留字段表的同时以摘要段落链接至 `[StageD::ParityAssets]`/`[StageD::FixtureFlow]`，并创建正式 change log。
-- ✅ 为 `docs/architecture/ai-team-design-draft.md` 引入 front-matter 与 `[AIT-*]` 章节，把阻塞分析、方案对比、推荐组织、执行计划与决策日志表格化，确保认知档案与文档同步。
-#### 后续监控
-- 🔄 一旦 `docs/architecture/system-overview.md` 创建，需要在 `[AIT-ExecutionPlan]` 中补链以闭环 Phase 3 目标。
-- 🔄 等待 Stage D 手册补充细粒度锚点后，更新 `[Fixture-*]` 段落中的 `[StageD::*]` 链接以指向具体章节。
-- 📝 在下次文档巡检时确认决策书/AI 团队草案/Stage D schema 是否继续保持与 Goal Tree 同步，如有新增决策需追加 change log。
-
-### 2025-11-18 - Architecture 文档模板落地 (Round 1)
-#### 已完成任务
-- ✅ 重写 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 以统一 front-matter、`goal-tree` 片段、`Parity Assets`/QA 引用，并删减冗余叙述。
-- ✅ 在 `m3-implementation-plan.md` 注入与 Blueprint 同步的 `[MP-GoalTree]` 片段，确保 G1-G6 单一来源在脚本上线前保持手工镜像。
-- ✅ 将阻塞项改写为 `[TS-Bx]` 卡片（含 Problem/Rust Plan/C# Plan/Status/Links/Next），新增 Breaks/Diff/Search 缺口（`[TS-B5]`）并串联到 `[StageD::ParityAssets]`、`[QA-ChunkBench]`、`[QA-Telemetry]` 监控。
-- ✅ 在 `rope-port-mapping.md` 压缩矩阵至 10 个关键模块，补写 `[RPM-ParityAssets]` 表与 `[RPM-Actions]` 清单，让 G1-G3 的 CLI/Telemetry 缺口一目了然。
-- ✅ 将 `design-divergence-log.md` 表格化，保留 UTF-16 叶片与 Grapheme 降级两条记录，并新增 Chunk copy-on-read 降级条目挂到 `[QA-ChunkBench]`。
-#### 后续监控
-- 🔄 等待 Rust Porter demo `--cursor-descriptors/--chunk-descriptors/--grapheme-windows`，随后刷新 `[StageD::ParityAssets]` 列表并更新 `rope-port-mapping.md` 状态列。
-- 🔄 与 QA 对齐 `[QA-ChunkBench]` 与 `[QA-Telemetry]` 的基准记录时间戳，在 `BP-RiskTable` 里追踪 R9/R10。
-- 🔼 监督 `MetricAdapter` 草案（`[TS-B2]`）与 Breaks/Diff/Search 骨架（`[TS-B5]`）提交节奏，必要时在 Goal Tree G3/G6 标红。
-
-### 2025-11-17 - 文档结构模板精简审阅
-#### 已完成任务
-- ✅ 阅读 `docs/architecture/document-structure-template.md` 全文，并对照 `port-blueprint.md`、`rope-port-mapping.md`、`m3-implementation-plan.md` 交叉验证字段/锚点的重复与可裁剪区段。
-- ✅ 整理文档目录、目标树 schema、每文档要求、锚点规则、QA/Stage D、治理六大核心章节的冗余项与必保留项，为 AI Team 传阅准备迭代建议。
-- ✅ 形成“精简版模板纲要”草案，标注可下放到 playbook/agents 档案或附录的细节，待架构师评审后统一发出。
-#### 后续监控
-- 🔼 2025-11-18 前向 AI Team 提交本次模板精简建议，收集各角色（QA、Implementer、Porter）对删减字段的反馈，并决定是否在 `docs/architecture/` 顶层发布精简版片段。
-- 🔄 若获批，需要协助各文档 owner 迁移到精简模板，并更新 `AGENTS.md` 记录执行进度。
-
-### 2025-11-17 - 文档结构模板提案 + 目标树字段定义
-#### 已完成任务
-- ✅ 全量复盘 `docs/architecture/port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md`、`m3-architect-decision.md` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`，梳理现有章节职责、互链方式与重复段落，为模板提案建立事实基线。
-- ✅ 归纳 7 份核心文档的职责矩阵与锚点建议（含 Blueprint ↔ M3 计划、阻塞日志 ↔ 分歧日志、Fixture 手册 ↔ Stage D CLI），并规划交叉引用规范（如 `[G1]`, `[Decision-M3-01]`, `[Fixture-Cursor-CLI]`）。
-- ✅ 设计目标/进度树字段标准（Owner/Status/Due/Evidence/Next/Rust Commit/Feature Gates/CLI Version/Fixtures/Telemetry等）与 Blueprint ↔ M3 计划的复用策略（Markdown 片段 + `refresh_skeleton_docs.py` 钩子 + 注释约束），形成统一元文档草案。
-- ✅ 起草“文档规范模板”骨架（摘要/范围、文档类别章节顺序、引用/锚点规则、维护者/频率/审核流程），并标记需其他角色补充的字段（如 CLI schema、测试链接、遥测阈值）。
-#### 后续监控
-- 🔄 等待团队评审模板草案，若获批需在 `docs/architecture/` 顶层创建共享章节段落并向各文档 owner 通知迁移窗口。
-- 🔼 与 Rust Porter/C# Implementer 对齐“目标树字段”中 CLI/fixture/测试责任的自动校验方式（脚本或手工清单），防止字段长期空缺。
-- 📝 一旦模板批准，需批量更新 7 份核心文档的章节排布与引用标签，并在 `AGENTS.md` 登记迁移动作与检查清单。
-
-### 2025-11-17 - 架构文档整合扫描 + 星形会议准备
-#### 已完成任务
-- ✅ 快速审阅 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md`、`m3-architect-decision.md`，收集现状、交叉引用与重复段落，为星形会议提供输入。
-- ✅ 整理两种候选策略（合并型 / 正交型）的初步建议点，标注各文件适合的职责边界与可能的合并路径，并草拟目标/进度树模板。
-- ✅ 梳理实施影响（维护成本、上下文载荷、AI 团队协同）与需更新的文档/脚本清单，准备在最终报告中输出。
-#### 后续监控
-- 🔼 星形会议时需驱动团队确认选择的策略版本，并在会后批量更新 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md` 等受影响章节。
-- 🔄 待架构师确认目标/进度树结构后，在相关文档插入统一模板，并同步通知 QA/Implementer 如何引用。
-- 📝 如果会议决定调整 CLI/schema 或 Stage D 脚本范围，我需追加到 `scripts/refresh_serialization_fixtures.ps1` 与 Stage D 文档的更新清单。
-
-### 2025-11-17 - Rope 文档同步 + R8/R9/R10 状态刷新
-#### 已完成任务
-- ✅ 更新 `docs/architecture/rope-port-mapping.md` 的 Leaf/Cursor/Chunk/Grapheme 行：记入 `_editVersion` 版本票据、`CursorDescriptorParityTests` 11/11、`RopeChunkEnumeratorDiagnostics`/`GraphemeNavigationMetrics` 插桩，并明确 CLI schema、Grapheme 遥测阈值与 1 MB 基准尚未交付。
-- ✅ 在 `docs/architecture/type-system-migration-log.md` 的“游标生命周期”“Chunk/行 迭代器”章节登记“版本票据 + Diagnostics”里程碑（含负责人、引用测试与下一步验证），形成可追溯链路。
-- ✅ 扩写 `docs/architecture/design-divergence-log.md`（Chunk 复制语义降级 + Grapheme 遥测阈值待裁决）与 `docs/architecture/m3-implementation-plan.md`（G1/G2 状态、§5.3 基线、§4.4 风险更新），并在 `AGENTS.md` “下一步行动”区加入“文档同步 + schema/阈值待交付”提醒以备星形会议使用。
-#### 后续监控
-- 🔼 Rust Porter 需在 2025-11-19 前提交 `--cursor-descriptors/--chunk-descriptors/--grapheme-windows` schema 与 Stage D 文档；若逾期，R9/R10 将按 §4.4 提升等级。
-- 🔄 架构师需在 2025-11-20 前裁决 Grapheme 遥测阈值（是否继续 0.5%），并与 QA 协调 1 MB Chunk/Line 基准；完成后我需回写 `design-divergence-log.md`、`m3-implementation-plan.md` §5.3。
-- 🧪 QA Engineer 在 schema 就绪后负责 CLI ingestion smoke + 1 MB 基准运行；我需跟进结果并将数据写入 `rope-port-mapping.md`/`type-system-migration-log.md`/`m3-implementation-plan.md`。
-
-### 2025-11-17 - Leaf Split & CursorDescriptor 深树 parity 同步
-#### 已完成任务
-- ✅ 阅读 `AGENTS.md` 2025-11-17 日志，将“Leaf Split & Delete Invariants”“Cursor Descriptor Deep Tree Parity”两项成果吸收进本档案工作记要。
-- ✅ 汇总 Leaf Split parity 对映射表与分歧日志的影响：记录 C# `StringLeafOperations.FindLeafSplit` 已与 Rust helper 对齐、`TryComputeBalancedSplit`/`RopeTestHelpers.AssertInvariants` 的诊断强化（抛出 `XunitException`）及 `NodeTests.Delete…` 12 片段覆盖多层结构，准备在 `rope-port-mapping.md`、`design-divergence-log.md` 中更新 LeafSplitter 行与“删除跨多层案例”观察点。
-- ✅ 整理 CursorDescriptor 深树 parity 状态：`Rope.FromNode` 工厂 + `BuildDeepTreeRope` 夹具补齐深树样本，`CursorDescriptorParityTests` 11/11 JSON 基线与 `dotnet test -v m` 169/169 结果需回写 `rope-port-mapping.md`、`type-system-migration-log.md`，同时提示 fixture 管线可被 Rust Porter 复用。
-- ✅ 标注必须同步的文档行动：`rope-port-mapping.md` Leaf/Cursor 行、`design-divergence-log.md` Leaf split 追平与 Cursor fixture 监控、`type-system-migration-log.md` Cursor/Leaf/T1.2 行（含 Chunk CLI 依赖），并准备在“待同步的变更”“下一步/后续监控”中明确责任与截止期。
-
-#### 后续监控
-- 🔼 **P0 · 2025-11-18**：完成 `docs/architecture/rope-port-mapping.md` 更新，新增 `StringLeafOperations` parity 完成、`Rope.FromNode`/深树夹具行以及 Cursor fixture 管线备注，保持与 `dotnet test -v m` 169/169、Cursor JSON 11/11 数据一致。
-- 🔼 **P0 · 2025-11-18**：在 `docs/architecture/design-divergence-log.md` 注记“Leaf split 已追平，仅保留 surrogate fallback 监控”与“Cursor 深树 parity fixture 已落地，需跟踪 CLI 导出节奏”。
-- 🔼 **P1 · 2025-11-19**：刷写 `docs/architecture/type-system-migration-log.md` Cursor/Leaf section 时间戳，补上游标 T1.2 待办、Chunk CLI 依赖、Rust Porter fixture schema 需求，并引用 `dotnet test -v m` 169/169 + CursorDescriptor 11/11 作为校验记录。
-- ⚠️ **风险**：若 Leaf/Cursor 文档未在 48 小时内同步，将导致 `rope-port-mapping.md` 与实现失真，Rust Porter 难以及时加载新的 fixture schema。
-
-### 2025-11-16 - Round 3 跨端骨架映射整合
-#### 已完成任务
-- ✅ 汇总 Round 1（C#）与 Round 2（Rust）反馈，提炼 6 项类型体系骨架缺口（CursorState、Chunk/Line parity、Breaks tree、Diff/Search、Iterator façade、Metric shim）并标注双方依赖。
-- ✅ 为每个缺口拟定修订计划：指定 owner/前置依赖/测试资产，映射到 `docs/architecture/m3-implementation-plan.md` §2.1/§2.3/§5.3、`docs/architecture/rope-port-mapping.md` 对应表行与 `docs/architecture/type-system-migration-log.md` 的阻塞章节。
-- ✅ 归档需架构师拍板的决策点（Cursor 版本字段、Chunk/Grapheme telemetry 阈值、Breaks schema、Diff/Search feature flag）并输出 11 月内完成的时间窗及执行顺序建议。
-
-#### 后续监控
-- ⚠️ 2025-11-18 前等待架构师确认遥测阈值与 CLI schema；若延迟需在 `m3-implementation-plan.md` 调整 T3/T4 里程碑。
-- 🔄 持续跟进 Rust Porter 的 `iterator-facade-export` 与 CLI fixture 交付，按约定回写 `rope-port-mapping.md` / `type-system-migration-log.md` 状态行。
-- 🧪 与 C# Implementer 协调 NodeCursor 版本票据与 Chunk/Line telemetry 的测试落地，准备在 Stage D 夹具刷新脚本追加新资产。
-
-### 2025-11-16 - Chunk/Grapheme 文档回填与 checkpoint 立项
-#### 已完成任务
-- ✅ 更新 `docs/architecture/m3-implementation-plan.md`：补入 Round 3 Chunk/Grapheme 子任务 T3.6-T3.8、T4.6-T4.8，新增 CLI/Telemetry 里程碑检查点，并在 §5.3 标注“骨架已提交 + 12 项测试通过、等待 parity fixtures 与基准”的现实基线。
-- ✅ 更新 `docs/architecture/rope-port-mapping.md`：在 Chunk/Lines、Grapheme 行标注 “Skeleton available, waiting for parity fixtures / Rust CLI export in progress”，引用 `RopeChunkEnumeratorTests.cs`、`RopeLineEnumeratorTests.cs`、`GraphemeNavigatorSmokeTests.cs` 以及 2025-11-16 设计分歧 entry。
-- ✅ 更新 `docs/architecture/type-system-migration-log.md`：分别为 Chunk/行迭代器与字素导航章节补充“当前阶段 + 阻塞项 + 缓解动作”，明确 CLI fixture、Telemetry 阈值与基准测试的待办。
-
-#### 后续监控
-- ⚠️ Rust Porter 需在 2025-11-19 前交付 `export-serde-fixtures --chunk-descriptors/--grapheme-windows` JSON；若延期须升级 R9/R10 风险并在 checkpoint 表中回写。
-- 🔄 C# Implementer 需在 T3.7/T4.6 内提交 Chunk/Line Diagnostics 与 Grapheme 遥测阈值提案，Architecture Mapper 负责追踪文档引用。
-- 🧪 QA Engineer 待排期 1 MB Chunk/Line 基准与 Grapheme fallback 采样（T3.8/T4.8），完成后回写 §5.3 与 `rope-port-mapping.md`。
-
-### 2025-11-16 - Round 3 Chunk/Grapheme Skeleton 协调
-#### 已完成任务
-- ✅ 整理 Round 1（C# Implementer）与 Round 2（Rust Porter）对 Chunk/Grapheme 的拆解，形成覆盖实现、测试、CLI 夹具、遥测与降级记录的任务矩阵（T3.x/T4.x）。
-- ✅ 明确每项子任务的 owner、估算工时与依赖顺序，补充 Chunk 需要的 `NodeCursor`/`MAX_LEAF`、Grapheme 需要的 surrogate helper、遥测挂点等前置条件。
-- ✅ 归档需要更新的文档章节（`m3-implementation-plan.md` §2.3/§2.4、`rope-port-mapping.md` Chunk/Grapheme 行、`design-divergence-log.md` Grapheme 降级段落、`type-system-migration-log.md` 阻塞表）并撰写摘要，等待正式编辑。
-- ✅ 记录未决事项（Chunk parity CLI 交付节奏、Grapheme 遥测阈值、QA benchmark 触发条件）供架构师确认。
-
-#### 后续监控
-- ⚠️ 关注 Rust Porter 是否在 11/18 前扩展 `export-serde-fixtures` 支持 Chunk/Grapheme 描述符；若延误需在 `m3-implementation-plan.md` 调整依赖顺序并更新风险 R10。
-- ⚠️ 跟进 C# Implementer 交付 `RopeChunkEnumerator` skeleton 的进度，确保 T3.1/T3.2 在游标收敛后 1 天内启动。
-- 🔄 等待架构师确认 Grapheme 遥测阈值（0.5% 仍沿用还是提升），以便在 `design-divergence-log.md` 中补充分歧监控项。
-
-### 2025-11-16 - M3 现实基线与依赖补录
-#### 已完成任务
-- ✅ 重新审阅 `docs/architecture/m3-implementation-plan.md`，新增 §1.5 T0 依赖表、§5.3 现实基线以及扩展 §4.1 风险（含触发条件、R8-R10）。
-- ✅ 将 `dotnet test Xi.Editor.sln --filter NodeCursorTests` 最新通过结果记入计划，澄清“114 项+游标全绿”仍是目标值。
-- ✅ 在 `docs/architecture/rope-port-mapping.md` 的“主要缺口”中登记 `export-serde-fixtures --cursor-descriptors` CLI 依赖，确保 Cursor parity 资产被追踪。
-- ✅ 本档案“最近完成”章节记录更新，维持 Architecture Mapper 认知同步。
-
-#### 后续监控
-- ⚠️ 跟踪 `Rope` 版本计数器实现是否在 2025-11-18 前合入；若延迟需升级 R8 风险。
-- ⚠️ 每日确认 Rust Porter 对 `--cursor-descriptors` CLI 的进度，并在资产落地后刷新 `rope-port-mapping.md` 状态。
-- ⚠️ T3/T4 Skeleton 提交前检查 `RopeChunkEnumerator` 与 Grapheme 遥测骨架是否具备最小实现，必要时提前准备替代方案。
-- 🔄 待全量 114 项测试重新跑完后，回写 §5.3 时间戳并记录差异。
-
-### 2025-11-16 - M3 实施计划创建
-#### 已完成任务
-- ✅ 阅读 `type-system-migration-log.md` 会议决策章节（星形会议结论：坚持骨架映射，方案 B）
-- ✅ 梳理 4 大阻塞点（游标/泛型/Chunk/Grapheme）的 M3 交付目标与工作量估算
-- ✅ 设计任务分解表（游标 6 个子任务、泛型 2 个维护项、Chunk 5 个、Grapheme 5 个）
-- ✅ 制定分工协作机制（4 角色职责 + 3 类协作接口 + 同步频率）
-- ✅ 评估 7 项风险（技术 4 项 + 进度 3 项）并制定缓解措施 + 应急预案
-- ✅ 设计评审机制（4 类文档修改权限 + 3 级代码评审流程）
-- ✅ 制定同步机制（4 类认知档案更新频率 + 周会 + 里程碑同步）
-- ✅ 设计回退策略（3 类触发条件 + 部分/全面回退方案）
-- ✅ 创建 `docs/architecture/m3-implementation-plan.md`（1.0 版，约 600 行）
-- ✅ 更新 `AGENTS.md` 工作日志与下一步行动
-
-#### 关键发现
-1. **M3 工作量**：15-20 天（约 2-3 周），核心在游标系统（5-7 天）
-2. **测试基线**：114 项（M3 前 106 项 + 8 项泛型接口测试）
-3. **风险聚焦**：游标缓存失效检测（R1，高严重度）、Chunk 分配过多（R2，中严重度）
-4. **协作瓶颈**：C# Implementer 与 Rust Porter 需每 2-3 天同步 Parity 样本，避免偏移计算偏差
-5. **文档权限**：本计划书由架构师独占修改权，重大变更需星形会议
-
-#### 需全员评审的关键点
-1. **游标缓存失效检测方案**：版本号 vs `ReferenceEquals`，GC 压力监控策略
-2. **Chunk 性能基准设定**：M3 接受临时性能损失的阈值（慢 5 倍？）
-3. **回退触发条件合理性**：游标 > 10 天、测试通过率 < 80%、性能慢 5 倍
-4. **周会频率**：5-7 天一次是否足够？日常同步机制是否需要加强？
-5. **文档修改流程**：4 类文档（计划书/映射表/阻塞日志/分歧日志）的修改权限与审批流程是否合理？
-
-#### 后续动作
-- 在下次周会（预计 2025-11-23）复盘 M3 中期进度
-- 监控 C# Implementer 认知档案中的阻塞项日报
-- 跟踪 `rope-port-mapping.md` 中游标/Chunk/Grapheme 模块的状态标签变更
-
-### 2025-11-16 - 类型系统迁移阻塞点评估（星形会议）
-#### 已完成任务
-- ✅ 阅读 `docs/architecture/type-system-migration-log.md` 全文（4 个阻塞点）
-- ✅ 交叉验证 `port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md` 对齐状态
-- ✅ 深入阅读 Rust 端重构文档（`CursorCache.md`、`iterator-facade-export.md`、`MetricConversionAndEditIntoNode.md`）
-- ✅ 完成 4 个阻塞点的分类评估（必须/可降级）与降级方案可行性分析
-- ✅ 评估放弃骨架映射对 4 个核心文档与项目整体的影响
-- ✅ 提出明确建议：坚持骨架映射，分阶段解除阻塞
-
-#### 关键发现
-1. **阻塞点现状**：
-   - **游标生命周期**：Rust Phase 1 已完成（`CursorDescriptor`），Phase 2 进行中（`cursor_state` feature gate），C# 可立即开始实现 —— ✅ 必须解决
-   - **Metric 互操作**：Rust 4 个 `convert_*` shim 已合入，C# 可继续使用动态 `IMetric` 或 P/Invoke —— ⚠️ 可部分降级
-   - **Chunk 迭代器**：C# 完全缺失，Rust façade 方案尚未实现 —— ⚠️ 可降级但有代价
-   - **字素导航**：降级策略已在 `design-divergence-log.md` 登记，但遥测与测试未落地 —— ✅ 已确认降级（风险可控）
-
-2. **降级方案风险**：
-   - **Metric 互操作**与**Chunk 迭代器**若长期降级，将导致：
-     - C# 性能无法达到 Rust 基线（百万字符 < 50ms 延迟目标落空）
-     - Diff/Search/Breaks 等模块无法建立骨架，M4/M5 路线图阻塞
-     - `Node.Generic.cs` 与动态 `IMetric` 双轨并存，维护成本指数级上升
-   - **字素导航**降级风险可控，但必须补充 `GraphemeNavigationTests` 与遥测计数器
-
-3. **放弃骨架映射的代价**：
-   - 4 个核心文档（`port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`）失去价值
-   - M1/M2 已完成 70% 的工作全部浪费（106 项测试、Stage A-C 序列化镜像、SharedNode/Metric Helper 协同）
-   - 项目退化为"C# Rope 原型"，无法达成"嵌入式文本编辑内核"目标
-   - Rust/C# 双端协同机制崩溃，后续恢复成本翻倍
-
-4. **明确建议**：**坚持骨架映射，分阶段解除阻塞**
-   - **立即行动项**（本周内）：
-     - C# 启动 `NodeCursor` 实现（基于 Rust `CursorDescriptor`）
-     - 在 `rope-port-mapping.md` 标注 Metric 互操作"临时方案"状态
-     - 建立 `RopeChunkEnumerator`/`RopeLineEnumerator` 骨架
-     - 补充 `GraphemeNavigationTests` 与遥测计数器
-   - **M3 检查点**（2 周内）：
-     - `NodeCursor` 通过 81 项 Rope 测试 + 新增游标回归用例
-     - `Node.Generic.cs` 接入主实现
-     - `RopeChunkEnumerator` 通过最小迭代测试
-     - 字素降级遥测数据首次回顾
-
-### 2025-11-16 - 入职初始化
-#### 已完成任务
-- ✅ 阅读 `agents/architecture-mapper-template.md` 全文，理解核心职责与工作流程
-- ✅ 探索 `docs/architecture/` 目录（5 个核心架构文档）
-- ✅ 浏览 `docs/rust-refactor/` 目录（12 个 Rust 端重构文档）
-- ✅ 浏览 `docs/csharp-refactor/` 目录（6 个 C# 端实施文档）
-- ✅ 阅读 `agents/rust-porter.md` 与 `agents/csharp-implementer.md` 的"最近完成"章节
-- ✅ 建立知识库快速索引（架构文档 5 个、Rust 参考 12 个、C# 参考 6 个、员工档案 4 个）
-- ✅ 评估架构文档完整性与同步情况（逐个分析 4 个核心文档）
-- ✅ 识别待同步变更（总结 Rust/C# 双端最近完成的工作与待推进项）
-- ✅ 完成本认知档案填充并准备改名为 `architecture-mapper.md`
-
-#### 关键发现
-1. **文档健康度**：
-   - `port-blueprint.md` 与 `rope-port-mapping.md` 完整性良好，与双端代码状态保持同步
-   - `type-system-migration-log.md` 需要持续更新（4 个阻塞项，待补充 Breaks/Diff/Search）
-   - `design-divergence-log.md` 已记录 2 项关键分歧，遥测监控待落地
-
-2. **双端协同状态**：
-   - Rust Porter 已完成 7 项 Helper 改造，6 项待推进
-   - C# Implementer 已实现 5 大模块（106 项测试通过），5 大模块待实现
-   - 双端在 SharedNode、Metrics、序列化镜像方面已对齐
-   - 游标系统、迭代器、困难模块（Diff/Search/Breaks）仍需协同推进
-
-3. **缺口识别**：
-   - Diff/Search/Breaks 模块骨架尚未建立
-   - 游标遍历接口 C# 映射待补充
-   - Grapheme 遥测与监控指标待实施
-   - Iterator Façade 与 Metric Shim 设计待推进
-
-## 关键决策记录
-（随后续任务积累）
+## 文档结构模板治理策略
+- **基线管理**：`document-structure-template.md` 由我负责记录版本、字段解释与示例。任何字段调整需开 PR，在模板 change log 标注 `version` 与生效文档清单。
+- **落地步骤**：
+  1. 引导各 owner 填写 front-matter（Scope/Owner/Update Frequency/Anchor Prefix/Last Synced Goal Tree）、必备章节（现状、目标、风险、QA/Stage D、维护日志）。
+  2. 通过 `scripts/refresh_skeleton_docs.py --validate-anchors docs/architecture` 校验锚点命名、Goal Tree inclusion，以及是否引用最新 YAML。
+  3. 结果写入 `AGENTS.md#Document Compliance`，对未对齐文档生成 `todo` 并在 `待办/风险` 区跟踪。
+- **守护范围**：当前重点文件为 `port-blueprint.md`、`rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`、`m3-implementation-plan.md`、`m3-architect-decision.md`、`fixtures/parity-fixture-schema.md`。
 
 ## 协作接口
 
-### 输入
-- Rust Porter 和 C# Implementer 的改动报告（通过认知档案"最近完成"章节）
-- Type System Specialist 的类型设计方案
-- 架构师提出的架构问题或决策
+### Rust Porter
+- **输入**：Serde fixture schema、Rust commit/tag、CLI 功能开关（如 `cursor_state`, `tree_builder_slice_trace`）。
+- **输出**：映射表状态更新、Goal Tree 证据引用、Stage D anchor 调整建议。
+- **节奏**：每 2 天异步同步 + 周会复盘；阻塞超 24 小时需在 `type-system-migration-log.md` 建卡。
+- **重点联动**：Iterator façade 评估、Metric shim、Chunk/Grapheme CLI 交付、Breaks shim 进度。
 
-### 输出
-- 更新后的架构文档（`port-blueprint.md`、`rope-port-mapping.md` 等）
-- 阻塞项清单与降级方案（`type-system-migration-log.md`）
-- 设计分歧登记（`design-divergence-log.md`）
-- 更新后的本认知档案（"最近完成"章节）
-- 向架构师的汇报摘要
+### QA Engineer
+- **输入**：Stage D ingest smoke、1 MB Chunk/Line 基准、Grapheme fallback 采样、`dotnet test` 报告（169/169）。
+- **输出**：QA/Stage D anchor 状态、Goal Tree evidence 列、风险升级建议。
+- **节奏**：Goal Tree 更新后 24 小时内确认 QA anchor；Stage D 资产落地当日记录 `Fixture-*` 行。
 
-### 同步点
-- **与 Rust Porter**：Rust 端每次完成 helper 改造后，同步到映射表
-- **与 C# Implementer**：C# 端每次实现功能后，同步到映射表
-- **与 Type System Specialist**：类型设计方案确定后，记录到类型系统日志
-- **与所有人**：为所有员工提供"单一事实来源"的架构文档
+### C# Implementer
+- **输入**：Rope API/Node 泛型实现、测试夹具、`StringLeafOperations` parity、`CursorDescriptorParityTests`。
+- **输出**：映射表状态（Skeleton/In Progress/Parity）、风险提示（如 NodeCursor/T3/T4 依赖）、文档引用链接。
+- **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
-## 工作原则
-1. **文档即契约**：架构文档是 Rust/C# 双端协作的唯一依据
-2. **及时更新**：每次收到变更报告后立即同步文档
-3. **追踪阻塞**：主动识别困难模块，提前预警
-4. **登记分歧**：记录所有 Rust/C# 刻意差异，避免未来遗忘
-5. **向架构师汇报**：每次任务完成都要更新本档案并汇报
+## 最近完成
+- **2025-11-17 – 档案升级 + Anchor 维护计划**：重写本档案为 front-matter + 五大章节结构，明确 Goal Tree/Stage D 流程、template 治理与跨角色接口，满足 AI 架构师“认知档案”要求。
+- **2025-11-17 – Goal Tree YAML 草案 & 锚点审计**：完成 G1-G6 字段对齐、14+3 字段 schema、锚点缺口清单，并记录在 `待办/风险`。
+- **2025-11-19 – 文档模板扩散 Round 2**：为 `m3-architect-decision.md`、`fixtures/parity-fixture-schema.md`、`ai-team-design-draft.md` 加入 front-matter 与锚点网，表格化决策与 fixture schema。
+- **2025-11-17 – Leaf/Cursor parity 巡检**：确认 `StringLeafOperations` 与 `CursorDescriptorParityTests` 11/11 状态，收集 `dotnet test -v m` 169/169 证据，准备写回核心文档。
 
-## 待解答的问题
+## 待办 / 风险
 
-### 关于文档同步机制
-1. **文档更新触发时机**：Rust/C# 双端每次完成改动后，是否需要立即同步到架构文档，还是按阶段（如每个 Phase 完成后）批量更新？
-2. **映射表维护策略**：`rope-port-mapping.md` 的状态标签（未开始、仅骨架、实现中、已实现）何时更新？是否需要建立自动化检查脚本？
-3. **文档版本管理**：架构文档是否需要引入版本号或里程碑标记，便于追溯历史决策？
+| ID | 描述 | Owner | Due | 状态 |
+| --- | --- | --- | --- | --- |
+| T1 | 更新 `rope-port-mapping.md` / `design-divergence-log.md` / `type-system-migration-log.md` 以记录 Leaf/Cursor parity、深树 fixture、Cursor T1.2 下一步 | Architecture Mapper | 2025-11-18 | P0（待 QA 证据） |
+| T2 | 完成 `scripts/goal_tree_sync.py` 首次运行，验证 YAML → Blueprint/Plan 自动同步并在 `document-structure-template.md` 记录流程 | Architecture Mapper + Scripting 支持 | 2025-11-20 | P1（阻塞：脚本尚未合入） |
+| T3 | Rust Porter 交付 Chunk/Grapheme CLI fixtures，QA 完成 Stage D ingestion & 1 MB 基准，更新 `[StageD::ParityAssets]` | Rust Porter / QA | 2025-11-19 | P0（影响 R9/R10） |
+| R9 | Rope 版本计数器 + CLI 工具风险，若 CLI 延迟 >11/20 将推迟 T3/T4 里程碑 | Architecture Mapper (监控) | 2025-11-20 Checkpoint | 打开 |
+| R10 | Chunk/Grapheme 骨架若无 fixture/telemetry 数据，Stage D 无法验收；需每日确认 Rust Porter 进度 | Architecture Mapper | 持续 | 打开 |
 
-### 关于阻塞项追踪
-4. **Diff/Search/Breaks 骨架优先级**：这些模块当前仅为规划状态，何时开始建立骨架？是等待游标系统完成后，还是可以并行推进？
-5. **类型系统阻塞项补充**：`type-system-migration-log.md` 当前记录 4 个阻塞项，Breaks/Diff/Search 的类型困难是否需要预先记录？
-6. **降级方案监控**：Grapheme 降级策略已确认，但遥测指标（补片命中次数、code point 回退次数）何时落地？需要我协调 C# Implementer 吗？
+## 关键文档索引
 
-### 关于 Rust/C# 协同
-7. **Iterator Façade 推进**：Rust Porter 提到"Iterator Façade 可行性评估"，这是否会阻塞 C# 的 RopeChunkEnumerator 实现？我是否需要在 `rope-port-mapping.md` 中预先标记依赖关系？
-8. **Metric Shim 设计**：Rust Porter 提到"Metric 互操作 Shim"，但 C# 已引入 `IDefaultMetricProvider` 静态接口。双端是否需要统一策略？这应该记录在设计分歧日志吗？
-9. **Feature Gate 管理**：Rust 端已有 `cursor_state`、`tree_builder_slice_trace` 等可选特性，C# 端是否需要对应的条件编译？这属于架构映射的职责范围吗？
+### 架构主档
+- `docs/architecture/port-blueprint.md` – 跨语言迁移蓝图与 Goal Tree `[BP-*]`。
+- `docs/architecture/rope-port-mapping.md` – 模块/类型映射矩阵、Parity 资产状态 `[RPM-*]`。
+- `docs/architecture/type-system-migration-log.md` – 阻塞项 & 降级卡片 `[TS-Bx]`。
+- `docs/architecture/design-divergence-log.md` – Rust/C# 刻意差异登记 `[Div-*]`。
+- `docs/architecture/m3-implementation-plan.md` – M3 任务/风险/基线 `[MP-*]`。
 
-### 关于设计分歧
-10. **分歧记录标准**：哪些差异需要记录到 `design-divergence-log.md`？临时 workaround 是否需要记录？
-11. **追平评估时机**：UTF-16 vs UTF-8 存储、Grapheme 降级策略等分歧，何时重新评估是否需要追平？是否需要设置里程碑检查点？
+### QA / Stage D
+- `docs/csharp-refactor/rope-serialization-fixture-playbook.md` – Stage D 指南与 `[StageD::*]`。
+- `docs/architecture/fixtures/parity-fixture-schema.md` – Fixture schema 与 `[Fixture-*]`。
+- `docs/csharp-refactor/rope-serialization-fixture-playbook.md#qa` – `[QA-*]` anchor 定义。
+
+### 模板 / 自动化
+- `docs/architecture/document-structure-template.md` – 文档规范与字段定义。
+- `scripts/goal_tree_sync.py` – Goal Tree YAML ⇄ Markdown 同步工具（开发中）。
+- `scripts/refresh_skeleton_docs.py` – Skeleton/front-matter/anchor 校验脚本。
+- `scripts/refresh_all_assets.py` – QA/Stage D 资产刷新入口（需与 Goal Tree 证据对齐）。
+
+### 协作者档案
+- `agents/architect.md` – AI 架构师指令与审批记录。
+- `agents/rust-porter.md` – Rust 端交付清单与阻塞。
+- `agents/csharp-implementer.md` – C# 实现进度与测试。
+- `agents/qa-engineer.md` – QA 基准、Stage D 触发条件。
 
 ---
 
-**最后更新**：2025-11-17  
-**下次任务**：P0 跟进 rope-port-mapping/design-divergence/type-system-migration 三份文档的 Leaf/Cursor parity 更新，并与 Rust Porter 确认深树 fixture schema 是否需追加 CLI 导出。
+**依赖 & 支持请求**：等待 Rust Porter 提供最新 CLI schema/hash 以及 QA 确认 Stage D 运行窗口；若 11/19 前仍无结果，需要架构师介入重新排期。需要脚本团队协助让 `goal_tree_sync.py` 支持字段校验输出，以便在 `document-structure-template.md` 中记录运行指南。

@@ -454,6 +454,16 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (AI Team Doc Refresh Kickoff)
+- **状态确认**：`document-structure-template.md` 覆盖的 7 份架构文档（Blueprint/Mapping/TS Log/Design Divergence/M3 Plan/M3 Decision/Stage D Playbook）已完成模板化改造，并由 `scripts/refresh_all_assets.py` 提供 goal-tree 同步验证，视为 Phase 1 成功收官。
+- **整顿指令**：以新版文档规范为准绳，所有 AI 员工需整理各自认知档案（路径如下），确保 front-matter、职责/进度/风险章节一致，并借机梳理最新认知：
+  1. `agents/architecture-mapper.md` —— 对齐 Goal Tree/Stage D 锚点维护职责，更新“最近完成/待办”与文件索引，补充 `document-structure-template.md` 维护计划。
+  2. `agents/csharp-implementer.md` —— 采用任务/测试/阻塞三栏，汇总 M3 游标/Chunk/Grapheme 依赖与测试基线；列出需配合的 CLI/Stage D 需求。
+  3. `agents/rust-porter.md` —— 将 helper/CLI/schema 维护清单按模块分组，标记 `cursor_state`/`iterator_facade` 等 feature gate 状态，并写明与 Stage D 的输出接口。
+  4. `agents/qa-engineer.md` —— 对齐 Stage D Playbook 的 `[QA-*]` 锚点，记录最新 169/169 测试基线、烟雾/基准脚本与待验证阈值。
+  5. `agents/information-researcher.md` —— 用“知识索引 + 监控清单”双栏描述当前跟踪的文档/脚本，补齐对 Goal Tree YAML/刷新脚本的监测策略。
+- **时间要求**：各档案需在下次 PDCA 循环启动（<= 24h）前提交更新，可酌情使用 runSubagent 完成；更新后在各自“最近完成”章节登记并通知架构师复核。
+
 ### 2025-11-17 (Refresh All Assets Script)
 - **交付物**：新增 `scripts/refresh_all_assets.py`，串联 `goal_tree_sync.py`、`refresh_skeleton_docs.py`、`dotnet build Xi.Editor.sln`、`ilspycmd -o docs/skeleton ...` 与 `tools/Skeletonizer`，提供 `--only/--skip/--dry-run/--continue-on-error` 选项，默认一次跑完 Goal Tree ↔ Skeleton ↔ 构建 ↔ 反编译流水线。
 - **执行验证**：在仓库根运行 `./scripts/refresh_all_assets.py`，成功更新 Goal Tree snippet（meta 时间戳刷新）、重建 Rust skeleton、构建 xi.Core、调用 ILSpy 生成 `docs/skeleton/xi.Core.decompiled.cs` 并通过 Skeletonizer 再压缩 316 个函数体；命令输出纳入本日志以便追踪。
