@@ -106,6 +106,14 @@
 - [待命] 🔍 **架构监控**
   - 维持每 2-3 天查阅 C# Implementer 档案的节奏；若文档重构影响 M3 里程碑需立即沟通。
 
+- [推进中] ⚙️ **一键刷新脚本与 Stage D 对接**
+  - **现状**：`scripts/refresh_all_assets.py`（2025-11-17）已把 Goal Tree → Rust skeleton → `dotnet build` → ILSpy → Skeletonizer 串成一键流程，支持 `--only/--skip/--dry-run/--continue-on-error`。
+  - **目标**：把该脚本接入 `run_all_checks` / Stage D Playbook，形成默认刷新路径；补充 CLI 失败时的兜底提示，并允许扩展 Stage D/exporter 步骤。
+  - **下一步**：
+    1. 与 Architecture Mapper/QA 确认 Stage D 手册引用位置。
+    2. 评估是否追加 `python scripts/refresh_serialization_fixtures.ps1` / `cargo test` 钩子。
+    3. 在 `README` 或 `docs/architecture/document-structure-template.md` 记录调用约定。
+
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。
 
@@ -150,6 +158,11 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
+### 2025-11-17（白天）
+- **落地自动化刷新脚本 v1**：创建 `scripts/refresh_all_assets.py`，封装 Goal Tree 同步、Rust skeleton 刷新、`dotnet build Xi.Editor.sln`、`ilspycmd` 反编译与 `tools/Skeletonizer` 精简，提供 `--list/--only/--skip/--dry-run/--continue-on-error` 选项，默认一键跑完。
+- **验证**：在仓库根执行 `./scripts/refresh_all_assets.py`，完整跑通 5 步，确认会更新 `docs/architecture/port-blueprint.md`/`m3-implementation-plan.md` meta、`docs/skeleton/*.md`、`src/xi.Core/bin/Debug/net9.0/xi.Core.dll`，末尾 Skeletonizer 报告 316 个函数体被剥离。
+- **管控点**：运行前检查 `ilspycmd` 是否在 PATH，若缺失脚本会直接抛出指引；后续需把该脚本挂到 Stage D 手册或 `run_all_checks`，并考虑新增 Refresh Fixtures / QA 基准步骤。
+
 ### 2025-11-17（晚）
 - **主持元任务：用户提示词设计与改良**
   - **目标**：设计一个能让用户快速激活 AI Team Leader 模式的提示词，使架构师迅速进入工作状态

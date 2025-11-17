@@ -454,6 +454,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-17 (Refresh All Assets Script)
+- **交付物**：新增 `scripts/refresh_all_assets.py`，串联 `goal_tree_sync.py`、`refresh_skeleton_docs.py`、`dotnet build Xi.Editor.sln`、`ilspycmd -o docs/skeleton ...` 与 `tools/Skeletonizer`，提供 `--only/--skip/--dry-run/--continue-on-error` 选项，默认一次跑完 Goal Tree ↔ Skeleton ↔ 构建 ↔ 反编译流水线。
+- **执行验证**：在仓库根运行 `./scripts/refresh_all_assets.py`，成功更新 Goal Tree snippet（meta 时间戳刷新）、重建 Rust skeleton、构建 xi.Core、调用 ILSpy 生成 `docs/skeleton/xi.Core.decompiled.cs` 并通过 Skeletonizer 再压缩 316 个函数体；命令输出纳入本日志以便追踪。
+- **使用指引**：`--list` 查看步骤，`--only goal-tree,dotnet-build` 可局部刷新，若 `ilspycmd` 缺失脚本会提示安装；建议后续把脚本接入 `run_all_checks` 或 Stage D 手册，确保一键刷新覆盖 Goal Tree/骨架/反编译产物。
+
 ### 2025-11-17 (晚) (Architecture Docs Refactor Complete)
 - **目标达成**：基于 `document-structure-template.md` 完成 7 个核心文档重构，所有文档符合生产标准。
 - **质量验证**：

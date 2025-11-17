@@ -22,7 +22,7 @@ using Xi.Core.Rope.Tree;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+783144b5c7a7705de27e1c85a75f16866a5bb316")]
+[assembly: AssemblyInformationalVersion("1.0.0+7507c82c850308f25e6b5c241a7f52a84c1474d5")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]

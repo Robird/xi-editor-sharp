@@ -478,7 +478,10 @@ impl<N: NodeInfo<L>, L: Leaf> Delta<N, L> {
     pub(crate) fn base_len(&self) -> usize {...}
 
     #[cfg_attr(not(feature = "serde"), allow(dead_code))]
-    pub(crate) fn element_count(&self) -> usize {...}
+    pub fn element_count(&self) -> usize {...}
+
+    /// Exposes the raw delta elements for read-only iteration.
+    pub fn elements(&self) -> &[DeltaElement<N, L>] {...}
 
     #[cfg_attr(not(feature = "serde"), allow(dead_code))]
     pub(crate) fn iter_elements(&self) -> ElementIter<'_, N, L> {...}
@@ -2733,8 +2736,6 @@ impl<'a> Iterator for Lines<'a> {
 ## xi-editor-ph7/rust/rope/src/serde_fixtures.rs
 
 ```rust
-#![cfg(feature = "serde")]
-
 pub mod chunk_descriptors;
 pub mod cursor_descriptors;
 pub mod grapheme_descriptors;
@@ -3039,6 +3040,7 @@ fn sample_post_edit_invalidates() -> CursorDescriptorFixture {...}
 
 fn sample_invalid_descriptor() -> CursorDescriptorFixture {...}
 
+#[allow(clippy::too_many_arguments)]
 fn fixture_from_descriptor(
     name: &str,
     rope: &Rope,
@@ -4277,10 +4279,13 @@ impl<N: NodeInfo<L>, L: Leaf> CursorState<N, L> {
     fn invalidate(&mut self, position: usize, offset_of_leaf: usize) {...}
 }
 
+type CursorDescriptorComponents<N, L> =
+    (SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>, Arc<NodeBody<N, L>>, usize, usize);
+
 fn build_descriptor_components<N: NodeInfo<L>, L: Leaf>(
     root: &Node<N, L>,
     position: usize,
-) -> (SmallVec<[PathFrame<N, L>; CURSOR_CACHE_SIZE]>, Arc<NodeBody<N, L>>, usize, usize) {...}
+) -> CursorDescriptorComponents<N, L> {...}
 
 fn clone_node_arc<N: NodeInfo<L>, L: Leaf>(node: &Node<N, L>) -> Arc<NodeBody<N, L>> {...}
 ```

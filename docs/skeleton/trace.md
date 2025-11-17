@@ -448,11 +448,9 @@ impl Config {
 
     // Note: prefer `Default` trait impl for the type; keep the inherent
     // method removed to avoid ambiguity and clippy `should_implement_trait`.
-    /// The default amount of storage to allocate for tracing.  Currently 1 MB.
-
-    /// The maximum amount of space the tracing data will take up.  This does
-    /// not account for any overhead of storing the data itself (i.e. pointer to
-    /// the heap, counters, etc); just the data itself.
+    /// Returns the maximum storage this configuration allocates (1 MB by
+    /// default).  This does not include heap bookkeeping overhead (pointers,
+    /// counters, etc.).
     pub fn max_size_in_bytes(self) -> usize {...}
 
     /// The maximum number of samples that should be stored.
@@ -836,7 +834,7 @@ where
 /// * `name` - A string that provides some meaningful name to this sample.
 ///   Usage of static strings is encouraged for best performance to avoid copies.
 ///   However, anything that can be converted into a Cow string can be passed as
-/// an argument.
+///   an argument.
 ///
 /// * `categories` - A static array of static strings that tags the samples in
 ///   some way.
@@ -871,7 +869,7 @@ where
 /// * `name` - A string that provides some meaningful name to this sample.
 ///   Usage of static strings is encouraged for best performance to avoid copies.
 ///   However, anything that can be converted into a Cow string can be passed as
-/// an argument.
+///   an argument.
 ///
 /// * `categories` - A static array of static strings that tags the samples in
 ///   some way.
@@ -924,8 +922,8 @@ where
 ///
 /// * `name` - A string that provides some meaningful name to this sample.
 ///   Usage of static strings is encouraged for best performance to avoid copies.
-/// However, anything that can be converted into a Cow string can be passed as
-/// an argument.
+///   However, anything that can be converted into a Cow string can be passed as
+///   an argument.
 ///
 /// * `categories` - A static array of static strings that tags the samples in
 ///   some way.

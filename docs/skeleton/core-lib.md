@@ -3428,7 +3428,7 @@ impl Recorder {
     /// - If the current recording name is specified, the active recording is saved
     /// - If no recording name is specified, the currently active recording is saved
     /// - If a recording name other than the active recording is specified,
-    /// the current recording will be thrown out and will be switched to the new name
+    ///   the current recording will be thrown out and will be switched to the new name
     ///
     /// In addition to the above:
     /// - If the recording was saved, there is no active recording
