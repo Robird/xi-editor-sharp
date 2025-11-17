@@ -1,8 +1,8 @@
 {
   "metadata": {
     "schema_version": "1.0.0",
-    "rust_commit": "f740a440eacb14b59a1ed26388ebc137827e621d",
-    "generated_at_unix_millis": 1763409044538,
+    "rust_commit": "96ce8ddff31f368b52ca930b3930f1cf8ecd909a",
+    "generated_at_unix_millis": 1763419977023,
     "chunk_descriptor_count": 9,
     "line_descriptor_count": 11
   },

@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text.Json;
 using Xi.Core.Rope.Diagnostics.Descriptors;
 using Xunit;
 
@@ -13,10 +10,6 @@ public sealed class StageDDescriptorLoaderTests
     private static readonly string FixtureRoot = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Fixtures"));
 
-    private static readonly string StageDParityRoot = Path.Combine(FixtureRoot, "ParityFixtures", "StageD");
-    private static readonly string BreaksSamplePath = Path.Combine(StageDParityRoot, "breaks_descriptors.sample.json");
-    private static readonly string DiffSamplePath = Path.Combine(StageDParityRoot, "diff_regions.sample.json");
-    private static readonly string SearchSamplePath = Path.Combine(StageDParityRoot, "search_spans.sample.json");
     private const string BreaksManifestName = "breaks_descriptors.json";
     private const string DiffManifestName = "diff_regions.json";
     private const string SearchManifestName = "search_spans.json";
@@ -29,10 +22,10 @@ public sealed class StageDDescriptorLoaderTests
     {
         var manifest = Manifest.Value;
 
-        Assert.Equal("f740a440eacb14b59a1ed26388ebc137827e621d", manifest.Metadata.RustCommit);
+        Assert.Equal("96ce8ddff31f368b52ca930b3930f1cf8ecd909a", manifest.Metadata.RustCommit);
         Assert.Equal("0.3.0", manifest.Metadata.CliRevision);
         Assert.Equal("1.0.0", manifest.Metadata.SchemaVersion);
-        Assert.Equal(9, manifest.Metadata.ChunkDescriptorCount);
+        Assert.Equal(20, manifest.Metadata.ChunkDescriptorCount);
         Assert.Equal(11, manifest.Metadata.LineDescriptorCount);
         Assert.Equal(668, manifest.Metadata.GraphemeDescriptorCount);
         Assert.Contains("serde", manifest.Metadata.FeatureGates);
@@ -75,8 +68,9 @@ public sealed class StageDDescriptorLoaderTests
             "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
             chunkEntry.Path);
         Assert.Equal("chunk_descriptors@1.0.0", chunkEntry.SchemaHash);
+        // Hash recorded from fixtures.manifest.json in the 2025-11-18 Stage D refresh.
         Assert.Equal(
-            "4c13cbf9f750f205f9d0e7857fb60ed552f032aebc7833cc19276b26539b81dd",
+            "e62a4faa936a20b261b167ddbd2be3b4d3566f3099149b2be215fbfafeecd756",
             chunkEntry.PayloadHash);
 
         var graphemeEntry = Assert.Single(
@@ -87,156 +81,58 @@ public sealed class StageDDescriptorLoaderTests
             "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
             graphemeEntry.Path);
         Assert.Equal("grapheme_descriptors@1.0.0", graphemeEntry.SchemaHash);
+        // Hash recorded from fixtures.manifest.json in the 2025-11-18 Stage D refresh.
         Assert.Equal(
-            "45c01de9d036e402f3a5f7a00b67fd7974a82427a31646da5a70483122c5ccd3",
+            "c6b1721d29286f01e67d2b7491361c2636a6a6affcc9e15206fb31c2fa5d1f0e",
             graphemeEntry.PayloadHash);
     }
 
     [Fact]
     public void LoadFromFixtureDirectory_projects_optional_stage_d_assets()
     {
-        var manifest = LoadAugmentedManifest();
+        var manifest = Manifest.Value;
 
-        var breaks = Assert.Single(manifest.BreaksDescriptors, d => d.Sample == "tiny_soft_wrap");
-        Assert.Equal("tiny_soft_wrap", breaks.Sample);
-        Assert.Equal(3, breaks.BreakCount);
+        Assert.Equal(3, manifest.BreaksDescriptors.Count);
+        Assert.Contains(
+            manifest.BreaksDescriptors,
+            d => d.Sample == "ascii_guidance" && d.BreakCount == 6 && d.Tags.Contains("breaks"));
+        Assert.Contains(
+            manifest.BreaksDescriptors,
+            d => d.Sample == "crlf_emoji_mix" && d.BreakCount == 4 && d.Tags.Contains("emoji"));
+        Assert.Contains(
+            manifest.BreaksDescriptors,
+            d => d.Sample == "delimited_tables" && d.BreakCount == 6 && d.Tags.Contains("tab"));
 
-        var diff = Assert.Single(manifest.DiffRegions, d => d.Sample == "tiny_diff_case");
-        Assert.Equal("tiny_diff_case", diff.Sample);
+        var diff = Assert.Single(manifest.DiffRegions, d => d.Sample == "ascii_minimal_ops");
+        Assert.Equal(3, manifest.DiffRegions.Count);
         Assert.Collection(
             diff.Ops,
             op => Assert.Equal("copy", op.Kind),
+            op => Assert.Equal("insert", op.Kind),
             op => Assert.Equal("delete", op.Kind),
-            op => Assert.Equal("insert", op.Kind));
+            op => Assert.Equal("copy", op.Kind));
 
-        var search = Assert.Single(manifest.SearchSpans, s => s.Sample == "simple_query");
-        Assert.Equal("simple_query", search.Sample);
-        Assert.Equal("rope", search.Query);
-    }
+        var search = Assert.Single(manifest.SearchSpans, s => s.Sample == "literal_case_insensitive");
+        Assert.Equal(3, manifest.SearchSpans.Count);
+        Assert.Equal("stage", search.Query);
+        Assert.Contains(search.Hits, h => h.ContextAfter?.Contains("parity", StringComparison.OrdinalIgnoreCase) == true);
 
-    private static StageDDescriptorManifest LoadAugmentedManifest()
-    {
-        var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempDirectory);
+        var breaksLedger = Assert.Single(manifest.Fixtures, f => f.Name == BreaksManifestName);
+        Assert.Equal(3, breaksLedger.Count);
+        Assert.Equal(
+            "ab2f746e2bdd945e69b0acf9cd275c068a5ba6546f52a820144244f3b0e6e22e",
+            breaksLedger.PayloadHash);
 
-        try
-        {
-            var manifestPath = Path.Combine(tempDirectory, "fixtures.manifest.json");
-            File.WriteAllText(manifestPath, BuildAugmentedManifestJson());
-            return StageDDescriptorLoader.LoadFromFixtureDirectory(tempDirectory);
-        }
-        finally
-        {
-            try
-            {
-                Directory.Delete(tempDirectory, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors during test shutdown.
-            }
-        }
-    }
+        var diffLedger = Assert.Single(manifest.Fixtures, f => f.Name == DiffManifestName);
+        Assert.Equal(3, diffLedger.Count);
+        Assert.Equal(
+            "8c400ea433b77d9aa4f7b0cb57cbbcd6d1b935d52ff7e61101ad7a8babac5076",
+            diffLedger.PayloadHash);
 
-    private static string BuildAugmentedManifestJson()
-    {
-        var baselineManifestPath = Path.Combine(FixtureRoot, "fixtures.manifest.json");
-        var baselineContent = File.ReadAllText(baselineManifestPath);
-        var manifest = JsonSerializer.Deserialize<FixtureManifestDocument>(baselineContent)
-                       ?? throw new InvalidOperationException("Unable to hydrate baseline manifest");
-
-        manifest.rust_commit = "stage-d-test";
-        manifest.cli_rev = "0.0-test";
-        manifest.feature_gates = manifest.feature_gates
-            .Concat(new[] { "breaks_diagnostics", "diff_regions", "search_spans" })
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        manifest.fixtures = manifest.fixtures
-            .Where(entry => !string.Equals(entry.name, BreaksManifestName, StringComparison.OrdinalIgnoreCase)
-                             && !string.Equals(entry.name, DiffManifestName, StringComparison.OrdinalIgnoreCase)
-                             && !string.Equals(entry.name, SearchManifestName, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        foreach (var entry in manifest.fixtures)
-        {
-            if (Path.IsPathRooted(entry.path))
-            {
-                continue;
-            }
-
-            var normalized = entry.path
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
-            var marker = $"tests{Path.DirectorySeparatorChar}xi.Core.Tests{Path.DirectorySeparatorChar}Fixtures";
-            var markerIndex = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-            if (markerIndex >= 0)
-            {
-                var relative = normalized
-                    .Substring(markerIndex + marker.Length)
-                    .TrimStart(Path.DirectorySeparatorChar);
-                entry.path = Path.Combine(FixtureRoot, relative);
-            }
-            else
-            {
-                entry.path = Path.Combine(FixtureRoot, normalized);
-            }
-        }
-
-        manifest.fixtures.AddRange(new[]
-        {
-            new FixtureManifestEntryDocument
-            {
-                name = BreaksManifestName,
-                path = BreaksSamplePath,
-                count = 1,
-                schema_hash = "breaks_descriptors@1.0.0",
-                payload_hash = "sample"
-            },
-            new FixtureManifestEntryDocument
-            {
-                name = DiffManifestName,
-                path = DiffSamplePath,
-                count = 1,
-                schema_hash = "diff_regions@1.0.0",
-                payload_hash = "sample"
-            },
-            new FixtureManifestEntryDocument
-            {
-                name = SearchManifestName,
-                path = SearchSamplePath,
-                count = 1,
-                schema_hash = "search_spans@1.0.0",
-                payload_hash = "sample"
-            }
-        });
-
-        return JsonSerializer.Serialize(
-            manifest,
-            new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private sealed class FixtureManifestDocument
-    {
-        public string? rust_commit { get; set; }
-
-        public string? cli_rev { get; set; }
-
-        public List<string> feature_gates { get; set; } = new();
-
-        public List<FixtureManifestEntryDocument> fixtures { get; set; } = new();
-    }
-
-    private sealed class FixtureManifestEntryDocument
-    {
-        public string name { get; set; } = string.Empty;
-
-        public string path { get; set; } = string.Empty;
-
-        public int count { get; set; }
-
-        public string schema_hash { get; set; } = string.Empty;
-
-        public string payload_hash { get; set; } = string.Empty;
+        var searchLedger = Assert.Single(manifest.Fixtures, f => f.Name == SearchManifestName);
+        Assert.Equal(3, searchLedger.Count);
+        Assert.Equal(
+            "ce068c5217d2c45d213609d538e5a30280d10559894ef81bb9692d75d23c3502",
+            searchLedger.PayloadHash);
     }
 }

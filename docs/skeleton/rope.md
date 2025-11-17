@@ -20,20 +20,89 @@ use std::{env, path::PathBuf};
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+#[cfg(feature = "serde")]
 use serde::Serialize;
 
 #[cfg(feature = "serde")]
+use serde_json::Value;
+
+#[cfg(feature = "serde")]
+use sha2::{Digest, Sha256};
+
+#[cfg(feature = "serde")]
 use xi_rope::serde_fixtures::{
-    export_chunk_descriptors, export_cursor_descriptor_fixtures, export_grapheme_descriptors,
-    fixtures, ChunkDescriptorExportReport, Fixture, GraphemeDescriptorExportReport,
+    export_breaks_descriptors, export_chunk_descriptors, export_cursor_descriptor_fixtures,
+    export_diff_regions, export_grapheme_descriptors, export_search_spans, fixtures,
+    BreaksDescriptorExportReport, ChunkDescriptorExportReport, DiffRegionsExportReport, Fixture,
+    GraphemeDescriptorExportReport, SearchSpansExportReport, BREAKS_DESCRIPTOR_FILENAME,
+    CHUNK_DESCRIPTOR_FILENAME, CURSOR_DESCRIPTOR_FILENAME, DIFF_REGIONS_FILENAME,
+    GRAPHEME_DESCRIPTOR_FILENAME, SEARCH_SPANS_FILENAME,
 };
+
+#[cfg(feature = "serde")]
+const DEFAULT_MANIFEST_RELATIVE: &str =
+    "../../../tests/xi.Core.Tests/Fixtures/fixtures.manifest.json";
+#[cfg(feature = "serde")]
+const SUBSET_SCHEMA_HASH: &str = "serde_fixtures::subset";
+#[cfg(feature = "serde")]
+const DELTA_SCHEMA_HASH: &str = "serde_fixtures::delta";
+#[cfg(feature = "serde")]
+const ENGINE_SCHEMA_HASH: &str = "serde_fixtures::engine";
+#[cfg(feature = "serde")]
+const CURSOR_SCHEMA_HASH: &str = "cursor_descriptors@1.1.0";
+#[cfg(feature = "serde")]
+const CHUNK_SCHEMA_HASH: &str = "chunk_descriptors@1.0.0";
+#[cfg(feature = "serde")]
+const GRAPHEME_SCHEMA_HASH: &str = "grapheme_descriptors@1.0.0";
+#[cfg(feature = "serde")]
+const BREAKS_SCHEMA_HASH: &str = "breaks_descriptors@1.0.0";
+#[cfg(feature = "serde")]
+const DIFF_REGIONS_SCHEMA_HASH: &str = "diff_regions@1.0.0";
+#[cfg(feature = "serde")]
+const SEARCH_SPANS_SCHEMA_HASH: &str = "search_spans@1.0.0";
+#[cfg(feature = "serde")]
+const TREE_BUILDER_TRACE_SCHEMA_HASH: &str = "tree_builder_slice_trace@1.0.0";
+
+#[cfg(feature = "serde")]
+#[derive(Serialize)]
+struct FixtureManifest {
+    rust_commit: String,
+    cli_rev: String,
+    feature_gates: Vec<String>,
+    fixtures: Vec<ManifestFixture>,
+}
+
+#[cfg(feature = "serde")]
+#[derive(Serialize)]
+struct ManifestFixture {
+    name: String,
+    path: String,
+    count: usize,
+    schema_hash: String,
+    payload_hash: String,
+}
+
+#[cfg(feature = "serde")]
+struct FixtureFileReport {
+    name: String,
+    path: PathBuf,
+}
+
+#[cfg(feature = "serde")]
+struct TreeBuilderTraceExportReport {
+    file_name: String,
+    file_path: PathBuf,
+    event_count: usize,
+}
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 use xi_rope::{
     tree::{TreeBuilder, TreeBuilderEvent, TreeBuilderEventKind, TreeBuilderTracer},
     Interval, Rope, RopeInfo,
 };
+
+#[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
+const TREE_BUILDER_TRACE_FILENAME: &str = "basic_slice_plan.json";
 
 #[cfg(feature = "serde")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {...}
@@ -48,10 +117,17 @@ fn list_fixtures() {...}
 fn export_to_directory(
     dir: &std::path::Path,
     fixtures: &[Fixture],
-) -> Result<(), Box<dyn std::error::Error>> {...}
+) -> Result<Vec<FixtureFileReport>, Box<dyn std::error::Error>> {...}
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
-fn handle_tree_builder_trace(dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
+fn handle_tree_builder_trace(
+    dir: PathBuf,
+) -> Result<TreeBuilderTraceExportReport, Box<dyn std::error::Error>> {...}
+
+#[cfg(all(feature = "serde", not(feature = "tree_builder_slice_trace")))]
+fn handle_tree_builder_trace(
+    _dir: PathBuf,
+) -> Result<TreeBuilderTraceExportReport, Box<dyn std::error::Error>> {...}
 
 #[cfg(feature = "serde")]
 fn report_chunk_export(report: &ChunkDescriptorExportReport) {...}
@@ -59,11 +135,58 @@ fn report_chunk_export(report: &ChunkDescriptorExportReport) {...}
 #[cfg(feature = "serde")]
 fn report_grapheme_export(report: &GraphemeDescriptorExportReport) {...}
 
-#[cfg(all(feature = "serde", not(feature = "tree_builder_slice_trace")))]
-fn handle_tree_builder_trace(_dir: PathBuf) -> Result<(), Box<dyn std::error::Error>> {...}
+#[cfg(feature = "serde")]
+fn report_breaks_export(report: &BreaksDescriptorExportReport) {...}
+
+#[cfg(feature = "serde")]
+fn report_diff_export(report: &DiffRegionsExportReport) {...}
+
+#[cfg(feature = "serde")]
+fn report_search_export(report: &SearchSpansExportReport) {...}
+
+#[cfg(feature = "serde")]
+fn report_tree_builder_trace_export(report: &TreeBuilderTraceExportReport) {...}
+
+#[cfg(feature = "serde")]
+fn write_manifest(
+    path: &std::path::Path,
+    fixtures: Vec<ManifestFixture>,
+) -> Result<(), Box<dyn std::error::Error>> {...}
+
+#[cfg(feature = "serde")]
+fn collect_feature_gates() -> Vec<String> {...}
+
+#[cfg(feature = "serde")]
+fn compute_payload_hash(path: &std::path::Path) -> Result<String, Box<dyn std::error::Error>> {...}
+
+#[cfg(feature = "serde")]
+fn hash_value(value: &Value) -> String {...}
+
+#[cfg(feature = "serde")]
+fn write_canonical_json(value: &Value, out: &mut String) {...}
+
+#[cfg(feature = "serde")]
+fn hex_encode(bytes: &[u8]) -> String {...}
+
+#[cfg(feature = "serde")]
+fn schema_hash_for_regression(name: &str) -> String {...}
+
+#[cfg(feature = "serde")]
+fn manifest_display_path(path: &std::path::Path) -> String {...}
+
+#[cfg(feature = "serde")]
+fn normalize_path(path: std::path::PathBuf) -> String {...}
+
+#[cfg(feature = "serde")]
+fn workspace_root() -> PathBuf {...}
+
+#[cfg(feature = "serde")]
+fn default_manifest_path() -> PathBuf {...}
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
-fn export_tree_builder_trace(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {...}
+fn export_tree_builder_trace(
+    dir: &std::path::Path,
+) -> Result<TreeBuilderTraceExportReport, Box<dyn std::error::Error>> {...}
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 fn convert_events(events: &[TreeBuilderEvent]) -> Vec<SerializableEvent> {...}
@@ -2736,9 +2859,13 @@ impl<'a> Iterator for Lines<'a> {
 ## xi-editor-ph7/rust/rope/src/serde_fixtures.rs
 
 ```rust
+pub mod breaks_descriptors;
 pub mod chunk_descriptors;
 pub mod cursor_descriptors;
+pub mod diff_regions;
 pub mod grapheme_descriptors;
+pub mod search_spans;
+pub mod snapshots;
 
 pub use cursor_descriptors::{
     cursor_descriptor_samples, export_cursor_descriptor_fixtures, CursorDescriptorExportReport,
@@ -2748,14 +2875,30 @@ pub use cursor_descriptors::{
 
 pub use chunk_descriptors::{
     chunk_descriptor_fixtures, export_chunk_descriptors, ChunkDescriptor,
-    ChunkDescriptorExportReport, ChunkDescriptorFile, LineDescriptor, RangeSnapshot,
-    CHUNK_DESCRIPTOR_FILENAME,
+    ChunkDescriptorExportReport, ChunkDescriptorFile, LineDescriptor, CHUNK_DESCRIPTOR_FILENAME,
 };
 
 pub use grapheme_descriptors::{
     export_grapheme_descriptors, grapheme_descriptor_fixtures, GraphemeDescriptor,
     GraphemeDescriptorExportReport, GraphemeDescriptorFile, GRAPHEME_DESCRIPTOR_FILENAME,
 };
+
+pub use breaks_descriptors::{
+    export_breaks_descriptors, BreakMetricKind, BreakSetDescriptor, BreaksDescriptorExportReport,
+    BreaksDescriptorFile, BREAKS_DESCRIPTOR_FILENAME,
+};
+
+pub use diff_regions::{
+    export_diff_regions, DiffCase, DiffOpKind, DiffOpSnapshot, DiffRegionsExportReport,
+    DiffRegionsFile, DIFF_REGIONS_FILENAME,
+};
+
+pub use search_spans::{
+    export_search_spans, CaseMatchingSnapshot, SearchCaseSnapshot, SearchHitSnapshot,
+    SearchSpansExportReport, SearchSpansFile, SpanSegmentSnapshot, SEARCH_SPANS_FILENAME,
+};
+
+pub use snapshots::{frames_from_descriptor, PathFrameSnapshot, RangeSnapshot};
 
 /// Describes a single serde regression fixture.
 #[derive(Copy, Clone, Debug)]
@@ -2787,7 +2930,110 @@ pub const fn fixtures() -> &'static [Fixture] {...}
 /// Attempts to lookup a fixture by file name.
 pub fn get_fixture(name: &str) -> Option<&'static Fixture> {...}
 
-pub(crate) fn detect_git_commit() -> Option<String> {...}
+pub fn detect_git_commit() -> Option<String> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/breaks_descriptors.rs
+
+```rust
+use std::error::Error;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
+use crate::breaks::{BreakBuilder, Breaks};
+use crate::rope::Rope;
+use crate::tree::Cursor;
+
+use super::detect_git_commit;
+use super::snapshots::{frames_from_descriptor, PathFrameSnapshot, RangeSnapshot};
+
+pub const BREAKS_DESCRIPTOR_FILENAME: &str = "breaks_descriptors.json";
+const BREAKS_SCHEMA_VERSION: &str = "1.0.0";
+const EXCERPT_CODEPOINT_LIMIT: usize = 160;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BreaksDescriptorFile {
+    pub metadata: BreaksDescriptorMetadata,
+    pub break_sets: Vec<BreakSetDescriptor>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BreaksDescriptorMetadata {
+    pub schema_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_commit: Option<String>,
+    pub generated_at_unix_millis: u128,
+    pub descriptor_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BreakSetDescriptor {
+    pub sample: String,
+    pub rope_len: usize,
+    pub wrap_width_units: usize,
+    pub metric: BreakMetricKind,
+    pub break_offsets: Vec<usize>,
+    pub break_count: usize,
+    pub leaf_runs: Vec<LeafRunSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_excerpt: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum BreakMetricKind {
+    #[serde(rename = "BreaksMetric")]
+    BreaksMetric,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LeafRunSnapshot {
+    pub range: RangeSnapshot,
+    pub break_count: usize,
+    pub path: Vec<PathFrameSnapshot>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BreaksDescriptorExportReport {
+    pub file_path: PathBuf,
+    pub descriptor_count: usize,
+}
+
+struct BreaksSample {
+    name: &'static str,
+    text: &'static str,
+    wrap_width: usize,
+    tags: &'static [&'static str],
+}
+
+pub fn export_breaks_descriptors(
+    dir: &Path,
+) -> Result<BreaksDescriptorExportReport, Box<dyn Error>> {...}
+
+fn build_breaks_descriptor_file(existing_timestamp: Option<u128>) -> BreaksDescriptorFile {...}
+
+fn build_break_set(sample: &BreaksSample) -> BreakSetDescriptor {...}
+
+fn breaks_samples() -> Vec<BreaksSample> {...}
+
+fn greedy_break_offsets(text: &str, wrap: usize) -> Vec<usize> {...}
+
+fn build_breaks_tree(text_len: usize, offsets: &[usize]) -> Breaks {...}
+
+fn capture_leaf_runs(rope: &Rope, breaks: &Breaks) -> Vec<LeafRunSnapshot> {...}
+
+fn compose_break_tags(base: &[&str], text: &str) -> Vec<String> {...}
+
+fn text_excerpt(text: &str) -> Option<String> {...}
+
+fn truncate_codepoints(text: &str, limit: usize) -> String {...}
+
+fn current_millis() -> u128 {...}
+
+fn read_existing_generated_at(path: &Path) -> Option<u128> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_fixtures/chunk_descriptors.rs
@@ -2801,9 +3047,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::helpers::string_leaf::{MAX_LEAF, MIN_LEAF};
 use crate::rope::Rope;
-use crate::tree::{Cursor, CursorDescriptor, TreeBuilder};
+use crate::tree::{Cursor, TreeBuilder};
 
 use super::detect_git_commit;
+use super::snapshots::{frames_from_descriptor, PathFrameSnapshot, RangeSnapshot};
 use crate::rope::RopeInfo;
 
 pub const CHUNK_DESCRIPTOR_FILENAME: &str = "chunk_descriptors.json";
@@ -2855,20 +3102,6 @@ pub struct LineDescriptor {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct RangeSnapshot {
-    pub start: usize,
-    pub end: usize,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PathFrameSnapshot {
-    pub node_height: usize,
-    pub node_len: usize,
-    pub child_index: usize,
-    pub child_offset: usize,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ChunkContext {
     pub before: String,
     pub after: String,
@@ -2908,7 +3141,7 @@ fn chunk_context(rope: &Rope, start: usize, end: usize) -> ChunkContext {...}
 fn clamp_prev_boundary(rope: &Rope, offset: usize) -> usize {...}
 
 fn clamp_next_boundary(rope: &Rope, offset: usize) -> usize {...}
-pub fn chunk_descriptor_fixtures() -> ChunkDescriptorFile {...}
+pub fn chunk_descriptor_fixtures(existing_timestamp: Option<u128>) -> ChunkDescriptorFile {...}
 
 fn build_chunk_descriptors(samples: &[RopeFixtureSample]) -> Vec<ChunkDescriptor> {...}
 
@@ -2925,10 +3158,6 @@ fn snapshot_chunk(
 
 fn empty_chunk_descriptor(sample: &RopeFixtureSample) -> ChunkDescriptor {...}
 
-fn frames_from_descriptor(
-    descriptor: &CursorDescriptor<RopeInfo, String>,
-) -> Vec<PathFrameSnapshot> {...}
-
 fn compose_chunk_tags(base: &[&str], chunk_text: &str) -> Vec<String> {...}
 
 fn compose_line_tags(base: &[&str], newline_kind: LineEndingKind) -> Vec<String> {...}
@@ -2942,6 +3171,8 @@ fn chunk_samples() -> Vec<RopeFixtureSample> {...}
 fn build_deep_tree_sample() -> Rope {...}
 
 fn deep_leaf_payload(idx: usize) -> String {...}
+
+fn read_existing_generated_at(path: &Path) -> Option<u128> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_fixtures/cursor_descriptors.rs
@@ -3057,6 +3288,164 @@ fn build_deep_rope() -> Rope {...}
 fn generate_leaf_payload() -> String {...}
 ```
 
+## xi-editor-ph7/rust/rope/src/serde_fixtures/diff_regions.rs
+
+```rust
+use std::error::Error;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::{Deserialize, Serialize};
+
+use crate::delta::DeltaElement;
+use crate::diff::{Diff, LineHashDiff};
+use crate::rope::{Rope, RopeDelta};
+
+use super::detect_git_commit;
+use super::snapshots::RangeSnapshot;
+
+pub const DIFF_REGIONS_FILENAME: &str = "diff_regions.json";
+const DIFF_REGIONS_SCHEMA_VERSION: &str = "1.0.0";
+const INSERT_PREVIEW_LIMIT: usize = 80;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DiffRegionsFile {
+    pub metadata: DiffRegionsMetadata,
+    pub diff_cases: Vec<DiffCase>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DiffRegionsMetadata {
+    pub schema_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_commit: Option<String>,
+    pub generated_at_unix_millis: u128,
+    pub case_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DiffCase {
+    pub sample: String,
+    pub base_path: String,
+    pub target_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_sha: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_sha: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line_count: Option<usize>,
+    pub ops: Vec<DiffOpSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stats: Option<DiffStats>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct DiffStats {
+    pub copied_bytes: usize,
+    pub inserted_bytes: usize,
+    pub deleted_bytes: usize,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DiffOpKind {
+    Copy,
+    Insert,
+    Delete,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DiffOpSnapshot {
+    pub kind: DiffOpKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_range: Option<RangeSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_range: Option<RangeSnapshot>,
+    pub byte_len: usize,
+    pub line_span: LineSpanSnapshot,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub insert_preview: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct LineSpanSnapshot {
+    pub base: [usize; 2],
+    pub target: [usize; 2],
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DiffRegionsExportReport {
+    pub file_path: PathBuf,
+    pub case_count: usize,
+}
+
+struct DiffSample {
+    name: &'static str,
+    base_text: &'static str,
+    target_text: &'static str,
+    notes: &'static str,
+}
+
+pub fn export_diff_regions(dir: &Path) -> Result<DiffRegionsExportReport, Box<dyn Error>> {...}
+
+fn build_diff_regions(
+    dir: &Path,
+    existing_timestamp: Option<u128>,
+) -> Result<DiffRegionsFile, Box<dyn Error>> {...}
+
+fn convert_delta_to_ops(
+    delta: &RopeDelta,
+    base_text: &str,
+    target_text: &str,
+) -> (Vec<DiffOpSnapshot>, DiffStats) {...}
+
+fn emit_delete(
+    ops: &mut Vec<DiffOpSnapshot>,
+    stats: &mut DiffStats,
+    start: usize,
+    end: usize,
+    base_index: &LineIndex,
+    target_index: &LineIndex,
+    target_cursor: usize,
+) {...}
+
+fn diff_samples() -> Vec<DiffSample> {...}
+
+fn write_sample_file(
+    dir: &Path,
+    name: &str,
+    suffix: &str,
+    contents: &str,
+) -> Result<PathBuf, Box<dyn Error>> {...}
+
+fn relative_fixture_path(path: &Path) -> String {...}
+
+fn line_span(index: &LineIndex, range: Option<&RangeSnapshot>, fallback: usize) -> [usize; 2] {...}
+
+struct LineIndex {
+    starts: Vec<usize>,
+    len: usize,
+}
+
+impl LineIndex {
+    fn new(text: &str) -> Self {...}
+
+    fn line_of_offset(&self, offset: usize) -> usize {...}
+
+    fn total_lines(&self) -> usize {...}
+}
+
+fn truncate_codepoints(text: &str, limit: usize) -> String {...}
+
+fn current_millis() -> u128 {...}
+
+fn workspace_root() -> PathBuf {...}
+
+fn read_existing_generated_at(path: &Path) -> Option<u128> {...}
+```
+
 ## xi-editor-ph7/rust/rope/src/serde_fixtures/grapheme_descriptors.rs
 
 ```rust
@@ -3067,11 +3456,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::helpers::string_leaf::{MAX_LEAF, MIN_LEAF};
 use crate::rope::Rope;
-use crate::tree::{Cursor, CursorDescriptor, TreeBuilder};
+use crate::tree::{Cursor, TreeBuilder};
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::chunk_descriptors::{PathFrameSnapshot, RangeSnapshot};
 use super::detect_git_commit;
+use super::snapshots::{frames_from_descriptor, PathFrameSnapshot, RangeSnapshot};
 use crate::rope::RopeInfo;
 
 pub const GRAPHEME_DESCRIPTOR_FILENAME: &str = "grapheme_descriptors.json";
@@ -3139,7 +3528,7 @@ pub fn export_grapheme_descriptors(
     dir: &Path,
 ) -> Result<GraphemeDescriptorExportReport, Box<dyn std::error::Error>> {...}
 
-pub fn grapheme_descriptor_fixtures() -> GraphemeDescriptorFile {...}
+pub fn grapheme_descriptor_fixtures(existing_timestamp: Option<u128>) -> GraphemeDescriptorFile {...}
 
 fn build_grapheme_descriptors(samples: &[GraphemeSample]) -> Vec<GraphemeDescriptor> {...}
 
@@ -3161,10 +3550,6 @@ fn clamp_prev_boundary_in_text(text: &str, offset: usize) -> usize {...}
 
 fn clamp_next_boundary_in_text(text: &str, offset: usize) -> usize {...}
 
-fn frames_from_descriptor(
-    descriptor: &CursorDescriptor<RopeInfo, String>,
-) -> Vec<PathFrameSnapshot> {...}
-
 fn infer_fallback(contains_zwj: bool, crosses_leaf: bool, cluster_text: &str) -> bool {...}
 
 fn compose_grapheme_tags(
@@ -3184,6 +3569,154 @@ fn flag_leaf_left() -> String {...}
 fn flag_leaf_right() -> String {...}
 
 fn current_millis() -> u128 {...}
+
+fn read_existing_generated_at(path: &Path) -> Option<u128> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/search_spans.rs
+
+```rust
+use std::error::Error;
+use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use regex::RegexBuilder;
+use serde::{Deserialize, Serialize};
+
+use crate::find::{find, CaseMatching};
+use crate::rope::Rope;
+use crate::tree::Cursor;
+
+use super::detect_git_commit;
+use super::snapshots::RangeSnapshot;
+
+pub const SEARCH_SPANS_FILENAME: &str = "search_spans.json";
+const SEARCH_SPANS_SCHEMA_VERSION: &str = "1.0.0";
+const CONTEXT_WINDOW: usize = 40;
+const DEFAULT_STYLE_ID: i32 = 7;
+const DEFAULT_PRIORITY: i32 = 10;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchSpansFile {
+    pub metadata: SearchSpansMetadata,
+    pub search_cases: Vec<SearchCaseSnapshot>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchSpansMetadata {
+    pub schema_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rust_commit: Option<String>,
+    pub generated_at_unix_millis: u128,
+    pub case_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchCaseSnapshot {
+    pub sample: String,
+    pub query: String,
+    pub is_regex: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub regex_options: Option<String>,
+    pub case_matching: CaseMatchingSnapshot,
+    pub text_len: usize,
+    pub hits: Vec<SearchHitSnapshot>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub span_windows: Vec<SpanSegmentSnapshot>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CaseMatchingSnapshot {
+    Exact,
+    CaseInsensitive,
+}
+
+impl From<CaseMatching> for CaseMatchingSnapshot {
+    fn from(value: CaseMatching) -> Self {...}
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchHitSnapshot {
+    pub index: usize,
+    pub range: RangeSnapshot,
+    pub line: usize,
+    pub context_before: String,
+    pub context_after: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpanSegmentSnapshot {
+    pub range: RangeSnapshot,
+    pub style_id: i32,
+    pub style_tag: String,
+    pub priority: i32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SearchSpansExportReport {
+    pub file_path: PathBuf,
+    pub case_count: usize,
+}
+
+struct SearchSample {
+    name: &'static str,
+    text: &'static str,
+    query: &'static str,
+    is_regex: bool,
+    regex_flags: &'static [&'static str],
+    case_matching: CaseMatching,
+    notes: &'static str,
+}
+
+pub fn export_search_spans(dir: &Path) -> Result<SearchSpansExportReport, Box<dyn Error>> {...}
+
+fn build_search_payload(
+    existing_timestamp: Option<u128>,
+) -> Result<SearchSpansFile, Box<dyn Error>> {...}
+
+fn build_case_snapshot(sample: SearchSample) -> Result<SearchCaseSnapshot, Box<dyn Error>> {...}
+
+fn search_samples() -> Vec<SearchSample> {...}
+
+fn build_regex(pattern: &str, flags: &[&str]) -> Result<regex::Regex, Box<dyn Error>> {...}
+
+fn context_before(text: &str, end: usize, limit: usize) -> String {...}
+
+fn context_after(text: &str, start: usize, limit: usize) -> String {...}
+
+fn current_millis() -> u128 {...}
+
+fn read_existing_generated_at(path: &Path) -> Option<u128> {...}
+```
+
+## xi-editor-ph7/rust/rope/src/serde_fixtures/snapshots.rs
+
+```rust
+use serde::{Deserialize, Serialize};
+
+use crate::rope::RopeInfo;
+use crate::tree::CursorDescriptor;
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RangeSnapshot {
+    pub start: usize,
+    pub end: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PathFrameSnapshot {
+    pub node_height: usize,
+    pub node_len: usize,
+    pub child_index: usize,
+    pub child_offset: usize,
+}
+
+pub fn frames_from_descriptor(
+    descriptor: &CursorDescriptor<RopeInfo, String>,
+) -> Vec<PathFrameSnapshot> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_impls.rs

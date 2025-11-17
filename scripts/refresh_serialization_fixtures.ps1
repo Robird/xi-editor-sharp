@@ -1,3 +1,4 @@
+[CmdletBinding()]
 param(
     [switch]$SkipRust,
     [switch]$SkipCopy,
@@ -5,13 +6,13 @@ param(
     [Parameter(HelpMessage = "Skip the Stage D loader smoke (StageDDescriptorLoaderTests) step.")]
     [switch]$SkipStageDLoaderTest,
     [switch]$DryRun,
-    [switch]$Verbose,
     [switch]$ExportTreeTrace,
     [bool]$ExportParityFixtures = $true,
     [string]$ManifestPath
 )
 
 $ErrorActionPreference = 'Stop'
+$script:VerboseOutputRequested = $PSBoundParameters.ContainsKey('Verbose')
 
 function Invoke-ExternalCommand {
     param(
@@ -21,9 +22,9 @@ function Invoke-ExternalCommand {
     )
 
     Write-Host "==> $Message"
-    if ($Verbose -and $Arguments.Count -gt 0) {
+    if ($script:VerboseOutputRequested -and $Arguments.Count -gt 0) {
         Write-Host "    $Command $($Arguments -join ' ')"
-    } elseif ($Verbose) {
+    } elseif ($script:VerboseOutputRequested) {
         Write-Host "    $Command"
     }
 

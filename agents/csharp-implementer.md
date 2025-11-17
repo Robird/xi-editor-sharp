@@ -108,6 +108,9 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-18** · Stage D manifest ledger hashes（二次刷新）同步：`StageDDescriptorLoaderTests` 的 chunk/grapheme 以及 Breaks/Diff/Search optional ledger `payload_hash` 与当前 `fixtures.manifest.json` 对齐，确保 Stage D fixtures 在重复导出后保持稳定。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
+- **2025-11-18** · Stage D descriptor loader tests刷新：`chunk/grapheme` ledger `payload_hash` 对齐 2025-11-18 manifest，并让可选资产断言真实 breaks/diff/search ledger（count=3 + 新 hash）。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
+- **2025-11-18** · Stage D descriptor manifest/tests同步：恢复 `fixtures.manifest.json` ledger（chunk/grapheme/BDS hash）并让 `StageDDescriptorLoader` 元资料读取 manifest 计数，配套更新 `StageDDescriptorLoaderTests` 断言。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · 2025-11-18 Porting brainstorm 行动项评估完成，确定 C# 端立即推进 `CursorEditSession`、`TreeTraceSchemaKit`、`ChunkWindowBenchmarks` 与遥测接入计划，输出采用清单与聊天室简报，作为即将汇报的输入。验证：本次行动清单与草稿（当前对话记录）。
 - **2025-11-18** · Breaks/Diff/Search Stage D skeleton 与 `StageDDescriptorLoader` 扩展完成，manifest 现支持 `breaks_descriptors/diff_regions/search_spans` 并在 `[StageD::ParityAssets]`、`[TS-B5]` 标注覆盖范围。验证：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · `TreeBuilderSliceTraceLoader`、sample JSON 与 smoke tests 就绪，`[TS-B2]`/`[StageD::FixtureFlow]` 可引用 slice trace 资产并等待 Rust CLI 下发真实数据。验证：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter TreeBuilderSliceTraceLoaderTests`。

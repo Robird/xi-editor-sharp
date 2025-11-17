@@ -28,6 +28,8 @@
 
 > **Manifest diff + loader smoke 证据链**：刷新或手动导出后必须运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。若预计存在 hash 漂移（Rust exporter 更新或 JSON 被覆写），追加 `--update` 让脚本重写 `payload_hash` 并打印 `Manifest changes` 摘要；无漂移时脚本会输出 “no changes” 提示。该日志与 `StageDDescriptorLoaderTests` 的通过记录一起，构成 `[QA-IngestionSmoke]` 所需的 “manifest diff + loader smoke” 证据，禁止跳过。
 
+> **最新 manifest（2025-11-18 稳定刷新）**：QA 运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 后生成 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`feature_gates=["serde"]`、descriptor 计数 `chunk/cursor/grapheme = 20/11/668`，并新增 `breaks/diff/search = 3/3/3` 可选资产。导出脚本会复用既有 `generated_at_unix_millis` 字段，因此重复运行不会触发 hash 漂移。所有哈希均由 `scripts/verify_fixture_manifest.py` 回写，可在 `[StageD::ParityAssets]` 查阅细节。
+
 ### 1. 环境变量与分支
 
 ```powershell
@@ -166,21 +168,21 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 ## [StageD::ParityAssets] Parity 资产总览
 <a id="StageD::ParityAssets"></a>
 
-| Asset | Path | Export Flag | Schema / Version | SHA256 (2025-11-19) | 备注 |
+| Asset | Path | Export Flag | Schema / Version | SHA256（2025-11-18 刷新） | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| Subset Regression | `tests/xi.Core.Tests/Fixtures/subset_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::subset` | `28fa3c807f83…` | Stage A（Subset）黄金串，回归测试直接消费。 |
-| Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `59c45336bace…` | Stage B（Delta）黄金串。 |
-| Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `8707d5de24e9…` | Stage C（Engine）黄金串。 |
-| Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c…` | `[MP-T1]` 用于 NodeCursor parity。 |
-| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `52aa448cf565…` | `[MP-T3]` Chunk/Line 诊断样本。 |
-| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `109d57d39b83…` | `[MP-T4]` Grapheme fallback 遥测。 |
-| Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--breaks-descriptors`、schema `breaks_descriptors@1.0.0`、feature gate `breaks_diagnostics`（计划）。Manifest 需追加 `count`/`payload_hash`，目前允许写 `pending` 占位并在 exporter 落地后刷新。 |
-| Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--diff-regions`、schema `diff_regions@1.0.0`、feature gate `diff_regions`（计划）。记录 `LineHashDiff`/`DiffBuilder` ops（`copy/insert/delete`），并将统计写入 manifest 占位。 |
-| Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | Spec ready — CLI pending (`[TS-B5]`) | Flag `--search-spans`、schema `search_spans@1.0.0`、feature gate `search_traces`（计划）。包含 `CaseMatching`/regex 配置、`find()` 命中区间、`Spans<T>` snapshot；等待 exporter 写入 manifest。 |
+| Subset Regression | `tests/xi.Core.Tests/Fixtures/subset_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::subset` | `28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f` | Stage A（Subset）黄金串，回归测试直接消费；hash 与 2025-11-18 manifest 一致。 |
+| Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f` | Stage B（Delta）黄金串；manifest 确认 `count=1`。 |
+| Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2` | Stage C（Engine）黄金串；`python scripts/refresh_all_assets.py --only stage-d-fixtures` 2025-11-18 运行后保持稳定。 |
+| Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.1.0` | `fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375` | `[MP-T1]` NodeCursor parity；manifest 记录 `count=11`。 |
+| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `e62a4faa936a20b261b167ddbd2be3b4d3566f3099149b2be215fbfafeecd756` | `[MP-T3]` Chunk/Line 样本；`2025-11-18 稳定刷新` 已锁定 `count=20`，manifest 哈希与表格同步。 |
+| Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `c6b1721d29286f01e67d2b7491361c2636a6a6affcc9e15206fb31c2fa5d1f0e` | `[MP-T4]` Grapheme fallback 遥测；`2025-11-18 稳定刷新` 记录 `count=668`。 |
+| Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | `--breaks-descriptors`（Stage D exporter 默认传入） | `breaks_descriptors@1.0.0` | `ab2f746e2bdd945e69b0acf9cd275c068a5ba6546f52a820144244f3b0e6e22e` | 状态：已导出；`2025-11-18 稳定刷新` 首次纳入 manifest（`count=3`），无需额外 feature gate。 |
+| Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | `--diff-regions`（Stage D exporter 默认传入） | `diff_regions@1.0.0` | `8c400ea433b77d9aa4f7b0cb57cbbcd6d1b935d52ff7e61101ad7a8babac5076` | 状态：已导出；`2025-11-18 稳定刷新` 记下 `count=3`，CLI 默认包含 `--diff-regions`。 |
+| Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | `--search-spans`（Stage D exporter 默认传入） | `search_spans@1.0.0` | `ce068c5217d2c45d213609d538e5a30280d10559894ef81bb9692d75d23c3502` | 状态：已导出；`2025-11-18 稳定刷新` 记录 `count=3`，hash 供 Stage D Loader 校验。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
 | TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
-> 最新一次 `stage-d-fixtures`（`python scripts/refresh_all_assets.py --only stage-d-fixtures`，2025-11-17）生成的 `fixtures.manifest.json` 记录：`rust_commit=7ac917a05be4bb526844d5cdaa842030411800e5`、`cli_rev=0.3.0`、`feature_gates=["serde","tree_builder_slice_trace"]`，并确认 tree builder slice trace 3 条、chunk/cursor/grapheme 描述符 20/11/668 条样本。
+> **Manifest（2025-11-18 刷新）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 写入 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，descriptor 计数为 `chunk=20` / `cursor=11` / `grapheme=668`，新导出的 `breaks/diff/search` 均为 3 条样本（可选资产 3/3/3）。所有 hash 以 manifest 为准，Stage D Loader smoke 会在 `[QA-IngestionSmoke]` 中登记。
 
 > `StageDDescriptorLoader` 现已成为 ingestion 的默认实现（参见 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）；QA/Stage D 工具在引用 `[StageD::ParityAssets]` 时，应先通过 loader 或 `dotnet test --filter StageDDescriptorLoaderTests` 读取 manifest，再将返回的 `StageDDescriptorManifest` 注入 ChunkBench、CLI parity 或 Telemetry 脚本。
 
@@ -191,14 +193,18 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 ## [StageD::FeatureGates] Feature Gate 策略
 <a id="StageD::FeatureGates"></a>
 
+`2025-11-18` 的 `stage-d-fixtures` 刷新仅启用了 `serde` gate，`--breaks-descriptors/--diff-regions/--search-spans` 现已默认串入并写入 manifest（见 `[StageD::ParityAssets]`）。若需要追加调试 telemetry，再考虑重新启用下表中的其他 gate。
+
+> 本次稳定刷新除 `serde` 外未开启额外 gate；Breaks/Diff/Search flag 已默认开启且随 manifest 一并交付，无需额外配置。
+
 | Gate | 默认 | 用途 | 备注 |
 | --- | --- | --- | --- |
-| `serde` | ✅（运行 Stage D 必须） | 启用所有 JSON 导出路径 | 关闭时 exporter 无法生成任何资产。 |
+| `serde` | ✅（运行 Stage D 必须） | 启用所有 JSON 导出路径 | 关闭时 exporter 无法生成任何资产；2025-11-18 刷新包含 chunk/cursor/grapheme + breaks/diff/search。 |
 | `cursor_state` | ⛔ | 调试游标失效，扩充 descriptor payload | 仅在 `[MP-R8]` 调试时开启，并在 `[Fixture-FeatureGates]` 记录。 |
 | `tree_builder_slice_trace` | ⛔ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/`（通过 `-ExportTreeTrace` 启用），供 `TreeBuilder` 研究与 loader parity。 |
-| `breaks_diagnostics`（计划） | ⛔ | 配合 `--breaks-descriptors` 导出软换行栈、`BreaksMetric` 序列 | 默认关闭；仅当 `breaks_descriptors@1.0.0` 需要时启用，并在 manifest `feature_gates[]` 登记。 |
-| `diff_regions`（计划） | ⛔ | 暴露 `LineHashDiff`/`DiffBuilder` 快照 | 控制 `--diff-regions` 导出；避免在常规刷新中运行昂贵 diff。 |
-| `search_traces`（计划） | ⛔ | 捕获 `find.rs` 命中与 `Spans<T>` 状态 | 绑定 `--search-spans`，涉及 regex 跟踪与 cursor instrumentation。 |
+| `breaks_diagnostics`（计划） | ⛔ | 配合 `--breaks-descriptors` 导出软换行栈、`BreaksMetric` 序列 | 目前 `serde` 即可导出 3 条 breaks 样本；如需更高粒度 telemetry，再开启并在 manifest `feature_gates[]` 登记。 |
+| `diff_regions`（计划） | ⛔ | 暴露 `LineHashDiff`/`DiffBuilder` 快照 | 现有导出由 `serde` 加 flag 覆盖，若未来要捕捉增量 diff 事件，可用该 gate 启用扩展。 |
+| `search_traces`（计划） | ⛔ | 捕获 `find.rs` 命中与 `Spans<T>` 状态 | 已能在 `serde` 运行中导出 3 条 search 样本；保留 gate 供 regex instrumentation 或扩展格式时使用。 |
 
 开启额外 gate 时，需：
 

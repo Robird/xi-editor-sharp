@@ -455,6 +455,17 @@ AI 架构师（主 Agent，拥有 runSubagent）
 > 更多执行细节、命令与验证可在“## 工作日志”与所列真相源文档中查询；2025-11-16 之前的完整历史亦可透过这些文档或 Git 历史追溯。
 
 ## 工作日志
+### 2025-11-18 (Stage D exporter 稳定化 + refresh_all_assets 全绿)
+- **动作**：协调 Rust Porter 在 `chunk/grapheme/breaks/diff/search` exporter 内部读取既有 JSON，保留 `generated_at_unix_millis`，避免重复导出时仅因时间戳造成 hash 漂移；`./xi-editor-ph7/rust/run_all_checks --filter serde-fixtures` 再次通过。
+- **C#/QA**：C# Implementer 同步 `StageDDescriptorLoader`/Tests，采用 manifest ledger count + 实际 hash（chunk=`e62a4faa…`、grapheme=`c6b1721d…`、breaks=`ab2f746e…`、diff=`8c400ea4…`、search=`ce068c52…`），QA Engineer 三次运行 `python scripts/refresh_all_assets.py`（先失败→hash 更新→最终成功），记录 `StageDDescriptorLoaderTests`、`verify-stage-d`、hash 校验日志。
+- **文档**：Architecture Mapper 更新 `[StageD::ParityAssets]`/`[StageD::FixtureFlow]`/`[StageD::FeatureGates]`，注明 2025-11-18 稳定刷新（`rust_commit=96ce8ddf…`、`feature_gates=["serde"]`、counts 20/11/668 + 3/3/3）及“重复运行复用 generated_at”原则。
+- **结果**：`python scripts/refresh_all_assets.py` 现可在默认配置跑通全部步骤（goal-tree → skeleton → dotnet build → stage-d-fixtures → verify-stage-d → ilspy → skeletonizer），输出 “All steps completed.”；新的 Stage D 资产/manifest/测试/文档待审阅后可提交。
+
+### 2025-11-18 (Stage D refresh脚本 Verbose 冲突解除)
+- **问题**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 在触发 `pwsh -File scripts/refresh_serialization_fixtures.ps1 -Verbose` 时命中 PowerShell `MetadataError`，因为脚本自定义 `[switch]$Verbose` 与通用 `-Verbose` 冲突，Stage D 流水线在调用入口即中断。
+- **修复**：委派 QA Engineer 将脚本升级为 `[CmdletBinding()]`，移除自定义 `-Verbose`，改用 `$PSBoundParameters.ContainsKey('Verbose')` 记录调用者偏好并保留详细命令回放；其余参数与默认行为保持不变。
+- **验证**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error`，`pwsh` 步骤不再报错，Rust run_all_checks/export 以及 dotnet Stage D loader smoke 顺利开启；当前失败仅剩 `cargo clippy` 的 `clippy::len-zero`（`rope/src/serde_fixtures/breaks_descriptors.rs:105`）与 `StageDDescriptorLoaderTests` manifest hash 漂移（新 `96ce8ddf…` vs 旧 `f740a440…`），后续需分别由 Rust Porter/C# Implementer 更新。
+
 ### 2025-11-18 (Stage D Breaks/Diff/Search readiness audit)
 - **Rust exporter现状**：梳理 `serde_fixtures/breaks_descriptors.rs`、`diff_regions.rs`、`search_spans.rs` 与共享辅助 `snapshots.rs`，确认 `RangeSnapshot`/`PathFrameSnapshot`/`frames_from_descriptor` 已支撑 Breaks/Diff/Search 导出，`export-serde-fixtures` 中的 `--breaks-descriptors`/`--diff-regions`/`--search-spans` 选项可以把 JSON 写入 `tests/xi.Core.Tests/Fixtures/` 对应目录。
 - **C#/脚本现状**：`StageDDescriptorLoader` 及现有测试只覆盖 chunk/grapheme，刷新脚本尚未把新 flag 设为默认；`fixtures.manifest.json`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 也尚未登记 Breaks/Diff/Search 的 schema hash。
