@@ -101,13 +101,13 @@ cd "$XI_EDITOR_SHARP_ROOT"
 
 ### 4. 使用 StageDDescriptorLoader 校验 manifest
 
-`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`。`scripts/refresh_serialization_fixtures.ps1` 会在流程末尾自动执行 `StageDDescriptorLoaderTests`；仅在需要隔离 exporter 问题或调试 dotnet 环境时，才使用 `-SkipStageDLoaderTest`。手动复核命令如下：
+`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`（含 manifest ledger：每个 `fixtures[].name` 的 `count/schema_hash/payload_hash`）。`scripts/refresh_serialization_fixtures.ps1` 会在流程末尾自动执行 `StageDDescriptorLoaderTests`；仅在需要隔离 exporter 问题或调试 dotnet 环境时，才使用 `-SkipStageDLoaderTest`。手动复核命令如下：
 
 ```bash
 dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests
 ```
 
-> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]` 与 payload 计数是否匹配（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。若出于调试目的跳过 smoke，QA 需在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录 `-SkipStageDLoaderTest` 的使用原因。
+> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]`、payload 计数，以及 `fixtures[].count/schema_hash/payload_hash` 是否与 JSON 内容一致（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。若出于调试目的跳过 smoke，QA 需在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录 `-SkipStageDLoaderTest` 的使用原因。
 
 ### 5. 差异审计与格式化
 

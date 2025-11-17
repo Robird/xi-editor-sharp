@@ -39,4 +39,22 @@ internal sealed class StageDDescriptorManifest
     public IList<LineDescriptor> LineDescriptors { get; set; } = new List<LineDescriptor>();
 
     public IList<GraphemeDescriptor> GraphemeDescriptors { get; set; } = new List<GraphemeDescriptor>();
+
+    public IList<StageDFixtureLedgerEntry> Fixtures { get; set; } = new List<StageDFixtureLedgerEntry>();
+}
+
+/// <summary>
+/// Snapshot of a fixtures.manifest.json entry so QA tooling can cross-check payload counts & hashes.
+/// </summary>
+internal sealed class StageDFixtureLedgerEntry
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string Path { get; set; } = string.Empty;
+
+    public int Count { get; set; }
+
+    public string SchemaHash { get; set; } = string.Empty;
+
+    public string PayloadHash { get; set; } = string.Empty;
 }

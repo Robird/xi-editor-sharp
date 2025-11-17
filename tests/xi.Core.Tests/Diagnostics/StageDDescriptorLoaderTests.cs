@@ -50,4 +50,34 @@ public sealed class StageDDescriptorLoaderTests
         Assert.True(grapheme.RequiresFallback);
         Assert.Equal(7, grapheme.ScalarCount);
     }
+
+    [Fact]
+    public void LoadFromFixtureDirectory_projects_manifest_ledger()
+    {
+        var manifest = Manifest.Value;
+
+        var chunkEntry = Assert.Single(
+            manifest.Fixtures,
+            f => f.Name == "chunk_descriptors.json");
+        Assert.Equal(20, chunkEntry.Count);
+        Assert.Equal(
+            "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
+            chunkEntry.Path);
+        Assert.Equal("chunk_descriptors@1.0.0", chunkEntry.SchemaHash);
+        Assert.Equal(
+            "52aa448cf565df821bd9798ead94caee73a0e4798e73fade542951d10fa6632e",
+            chunkEntry.PayloadHash);
+
+        var graphemeEntry = Assert.Single(
+            manifest.Fixtures,
+            f => f.Name == "grapheme_descriptors.json");
+        Assert.Equal(668, graphemeEntry.Count);
+        Assert.Equal(
+            "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
+            graphemeEntry.Path);
+        Assert.Equal("grapheme_descriptors@1.0.0", graphemeEntry.SchemaHash);
+        Assert.Equal(
+            "109d57d39b83618d0da2d091144ebd9ebe5e3fa53e4d1c00f720c7f721ab5e2a",
+            graphemeEntry.PayloadHash);
+    }
 }

@@ -454,6 +454,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **结构共享与写时复制迭代（2025-11-11）**：实现 `SplitAt`、`WithChildReplaced`、`CloneWithChildren`、`LeafSplitter` 等能力，优化 `Insert`/`Delete`/`Replace` 快速路径与叶片容量控制，并补充测试覆盖，确保 35 项 Rope/TextBuffer 测试全部通过。
 - **策略文档与后续计划（2025-11-11）**：发布《Rope 写时复制与再平衡实施方案草案》（现归档于 `docs/csharp-refactor/rope-cow-rebalance-plan.md`），更新 `AGENTS.md` 关键认知与下一步行动，明确 COW/再平衡/Delta/Benchmark 推进路线。
 ## 工作日志
+### 2025-11-19 (Stage D manifest ledger 校验)
+- **Loader 强化**：`StageDDescriptorLoader` 现会把 `fixtures.manifest.json` 的 ledger 条目（name/path/count/schema_hash/payload_hash）hydrate 成 `StageDFixtureLedgerEntry`，并在加载 chunk/grapheme JSON 时检验 manifest 计数与 schema version 是否匹配，避免 hash/计数漂移未被察觉。
+- **测试覆盖**：新增 `StageDDescriptorLoader` ledger 单元测试，验证 chunk 与 grapheme 条目的 `count`、`schema_hash`、`payload_hash` 与 manifest 真值一致；`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`（4/4 ✅，15.8s）作为 smoke 记录。
+- **文档同步**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 说明 loader 现会返回 ledger，并强调 loader smoke 会校验 canonical hash + manifest 计数，供 QA/Stage D CLI 复用。
+
 ### 2025-11-17 (Stage D descriptor loader + 文档联动)
 - **实现落地**：委派 C# Implementer 在 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 建立 manifest/chunk/grapheme loader，并新增 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 读取真实夹具校验 metadata、`emoji_cluster_block` chunk 与 `zwj_family` grapheme；为 DTO 添增 `JsonPropertyName` 注解。`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` 及全量 `dotnet test Xi.Editor.sln -v m`（176/176 ✅）皆通过。
 - **文档同步**：Architecture Mapper 更新 `[TS-B3]`、`[RPM-Matrix]`/`[RPM-Actions]` 与 Stage D Playbook `[StageD::FixtureFlow]/[StageD::ParityAssets]/[QA-IngestionSmoke]`，说明 loader 现可直接消费 manifest，并记录下一步需把 QA smoke/Stage D CLI 接线到该 API。

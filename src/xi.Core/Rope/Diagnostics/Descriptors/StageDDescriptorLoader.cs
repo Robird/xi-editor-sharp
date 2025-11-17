@@ -68,6 +68,17 @@ internal static class StageDDescriptorLoader
         var lineDescriptors = MaterializeList(chunkPayload.LineDescriptors);
         var graphemeDescriptors = MaterializeList(graphemePayload.GraphemeDescriptors);
 
+        var ledgerEntries = manifest.Fixtures
+            .Select(entry => new StageDFixtureLedgerEntry
+            {
+                Name = entry.Name,
+                Path = entry.Path,
+                Count = entry.Count,
+                SchemaHash = entry.SchemaHash,
+                PayloadHash = entry.PayloadHash
+            })
+            .ToList();
+
         ValidateCount(
             chunkDescriptors.Count,
             chunkPayload.Metadata.ChunkDescriptorCount,
@@ -83,6 +94,17 @@ internal static class StageDDescriptorLoader
             graphemePayload.Metadata.DescriptorCount,
             "grapheme_descriptors",
             "grapheme descriptor payload");
+
+        ValidateLedgerEntry(
+            ledgerEntries,
+            ChunkFileName,
+            chunkDescriptors.Count + lineDescriptors.Count,
+            chunkPayload.Metadata.SchemaVersion);
+        ValidateLedgerEntry(
+            ledgerEntries,
+            GraphemeFileName,
+            graphemeDescriptors.Count,
+            graphemePayload.Metadata.SchemaVersion);
 
         var metadata = new StageDDescriptorManifestMetadata
         {
@@ -104,7 +126,8 @@ internal static class StageDDescriptorLoader
             Metadata = metadata,
             ChunkDescriptors = chunkDescriptors,
             LineDescriptors = lineDescriptors,
-            GraphemeDescriptors = graphemeDescriptors
+            GraphemeDescriptors = graphemeDescriptors,
+            Fixtures = ledgerEntries
         };
     }
 
@@ -132,6 +155,33 @@ internal static class StageDDescriptorLoader
     private static IList<T> MaterializeList<T>(IList<T>? source)
     {
         return source ?? new List<T>();
+    }
+
+    private static void ValidateLedgerEntry(
+        IList<StageDFixtureLedgerEntry> fixtures,
+        string requiredName,
+        int expectedCount,
+        string? expectedSchemaVersion)
+    {
+        var entry = fixtures.FirstOrDefault(f => string.Equals(f.Name, requiredName, StringComparison.OrdinalIgnoreCase));
+        if (entry is null)
+        {
+            throw new InvalidDataException(
+                $"Stage D manifest is missing the '{requiredName}' ledger entry. Re-run 'python scripts/refresh_all_assets.py --only stage-d-fixtures' to hydrate manifest metadata.");
+        }
+
+        if (entry.Count != expectedCount)
+        {
+            throw new InvalidDataException(
+                $"Stage D manifest entry '{requiredName}' reports {entry.Count} records but the JSON payload exposed {expectedCount}. Run the manifest verifier script to regenerate canonical hashes.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(expectedSchemaVersion) &&
+            !entry.SchemaHash.Contains(expectedSchemaVersion, StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"Stage D manifest entry '{requiredName}' recorded schema hash '{entry.SchemaHash}' which does not reference schema version '{expectedSchemaVersion}'.");
+        }
     }
 
     private static void ValidateCount(int actual, int expected, string fieldName, string payloadLabel)
