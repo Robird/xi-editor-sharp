@@ -27,13 +27,12 @@
 	1. 与 Rust Porter 在 2025-11-19 前冻结 CLI schema，随后更新 `[StageD::ParityAssets]`、`rope-port-mapping.md` 与 `m3-implementation-plan.md` 风险表，并 rerun `dotnet test -v m` 确认 11/11 parity 仍绿。
 	2. Document `NodeCursorState` 在 `[StageD::FixtureFlow]` 中的触发点，使 CLI -> manifest 路径可复制。
 	3. Script `scripts/refresh_serialization_fixtures.ps1` to always pass `--emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。
-
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
-- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。`[RPM-Matrix]` Skeleton Coverage 进一步指出：Rust 侧仍暴露 `TreeBuilderTracer`、`TreeBuilderEventKind` 与 `helpers/string_leaf.rs` 中的分裂 helper，而 C# 端连占位类型都没有，导致 Stage D slice trace 只能依赖 Rust CLI，MetricAdapter 也缺少调试信号。
+- **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。虽然 `src/xi.Core/Rope/Tree/TreeBuilderTracer.cs` 现已提供 `TreeBuilderEventKind/Event/ITreeBuilderTracer/NoOpTreeBuilderTracer` 骨架，但它尚未被 `TreeBuilder`/`MetricAdapter` 注入，Stage D slice trace 依旧只能依赖 Rust CLI。 
 - **Rust Plan**: 依托 `convert_lines_from_bytes` 等 shim 以及 `docs/rust-refactor/breaks-metrics-templating.md` 的模板输出度量 helper，逐步补齐 `edit_*`/`Breaks` shim。
-- **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并记录到 `[StageD::FeatureGates]` 以便 CLI/fixture 同步。
-- **Status**: ⚠️ Watch — 设计已定稿且 `_editVersion` 为 adapter 铺路，但实现/文档尚未绑定 Stage D manifest，阻碍泛型切换。
+- **C# Plan**: 在 `node-generic-refactor-plan.md` 定下 `MetricAdapter` 结构，落地 smoke tests（`MetricAdapterTests`），并利用新 `TreeBuilderTracer` 骨架记录调试事件，再写入 `[StageD::FeatureGates]` 以便 CLI/fixture 同步。
+- **Status**: ⚠️ Watch — `_editVersion` 与 `TreeBuilderTracer` 骨架已齐备，但 tracer 未进入执行路径、Stage D trace loader 也未接线，MetricAdapter 仍无可验证证据。
 - **Links**:
 	- `docs/rust-refactor/breaks-metrics-templating.md`
 	- `docs/csharp-refactor/node-generic-refactor-plan.md`
@@ -41,25 +40,24 @@
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 - **Next**:
 	1. 于 2025-11-24 前提交 `MetricAdapter` 草案 + smoke 测试，并在 `rope-port-mapping.md`、`m3-implementation-plan.md` 标记 G6 进度。
-	2. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`cursor_state` 记录），确保 CLI/manifest 可复现实验。
-	3. Call out `_editVersion` -> adapter 依赖图于 Stage D 文档，避免 G6 merge 时追溯困难。
-	4. 在 `src/xi.Core/Rope/Tree/` 建立 `TreeBuilderTracer`/`TreeBuilderEventKind`/`TreeBuilderEvent` 骨架（哪怕暂时抛出 `NotImplementedException`），并在 `[StageD::FixtureFlow]` 标注“Rust-only slice trace”降级，待 CLI trace 需要时可接线。
-
+	2. 将 `TreeBuilderTracer` 注入 `TreeBuilder` + Stage D slice trace loader，记录 CLI trace → C# tracer 的映射并更新 `[StageD::FixtureFlow]` 文档。
+	3. Online 更新 `[StageD::FeatureGates]` 与 `[Fixture-Manifest]`（添加 `metric_adapter`/`tree_builder_trace` 记录），确保 CLI/manifest 可复现实验。
+	4. 在 Stage D 文档中补上 `_editVersion` → tracer → adapter 依赖图，避免 G6 merge 时追溯困难。
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
-- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出尚未写入 `fixtures.manifest.json`，1 MB `ChunkBench` 基线缺席。Skeleton Coverage 显示 Rust 侧已具备 `ChunkIter`、`LinesRaw`、`ChunkDescriptor`/`LineDescriptor` 导出结构，而 C# 仍只有 diagnostics，没有 DTO/CLI 入口，导致 Stage D manifest 只能依赖 Rust。
+- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据，CLI `--chunk-descriptors` 输出虽已写入 `fixtures.manifest.json`，但 C# 端仅新增 `Rope/Diagnostics/Descriptors/{ChunkDescriptor,LineDescriptor,GraphemeDescriptor,StageDDescriptorManifest}.cs` DTO，尚无 loader/QA 钩子把 JSON manifest hydrate 成对象，1 MB `ChunkBench` 基线依旧缺席。
 - **Rust Plan**: 通过 `iterator-facade-export.md` 评估 owned descriptor/visitor 输出，并在 `export-serde-fixtures` 添加 chunk/line flags。
-- **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并把 Rust JSON + manifest (`[Fixture-Manifest]`) 作为单一事实，一旦 CLI 稳定即把 1 MB 微基准挂到 `[QA-ChunkBench]`。
-- **Status**: ⚠️ Watch — 诊断与 telemetry 有数据，但 manifest 与 1 MB baseline 双双缺口。
+- **C# Plan**: 维持 diagnostics（`RopeChunkEnumeratorDiagnostics`）并把 Rust JSON + manifest (`[Fixture-Manifest]`) 作为单一事实；新 DTO 只做“镜像”用途，下一步是实现 loader + manifest 绑定、把 1 MB 微基准挂到 `[QA-ChunkBench]`，并暴露 QA 钩子供 Stage D 使用。
+- **Status**: ⚠️ Watch — DTO 与 manifest 资产已就绪，但 loader、QA 钩子与 1 MB baseline 仍缺位。
 - **Links**:
 	- `docs/rust-refactor/iterator-facade-export.md`
 	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
 	- `tests/xi.Core.Tests/RopeChunkEnumeratorTests.cs`
 - **Next**:
-	1. Rust Porter 11/19 demo CLI 输出 -> Architecture Mapper 11/20 前将 `chunk_descriptors.json` 与 `fixtures.manifest.json` 写入 `[RPM-ParityAssets]`。
+	1. 实现 `StageDDescriptorManifest` loader，将 `fixtures.manifest.json` hydrate 成 DTO 并暴露最小 QA API（供 `[QA-ChunkBench]`/`[QA-IngestionSmoke]`）。
 	2. QA 复跑 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release`，把 1 MB 指标写进 `[QA-ChunkBench]` 并同步到 `design-divergence-log.md`。
-	3. Once manifest + baseline exist, C# 实现把 copy-on-read 降级策略更新到 `[Div-Active]` exit criteria。
-	4. 在 C# 侧补建 `ChunkDescriptor`/`LineDescriptor` DTO（可先放于 `Xi.Core.Rope.Diagnostics` 命名空间）并写明如何消费 Rust manifest，以免 CLI schema 更新时缺少编译期守卫。
+	3. 将 loader/DTO 接入 chunk/grapheme diagnostics，把 Stage D manifest ingestion 结果写入 `[RPM-ParityAssets]` 与 `[Div-Active]` exit criteria。
+	4. 为 `ChunkDescriptor`/`LineDescriptor`/`GraphemeDescriptor` 添加 schema 版本守卫与 QA 钩子，确保 CLI schema 变更可通过测试暴露。
 
 ### [TS-B4] Grapheme 降级策略
 <a id="TS-B4"></a>

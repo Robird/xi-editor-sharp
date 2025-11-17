@@ -108,6 +108,21 @@ interfaces:
 
 ## 最近完成
 
+### 2025-11-17 - TreeBuilderTracer 骨架 + Stage D 描述符 DTO 落地
+**任务背景**：`[TS-B2]`/`[TS-B3]` 要求先补齐 C# 端骨架，才能把 Rust 导出的 `tree_builder_slice_trace` 与 chunk/line/grapheme 资产接到 Stage D CLI。
+
+**关键输出**：
+1. ✅ `src/xi.Core/Rope/Tree/TreeBuilderTracer.cs` 引入 `TreeBuilderEventKind`、`TreeBuilderEvent`、`ITreeBuilderTracer`、`NoOpTreeBuilderTracer`，并在 `TreeBuilder` 中暴露可替换 tracer 属性（默认 no-op），后续即可在不改推栈算法的前提下注入 `[TS-B2]` slice trace。
+2. ✅ `src/xi.Core/Rope/Diagnostics/Descriptors/` 新建 `DescriptorRange/DescriptorContext` 共享类型与 `ChunkDescriptor`、`LineDescriptor`、`GraphemeDescriptor`、`StageDDescriptorManifest*` DTO；文档注释指向 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 与 `[StageD::ParityAssets]`，并以 `TODO(TS-B3)` 标记 CLI 读取器待办。
+3. ✅ 更新 `TreeBuilder` 代码仅添加 tracer TODO，无行为更改，确保当前 Rope/Tree 测试保持稳定。
+
+**验证**：`dotnet test Xi.Editor.sln -v m` → 169/169 ✅。
+
+**后续建议**：
+- 1) 等 Rust Porter 开放 `tree_builder_slice_trace` 后将 tracer 注入点记入 `docs/architecture/type-system-migration-log.md#TS-B2`。
+- 2) 实现 Stage D descriptor loader（解析 manifest + JSON）并把入口挂到 `[StageD::FixtureFlow]`/QA 工具链。
+- 3) 将 chunk/grapheme DTO 接入现有 parity/diagnostics 测试，确保 CLI schema 漂移可在 C# 端被编译期捕获。
+
 ### 2025-11-17 - 认知档案结构重构（Stage D 前置自查）
 **任务背景**：AI 架构师要求所有员工依据 Goal Tree/Stage D anchor 统一 front-matter + 聚焦视图，我作为 C# Implementer 需将档案切换到“front-matter + 当前聚焦 + 测试基线 + 风险 + 协作接口 + 最近完成 + 待办”模板。
 

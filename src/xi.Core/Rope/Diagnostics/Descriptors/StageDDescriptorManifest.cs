@@ -1,0 +1,42 @@
+using System.Collections.Generic;
+
+namespace Xi.Core.Rope.Diagnostics.Descriptors;
+
+/// <summary>
+/// Captures the shared metadata emitted by chunk/grapheme descriptor exports and the
+/// fixtures.manifest.json ledger referenced by `[StageD::ParityAssets]`.
+/// TODO(TS-B3): hydrate this from the JSON payload instead of leaving it as a pure DTO.
+/// </summary>
+internal sealed class StageDDescriptorManifestMetadata
+{
+    public string SchemaVersion { get; set; } = string.Empty;
+
+    public string RustCommit { get; set; } = string.Empty;
+
+    public string? CliRevision { get; set; }
+
+    public long? GeneratedAtUnixMillis { get; set; }
+
+    public int? ChunkDescriptorCount { get; set; }
+
+    public int? LineDescriptorCount { get; set; }
+
+    public int? GraphemeDescriptorCount { get; set; }
+
+    public IList<string> FeatureGates { get; set; } = new List<string>();
+}
+
+/// <summary>
+/// Aggregates descriptor collections so Stage D ingestion code can bind manifest metadata
+/// and JSON samples without scattering temporary structs across the Rope assembly.
+/// </summary>
+internal sealed class StageDDescriptorManifest
+{
+    public StageDDescriptorManifestMetadata Metadata { get; set; } = new();
+
+    public IList<ChunkDescriptor> ChunkDescriptors { get; set; } = new List<ChunkDescriptor>();
+
+    public IList<LineDescriptor> LineDescriptors { get; set; } = new List<LineDescriptor>();
+
+    public IList<GraphemeDescriptor> GraphemeDescriptors { get; set; } = new List<GraphemeDescriptor>();
+}

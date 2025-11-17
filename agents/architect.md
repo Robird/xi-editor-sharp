@@ -114,12 +114,12 @@
     2. 与 QA/C# Implementer 制定 Chunk throughput 调优与 alloc telemetry方案（<5 MB counters、>200 MB/s 目标），并把计划写入 `design-divergence-log.md` 与 `[MP-R10]`。
     3. 与 Architecture Mapper 协调 Grapheme telemetry ingestion：补 `[QA-Telemetry]` 实测数据、在 Stage D Playbook 和 Goal Tree 中记录触发条件；必要时更新 `document-structure-template.md` 与 CLI trace 采集说明。
 - [推进中] 🧱 **Rust↔C# Skeleton Coverage**
-  - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；`rope-port-mapping.md#[RPM-Matrix]` 加入“Skeleton Coverage”列记录 TreeBuilderTracer、CursorDescriptor DTO、Breaks tree、Chunk/Grapheme exporter 等缺口。
-  - **目标**：把 skeleton 差异转化为 actionable backlog，指导 C# Implementer/Rust Porter/QA 的 Stage D 任务分配。
+  - **现状**：Info Researcher 已输出 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme skeleton 对照；2025-11-17 C# Implementer 交付 `Tree/TreeBuilderTracer.cs` 与 `Rope/Diagnostics/Descriptors/*`，`rope-port-mapping.md#[RPM-Matrix]`、`type-system-migration-log.md#[TS-B2]/#[TS-B3]`、`design-divergence-log.md#[Div-Active]` 均已记录“C# 端骨架就绪、待 loader/trace 接线”的状态。
+  - **目标**：把 skeleton 差异转化为 loader/Stage D 可执行 backlog，指导 C# Implementer/Rust Porter/QA 接力完成 manifest ingestion、slice trace replay 与 Breaks/Diff/Search 占位。
   - **下一步**：
-    1. 依据新列为 `[TS-B2]`（MetricAdapter/TreeBuilderTracer）、`[TS-B3]`（Chunk/Line DTO）与 `[TS-B5]`（Breaks tree）建立里程碑子任务。
-    2. 指派 C# Implementer 先行补齐 `ChunkDescriptor`/`GraphemeDescriptor` DTO + CLI ingest stub，Rust Porter 维持 manifest 输出，QA 将 `[QA-ChunkBench]`/`[QA-Telemetry]` 连接到 manifest。
-    3. 在 `design-divergence-log.md` 记录 TreeBuilder trace 仍为 Rust-only 的降级策略，待 CLI trace 可在 C# 复现后关闭。
+    1. 驱动 C# Implementer 实现 Stage D manifest loader + tracer注入（ `[TS-B2]`/`[TS-B3]`），并在 Stage D Playbook 展示 CLI→Loader→QA 的证据链。
+    2. 要求 QA Engineer 以 manifest loader 为入口刷新 `[QA-ChunkBench]`/`[QA-IngestionSmoke]`，记录 1 MB baseline + Grapheme telemetry，再把结果回写 `[RPM-Actions]`。
+    3. 持续推动 Rust Porter 提供 Breaks/Diff/Search skeleton/CLI 计划，让 Architecture Mapper 能在 `[TS-B5]` 和 `[RPM-Matrix]` 建立对应的 C# 占位与降级说明。
 
 ### 2025-11-18 · Document Structure Rollout 方案
 > 目标：落实模板第 3 节“Per-Document Obligations”，同时保留关键内容的可追溯引用。

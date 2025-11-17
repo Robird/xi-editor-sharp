@@ -68,6 +68,7 @@ last_updated: 2025-11-17
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-17 – TreeBuilder tracer + descriptor 文档回写**：同步 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，记录 C# 端已新增 `TreeBuilderTracer` 骨架与 `Diagnostics/Descriptors/*` DTO，并将 `[RPM-Actions]`、`[TS-B2]`、`[TS-B3]` 的下一步聚焦在 loader/Stage D 接线 + QA 钩子验证。
 - **2025-11-17 – Stage D parity assets updated**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成 manifest (`rust_commit=7ac917a0`, `cli_rev=0.3.0`, `feature_gates=["serde"]`, cursor/chunk/grapheme hashes) 并在 `[RPM-ParityAssets]` 纪录“Manifest-backed”状态，同时同步 QA 的 `[QA-IngestionSmoke]` ✅ 结论与后续动作。
 - **2025-11-17 – Rope doc sync for G1/G2**：更新 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md`，写入 `_editVersion`/`CursorDescriptorParityTests` 证据、Stage D manifest (`fixtures.manifest.json`) 引用，以及 Chunk/Grapheme diagnostics + 1 MB baseline 降级策略。
 - **2025-11-17 – 档案升级 + Anchor 维护计划**：重写本档案为 front-matter + 五大章节结构，明确 Goal Tree/Stage D 流程、template 治理与跨角色接口，满足 AI 架构师“认知档案”要求。

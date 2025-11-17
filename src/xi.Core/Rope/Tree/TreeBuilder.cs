@@ -9,6 +9,10 @@ namespace Xi.Core.Rope.Tree;
 public sealed class TreeBuilder
 {
     private readonly List<List<Node>> _stack = new();
+    /// <summary>
+    /// TODO(TS-B2): Replace the no-op tracer with a Stage&nbsp;D slice trace once Rust/C# manifests align.
+    /// </summary>
+    internal ITreeBuilderTracer Tracer { get; set; } = NoOpTreeBuilderTracer.Instance;
 
     public void PushString(string? text)
     {
