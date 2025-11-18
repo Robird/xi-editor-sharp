@@ -32,6 +32,11 @@ interfaces:
 ## 当前聚焦
 > 任务锚点：`docs/architecture/m3-implementation-plan.md` goal tree（G1 Cursor descriptors, G2 Chunk/Line diagnostics, G4 Diff/Search handoff, G6 MetricAdapter bridge）以及 Stage D anchors（`StageD::ParityAssets`, `StageD::FixtureFlow`, `StageD::FeatureGates`）。
 
+### 11/27 Stage D Loader & QA Anchors 检查点
+1. **`_editVersion` ↔ `CursorState` 文档 & 证据**：`docs/architecture/m3-implementation-plan.md#[MP-T1]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 已记录 NodeCursorState + `cursor_descriptors@1.2.0` manifest 证据；需在 11/21 前 rerun `python scripts/refresh_all_assets.py --only stage-d-fixtures` 并将全绿日志 + `stage-d-inspector-latest.txt` 回填 `[QA-IngestionSmoke]`。
+2. **Stage D Breaks/Diff/Search typed DTO 接线**：`StageDDescriptorHydrator` + inspector tests 已消费真实 manifest（`dotnet test Xi.Editor.sln --filter "StageDDescriptorHydratorTests|StageDDescriptorInspectorTests"`），继续盯住 Rust CLI hash 变化并把任何 schema 更新同步到 `[StageD::FeatureGates]`/`fixtures.manifest.json`。
+3. **Chunk/Grapheme diagnostics → QA anchors**：`RopeChunkEnumeratorBenchmarks --stage-d` 已生成 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（3.67 ms/2.86 ms），下一步换成 Release + alloc 模式并让 QA 在 `[QA-ChunkBench]` 纳管；同时触发 `GraphemeNavigatorSmokeTests` telemetry（TRX）以补 `[QA-Telemetry]` 缺口。
+
 - **参考面 / 快速索引**
   - 实现指南：`docs/csharp-refactor/rope-cow-rebalance-plan.md`, `docs/csharp-refactor/node-generic-refactor-plan.md`, `docs/csharp-refactor/rope-delta-notes.md`, `docs/csharp-refactor/rope-serialization-fixture-playbook.md`
   - 架构映射：`docs/architecture/rope-port-mapping.md`, `docs/architecture/type-system-migration-log.md`, `docs/architecture/design-divergence-log.md`, `docs/architecture/port-blueprint.md`
@@ -39,14 +44,12 @@ interfaces:
   - 测试与夹具：`tests/xi.Core.Tests/**/*.cs`, `tests/xi.Core.Tests/Fixtures/**`
   - 骨架参考：`docs/skeleton/xi.Core.decompiled.cs`, `docs/skeleton/rope.md`
 
-### T1 游标系统（NodeCursor / NodeCursorDescriptor）
 - **实现状态**：`NodeCursor` 拥有型游标、`_editVersion` 失效检测、Base/Lines/Utf16 导航及 26+ `NodeCursorTests` 全部通过；`CursorDescriptorParityTests` 已接入 11 份 JSON（深树 + 多 metric），`NodeCursor` 在编辑后可自动重新 Descend。
-- **待交付/下一击**：补完 T1.2/T1.3 中叶片遍历的边界计数修复、`_pathCache` 深树诊断输出，以及 `CursorState`/版本票据文档化；T1.5/T1.6 仍需 Rust Porter 提供 ≥10 份 CLI 导出的 descriptor JSON（`export-serde-fixtures --cursor-descriptors`）以替代手写样本，并将 schema 固化到 Stage D。
+- **待交付/下一击**：补完 T1.2/T1.3 中叶片遍历的边界计数修复、`_pathCache` 深树诊断输出，并在下一次 Stage D rerun 中把 NodeCursorState `_editVersion` 证据挂入 `[QA-IngestionSmoke]`；T1.5/T1.6 仍需 Rust Porter 提供 ≥10 份 CLI 导出的 descriptor JSON（`export-serde-fixtures --cursor-descriptors`）以替代手写样本，并将 schema 固化到 Stage D。
 - **依赖与协作**：Architecture Mapper 需在 `m3-implementation-plan.md` G1 中记录 `_editVersion` 与 `NodeCursorState` 地图；QA 需在 `QA-IngestionSmoke` 中验证掺入的 JSON；Rust Porter 负责 CLI 与深树样本，回答 Metric/路径缓存疑问。
 
-### T3 Chunk/Line 诊断与枚举器（RopeChunkEnumerator / RopeChunkEnumeratorDiagnostics）
-- **实现状态**：`RopeChunkEnumerator`/`RopeLineEnumerator` 已提供复制型 `ReadOnlyMemory<char>` 枚举；`RopeChunkEnumeratorDiagnostics` 捕获 chunk 总数、最大 chunk 长度、UTF-16 拷贝累计；`RopeChunkEnumeratorBenchmarks` 控制台项目可生成 1 MB 文本输出 baseline。
-- **待交付/下一击**：等待 Rust Porter 发布 `--chunk-descriptors` fixture，QA 接管 `QA-ChunkBench` 采集 1 MB 基准，Architecture Mapper 在 Goal Tree G2/`rope-port-mapping.md` 中登记 diagnostics；需把 diagnostics 输出串到 telemetry exporter，并将 enumerator 抽象化为 Stage D CLI 可消费的 schema。
+- **实现状态**：`RopeChunkEnumerator`/`RopeLineEnumerator` 已提供复制型 `ReadOnlyMemory<char>` 枚举；`RopeChunkEnumeratorDiagnostics` 捕获 chunk 总数、最大 chunk 长度、UTF-16 拷贝累计；`RopeChunkEnumeratorBenchmarks` 在 Stage D 模式下会读取 manifest ledger 并把吞吐写入 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`。
+- **待交付/下一击**：基线 chunk fixtures 已随 manifest 提供，当前任务转为：以 Release + alloc 模式 rerun bench、把结果写进 `[QA-ChunkBench]` 与 `docs/architecture/m3-implementation-plan.md §5.3`，并把相同报告纳入 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 的证据链；另需把 Grapheme telemetry 流程与 QA 的 `[QA-Telemetry]` 接线一并完成。
 - **依赖与协作**：CLI/schema 由 Rust Porter 定义；QA 负责运行新基准与 ingestion smoke；Architecture Mapper 在 `design-divergence-log.md` 记录“复制型”降级并跟进 Stage D anchor。
 
 ### T4 Grapheme Navigator（IGraphemeNavigator / DegradedGraphemeNavigator）
@@ -107,6 +110,9 @@ interfaces:
   5. 汇报透明：每次任务完成在“最近完成”记录，并向架构师陈述成果 + 风险。
 
 ## 最近完成
+
+- **2025-11-18** · Stage D pipeline re-audit：重跑 `dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`、`--filter StageDDescriptorHydratorTests`，确认 `fixtures.manifest.json`（hash `69ba7f25…/eb0c7c66…/5d37a731…/fe76ed31…/7eac7ecf…`）与测试断言一致，并在 `docs/meetings/2025-11-18-goal-alignment-chat.md#23-c-implementer`/A2 更新当前现状、风险与下一步（Stage D rerun + Release chunk bench + Grapheme telemetry）。
+- **2025-11-18** · Goal Alignment Chat（`docs/meetings/2025-11-18-goal-alignment-chat.md#23-c-implementer`）：向 Architect/Rust Porter/QA 汇报 NodeCursor `_editVersion`、Stage D loader→hydrator→inspector 流程、Chunk/Grapheme diagnostics 与 `TreeBuilderTracer` 状态，记录 `dotnet test Xi.Editor.sln --filter StageDDescriptor` + `python scripts/refresh_all_assets.py --only stage-d-fixtures` 的验证步骤，并确认 11/27 前的文档与 QA 交付项。
 
 - **2025-11-20** · Stage D manifest ledger刷新（Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`）：同步 `StageDDescriptorLoaderTests`、`StageDDescriptorInspectorTests` 的 commit 与 chunk/grapheme/breaks/diff/search payload hash，附注指向 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（2025-11-20 run），并复跑 loader+hydrator+inspector smoke 以及 `python scripts/refresh_all_assets.py --only stage-d-fixtures --only stage-d-fixtures`，`verify_fixture_manifest.py`/StageD inspector 输出均显示新 hash。验证：`dotnet test Xi.Editor.sln --filter "StageDDescriptorLoaderTests|StageDDescriptorHydratorTests|StageDDescriptorInspectorTests"`、`python scripts/refresh_all_assets.py --only stage-d-fixtures --only stage-d-fixtures`。
 - **2025-11-18** · Stage D chunk bench CLI/report：`tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs` 现接受 `--stage-d/--manifest/--report`，当 Stage D 打开时会通过 `StageDDescriptorLoader` 重建 Rope、输出 manifest metadata + chunk/line throughput + per-sample 摘要，并把同样内容写入 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`；`README.md` 介绍两种模式，QA 可直接引用报告。验证：`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -- --stage-d --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（生成 `[QA-ChunkBench]` 可回放报告）。

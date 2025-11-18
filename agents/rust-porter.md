@@ -28,8 +28,10 @@ cadence:
 # Rust Porter 档案
 
 ## 当前聚焦
+- Stage D exporter/manifest 事实复核已确认：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 默认携带 `--cursor|chunk|grapheme|breaks|diff|search` 与 `cursor_state` gate，manifest 固定在 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`。下一步是在 `[StageD::*]` / `AGENTS.md` / Goal Tree 文档同步该事实，并把 `cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor` 与 `-ExportTreeTrace` 决策写进 `scripts/refresh_serialization_fixtures.ps1`，完成 A3 “schema/hash 冻结 + 脚本默认值” 的最后一公里。
+- 11/24 Stage D payload 承诺：冻结 `cursor_state` schema/hash 并让 Breaks/Diff/Search/tree trace exporter 成为 `scripts/refresh_serialization_fixtures.ps1 -ExportParityFixtures` 默认输出，交付 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`；风险在于 `./run_all_checks --filter serde-fixtures` + `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures` 仍需人工串联，一旦 CI slot 忙碌就会延误 QA ingest。
 - 将 Stage D/Goal Tree/CLI schema 保持单一事实来源，落在本档案与 `StageD::FixtureFlow` 之间可溯。
-- 扩展 `export-serde-fixtures`（`--cursor-descriptors`/`--chunk-descriptors`/`--grapheme-windows`/`--breaks-descriptors`）并附 manifest + hash 策略。
+- 扩展 `export-serde-fixtures`（`--cursor-descriptors`/`--chunk-descriptors`/`--grapheme-descriptors`/`--breaks-descriptors`）并附 manifest + hash 策略。
 - 记录 SharedNode、Metrics、Iterator Façade 等模块状态与下一步，确保与 `docs/architecture/rope-port-mapping.md`、Stage D anchors 一致。
 - 明确 C#/QA 对接点，保证 CLI 输出、测试夹具与 schema 迭代节奏一致。
 
@@ -75,6 +77,8 @@ cadence:
 5. **QA 介面**：QA 通过 manifest 中的 `schema_hash` + `payload_hash` 验证资产，并在 `tests/xi.Core.Tests/Fixtures/*` 中消费；若 hash mismatch，即触发 `StageD::FixtureFlow` 回归项。
 
 ## 最近完成
+- **2025-11-18 - Stage D exporter & manifest 现状核对**：检查 `scripts/refresh_serialization_fixtures.ps1` 默认参数与 CLI flag（实为 `--grapheme-descriptors`，且 exporter 总是携带 `cursor_state` feature），运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，确认 manifest 中 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`feature_gates=["cursor_state","serde"]` 及 Breaks/Diff/Search/Chunk/Grapheme/Cursor 哈希均与 QA 表一致，并将结果同步到 `docs/meetings/2025-11-18-goal-alignment-chat.md#2.2` / 本档案的“当前聚焦”以便后续对齐 Stage D 文档。
+- **2025-11-18 - Goal Alignment Chat Prep & Sync**：复盘 `AGENTS.md#当前聚焦` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]`，确认 Stage D exporter/manifest/hash 状态，在 `docs/meetings/2025-11-18-goal-alignment-chat.md#2.2` 汇报现状/风险/后续并把 11/24 payload 路线（cursor_state schema v2、CLI flag 默认化、`python scripts/refresh_all_assets.py --only stage-d-fixtures` 验证）写入本档案，下一步聚焦 schema/hash 冻结与脚本默认参数更新。
 - **2025-11-20 - Type Mapping Sync Commitments**: 在 `docs/meetings/2025-11-20-type-mapping-sync-chat.md#rust-porter` 记录 Rust helper/CLI/schema 现状，明确 `cursor_descriptors@1.2.0`、`--breaks|diff|search` exporter、tree_builder_trace 深度参数化三项交付，并把验证命令（`cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor`, `cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --breaks-descriptors --diff-regions --search-spans --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`, `python scripts/refresh_all_assets.py --only stage-d-fixtures` 等）写回档案；同步登记跨团队依赖：C# Implementer 需补完 `NodeCursorState` 文档 + loader 字段映射，QA Engineer 要把新 flag 纳入 refresh CLI，Architecture Mapper 负责更新 `[RPM-Matrix]`/`[TS-B2][TS-B3][TS-B5]`。
 - **2025-11-18 - Stage D Descriptor Exporters Keep Timestamps Stable**：为 chunk/grapheme/breaks/diff/search 五类 exporter 增加“读取既有 JSON metadata 并沿用 generated_at_unix_millis”逻辑，只有在缺档或解析失败时才回退当前时间，解决 `StageDDescriptorLoaderTests` 因时间戳抖动持续失败的问题；在 `xi-editor-ph7/rust` 目录执行 `./run_all_checks --filter serde-fixtures` 验证 exporter、clippy、tests 与 serde fixture 路径全部通过。
 - **2025-11-18 - Breaks Descriptor Clippy Fix & serde run_all_checks**：依 clippy::len-zero 建议在 `xi-editor-ph7/rust/rope/src/serde_fixtures/breaks_descriptors.rs` 改用 `Rope::is_empty()` 守护 `break_offsets`，保持语义不变；随后在 `xi-editor-ph7/rust` 目录执行 `./run_all_checks --filter serde-fixtures`，确认 clippy + tests + serde fixture exporters 全数通过，作为 Stage D 刷新前置信号记录给 QA。

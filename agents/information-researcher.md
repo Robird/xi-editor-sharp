@@ -40,8 +40,8 @@
 | `xi-editor-ph7/rust/run_all_checks` 结果 | 脚本退出码、`logs/` 输出时间戳 | 更新 QA 指标；若失败，将日志链接到 Stage D Playbook `QA-StageDManual` 段 | 每次 CI/手动运行 |
 
 ## 当前关注（Current Focus）
-- 跟进 Goal Tree 模板与 `goal_tree_sync.py` 之间的 hash/字段对齐，避免 Stage D anchors 漏项。
-- 观察 Stage D manifest 与 schema（Cursor/Chunk/Grapheme fixtures）何时落地，以便补充 Playbook 索引。
+- 跟进 Goal Tree 模板 ↔ `goal_tree_sync.py` ↔ Stage D/QA anchors（A1），确保 `docs/architecture/templates/goal-tree.yaml`、`port-blueprint`、`m3-implementation-plan` 与 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 指向同一哈希，并为每次运行保留 `sha256` 与日志。
+- 观察 Stage D manifest/schema（Cursor/Chunk/Grapheme fixtures）落地以及 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 日志（A2），防止 Playbook/QA anchors 再引用无证据的 Release run；缺失的 Release chunk bench 与 `grapheme-telemetry` artefact 要先补齐再更新文案。
 - 汇总 `run_all_checks` 最新成功记录，确保 QA/Stage D 报告引用到同一个日志源。
 
 ## 信息通报流程
@@ -54,6 +54,8 @@
 5. **归档**：将关键信息写入 `AGENTS.md`（若架构师要求）或对应 docs front-matter，再在“最近完成”登记时间与行动。
 
 ## 最近完成
+- **2025-11-18 – A1/A2 artefact alignment 差距核查**：复查 `docs/meetings/2025-11-18-goal-alignment-chat.md#2.6`、`docs/architecture/templates/goal-tree.yaml`、`docs/architecture/port-blueprint.md#[BP-GoalTree]`、`docs/architecture/m3-implementation-plan.md#[MP-GoalTree]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]`、`docs/architecture/type-system-migration-log.md#[TS-B1]/[TS-B5]`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets][QA-*]`，并核对 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`。确认 Goal Tree 仍停留在 11/18 快照、Rope Port Mapping/Type System Log 指向 `rust_commit=bd28ebdf…`、Stage D Playbook/QA anchors 声称 11/21 Release run 但仓库无 `stage-d-refresh`/`grapheme-telemetry` artefact；已在会议 §2.6 回填“现状/差距/计划/文档更新”，并将 `goal_tree_sync.py --check --update` + Stage D rerun + Release chunk bench + telemetry 作为 A1/A2 验收条件。
+- **2025-11-18 – Goal Alignment Chat 资料巡检**：在 `docs/meetings/2025-11-18-goal-alignment-chat.md#2.6` 回填监控现状/风险/行动，交叉比对 `docs/architecture/templates/goal-tree.yaml`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md`、`scripts/refresh_all_assets.py` 输出与 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，记录 2025-11-21 manifest (`rust_commit=3799d2be…`) 尚未沉入 Goal Tree/QA anchors。
 - **2025-11-17 – 信息调查员档案重构**：按架构师要求重写 front-matter、知识索引、监控清单与信息通报流程，确保 Goal Tree YAML、`scripts/refresh_all_assets.py`、Stage D Playbook、`run_all_checks` 结果来源全部在索引中，新增监控策略并记录当前关注。
 - **2025-11-17 – Rope Skeleton 映射梳理**：对 `docs/skeleton/rope.md` 与 `docs/skeleton/xi.Core.decompiled.cs` 纵览 Rope Core/Cursor/Metrics/Delta/Chunk/Grapheme 六大类类型，标注 Stage D CLI（Chunk/Cursor/Grapheme fixtures）覆盖度与 C# 缺口，供 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` “Skeleton Coverage” 填写依据。
 
@@ -113,11 +115,18 @@
 | `docs/architecture/design-divergence-log.md` | Grapheme 降级 & Chunk 复制条目、遥测阈值裁决 | 视每次 Grapheme/Chunk 变更 | 2025-11-17 | 若阈值决定（0.5%）更新，需高亮提醒 QA。|
 | `docs/architecture/fixtures/parity-fixture-schema.md` + `scripts/refresh_serialization_fixtures.ps1` | Schema 字段、PowerShell 参数（`--cursor-descriptors`, `ExportParityFixtures`） | 每次 Stage D 刷新 | 2025-11-17 | 与 Stage D 手册互为引用，缺一不可。|
 | `docs/rust-refactor/*` & `docs/csharp-refactor/*`（重点：`CursorCache`, `breaks-metrics`, `rope-cow`, `rope-serialization-playbook`） | Rust/C# 侧 helper 进度、模板更新 | 每周或当相关计划变更 | 2025-11-17 | 用于回答“差距在哪”、“helper 最新语义”。|
+| Goal Tree ↔ Stage D/QA artefact 日志 | 记录 `goal_tree_sync.py`、`python scripts/refresh_all_assets.py --only stage-d-fixtures` 的命令输出/exit code，并追踪 `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-*.log`、`stage-d-refresh-*.log`、`grapheme-telemetry.trx` 是否存在，核对 manifest/inspector/chunk bench/telemetry 是否来自同一 commit (`3799d2be…`) | 每次 Goal Tree 或 Stage D rerun | 2025-11-18 | 缺少日志时禁止在文档中宣称 A1/A2 完成；需由 QA/C# 上传 Release chunk bench + telemetry artefact 后再更新 anchors。|
 
 ## 查询请求日志（如需）
 > 暂无历史请求；后续按需填写。
 
 ## 最近完成
+### 2025-11-18 - Goal Alignment Chat 情报巡检
+- **范围**：审阅 `docs/meetings/2025-11-18-goal-alignment-chat.md`、`AGENTS.md#当前聚焦` 以及 `docs/architecture/templates/goal-tree.yaml`、`docs/csharp-refactor/rope-serialization-fixture-playbook.md`、`scripts/refresh_all_assets.py` 日志和 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，确认 Goal Tree/Stage D/脚本索引的最新状态。
+- **工具**：`read_file`、`grep_search` 定位 `goal-tree:meta` 与 `[StageD::ParityAssets]` 段落，`sha256sum`/日志核对通过 QA 记录的 `rust_commit=3799d2be…` manifest。
+- **成果**：在会议 §2.6 写入现状/差距/计划/需更新文档四块内容，列出 Goal Tree metadata 停留在 2025-11-18、Stage D Playbook 时间戳混乱、`scripts/refresh_all_assets.py` 缺少 exit-code 日志等问题，并提出 11/21-11/22 三项纠偏任务。
+- **未决**：等待 `python scripts/goal_tree_sync.py --check --update` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的日期/哈希更新落地，同时需要 QA 在下一次 `stage-d-fixtures` 运行后提供 Release chunk bench 与 manifest 校验日志以封口。
+
 ### 2025-11-18 - Porting Brainstorm 摘要回填
 - **范围**：研读 `docs/meetings/2025-11-18-porting-brainstorm-chat.md`、对照 `docs/architecture/m3-implementation-plan.md`、`docs/architecture/type-system-migration-log.md`、`docs/architecture/design-divergence-log.md`、`docs/architecture/rope-port-mapping.md`，提炼 Notebook→Catalog 策略、Tree Trace schema/Chunk Benchmark/Cursor telemetry 等行动项，并整理跨团队依赖与所需新文档。
 - **工具**：`read_file`/`nl` 获取会议精确行号，复查 4 份架构文档现状；`apply_patch` 更新档案记录。
@@ -140,3 +149,10 @@
 - [ ] 为 2025-11-18 星形会议准备 `m3-implementation-plan` G1-G6 进度摘要 + 风险提示，供架构师快速引用。
 - [ ] 监控 Stage D CLI/schema（`--cursor-descriptors`, `--chunk-descriptors`, `--grapheme-descriptors`）变动并更新索引/监控条；若 Rust Porter 合并 PR，第一时间回填。
 - [ ] 起草“Parity/Schema 速查表”初稿（聚合 fixture 字段、PowerShell 参数、验证 checklist），以便架构师委派 QA 时引用。
+
+## 监控清单/下一步（截至 2025-11-22）
+| 截止 (UTC+8) | 追踪对象 | 文件 / 脚本 | 动作 | 验收 |
+| --- | --- | --- | --- | --- |
+| 11/21 18:00 | Goal Tree ↔ Stage D 同步 | `docs/architecture/templates/goal-tree.yaml`, `docs/architecture/port-blueprint.md#BP-GoalTree`, `docs/architecture/m3-implementation-plan.md#MP-GoalTree`, `scripts/goal_tree_sync.py` | 运行 `python scripts/goal_tree_sync.py --check --update`，记录 `sha256` 与 `goal-tree:meta` 新时间戳，并在两份蓝图文档写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 链接。 | `git diff` 显示 2025-11-21+ 时间戳与 inspector 链接，档案内附 `sha256` 备注。 |
+| 11/22 12:00 | Stage D Playbook + QA anchors | `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets][QA-IngestionSmoke][QA-ChunkBench]`, `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`, `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` | 依据 manifest `rust_commit=3799d2be…` 与 Release chunk bench，把表格与 QA 段落更新为 2025-11-21 数据，并补齐日志路径。 | 表格中 `SHA256` 列与 QA anchors 同步为 2025-11-21 值，并引用最新报告。 |
+| 11/22 18:00 | Stage D 脚本日志闭环 | `scripts/refresh_all_assets.py --only stage-d-fixtures`, `AGENTS.md#当前聚焦`, `agents/qa-engineer.md`, `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` | 再跑脚本并保存 loader/hydrator/manifest/inspector/chunk-bench 输出，记录命令、退出码与 artefact 路径至两份档案，确保 Stage D 步骤恢复成功状态。 | 档案新增日志段落 + 命令，Stage D 流程返回 0，引用最新报告文件。 |
