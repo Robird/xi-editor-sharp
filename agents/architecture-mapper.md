@@ -19,9 +19,9 @@ last_updated: 2025-11-20
 
 ## 当前聚焦
 - Goal Tree YAML + Stage D anchors：用 `docs/architecture/templates/goal-tree.yaml` 作为单一事实来源，手工镜像 `port-blueprint.md#[BP-GoalTree]` 与 `m3-implementation-plan.md#[MP-GoalTree]`，等待 `scripts/goal_tree_sync.py` 自动化上线。
-- Leaf/Cursor/Chunk/Grapheme 事实表：保持 `rope-port-mapping.md`、`type-system-migration-log.md`、`design-divergence-log.md` 的事实同步；Stage D manifest 已于 2025-11-17 通过 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 刷新，现阶段聚焦 canonical hash 自动化、QA 记录与 CLI schema 前置告警，防止 Rust/C# 状态漂移。
+- Leaf/Cursor/Chunk/Breaks/Diff/Search 事实表：围绕 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（`rust_commit=bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999`）与 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，使 `[RPM-Matrix]`、`[RPM-ParityAssets]`、`[TS-B1]`、`[TS-B5]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]` 同步到“Manifest-backed ✅ (2025-11-19 run)”措辞，并在每次 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 运行后快速巡检 hash/anchor，避免 Rust/C# 状态漂移。
 - Template 执行力：推动所有 Stage 3+ 文档按照 `document-structure-template.md` 填满 front-matter、Goal Tree 片段、QA/Stage D 引用，建立 lint 脚本清单。
-- QA/Rust Porter 接口：封装 CLI schema/fixture 需求（cursor/leaf/chunk/grapheme）并同步 QA 的 Stage D 触发条件与 1 MB 基准排程。
+- QA/Rust Porter 接口：继续追踪 Stage D CLI schema/fixture 需求（cursor/leaf/chunk/grapheme/breaks/diff/search），并要求 QA 在 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 中引用最新一次 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 产出的 inspector 日志，确保 Stage D anchors + Goal Tree QA anchors共用同一证据。
 
 ## Goal Tree / Stage D 锚点维护计划
 
@@ -68,6 +68,7 @@ last_updated: 2025-11-20
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-21 – Stage D manifest ingestion sweep**：根据 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` + `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`（`python scripts/refresh_all_assets.py --only stage-d-fixtures` 产物）刷新 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]/[RPM-Actions]`、`docs/architecture/type-system-migration-log.md#[TS-B1]/[TS-B5]`、`docs/architecture/system-overview.md#[SO-Map]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]/[QA-IngestionSmoke]/[QA-ChunkBench]`，把 Breaks/Diff/Search/Cursor/Chunk/Grapheme 事实行统一改写为 “Manifest-backed ✅ (2025-11-19 run)” 并嵌入哈希/计数/命令引用，给 QA/Goal Tree 提供单一事实来源。
 - **2025-11-20 – RPM/TS Stage D reality check**：根据 `docs/meetings/2025-11-20-type-mapping-sync-chat.md##Architecture Mapper` 的承诺，重写 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]/[RPM-Actions]`、`docs/architecture/type-system-migration-log.md#[TS-B1][TS-B3][TS-B5]` 与 `docs/architecture/system-overview.md#[SO-Map]`，明确 Breaks/Diff/Search/NodeCursorState 仍是 skeleton、QA 证据缺失，并把 11/22/11/24/11/27 责任人写进行动表。待办：等 Rust Porter/QA 提供真实 manifest + Inspector 日志后，再次刷新 RPM/TS/Div/System 以及 `design-divergence-log.md#[Div-Active]`。声明：文档更新使用 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 现有输出，未新增脚本命令。
 - **2025-11-20 – Type mapping sync doc reconciliation**：在 `docs/meetings/2025-11-20-type-mapping-sync-chat.md##Architecture Mapper` 记录 Stage D 文档覆盖差距、未来两周的三项文档维护（`rope-port-mapping.md`/`type-system-migration-log.md`/`design-divergence-log.md`）与跨角色依赖，并将触发条件/验收标准对齐 Stage D anchors，作为后续巡检的基准。
 - **2025-11-18 – Stage D descriptor hydrator doc sync**：在 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-Actions]/[RPM-ParityAssets]`、`docs/architecture/system-overview.md#[SO-Map]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]` 记录 `StageDDescriptorHydrator` 作为 Breaks/Diff/Search 的 C# 入口，并要求 Stage D Playbook 执行 “Loader → Hydrator” 双阶段流程；关联 `AGENTS.md` “当前聚焦/工作日志” 以保持 anchor 可追踪。命令：文档更新无需命令。

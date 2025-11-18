@@ -22,7 +22,7 @@ public sealed class StageDDescriptorLoaderTests
     {
         var manifest = Manifest.Value;
 
-        Assert.Equal("bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999", manifest.Metadata.RustCommit);
+        Assert.Equal("3799d2be9db0ef040517ed69df1b717e96a8958e", manifest.Metadata.RustCommit);
         Assert.Equal("0.3.0", manifest.Metadata.CliRevision);
         Assert.Equal("1.0.0", manifest.Metadata.SchemaVersion);
         Assert.Equal(20, manifest.Metadata.ChunkDescriptorCount);
@@ -69,9 +69,9 @@ public sealed class StageDDescriptorLoaderTests
             "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
             chunkEntry.Path);
         Assert.Equal("chunk_descriptors@1.0.0", chunkEntry.SchemaHash);
-        // Hash recorded from fixtures.manifest.json in the 2025-11-19 Stage D refresh.
+        // Hash copied from tests/xi.Core.Tests/Fixtures/fixtures.manifest.json (Stage D refresh 2025-11-20).
         Assert.Equal(
-            "f0c9ada5a8fa6e405b2de207225a0874ca6d62925b9ae3fa92cbe68a5f06785c",
+            "69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a",
             chunkEntry.PayloadHash);
 
         var graphemeEntry = Assert.Single(
@@ -82,9 +82,9 @@ public sealed class StageDDescriptorLoaderTests
             "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
             graphemeEntry.Path);
         Assert.Equal("grapheme_descriptors@1.0.0", graphemeEntry.SchemaHash);
-        // Hash recorded from fixtures.manifest.json in the 2025-11-19 Stage D refresh.
+        // Hash copied from tests/xi.Core.Tests/Fixtures/fixtures.manifest.json (Stage D refresh 2025-11-20).
         Assert.Equal(
-            "53701cb66ca1407ff636bd40d96cc5fa3b27d1dd450d89959edb42acf9c3c04f",
+            "eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c",
             graphemeEntry.PayloadHash);
     }
 
@@ -121,19 +121,19 @@ public sealed class StageDDescriptorLoaderTests
         var breaksLedger = Assert.Single(manifest.Fixtures, f => f.Name == BreaksManifestName);
         Assert.Equal(3, breaksLedger.Count);
         Assert.Equal(
-            "0a82a69f83ae8abd98933af159f59bd01dbd5cf98ce4aadaa4e6452031e147a6",
+            "5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86",
             breaksLedger.PayloadHash);
 
         var diffLedger = Assert.Single(manifest.Fixtures, f => f.Name == DiffManifestName);
         Assert.Equal(3, diffLedger.Count);
-            Assert.Equal(
-                "2c4c366ce1070d56988f1adca2048a701b5b6b273b34e1d8a0c06665d2cce1b9",
+        Assert.Equal(
+            "fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562",
             diffLedger.PayloadHash);
 
         var searchLedger = Assert.Single(manifest.Fixtures, f => f.Name == SearchManifestName);
         Assert.Equal(3, searchLedger.Count);
         Assert.Equal(
-            "e7de44d74af62d44fcdfe4be554f88937bb45c93194bc4a5b62a0750e36bb467",
+            "7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57",
             searchLedger.PayloadHash);
     }
 }

@@ -59,7 +59,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures -> Stage D loader -> hydrator -> manifest verifier",
+                description="Export Rust fixtures -> Stage D loader/hydrator -> manifest verifier -> inspector/chunk bench",
                 command=[
                     powershell_exe,
                     "-NoProfile",
@@ -190,6 +190,31 @@ def _capture_stage_d_inspector(repo_root: Path) -> None:
     print(f"    wrote inspector log to {output_file}")
 
 
+def _run_stage_d_chunk_bench(repo_root: Path) -> None:
+    fixtures_dir = repo_root / "tests/xi.Core.Tests/Fixtures"
+    report_path = fixtures_dir / "Reports" / "chunk-bench-latest.txt"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+
+    command = [
+        "dotnet",
+        "run",
+        "--project",
+        "tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj",
+        "--configuration",
+        "Release",
+        "--",
+        "--stage-d",
+        "--report",
+        str(report_path),
+    ]
+
+    print("\n==> stage-d-chunk-bench :: Replay Stage D chunk/line descriptors")
+    pretty_cmd = " ".join(shlex.quote(part) for part in command)
+    print(f"    $ {pretty_cmd}")
+    subprocess.run(command, cwd=repo_root, check=True)
+    print(f"    wrote chunk benchmark log to {report_path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="One-click refresh helper for goal tree, skeleton docs, and xi.Core artifacts.",
@@ -249,6 +274,7 @@ def main() -> int:
             _run_step(step, repo_root=repo_root, dry_run=args.dry_run)
             if step.name == "stage-d-fixtures" and not args.dry_run:
                 _capture_stage_d_inspector(repo_root)
+                _run_stage_d_chunk_bench(repo_root)
         except subprocess.CalledProcessError as exc:
             overall_rc = exc.returncode or 1
             print(f"Step '{step.name}' failed with exit code {overall_rc}.")

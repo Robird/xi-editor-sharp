@@ -30,7 +30,7 @@ public sealed class StageDDescriptorInspectorTests
 
         Assert.Contains("Stage D ingestion summary", output);
         Assert.Contains("Break plan samples", output);
-        Assert.Contains("bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999", output);
+        Assert.Contains("3799d2be9db0ef040517ed69df1b717e96a8958e", output);
         Assert.Contains("Feature gates", output);
         Assert.Contains("serde", output);
         Assert.Contains("cursor_state", output);
@@ -58,7 +58,7 @@ public sealed class StageDDescriptorInspectorTests
         var root = document.RootElement;
 
         var manifest = root.GetProperty("Manifest");
-        Assert.Equal("bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999", manifest.GetProperty("RustCommit").GetString());
+        Assert.Equal("3799d2be9db0ef040517ed69df1b717e96a8958e", manifest.GetProperty("RustCommit").GetString());
         var featureGates = manifest
             .GetProperty("FeatureGates")
             .EnumerateArray()

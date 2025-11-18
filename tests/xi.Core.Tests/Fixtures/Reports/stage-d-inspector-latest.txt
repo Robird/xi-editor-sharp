@@ -1,6 +1,6 @@
 Stage D ingestion summary
 Fixture directory : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
-Rust commit       : bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999
+Rust commit       : 3799d2be9db0ef040517ed69df1b717e96a8958e
 CLI revision      : 0.3.0
 Schema version    : 1.0.0
 Generated (unix)  : 1763419977023
@@ -13,14 +13,14 @@ Diff cases        : 3
 Search cases      : 3
 
 Ledger entries:
-- breaks_descriptors.json: count=3, schema=breaks_descriptors@1.0.0, payload=0a82a69f83ae8abd98933af159f59bd01dbd5cf98ce4aadaa4e6452031e147a6
-- chunk_descriptors.json: count=20, schema=chunk_descriptors@1.0.0, payload=f0c9ada5a8fa6e405b2de207225a0874ca6d62925b9ae3fa92cbe68a5f06785c
+- breaks_descriptors.json: count=3, schema=breaks_descriptors@1.0.0, payload=5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86
+- chunk_descriptors.json: count=20, schema=chunk_descriptors@1.0.0, payload=69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
 - cursor_descriptors.json: count=12, schema=cursor_descriptors@1.2.0, payload=9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38
 - delta_regression.json: count=1, schema=serde_fixtures::delta, payload=59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f
-- diff_regions.json: count=3, schema=diff_regions@1.0.0, payload=2c4c366ce1070d56988f1adca2048a701b5b6b273b34e1d8a0c06665d2cce1b9
+- diff_regions.json: count=3, schema=diff_regions@1.0.0, payload=fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562
 - engine_regression.json: count=1, schema=serde_fixtures::engine, payload=8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2
-- grapheme_descriptors.json: count=668, schema=grapheme_descriptors@1.0.0, payload=53701cb66ca1407ff636bd40d96cc5fa3b27d1dd450d89959edb42acf9c3c04f
-- search_spans.json: count=3, schema=search_spans@1.0.0, payload=e7de44d74af62d44fcdfe4be554f88937bb45c93194bc4a5b62a0750e36bb467
+- grapheme_descriptors.json: count=668, schema=grapheme_descriptors@1.0.0, payload=eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c
+- search_spans.json: count=3, schema=search_spans@1.0.0, payload=7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57
 - subset_regression.json: count=1, schema=serde_fixtures::subset, payload=28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f
 
 Break plan samples

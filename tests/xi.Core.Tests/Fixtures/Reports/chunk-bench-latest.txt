@@ -1,0 +1,40 @@
+Stage D chunk benchmark (chunk/line replay)
+Timestamp      : 2025-11-18T10:29:10.0764431+00:00
+Fixture folder : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
+Manifest path  : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+Rust commit    : 3799d2be9db0ef040517ed69df1b717e96a8958e
+Schema version : 1.0.0
+CLI revision   : 0.3.0
+Feature gates  : cursor_state,serde
+Generated at   : 2025-11-17T22:52:57.0230000+00:00 (1763419977023)
+Chunk ledger   : count=20, schema_hash=chunk_descriptors@1.0.0, payload_hash=69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
+Inspector note : tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
+
+Chunk enumeration diagnostics:
+  Rope length  : 1,808 UTF-16 chars
+  Chunk samples: 9
+  Chunks       : 3
+  Max length   : 753
+  Total chars  : 1,808
+  Duration     : 3.67 ms
+
+Line enumeration diagnostics:
+  Manifest lines: 11
+  Lines visited : 8
+  Duration      : 2.86 ms
+
+Top 3 chunk samples by UTF-16 length:
+  1. deep_tree_payload#chunk_0 len=544 utf16=[0, 544) crlf=N tags=builder,chunk,deep_tree
+  2. deep_tree_payload#chunk_1 len=544 utf16=[544, 1088) crlf=N tags=builder,chunk,deep_tree
+  3. deep_tree_payload#chunk_2 len=544 utf16=[1088, 1632) crlf=N tags=builder,chunk,deep_tree
+
+Per-sample chunk summary:
+  empty_document#chunk_0 len=0 utf16=[0, 0) crlf=N empty=Y path=0 tags=chunk,empty
+  ascii_sketch#chunk_0 len=41 utf16=[0, 41) crlf=N empty=N path=0 tags=ascii,chunk,lf
+  crlf_mixed_log#chunk_0 len=23 utf16=[0, 23) crlf=Y empty=N path=0 tags=chunk,crlf
+  emoji_cluster_block#chunk_0 len=37 utf16=[0, 37) crlf=N empty=N path=0 tags=chunk,emoji,lf,surrogate
+  surrogate_phrase#chunk_0 len=34 utf16=[0, 34) crlf=N empty=N path=0 tags=chunk,surrogate
+  zwj_family_story#chunk_0 len=41 utf16=[0, 41) crlf=N empty=N path=0 tags=chunk,emoji,lf,surrogate,zwj
+  deep_tree_payload#chunk_0 len=544 utf16=[0, 544) crlf=N empty=N path=1 tags=builder,chunk,deep_tree
+  deep_tree_payload#chunk_1 len=544 utf16=[544, 1088) crlf=N empty=N path=1 tags=builder,chunk,deep_tree
+  deep_tree_payload#chunk_2 len=544 utf16=[1088, 1632) crlf=N empty=N path=1 tags=builder,chunk,deep_tree
