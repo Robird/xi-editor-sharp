@@ -84,6 +84,13 @@
 4. 向用户汇报进度与下一步计划
 
 ## 当前聚焦（下一会话）
+- [新] 🧭 **Type Mapping Sync 行动跟进**
+  - **依据**：`docs/meetings/2025-11-20-type-mapping-sync-chat.md` 汇总的跨团队聊天室（AI Architect/C# Implementer/Rust Porter/Architecture Mapper/QA Engineer）。
+  - **重点**：
+    - 11/22 前 Architecture Mapper 更新 `[RPM-Matrix]`/`[TS-Bx]` 以反映 Rust↔C# skeleton delta；
+    - 11/24 前 Rust Porter 交付 `cursor_state` schema + Breaks/Diff/Search exporter payload，若延迟需立即告知用户；
+    - 11/27 前 C# Implementer + QA Engineer 完成 Stage D loader → QA anchors 接线（`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`）。
+  - **任务**：监控四条依赖链（Rust exporter、C# wiring、RPM/TS 文档、QA 证据），若任一提前或滞后，触发 PDCA 下一轮分派。
 - [已完成] ✅ **Architecture 文档结构 1.0 落地**
   - **目标**：按照 `document-structure-template.md` 重构 `docs/architecture/` 七个核心文档，统一 front-matter、锚点与共享章节（Goal Tree / Matrix / Blocker Cards / Stage D anchors）。
   - **交付物**：
@@ -166,6 +173,7 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
+- **2025-11-20 – Type Mapping Sync Chat + 员工档案更新**：主持 `docs/meetings/2025-11-20-type-mapping-sync-chat.md`（含议程/行动清单/主持总结），逐一召回 C# Implementer、Rust Porter、Architecture Mapper、QA Engineer 共享现状与两周行动，要求他们同步更新 `agents/*.md` 的“最近完成/当前聚焦”。输出四条 deadline（11/22 文档映射、11/24 Rust payload、11/27 QA wiring）、三条风险提示（Rust exporter滑窗、Stage D loader未接 QA、RPM 未更新）并在主持总结中记录可能的用户升级点。
 - **2025-11-19 – Stage D manifest + Inspector 文档闭环**：推动 QA Engineer 刷新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`（Checklist/FixtureFlow/ParityAssets/QA anchors）以记录 manifest verifier + StageDDescriptorInspector 组合证据链，并写入最新 Rust commit `bea8a3360131a0840d26aa75daba9184b70d50b7` 的 hash 表；同步更新 `agents/qa-engineer.md` 监控面板，明确 loader→hydrator→verifier→inspector 作为 `stage-d-fixtures` 流程的默认终点。
 - **2025-11-19 – Stage D Inspector 验收**：协调 C# Implementer 暴露 `StageDDescriptor` DTO/primitive 类型、刷新 `StageDDescriptorLoaderTests` 期待的 Rust commit 与 Breaks/Diff/Search payload hash，并跑通 `dotnet test Xi.Editor.sln --filter StageDDescriptor` + `python scripts/refresh_all_assets.py --only stage-d-fixtures`，确保 StageDDescriptorInspector CLI 输出 typed manifest 摘要供 `[QA-IngestionSmoke]` 复用。
 - **2025-11-18 – Manifest / Trace 链路封顶**：协调 QA Engineer 与 C# Implementer 完成 `scripts/verify_fixture_manifest.py --update`、`TreeBuilderSliceTraceLoader` 及其测试与夹具，对齐 `[TS-B2]`、`[RPM-ParityAssets]`、`[StageD::FixtureFlow]` 记录；验证命令：`python scripts/verify_fixture_manifest.py (--update)`、`dotnet test --filter TreeBuilderSliceTraceLoaderTests`。

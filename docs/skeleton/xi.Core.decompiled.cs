@@ -28,7 +28,7 @@ using Xi.Core.Search;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+ebbbd460e4633f55b643d1fbd7d5b1840ea24807")]
+[assembly: AssemblyInformationalVersion("1.0.0+7b75a05b7c817480ad62b85eb5a8361f620cbc26")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]

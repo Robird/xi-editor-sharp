@@ -12,7 +12,7 @@
 ## [MP-GoalTree] Goal Tree Snapshot
 <a id="MP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T02:24:44.386912+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
+<!-- goal-tree:meta generated-at="2025-11-18T02:42:30.830288+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Stage D smoke must ingest cursor_descriptors manifest once CLI export lands) · [StageD::ParityAssets] |

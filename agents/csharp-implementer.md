@@ -108,6 +108,7 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-20** · Type mapping sync checkpoint：在 `docs/meetings/2025-11-20-type-mapping-sync-chat.md##C# Implementer` 汇总当前 C# ↔ Rust 差距（`[RPM-Matrix]`, `[TS-B2][TS-B3][TS-B5]`）并列出 2 周内的 Stage D loader/NodeCursorState/MetricAdapter 行动项，便于 Goal Tree `MP-T1..T4` 与 Stage D anchors 同步。
 - **2025-11-18** · Stage D descriptor hydrator + mapping tests：实现 `StageDDescriptorHydrator` 统一封装 Breaks/Diff/Search 加载，并新增 `StageDDescriptorHydratorTests` 覆盖 `ascii_guidance` 断点、`ascii_minimal_ops` diff op 序列与 `literal_case_insensitive` 搜索命中上下文，方便 QA/CLI 复用。验证：`dotnet test Xi.Editor.sln -v m --filter "StageDDescriptorLoaderTests|StageDDescriptorHydratorTests|BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests"`。
 - **2025-11-18** · Breaks/Diff/Search Stage D skeleton类型与 smoke tests：在 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 添增与 Rust 同名的 BreaksTree/BreakBuilder、LineHashDiff/DiffBuilder、Finder/SearchResult 等占位类型，并让新的 `Breaks/Diff/Search SkeletonTests` 绑定 Stage D descriptor view，保持 `StageDDescriptorLoaderTests` 绿灯。验证：`dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests"` 与 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D manifest ledger hashes（二次刷新）同步：`StageDDescriptorLoaderTests` 的 chunk/grapheme 以及 Breaks/Diff/Search optional ledger `payload_hash` 与当前 `fixtures.manifest.json` 对齐，确保 Stage D fixtures 在重复导出后保持稳定。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
@@ -120,12 +121,11 @@ interfaces:
 - **2025-11-16 之前** · 更早的游标/Metric/Chunk/Grapheme 实施、文档评审与风险输入集中记录于 `AGENTS.md##工作日志`，作为单一事实来源与命令历史。
 
 ## 待办/下一步
-- **T1**：完成 `_pathCache` 深树诊断、CursorState 文档与 CLI schema 补全，推动 Rust Porter 交付 10+ descriptor JSON 并在 `m3-implementation-plan.md` G1 更新状态。
-- **T3**：等待 `--chunk-descriptors` CLI，上线 `RopeChunkEnumeratorDiagnostics` → telemetry exporter，联合 QA 运行 1 MB baseline 并把结果写入 `rope-port-mapping.md`。
-- **T4**：锁定 Grapheme fallback 阈值，运行 `GraphemeNavigationMetrics` telemetry，接入未来的 `--grapheme-windows` fixture。
-- **T6**：撰写 `MetricAdapter` 草案与 `MetricAdapterTests` smoke，定义 `INodeCursor<T>` 适配路径，并在 `type-system-migration-log.md` 标记 `[TS-B2]` 进展。
-- **Stage D 工具链**：将 `StageDDescriptorLoader`/`StageDDescriptorHydrator`/`TreeBuilderSliceTraceLoader` 挂到 QA CLI（锚点 `[StageD::FixtureFlow]`），让 docs/QA 可通过统一入口消费 Breaks/Diff/Search Skeleton，等待 Rust Porter 投递 manifest/trace 批次，同时按需运行 `scripts/refresh_all_assets.py --only goal-tree` 保持 Goal Tree checksum；提交前 rerun `dotnet test -v m` 维持 169/169 ✅。
-- **汇报**：将 `_editVersion`、Chunk/Grapheme diagnostics、MetricAdapter 等变更回写到 `docs/architecture/m3-implementation-plan.md`、`port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`。
+- **Stage D loader → QA/bench**：依 `docs/meetings/2025-11-20-type-mapping-sync-chat.md` 计划，在 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 输出基础上扩展 `tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj`，并让 `scripts/refresh_all_assets.py` 默认运行 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` + `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj`，帮助 QA 记录 1 MB baseline 与 manifest 哈希。
+- **MP-T1 收尾**：补写 `_editVersion`/`NodeCursorState`/CLI manifest 流程到 `docs/architecture/m3-implementation-plan.md#MP-T1`、`docs/architecture/rope-port-mapping.md#RPM-Matrix`、`docs/architecture/type-system-migration-log.md#TS-B1`，并通过 `python scripts/refresh_all_assets.py --only stage-d-fixtures` + `StageDDescriptorInspector` 证明 `cursor_descriptors@1.1.0` schema/哈希锁定。
+- **MetricAdapter 草案与测试**：在 `docs/csharp-refactor/node-generic-refactor-plan.md`、`src/xi.Core/Rope/Tree/TreeBuilder.cs` 写入 `MetricAdapter` 钩子，产出 `tests/xi.Core.Tests/MetricAdapterTests.cs` smoke，解除 `[TS-B2]` watch。执行 `dotnet test Xi.Editor.sln -v m --filter MetricAdapterTests` 作为验收。
+- **⚠️ 阻塞 · Breaks/Diff/Search CLI 样本**：`type-system-migration-log.md#TS-B5` 仍等待 Rust Porter 发布 `export-serde-fixtures --breaks-descriptors/--diff-regions/--search-spans`；到位前只能用 skeleton + 手写样本维护 `StageDDescriptorHydratorTests`，需持续在 `docs/meetings/2025-11-20-type-mapping-sync-chat.md` 同步阻塞状态。
+- **文档同步**：每次完成以上任务后，用 `scripts/goal_tree_sync.py` 刷新 Goal Tree，并在 `[StageD::ParityAssets]`、`[StageD::FixtureFlow]` 标注新增证据链，确保 `rope-port-mapping.md` 与 `type-system-migration-log.md` 与会议记录一致。
 
 **开放问题**
 1. **泛型接入优先级**：`Node.Generic.cs` 已具备基础能力，何时将其接入主实现路径？是否等待游标系统完成后再统一切换？
