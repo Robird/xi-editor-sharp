@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\xi.Core\xi.Core.csproj" />
+    <ProjectReference Include="..\..\tools\StageDDescriptorInspector\StageDDescriptorInspector.csproj" />
   </ItemGroup>
 
   <ItemGroup>

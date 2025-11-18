@@ -59,7 +59,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures + run Stage D loader + hydrator smoke",
+                description="Export Rust fixtures -> Stage D loader -> hydrator -> manifest verifier -> Inspector summary",
                 command=[
                     powershell_exe,
                     "-NoProfile",
@@ -70,6 +70,8 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
                     "-Verbose",
                     "-SkipStageDLoaderTest:$false",
                     "-SkipStageDHydratorTest:$false",
+                    "-SkipManifestVerification:$false",
+                    "-SkipStageDInspector:$false",
                 ],
             )
         )
