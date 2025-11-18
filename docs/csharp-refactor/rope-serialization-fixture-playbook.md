@@ -30,6 +30,8 @@
 
 > **最新 manifest（2025-11-18 稳定刷新）**：QA 运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 后生成 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`feature_gates=["serde"]`、descriptor 计数 `chunk/cursor/grapheme = 20/11/668`，并新增 `breaks/diff/search = 3/3/3` 可选资产。导出脚本会复用既有 `generated_at_unix_millis` 字段，因此重复运行不会触发 hash 漂移。所有哈希均由 `scripts/verify_fixture_manifest.py` 回写，可在 `[StageD::ParityAssets]` 查阅细节。
 
+> **Descriptor hydrator**：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 现是 Breaks/Diff/Search ingestion 的唯一入口。脚本需在 loader 校验通过后调用 `StageDDescriptorHydrator.LoadBreakPlans/LoadDiffRegions/LoadSearchSpans`，这些 API 会复用 `StageDDescriptorLoader.LoadFromFixtureDirectory` 与 manifest ledger，避免 QA/CLI 重复解析 JSON。任何对 `--breaks-descriptors`、`--diff-regions`、`--search-spans` flag 或 manifest 结构的调整，都要同步更新 `[StageD::FixtureFlow]`、`[StageD::ParityAssets]` 与 `AGENTS.md` 的 Stage D 记录。
+
 ### 1. 环境变量与分支
 
 ```powershell

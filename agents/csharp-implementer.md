@@ -108,6 +108,7 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-18** · Stage D descriptor hydrator + mapping tests：实现 `StageDDescriptorHydrator` 统一封装 Breaks/Diff/Search 加载，并新增 `StageDDescriptorHydratorTests` 覆盖 `ascii_guidance` 断点、`ascii_minimal_ops` diff op 序列与 `literal_case_insensitive` 搜索命中上下文，方便 QA/CLI 复用。验证：`dotnet test Xi.Editor.sln -v m --filter "StageDDescriptorLoaderTests|StageDDescriptorHydratorTests|BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests"`。
 - **2025-11-18** · Breaks/Diff/Search Stage D skeleton类型与 smoke tests：在 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 添增与 Rust 同名的 BreaksTree/BreakBuilder、LineHashDiff/DiffBuilder、Finder/SearchResult 等占位类型，并让新的 `Breaks/Diff/Search SkeletonTests` 绑定 Stage D descriptor view，保持 `StageDDescriptorLoaderTests` 绿灯。验证：`dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests"` 与 `dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D manifest ledger hashes（二次刷新）同步：`StageDDescriptorLoaderTests` 的 chunk/grapheme 以及 Breaks/Diff/Search optional ledger `payload_hash` 与当前 `fixtures.manifest.json` 对齐，确保 Stage D fixtures 在重复导出后保持稳定。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
 - **2025-11-18** · Stage D descriptor loader tests刷新：`chunk/grapheme` ledger `payload_hash` 对齐 2025-11-18 manifest，并让可选资产断言真实 breaks/diff/search ledger（count=3 + 新 hash）。验证：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`。
@@ -123,7 +124,7 @@ interfaces:
 - **T3**：等待 `--chunk-descriptors` CLI，上线 `RopeChunkEnumeratorDiagnostics` → telemetry exporter，联合 QA 运行 1 MB baseline 并把结果写入 `rope-port-mapping.md`。
 - **T4**：锁定 Grapheme fallback 阈值，运行 `GraphemeNavigationMetrics` telemetry，接入未来的 `--grapheme-windows` fixture。
 - **T6**：撰写 `MetricAdapter` 草案与 `MetricAdapterTests` smoke，定义 `INodeCursor<T>` 适配路径，并在 `type-system-migration-log.md` 标记 `[TS-B2]` 进展。
-- **Stage D 工具链**：将 `StageDDescriptorLoader`/`TreeBuilderSliceTraceLoader` 挂到 QA CLI（锚点 `[StageD::FixtureFlow]`），等待 Rust Porter 投递 manifest/trace 批次，同时按需运行 `scripts/refresh_all_assets.py --only goal-tree` 保持 Goal Tree checksum；提交前 rerun `dotnet test -v m` 维持 169/169 ✅。
+- **Stage D 工具链**：将 `StageDDescriptorLoader`/`StageDDescriptorHydrator`/`TreeBuilderSliceTraceLoader` 挂到 QA CLI（锚点 `[StageD::FixtureFlow]`），让 docs/QA 可通过统一入口消费 Breaks/Diff/Search Skeleton，等待 Rust Porter 投递 manifest/trace 批次，同时按需运行 `scripts/refresh_all_assets.py --only goal-tree` 保持 Goal Tree checksum；提交前 rerun `dotnet test -v m` 维持 169/169 ✅。
 - **汇报**：将 `_editVersion`、Chunk/Grapheme diagnostics、MetricAdapter 等变更回写到 `docs/architecture/m3-implementation-plan.md`、`port-blueprint.md`、`rope-port-mapping.md`、`design-divergence-log.md`。
 
 **开放问题**

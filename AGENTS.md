@@ -18,6 +18,9 @@
 - `scripts/stub_rust_functions.py` 保持 Rust skeleton 文档同步，支持增量刷新 `docs/reference/rust-skeleton.md`，减少上下文迭代成本。
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.decompiled.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
+## 当前聚焦
+- Stage D descriptor hydrator：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 已把 Breaks/Diff/Search manifest 样本转换为 typed 结构；下一步要在 `python scripts/refresh_all_assets.py --only stage-d-fixtures` / Stage D CLI / QA 文档中同步“StageDDescriptorLoader（ledger 校验）→ StageDDescriptorHydrator（ingestion）”流程，并要求 Rust Porter 把 `--breaks-descriptors|--diff-regions|--search-spans` 输出写入 manifest 以便 QA CLI 直接重用。
+
 ## 工作节奏建议
 当前仅由人类开发者与 AI Coder 协作，执行节奏按单次 AI 会话推进；每次会话收尾前需同步更新本文件与相关计划文档。
 1. **进入仓库**：优先阅读“当前聚焦事项”，确认阻塞与最新决策，必要时调整计划。
@@ -455,6 +458,9 @@ AI 架构师（主 Agent，拥有 runSubagent）
 > 更多执行细节、命令与验证可在“## 工作日志”与所列真相源文档中查询；2025-11-16 之前的完整历史亦可透过这些文档或 Git 历史追溯。
 
 ## 工作日志
+### 2025-11-18 (Stage D descriptor hydrator doc sync)
+- **文档**：Architecture Mapper 回写 `docs/architecture/rope-port-mapping.md`（Matrix/ParityAssets/ACTIONS）、`docs/architecture/system-overview.md#[SO-Map]` 以及 Stage D Playbook `[StageD::FixtureFlow]`，把 `StageDDescriptorHydrator` 记录为 Breaks/Diff/Search 的 C# 入口，并在 `[RPM-Actions]` 明确下一步是将其接到 QA CLI 与 Stage D Playbook。
+- **记录**：`AGENTS.md#当前聚焦` 与 `agents/architecture-mapper.md` “最近完成”同步说明 hydrator 交付，强调 manifest ledger + Rust CLI flag（`--breaks-descriptors|--diff-regions|--search-spans`）必须上线后再推动 QA ingestion。文档工作为纯同步，**文档更新无需命令**。
 ### 2025-11-19 (Breaks/Diff/Search skeleton smoke ✅)
 - **实现**：C# Implementer 补齐 `Rope/Breaks/BreaksTree.cs`（含 `BreakPlan`/`BreakBuilder`）、`Diff/DiffBuilder.cs`/`DiffRegion.cs`/`LineHashDiff.cs` 与 `Search/Finder.cs`/`SearchOptions.cs`/`SearchResult.cs`，为 `[TS-B5]` 要求的 Breaks/Diff/Search 模块提供最小占位树、diff builder 和 finder API，并让 `StageDDescriptorLoader` 可在 skeleton 阶段回放 sample manifest。
 - **验证**：`dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests"` 现作为 smoke 命令覆盖 Stage D loader + 三大 skeleton（BreakPlan materialization、DiffBuilder ops、Finder spans），结果 ✅；QA 只需等待 Rust exporter 写入 `breaks_descriptors.json`/`diff_regions.json`/`search_spans.json` 即可扩充数据面。
