@@ -111,11 +111,15 @@ static void RunStageDMode(ChunkBenchOptions options)
     reportWriter.WriteLine($"  Max length   : {chunkDiagnostics.MaxChunkLength:N0}");
     reportWriter.WriteLine($"  Total chars  : {chunkDiagnostics.TotalUtf16CharCount:N0}");
     reportWriter.WriteLine($"  Duration     : {chunkResult.Elapsed.TotalMilliseconds:F2} ms");
+    var chunkThroughput = ComputeThroughputMbPerSec(TargetBytes, chunkResult.Elapsed);
+    reportWriter.WriteLine($"  Throughput   : {chunkThroughput:F2} MB/s");
     reportWriter.WriteLine();
     reportWriter.WriteLine("Line enumeration diagnostics:");
     reportWriter.WriteLine($"  Manifest lines: {manifest.LineDescriptors.Count:N0}");
     reportWriter.WriteLine($"  Lines visited : {lineResult.Result:N0}");
     reportWriter.WriteLine($"  Duration      : {lineResult.Elapsed.TotalMilliseconds:F2} ms");
+    var lineThroughput = ComputeThroughputMbPerSec(TargetBytes, lineResult.Elapsed);
+    reportWriter.WriteLine($"  Throughput    : {lineThroughput:F2} MB/s");
     reportWriter.WriteLine();
 
     if (options.IncludeAllocationStats && startSnapshot is AllocationSnapshot baseline)
@@ -255,6 +259,18 @@ static long EnumerateLines(Rope rope)
     }
 
     return lines;
+}
+
+static double ComputeThroughputMbPerSec(long bytesProcessed, TimeSpan elapsed)
+{
+    if (bytesProcessed <= 0 || elapsed.TotalSeconds <= 0)
+    {
+        return 0;
+    }
+
+    const double BytesPerMegabyte = 1024d * 1024d;
+    var megabytes = bytesProcessed / BytesPerMegabyte;
+    return megabytes / elapsed.TotalSeconds;
 }
 
 static string BuildPayload(int minimumBytes)

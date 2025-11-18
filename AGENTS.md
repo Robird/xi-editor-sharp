@@ -637,7 +637,7 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **后续**：QA Engineer 下一次执行 chunk/telemetry 任务时，应引用新章节并附带实际数值，若阈值被突破即刻升级 `[MP-R10]`。
 
 ### 2025-11-19 (Tree Builder Trace Manifest Sync)
-- **资产更新**：Rust Porter 导出的 `tree_builder_slice/basic_slice_plan.json` 现由 manifest 管理（`tree_builder_slice_trace@1.0.0`, hash `22724af7fe8b…`）；`scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 单次 `cargo run --features serde,tree_builder_slice_trace` 即可产出 parity+trace+manifest。
+- **资产更新**：Rust Porter 导出的 `tree_builder_slice/basic_slice_plan.json` 现由 manifest 管理（`tree_builder_slice_trace@1.0.0`, hash `22724af7fe8b…`）；`scripts/refresh_serialization_fixtures.ps1` 已默认启用 `tree_builder_slice_trace` feature 并传入 `--tree-builder-trace`，一次执行即可产出 parity + trace + manifest，如需禁用需显式 `-SkipTreeTrace`。
 - **文档回写**：刷新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]/[StageD::FeatureGates]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]` 与 `docs/architecture/type-system-migration-log.md#[TS-B2]/[TS-B3]`，同步记录新哈希、feature gate 列表与 loader 能力。
 - **影响**：Stage D manifest 现含 tree builder/chunk/grapheme 最新哈希（`feature_gates=["serde","tree_builder_slice_trace"]`），C# loader/diagnostics可直接消费；下一步是把 loader smoke 接入 `[QA-IngestionSmoke]` 并驱动 `TreeBuilderTracer` 注入管线。 
 

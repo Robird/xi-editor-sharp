@@ -4,7 +4,7 @@ Rust commit       : 3799d2be9db0ef040517ed69df1b717e96a8958e
 CLI revision      : 0.3.0
 Schema version    : 1.0.0
 Generated (unix)  : 1763419977023
-Feature gates     : cursor_state, serde
+Feature gates     : cursor_state, serde, tree_builder_slice_trace
 Chunk descriptors : 20
 Line descriptors  : 11
 Grapheme samples  : 668
@@ -13,6 +13,7 @@ Diff cases        : 3
 Search cases      : 3
 
 Ledger entries:
+- basic_slice_plan.json: count=3, schema=tree_builder_slice_trace@1.0.0, payload=22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e
 - breaks_descriptors.json: count=3, schema=breaks_descriptors@1.0.0, payload=5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86
 - chunk_descriptors.json: count=20, schema=chunk_descriptors@1.0.0, payload=69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
 - cursor_descriptors.json: count=12, schema=cursor_descriptors@1.2.0, payload=9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38

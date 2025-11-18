@@ -3,9 +3,17 @@
   "cli_rev": "0.3.0",
   "feature_gates": [
     "cursor_state",
-    "serde"
+    "serde",
+    "tree_builder_slice_trace"
   ],
   "fixtures": [
+    {
+      "name": "basic_slice_plan.json",
+      "path": "tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json",
+      "count": 3,
+      "schema_hash": "tree_builder_slice_trace@1.0.0",
+      "payload_hash": "22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e"
+    },
     {
       "name": "breaks_descriptors.json",
       "path": "tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json",

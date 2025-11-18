@@ -67,7 +67,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures -> Stage D loader/hydrator -> manifest verifier -> inspector + Release chunk bench (alloc stats) + telemetry",
+                description="Export Rust fixtures (Breaks/Diff/Search/TreeTrace default) -> Stage D loader/hydrator -> manifest verifier -> inspector + Release chunk bench (alloc stats) + telemetry",
                 command=[
                     powershell_exe,
                     "-NoProfile",

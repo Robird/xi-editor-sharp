@@ -204,18 +204,7 @@ internal static class TreeBuilderSliceTraceLoader
 
     private static TreeBuilderSliceTraceEvent ParseEvent(JsonElement element)
     {
-        if (!element.TryGetProperty("kind", out var kindProperty) ||
-            kindProperty.ValueKind != JsonValueKind.String ||
-            string.IsNullOrWhiteSpace(kindProperty.GetString()))
-        {
-            throw new InvalidDataException("Tree builder slice trace event is missing a 'kind' string field.");
-        }
-
-        var kindValue = kindProperty.GetString() ?? string.Empty;
-        if (!Enum.TryParse(kindValue, ignoreCase: false, out TreeBuilderSliceTraceEventKind kind))
-        {
-            throw new InvalidDataException($"Tree builder slice trace event kind '{kindValue}' is not recognized.");
-        }
+        var (kind, payload) = ResolveEventKind(element);
 
         return new TreeBuilderSliceTraceEvent
         {
@@ -225,11 +214,70 @@ internal static class TreeBuilderSliceTraceLoader
             NodeLength = GetInt32(element, "node_len"),
             NodeId = GetUInt64(element, "node_id"),
             Reuse = GetBoolean(element, "reuse"),
-            MergedChildren = GetNullableInt32(element, "merged_children"),
-            Interval = ReadInterval(element, "interval"),
-            Requested = ReadInterval(element, "requested"),
-            Translated = ReadInterval(element, "translated")
+            MergedChildren = GetNullableInt32WithFallback(element, payload, "merged_children"),
+            Interval = ReadIntervalWithFallback(element, payload, "interval"),
+            Requested = ReadIntervalWithFallback(element, payload, "requested"),
+            Translated = ReadIntervalWithFallback(element, payload, "translated")
         };
+    }
+
+    private static (TreeBuilderSliceTraceEventKind kind, JsonElement? payload) ResolveEventKind(JsonElement element)
+    {
+        if (!element.TryGetProperty("kind", out var kindProperty))
+        {
+            throw new InvalidDataException("Tree builder slice trace event is missing a 'kind' field.");
+        }
+
+        string? kindValue = null;
+        JsonElement? payload = null;
+
+        switch (kindProperty.ValueKind)
+        {
+            case JsonValueKind.String:
+                kindValue = kindProperty.GetString();
+                break;
+            case JsonValueKind.Object:
+                payload = kindProperty;
+                if (kindProperty.TryGetProperty("kind", out var nestedKind) && nestedKind.ValueKind == JsonValueKind.String)
+                {
+                    kindValue = nestedKind.GetString();
+                }
+                break;
+        }
+
+        if (string.IsNullOrWhiteSpace(kindValue))
+        {
+            throw new InvalidDataException("Tree builder slice trace event is missing a 'kind' string field.");
+        }
+
+        if (!Enum.TryParse(kindValue, ignoreCase: false, out TreeBuilderSliceTraceEventKind kind))
+        {
+            throw new InvalidDataException($"Tree builder slice trace event kind '{kindValue}' is not recognized.");
+        }
+
+        return (kind, payload);
+    }
+
+    private static int? GetNullableInt32WithFallback(JsonElement element, JsonElement? payload, string propertyName)
+    {
+        var value = GetNullableInt32(element, propertyName);
+        if (value.HasValue || !payload.HasValue)
+        {
+            return value;
+        }
+
+        return GetNullableInt32(payload.Value, propertyName);
+    }
+
+    private static TreeBuilderSliceTraceInterval? ReadIntervalWithFallback(JsonElement element, JsonElement? payload, string propertyName)
+    {
+        var interval = ReadInterval(element, propertyName);
+        if (interval is not null || !payload.HasValue)
+        {
+            return interval;
+        }
+
+        return ReadInterval(payload.Value, propertyName);
     }
 
     private static TreeBuilderSliceTraceInterval? ReadInterval(JsonElement element, string propertyName)

@@ -12,7 +12,11 @@ param(
     [Parameter(HelpMessage = "Skip the Stage D ingestion CLI summary (StageDDescriptorInspector).")]
     [switch]$SkipStageDInspector,
     [switch]$DryRun,
+    [Parameter(HelpMessage = "Skip exporting tree builder slice traces (tree_builder_slice_trace feature). Default: export traces.")]
+    [switch]$SkipTreeTrace,
     [switch]$ExportTreeTrace,
+    [Parameter(HelpMessage = "Skip exporting Breaks/Diff/Search fixtures even when -ExportParityFixtures is enabled.")]
+    [switch]$SkipBreaksDiffSearch,
     [bool]$ExportParityFixtures = $true,
     [string]$ManifestPath
 )
@@ -101,6 +105,15 @@ if (-not (Test-Path $csharpFixturesDir)) {
     throw "Missing C# fixture directory: $csharpFixturesDir"
 }
 
+$shouldExportTreeTrace = $true
+if ($PSBoundParameters.ContainsKey('ExportTreeTrace')) {
+    $shouldExportTreeTrace = $ExportTreeTrace.IsPresent
+}
+if ($SkipTreeTrace) {
+    $shouldExportTreeTrace = $false
+}
+$shouldExportBreaksDiffSearch = $ExportParityFixtures -and -not $SkipBreaksDiffSearch
+
 if (-not $SkipRust) {
     if (-not (Test-Path $runAllChecks)) {
         throw "Missing run_all_checks script: $runAllChecks"
@@ -127,7 +140,7 @@ if (-not $SkipCopy) {
     Push-Location $ropeCrateRoot
     try {
         $featureListComponents = @("serde", "cursor_state")
-        if ($ExportTreeTrace) {
+        if ($shouldExportTreeTrace) {
             $featureListComponents += "tree_builder_slice_trace"
         }
         $featureList = [string]::Join(",", $featureListComponents)
@@ -154,21 +167,26 @@ if (-not $SkipCopy) {
                 "--chunk-descriptors",
                 $chunkFixturesDir,
                 "--grapheme-descriptors",
-                $graphemeFixturesDir,
-                "--breaks-descriptors",
-                $breaksFixturesDir,
-                "--diff-regions",
-                $diffFixturesDir,
-                "--search-spans",
-                $searchFixturesDir
+                $graphemeFixturesDir
             )
+
+            if ($shouldExportBreaksDiffSearch) {
+                $arguments += @(
+                    "--breaks-descriptors",
+                    $breaksFixturesDir,
+                    "--diff-regions",
+                    $diffFixturesDir,
+                    "--search-spans",
+                    $searchFixturesDir
+                )
+            }
         }
-        if ($ExportTreeTrace) {
+        if ($shouldExportTreeTrace) {
             $arguments += @("--tree-builder-trace", $treeTraceDir)
         }
 
         $manifestNote = " (manifest -> $ManifestPath"
-        if ($ExportTreeTrace) {
+        if ($shouldExportTreeTrace) {
             $manifestNote += ", tree trace -> $treeTraceDir"
         }
         $manifestNote += ")"

@@ -1,0 +1,5 @@
+[31;1mParserError: [0m/repos/xi-editor-sharp/scripts/refresh_serialization_fixtures.ps1:170:38[0m
+[31;1m[0m[36;1mLine |[0m
+[31;1m[0m[36;1m[36;1m 170 | [0m                 $graphemeFixturesDir,[36;1m[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                      ~[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mMissing expression after ','.[0m

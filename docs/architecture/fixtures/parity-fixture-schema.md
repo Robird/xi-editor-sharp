@@ -226,7 +226,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 <a id="Fixture-TreeBuilderTrace"></a>
 
 - **目录**：`tests/xi.Core.Tests/Fixtures/tree_builder_slice/`
-- **导出 flag**：`--tree-builder-trace <dir>`（需 `--features serde,tree_builder_slice_trace`，`scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 已封装）
+- **导出 flag**：`--tree-builder-trace <dir>`（脚本默认携带并启用 `--features serde,tree_builder_slice_trace`，如需停用请传入 `-SkipTreeTrace`）
 - **结构概览**：
   - Manifest 版（默认）：JSON **数组**，每个元素为 Rust `TreeBuilderEvent` 序列化结果。
   - 研究版：对象形式，包含 `metadata`（可选）与 `events[]`，如 `tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace/basic_slice_plan.json`。

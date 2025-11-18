@@ -4,9 +4,9 @@
   due: 2025-11-22
   owner:
     - "C# Implementer"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - serde
     - cursor_state
@@ -19,21 +19,26 @@
       anchor: docs/architecture/m3-implementation-plan.md#mp-t1
     - kind: fixture
       path: tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
-      manifest: tests/xi.Core.Tests/Fixtures/cursor_descriptors/manifest.json
-      manifestHash: pending
-  schemaVersion: cursor_descriptors@pending
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38
+    - kind: report
+      path: tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
+      note: "Ledger cursor=12 · hash=9b46bd8e… · rust_commit=3799d2be"
+  schemaVersion: cursor_descriptors@1.2.0
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
     - docs/architecture/m3-implementation-plan.md#mp-goaltree
     - docs/architecture/type-system-migration-log.md#ts-b1
+    - tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
   next:
     - "Freeze CLI schema + rerun [MP-T1] parity ingestion"
   riskFlag: "Watch -> [MP-R8]"
   qaAnchors:
     - anchor: "[QA-IngestionSmoke]"
-      note: "Stage D smoke must ingest cursor_descriptors manifest once CLI export lands"
+      note: "Inspector log tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt (rust_commit=3799d2be)"
   stageDAnchors:
-    - "[StageD::ParityAssets]"
+    - anchor: "[StageD::ParityAssets]"
+      note: "fixtures.manifest.json#cursor payload hash 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38"
 
 - id: G2
   title: "Chunk/Line diagnostics + fixtures"
@@ -42,9 +47,9 @@
   owner:
     - "C# Implementer"
     - "QA Engineer"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - serde
     - chunk_diagnostics
@@ -63,21 +68,36 @@
       anchor: docs/architecture/m3-implementation-plan.md#mp-t3
     - kind: fixture
       path: tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
-      manifest: tests/xi.Core.Tests/Fixtures/chunk_descriptors/manifest.json
-      manifestHash: pending
-  schemaVersion: chunk_descriptors@pending
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c
+    - kind: report
+      path: tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt
+      note: "Release benchmark · chunk replay 4.45 ms · report hash ties to manifest chunk payload"
+    - kind: telemetry
+      path: tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx
+      note: "Grapheme fallback ratio <=0.5% on 2025-11-21 run"
+  schemaVersion: chunk_descriptors@1.0.0
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
     - docs/architecture/m3-implementation-plan.md#mp-t3
     - docs/architecture/type-system-migration-log.md#ts-b3
+    - tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt
+    - tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx
   next:
     - "Import chunk JSON + record [MP-T3] baseline"
   riskFlag: "Watch -> [MP-R10]"
   qaAnchors:
     - anchor: "[QA-ChunkBench]"
-      note: "Capture 1 MB baseline with diagnostics counters"
+      note: "Report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt (rust_commit=3799d2be, chunk hash 69ba7f25…)"
+    - anchor: "[QA-Telemetry]"
+      note: "Telemetry trx tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx references grapheme hash eb0c7c66…"
   stageDAnchors:
-    - "[StageD::ParityAssets]"
+    - anchor: "[StageD::ParityAssets]"
+      note: "fixtures.manifest.json#chunk + #grapheme entries share inspector log evidence"
 
 - id: G3
   title: "Breaks tree bridge"
@@ -86,9 +106,9 @@
   owner:
     - "C# Implementer"
     - "Rust Porter"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - serde
     - breaks_shim
@@ -101,18 +121,27 @@
       anchor: docs/architecture/type-system-migration-log.md#ts-b5
     - kind: fixture
       path: tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
-      manifest: tests/xi.Core.Tests/Fixtures/breaks_descriptors/manifest.json
-      manifestHash: pending
-  schemaVersion: breaks_descriptors@pending
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86
+    - kind: report
+      path: tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
+      note: "Break plan samples: ascii_guidance/crlf_emoji_mix/delimited_tables · wrap span 24–38"
+  schemaVersion: breaks_descriptors@1.0.0
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
     - docs/architecture/type-system-migration-log.md#ts-b5
+    - tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
   next:
     - "Publish shim draft + refresh [TS-B5] card"
   riskFlag: "Watch -> [TS-B5]"
-  qaAnchors: []
+  qaAnchors:
+    - anchor: "[QA-IngestionSmoke]"
+      note: "Inspector log now records Breaks ledger + wrap span metrics"
   stageDAnchors:
-    - "[StageD::FeatureGates]"
+    - anchor: "[StageD::FeatureGates]"
+      note: "serde export emits breaks_descriptors with hash 5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86"
+    - anchor: "[StageD::ParityAssets]"
+      note: "fixtures.manifest.json#breaks backs the hydrator smoke"
 
 - id: G4
   title: "Diff/Search plan handoff"
@@ -121,9 +150,9 @@
   owner:
     - "AI Architect"
     - "C# Implementer"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - diff_search_plan
   assetRefs:
@@ -134,21 +163,30 @@
       path: pending
       anchor: docs/architecture/m3-implementation-plan.md#mp-goaltree
     - kind: fixture
-      path: tests/xi.Core.Tests/Fixtures/diff_search/regions.json
-      manifest: tests/xi.Core.Tests/Fixtures/diff_search/manifest.json
-      manifestHash: pending
-  schemaVersion: diff_search_plan@pending
+      path: tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562
+    - kind: fixture
+      path: tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57
+    - kind: report
+      path: tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
+      note: "Diff ops=4/case, search queries ^WARN:.*$, stage, 🚀"
+  schemaVersion: diff_regions@1.0.0
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
     - docs/architecture/m3-implementation-plan.md#mp-goaltree
+    - tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
   next:
     - "Ship doc skeleton + stub directories"
   riskFlag: "Watch"
   qaAnchors:
     - anchor: "[QA-StageDManual]"
-      note: "Manual validation plan required before fixtures ship"
+      note: "Manual validation must cite inspector log diff/search ledger"
   stageDAnchors:
-    - "[StageD::FixtureFlow]"
+    - anchor: "[StageD::FixtureFlow]"
+      note: "export-serde-fixtures --diff-regions --search-spans --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json"
 
 - id: G5
   title: "Iterator façade + CLI alignment"
@@ -157,9 +195,9 @@
   owner:
     - "Rust Porter"
     - "Architecture Mapper"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - serde
     - iterator_facade_export
@@ -172,8 +210,8 @@
       anchor: docs/rust-refactor/iterator-facade-export.md
     - kind: fixture
       path: tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
-      manifest: tests/xi.Core.Tests/Fixtures/chunk_descriptors/manifest.json
-      manifestHash: pending
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
   schemaVersion: iterator_facade@pending
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
@@ -184,9 +222,10 @@
   riskFlag: "Watch -> [MP-R9]"
   qaAnchors:
     - anchor: "[QA-IngestionSmoke]"
-      note: "Smoke scripts must pass once CLI flags converge"
+      note: "Single exporter command now emits manifest + chunk hash 69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a"
   stageDAnchors:
-    - "[StageD::FixtureFlow]"
+    - anchor: "[StageD::FixtureFlow]"
+      note: "refresh_all_assets.py --only stage-d-fixtures stitches exporter + loader + inspector"
 
 - id: G6
   title: "Metric adapter bridge"
@@ -195,9 +234,9 @@
   owner:
     - "C# Implementer"
     - "Architecture Mapper"
-  rustCommit: pending
+  rustCommit: "3799d2be9db0ef040517ed69df1b717e96a8958e"
   dotnetCommit: pending
-  rustCliVersion: pending
+  rustCliVersion: "0.3.0"
   featureGates:
     - serde
     - metric_adapter
@@ -212,9 +251,9 @@
       path: tests/xi.Core.Tests/GenericNodeInterfaceTests.cs
       anchor: docs/architecture/m3-implementation-plan.md#mp-t1
     - kind: fixture
-      path: tests/xi.Core.Tests/Fixtures/ParityFixtures/delta_regression.json
-      manifest: tests/xi.Core.Tests/Fixtures/ParityFixtures/manifest.json
-      manifestHash: pending
+      path: tests/xi.Core.Tests/Fixtures/delta_regression.json
+      manifest: tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+      manifestHash: 59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f
   schemaVersion: metric_adapter@pending
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
@@ -226,4 +265,5 @@
     - anchor: "[QA-StageDManual]"
       note: "QA to confirm adapter instrumentation via manual Stage D checklist"
   stageDAnchors:
-    - "[StageD::FeatureGates]"
+    - anchor: "[StageD::FeatureGates]"
+      note: "serde + cursor_state gates stay enabled while metric adapter wiring lands"

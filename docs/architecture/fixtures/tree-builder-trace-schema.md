@@ -10,7 +10,7 @@
 - **版本策略**：`metadata.schema_version = tree_builder_trace@<major>.<minor>.<patch>`；当字段集合或语义变化时必须 bump `major/minor`，SourceGen 代码生成器通过哈希锁定版本。
 - **消费方**：
   1. `tools/TreeTraceSchemaKit`（C# Source Generator + Analyzer）在编译期生成验证器。
-  2. `scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace` 调用 `TreeTraceSchemaKit.Validator`，无验证通过不得落盘。
+  2. `scripts/refresh_serialization_fixtures.ps1`（tree trace 现为默认输出，如需跳过需显式 `-SkipTreeTrace`）调用 `TreeTraceSchemaKit.Validator`，无验证通过不得落盘。
   3. QA 在 Stage D checklist（`[QA-IngestionSmoke]`/`[QA-ChunkBench]`/`[QA-Telemetry]`）记录 schema_version/rust_commit。
 
 ## [Fixture-Fields] 字段定义
@@ -40,7 +40,7 @@
    dotnet run --project tools/TreeTraceSchemaKit.Validator -- \
      --schema docs/architecture/fixtures/tree-builder-trace-schema.md --input artifacts/tree_builder_trace.json
    ```
-3. **刷新脚本**：`pwsh ./scripts/refresh_serialization_fixtures.ps1 -ExportTreeTrace -VerifySchema` 在导出后自动运行验证器，校验失败则退出非零状态。
+3. **刷新脚本**：`pwsh ./scripts/refresh_serialization_fixtures.ps1 -VerifySchema` 在导出后自动运行验证器，若只想刷新 tree trace 可保持默认参数；若调试时跳过 trace，需显式 `-SkipTreeTrace` 并补充原因。校验失败则退出非零状态。
 4. **QA 记录**：QA 在 `docs/architecture/m3-implementation-plan.md §5.3` 与 `docs/architecture/qa/chunk-window-benchmark-log.md` 登记 `schema_version`/`rust_commit`，并将 manifest hash 写入 `[QA-IngestionSmoke]`。
 
 ## [Fixture-Timeline] 近期交付

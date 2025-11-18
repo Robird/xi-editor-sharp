@@ -22,14 +22,14 @@ public sealed class TreeBuilderSliceTraceLoaderTests
         Assert.Equal(expectedCount, traces.Count);
 
         var trace = Assert.Single(traces, t => t.Metadata.SampleName == "basic_slice_plan");
-        Assert.Equal("tests-only", trace.Metadata.RustCommit);
-        Assert.Equal(1731907200000, trace.Metadata.TimestampUnixMillis);
+        Assert.Equal(string.Empty, trace.Metadata.RustCommit);
+        Assert.Equal(0, trace.Metadata.TimestampUnixMillis);
 
         var firstEvent = trace.Events.First();
         Assert.Equal(TreeBuilderSliceTraceEventKind.PushFrame, firstEvent.Kind);
-        Assert.Equal(0, firstEvent.Depth);
-        Assert.Equal(2, firstEvent.NodeHeight);
-        Assert.Equal(48, firstEvent.NodeLength);
+        Assert.Equal(1, firstEvent.Depth);
+        Assert.Equal(0, firstEvent.NodeHeight);
+        Assert.Equal(3, firstEvent.NodeLength);
         Assert.Equal((ulong)1, firstEvent.NodeId);
         Assert.False(firstEvent.Reuse);
     }
@@ -39,24 +39,59 @@ public sealed class TreeBuilderSliceTraceLoaderTests
     {
         var trace = Assert.Single(TreeBuilderSliceTraceLoader.LoadFromDirectory(TraceDirectory));
 
-        var leafSlice = Assert.Single(trace.Events, evt => evt.Kind == TreeBuilderSliceTraceEventKind.LeafSlice);
-        Assert.NotNull(leafSlice.Interval);
-        Assert.Equal(0, leafSlice.Interval!.Start);
-        Assert.Equal(16, leafSlice.Interval.End);
-        Assert.Null(leafSlice.MergedChildren);
+                var leafSlice = Assert.Single(trace.Events, evt => evt.Kind == TreeBuilderSliceTraceEventKind.LeafSlice);
+                Assert.NotNull(leafSlice.Interval);
+                Assert.Equal(1, leafSlice.Interval!.Start);
+                Assert.Equal(4, leafSlice.Interval.End);
+                Assert.Null(leafSlice.MergedChildren);
 
-        var enterChild = Assert.Single(trace.Events, evt => evt.Kind == TreeBuilderSliceTraceEventKind.EnterChild);
-        Assert.NotNull(enterChild.Requested);
-        Assert.Equal(12, enterChild.Requested!.Start);
-        Assert.Equal(20, enterChild.Requested.End);
-        Assert.NotNull(enterChild.Translated);
-        Assert.Equal(0, enterChild.Translated!.Start);
-        Assert.Equal(8, enterChild.Translated.End);
-
-        var mergePop = Assert.Single(trace.Events, evt => evt.Kind == TreeBuilderSliceTraceEventKind.MergePop);
-        Assert.Equal(2, mergePop.MergedChildren);
-        Assert.Null(mergePop.Interval);
+                var mergePop = Assert.Single(trace.Events, evt => evt.Kind == TreeBuilderSliceTraceEventKind.MergePop);
+                Assert.Equal(1, mergePop.MergedChildren);
+                Assert.Null(mergePop.Interval);
     }
+
+        [Fact]
+        public void LoadFromDirectory_flattens_nested_kind_payload_fields()
+        {
+                var tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(tempDirectory);
+                var tracePath = Path.Combine(tempDirectory, "payload.json");
+
+                File.WriteAllText(tracePath, """
+[
+    {
+        "kind": {
+            "kind": "EnterChild",
+            "requested": { "start": 2, "end": 6 },
+            "translated": { "start": 0, "end": 4 }
+        },
+        "depth": 2,
+        "node_height": 1,
+        "node_len": 8,
+        "node_id": 42,
+        "reuse": true
+    }
+]
+""");
+
+                try
+                {
+                        var trace = Assert.Single(TreeBuilderSliceTraceLoader.LoadFromDirectory(tempDirectory));
+                        var enterChild = Assert.Single(trace.Events);
+
+                        Assert.Equal(TreeBuilderSliceTraceEventKind.EnterChild, enterChild.Kind);
+                        Assert.NotNull(enterChild.Requested);
+                        Assert.Equal(2, enterChild.Requested!.Start);
+                        Assert.Equal(6, enterChild.Requested.End);
+                        Assert.NotNull(enterChild.Translated);
+                        Assert.Equal(0, enterChild.Translated!.Start);
+                        Assert.Equal(4, enterChild.Translated.End);
+                }
+                finally
+                {
+                        Directory.Delete(tempDirectory, recursive: true);
+                }
+        }
 
     [Fact]
     public void LoadFromDirectory_missing_directory_throws()

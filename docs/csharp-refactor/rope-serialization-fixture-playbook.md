@@ -88,7 +88,7 @@ Set-Location "$env:XI_EDITOR_SHARP_ROOT"
 
 ```bash
 cd "$XI_EDITOR_SHARP_ROOT/xi-editor-ph7/rust"
-cargo run -p xi-rope --features serde --bin export-serde-fixtures \
+cargo run -p xi-rope --features serde,cursor_state,tree_builder_slice_trace --bin export-serde-fixtures \
   --dir tests/xi.Core.Tests/Fixtures \
   --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors \
   --chunk-descriptors tests/xi.Core.Tests/Fixtures/chunk_descriptors \
@@ -96,11 +96,12 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures \
   --breaks-descriptors tests/xi.Core.Tests/Fixtures/breaks_descriptors \
   --diff-regions tests/xi.Core.Tests/Fixtures/diff_regions \
   --search-spans tests/xi.Core.Tests/Fixtures/search_spans \
+  --tree-builder-trace tests/xi.Core.Tests/Fixtures/tree_builder_slice \
   --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 cd "$XI_EDITOR_SHARP_ROOT"
 ```
 
-> 调试模式：把 `--features serde` 替换为 `--features serde,cursor_state` 以捕获更详细的 `CursorDescriptor`，或追加 `--features serde,tree_builder_slice_trace --tree-builder-trace tests/xi.Core.Tests/Fixtures/ParityFixtures/tree_builder_trace` 以并行导出切片事件。每次开启额外特性都要在 `[Fixture-FeatureGates]` 和 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
+> 调试模式：若需要隔离 `cursor_state` 或 tree trace，可用 `--features serde`（或 `-SkipTreeTrace`）临时关闭默认资产，再在日志中标注原因；否则请维持脚本/命令的 `serde,cursor_state,tree_builder_slice_trace` 组合与 `--tree-builder-trace tests/xi.Core.Tests/Fixtures/tree_builder_slice`。无论启用/禁用何种特性，都要在 `[Fixture-FeatureGates]` 与 `[StageD::FeatureGates]` 记录原因，并确认 `fixtures.manifest.json` 中的 `feature_gates[]` 与实际命令一致。
 
 ### 3.2 Breaks/Diff/Search Flag 规范
 
@@ -174,25 +175,27 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 ## [StageD::ParityAssets] Parity 资产总览
 <a id="StageD::ParityAssets"></a>
 
-| Asset | Path | Export Flag | Schema / Version | SHA256（2025-11-20 刷新） | 备注 |
+> `scripts/refresh_serialization_fixtures.ps1 -ExportParityFixtures` 现默认传入 `--breaks-descriptors --diff-regions --search-spans --tree-builder-trace` 并启用 `tree_builder_slice_trace` feature；若仅需调试部分资产，可借助 `-SkipBreaksDiffSearch`（跳过 Breaks/Diff/Search）或 `-SkipTreeTrace`（跳过 Tree trace）临时关闭，但必须在 QA 档案与 `docs/operations/do-check-stage-d.md` 记录理由。
+
+| Asset | Path | Export Flag | Schema / Version | SHA256（2025-11-21 刷新） | 备注 |
 | --- | --- | --- | --- | --- | --- |
 | Subset Regression | `tests/xi.Core.Tests/Fixtures/subset_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::subset` | `28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f` | Stage A（Subset）黄金串，回归测试直接消费；hash 与 2025-11-18 manifest 一致。 |
 | Delta Regression | `tests/xi.Core.Tests/Fixtures/delta_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::delta` | `59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f` | Stage B（Delta）黄金串；manifest 确认 `count=1`。 |
 | Engine Regression | `tests/xi.Core.Tests/Fixtures/engine_regression.json` | `--dir` 默认覆盖 | `serde_fixtures::engine` | `8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2` | Stage C（Engine）黄金串；`python scripts/refresh_all_assets.py --only stage-d-fixtures` 2025-11-18 运行后保持稳定。 |
 | Cursor Descriptors | `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` | `--cursor-descriptors` | `cursor_descriptors@1.2.0` | `9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38` | `[MP-T1]` NodeCursor parity；manifest 记录 `count=12`，`feature_gates` 含 `cursor_state`。 |
-| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a` | `[MP-T3]` Chunk/Line 样本；`2025-11-20 QA run` 通过 StageDDescriptorInspector ledger 重新确认。 |
+| Chunk Descriptors | `tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json` | `--chunk-descriptors` | `chunk_descriptors@1.0.0` | `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a` | `[MP-T3]` Chunk/Line 样本；`2025-11-21 QA run` 通过 StageDDescriptorInspector ledger + Release chunk bench 重新确认。 |
 | Grapheme Descriptors | `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json` | `--grapheme-descriptors` | `grapheme_descriptors@1.0.0` | `eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c` | `[MP-T4]` Grapheme fallback 遥测；count=668，hash 由 QA verifier + inspector 双重确认。 |
 | Breaks descriptors (soft line metrics) | `tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json` | `--breaks-descriptors`（Stage D exporter 默认传入） | `breaks_descriptors@1.0.0` | `5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86` | 状态：Rust CLI 导出的 3 条 breaks 样本，StageDDescriptorHydrator + Inspector 均验证 ledger。 |
 | Diff region snapshots | `tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json` | `--diff-regions`（Stage D exporter 默认传入） | `diff_regions@1.0.0` | `fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562` | 3 条 diff 快照；Hydrator/Inspector 输出列举 patch id 与 manifest hash，确保与 Rust exporter 一致。 |
 | Search hits & span windows | `tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json` | `--search-spans`（Stage D exporter 默认传入） | `search_spans@1.0.0` | `7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57` | 3 组 search spans；Inspector 摘要记录 window + hit count，hash 对应 manifest ledger。 |
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
-| TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
+| TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（脚本默认传入，可用 `-SkipTreeTrace` 停用） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
-> 数据来源：`python scripts/refresh_all_assets.py --only stage-d-fixtures`（2025-11-20 QA run）触发 exporter/loader/hydrator/manifester；`python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 输出 “All 9 fixtures match the manifest hashes.”，随后 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 记录 Breaks/Diff/Search typed 摘要与 SHA。上述 artefact 必须一并贴入 QA 档案。
+> 数据来源：`python scripts/refresh_all_assets.py --only stage-d-fixtures`（2025-11-21 QA run）触发 exporter/loader/hydrator/manifester；`python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 输出 “All 9 fixtures match the manifest hashes.”，随后 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 记录 Breaks/Diff/Search typed 摘要与 SHA。上述 artefact 必须一并贴入 QA 档案。
 
 > **NodeCursorState ↔ `_editVersion` 证据链**：当 Rust Porter 以 `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures -- --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 运行 exporter 时，manifest 的 `feature_gates` 会追加 `"cursor_state"`，并在 `cursor_descriptors@1.x.y` JSON 内写入 `cursor_state.edit_version` 与 `cursor_state.path[]`。C# 侧的 `Rope._editVersion` 在每次编辑时自增，`CursorDescriptorParityTests`/`StageDDescriptorLoader` 将该字段映射到 `NodeCursorState.EditVersion`，从而让 QA 可通过 `[QA-IngestionSmoke]`、`StageDDescriptorInspector` 报表以及 manifest ledger 证明 `_editVersion` 票据与 Rust `cursor_state` schema 一致。
 
-> **Manifest（2025-11-20 刷新）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 写入 `fixtures.manifest.json`，记录 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`cli_rev=0.3.0`、`feature_gates=["cursor_state","serde"]`，descriptor 计数为 `chunk=20` / `cursor=12` / `grapheme=668`，`breaks/diff/search` 各 3 条。所有 hash 以 manifest 为准，Stage D loader + hydrator + inspector smoke 会在 `[QA-IngestionSmoke]` 中登记。
+> **Manifest（2025-11-21 刷新）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 写入 `fixtures.manifest.json`，记录 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`cli_rev=0.3.0`、`feature_gates=["cursor_state","serde"]`，descriptor 计数为 `chunk=20` / `cursor=12` / `grapheme=668`，`breaks/diff/search` 各 3 条。所有 hash 以 manifest 为准，Stage D loader + hydrator + inspector smoke 会在 `[QA-IngestionSmoke]` 中登记。
 
 > `StageDDescriptorLoader` 现已成为 ingestion 的默认实现（参见 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）；QA/Stage D 工具在引用 `[StageD::ParityAssets]` 时，应先通过 loader 或 `dotnet test --filter StageDDescriptorLoaderTests` 读取 manifest，再将返回的 `StageDDescriptorManifest` 注入 ChunkBench、CLI parity 或 Telemetry 脚本。
 
@@ -203,15 +206,13 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 ## [StageD::FeatureGates] Feature Gate 策略
 <a id="StageD::FeatureGates"></a>
 
-`2025-11-18` 的 `stage-d-fixtures` 刷新仅启用了 `serde` gate，`--breaks-descriptors/--diff-regions/--search-spans` 现已默认串入并写入 manifest（见 `[StageD::ParityAssets]`）。若需要追加调试 telemetry，再考虑重新启用下表中的其他 gate。
-
-> 本次稳定刷新除 `serde` 外未开启额外 gate；Breaks/Diff/Search flag 已默认开启且随 manifest 一并交付，无需额外配置。
+`2025-11-21` 起 `stage-d-fixtures` 刷新在默认 `serde` gate 之外亦启用 `tree_builder_slice_trace`，且 `--breaks-descriptors/--diff-regions/--search-spans --tree-builder-trace` 均由脚本自动串入（见 `[StageD::ParityAssets]`）。若需短暂关闭，可在命令行传入 `-SkipBreaksDiffSearch` 或 `-SkipTreeTrace`，并在 QA 档案记录理由。
 
 | Gate | 默认 | 用途 | 备注 |
 | --- | --- | --- | --- |
 | `serde` | ✅（运行 Stage D 必须） | 启用所有 JSON 导出路径 | 关闭时 exporter 无法生成任何资产；2025-11-18 刷新包含 chunk/cursor/grapheme + breaks/diff/search。 |
-| `cursor_state` | ⛔ | 调试游标失效，扩充 descriptor payload | 仅在 `[MP-R8]` 调试时开启，并在 `[Fixture-FeatureGates]` 记录。 |
-| `tree_builder_slice_trace` | ⛔ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/`（通过 `-ExportTreeTrace` 启用），供 `TreeBuilder` 研究与 loader parity。 |
+| `cursor_state` | ✅ | 调试游标失效，扩充 descriptor payload | exporter 默认启用以生成 `cursor_state` 字段；若禁用需同步 `[Fixture-FeatureGates]` 并更新 manifest 记录。 |
+| `tree_builder_slice_trace` | ✅ | 生成 `--tree-builder-trace` 样本 | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/`（默认导出；如需禁用，传入 `-SkipTreeTrace`）供 `TreeBuilder` 研究与 loader parity。 |
 | `breaks_diagnostics`（计划） | ⛔ | 配合 `--breaks-descriptors` 导出软换行栈、`BreaksMetric` 序列 | 目前 `serde` 即可导出 3 条 breaks 样本；如需更高粒度 telemetry，再开启并在 manifest `feature_gates[]` 登记。 |
 | `diff_regions`（计划） | ⛔ | 暴露 `LineHashDiff`/`DiffBuilder` 快照 | 现有导出由 `serde` 加 flag 覆盖，若未来要捕捉增量 diff 事件，可用该 gate 启用扩展。 |
 | `search_traces`（计划） | ⛔ | 捕获 `find.rs` 命中与 `Spans<T>` 状态 | 已能在 `serde` 运行中导出 3 条 search 样本；保留 gate 供 regex instrumentation 或扩展格式时使用。 |
@@ -238,7 +239,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`，在两份档案中记录跳过理由与补偿动作。 |
 
-> **Latest run — 2025-11-21（✅ 自动流水线 + Release chunk bench）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 刷新 Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`，manifest `feature_gates=["cursor_state","serde"]`，ledger payloads：chunk `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a`、grapheme `eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c`、breaks `5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86`、diff `fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562`、search `7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57`。脚本自动运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（“All 9 fixtures match the manifest hashes.”）、`dotnet test Xi.Editor.sln --filter "StageDDescriptorLoaderTests|StageDDescriptorHydratorTests"`（5+3 用例通过）与 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`。同一流程还以 Release 配置执行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics --configuration Release -- --stage-d --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`，记录 chunk 回放 4.26 ms / line 回放 2.94 ms，并在 `Allocation statistics` 段记录线程分配 37,784 bytes / GC 0/0/0。所有 artefact 已附在 `tests/xi.Core.Tests/Fixtures/Reports/` 并同步到 `agents/qa-engineer.md`，供 `[QA-ChunkBench]` / `[StageD::ParityAssets]` / Goal Tree 对账。
+> **Latest run — 2025-11-18（✅ Stage D orchestrator + Release bench + telemetry）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-143204.log` 重新导出 Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`（`feature_gates=["cursor_state","serde"]`），生成 chunk/grapheme/breaks/diff/search ledger `69ba7f25` / `eb0c7c66` / `5d37a731` / `fe76ed31` / `7eac7ecf`。脚本串联 `dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`（5/5 通过）+ `--filter StageDDescriptorHydratorTests`（3/3 通过），随后执行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（All 9 fixtures match）与 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures`，输出写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`。同一 orchestrator 还刷新 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（Release 重放 4.97 ms chunk / 3.06 ms line，201.25 MB/s / 327.31 MB/s，线程分配 37,944 bytes，GC 0/0/0）以及 `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx`；所有 artefact 现可链接至 `[QA-ChunkBench]` / `[QA-Telemetry]` / Goal Tree。
 
 ### Skeleton 备用路径
 
@@ -278,7 +279,7 @@ dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|S
 | 抓取指标 | 输出会打印 Chunk/Line 计数、最大 chunk 长度、总复制字节及枚举时长；`--report` 会把同样的数据写入 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 供 QA 入档。 | Screenshot/log 附在 `m3-implementation-plan.md §5.3` 与 `agents/qa-engineer.md`“最近完成”。
 | 校验阈值 | - 载荷：必须是 README 构造的 1 MB synthetic rope。<br>- 内存：GC/Process Alloc < **5 MB**。<br>- 吞吐：`1MB / chunkEnumerationMs` 与 `1MB / lineEnumerationMs` 推算 > **200 MB/s**。 | 若任一阈值失败，将结果写入 `docs/architecture/design-divergence-log.md` 并引用 `[QA-ChunkBench]`，同时在 `AGENTS.md` 标记为 Pending fix。
 
-> **Latest run — 2025-11-21（Stage D Release replay + 自动化）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 自动执行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 并使用 manifest ledger（Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`）回放 chunk/line 样本。输出：`Chunk samples=9`, `Chunks=3`, `MaxChunkLength=753`, `TotalUtf16Chars=1,808`, `ManifestLines=11`, `LinesVisited=8`。Chunk 枚举 4.26 ms（`1MB / 4.26ms ≈ 235 MB/s`），Line 枚举 2.94 ms（≈341 MB/s），均超过 200 MB/s 阈值；`Allocation statistics` 已写入线程分配 37,784 bytes、GC 0/0/0，满足 <5 MB 额外分配约束。日志保存在 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 并在报告中附带 UTF-16 范围、总复制字节与 alloc snap。
+> **Latest run — 2025-11-18（Release chunk/line replay + alloc stats）**：`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（由 `refresh_all_assets.py` 触发后再次手动确认）在相同 manifest ledger 上回放 9 个 chunk 样本 / 11 条 line：chunk 阶段 4.97 ms ⇒ `1MB / 4.97ms ≈ 201.25 MB/s`，line 阶段 3.06 ms ⇒ `327.31 MB/s`。`Allocation statistics` 报告线程分配 37,944 bytes，GC gen0/1/2 均为 0，满足 <5 MB 目标；完整指标与样本摘要记录在 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 并引用 `stage-d-inspector-latest.txt` 的同 commit 描述。
 
 > **QA 附件提醒**：执行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 或任何 Stage D smoke 前后，请将生成的 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry.trx` 以及相应的 `stage-d-refresh-<timestamp>.log` 一并入档，便于复核 manifest 哈希、1 MB 枚举指标与 Grapheme telemetry 的同 commit 证据。
 
@@ -301,6 +302,8 @@ dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|S
 | 捕获指标 | 从测试输出或 `TestResults/*.trx` 中提取：`fallbackCount`, `totalMoves`, `neighborLookups`, `fallbackRatio = fallbackCount / totalMoves`。 | 将原始数字贴到 `agents/qa-engineer.md`、`AGENTS.md`，并在 `m3-implementation-plan.md §5.3` 的 QA 表更新 `qaAnchors.qa-telemetry.note`。 |
 | 阈值判断 | `fallbackRatio <= 0.5%`（<=0.005），`neighborLookups` 相比前次 run 不得激增 >10%，`moveCalls` 数量应与 `tests/xi.Core.Tests/GraphemeNavigatorSmokeTests.cs` 预期范围匹配。 | 若超标：<br>1. 在 `docs/architecture/design-divergence-log.md` 新增记录，说明触发点与拟定缓解。<br>2. 在 `AGENTS.md` 风险表登记，引用 `[QA-Telemetry]`。<br>3. 通知 Architecture Mapper / C# Implementer。 |
 
+- **Latest run — 2025-11-18（Grapheme telemetry smoke）**：`dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter GraphemeNavigatorSmokeTests --logger "trx;LogFileName=tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx"` 生成 `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx`。依据 `GraphemeNavigatorSmokeTests` 中的 `GraphemeNavigationMetrics` snapshot：`totalMoves=4`（MoveNext=2, MovePrevious=2），`neighborLookups` 分别为 Forward=1 / Backward=1，`scalarFallbacks=0`，因此 `fallbackRatio=0/4 = 0%`，满足 ≤0.5% 阈值。若未来 `RequiresFallback` 样本数量或 CLI instrumentation 增加，此 TRX 作为 `[QA-Telemetry]` 的基准 artefact。
+
 - **后续动作**：
   - 将本次 run 的 `dotnet test` 命令与结果链接到 `[QA-IngestionSmoke]` 中的测试矩阵，以便 Stage D smoke 与 telemetry 数据共用。
   - 若 fallback ratio 曾经触发 Divergence，恢复 ≤0.5% 后需在 `design-divergence-log.md` 更新 Exit 条件并引用 `[QA-Telemetry]`。
@@ -312,7 +315,7 @@ dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|S
 <a id="StageD::AutomationBacklog"></a>
 
 - 追加 `run_all_checks` + exporter + `dotnet test` 的 CI job，发布夹具漂移报告。
-- 为 `scripts/refresh_serialization_fixtures.ps1` 增加 `-ExportTreeTrace`、`-OnlyParity` 等模式，以便 QA 快速定位差异。
+- 为 `scripts/refresh_serialization_fixtures.ps1` 补强默认导出守护（Breaks/Diff/Search/TreeTrace 现已默认启用，可用 `-SkipBreaksDiffSearch`、`-SkipTreeTrace` 精准关闭），以便 QA 快速定位差异。
 - 评估 `python scripts/goal_tree_sync.py`（筹备中）是否同时校验 `[StageD::ParityAssets]` 的哈希并提醒更新。
 - 研究 `cargo xtask fixtures` 以提供单入口，减少 `cargo run` 命令参数错误。
 

@@ -1,54 +1,37 @@
-{
-  "metadata": {
-    "sample": "basic_slice_plan",
-    "rust_commit": "tests-only",
-    "generated_at_unix_millis": 1731907200000
+[
+  {
+    "kind": {
+      "kind": "PushFrame"
+    },
+    "depth": 1,
+    "node_height": 0,
+    "node_len": 3,
+    "node_id": 1,
+    "reuse": false
   },
-  "events": [
-    {
-      "kind": "PushFrame",
-      "depth": 0,
-      "node_height": 2,
-      "node_len": 48,
-      "node_id": 1,
-      "reuse": false
-    },
-    {
+  {
+    "kind": {
       "kind": "LeafSlice",
-      "depth": 1,
-      "node_height": 0,
-      "node_len": 16,
-      "node_id": 2,
-      "reuse": false,
       "interval": {
-        "start": 0,
-        "end": 16
+        "start": 1,
+        "end": 4
       }
     },
-    {
-      "kind": "EnterChild",
-      "depth": 1,
-      "node_height": 1,
-      "node_len": 16,
-      "node_id": 3,
-      "reuse": false,
-      "requested": {
-        "start": 12,
-        "end": 20
-      },
-      "translated": {
-        "start": 0,
-        "end": 8
-      }
-    },
-    {
+    "depth": 1,
+    "node_height": 0,
+    "node_len": 3,
+    "node_id": 2,
+    "reuse": false
+  },
+  {
+    "kind": {
       "kind": "MergePop",
-      "depth": 0,
-      "node_height": 2,
-      "node_len": 48,
-      "node_id": 1,
-      "reuse": false,
-      "merged_children": 2
-    }
-  ]
-}
+      "merged_children": 1
+    },
+    "depth": 0,
+    "node_height": 0,
+    "node_len": 6,
+    "node_id": 1,
+    "reuse": false
+  }
+]

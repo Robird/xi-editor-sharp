@@ -18,6 +18,7 @@
 
 ## 2. Stage D 资产 & Manifest
 - [ ] 比对 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 中的 `rust_commit`、`cli_rev`、`feature_gates` 与 PowerShell/Python 日志；若差异存在，先 rerun exporter 再写档。
+- [ ] `scripts/refresh_serialization_fixtures.ps1 -ExportParityFixtures` 现默认携带 `--breaks-descriptors --diff-regions --search-spans --tree-builder-trace`（并在 feature 列表中启用 `tree_builder_slice_trace`）；仅在运行命令、日志与 QA 档案中明确说明的情况下才允许传入 `-SkipTreeTrace`（Tree trace）或新引入的 `-SkipBreaksDiffSearch`（Breaks/Diff/Search）。所有 Stage D orchestrator（含 `python scripts/refresh_all_assets.py --only stage-d-fixtures`）调用必须保留这四类资产的默认导出。
 - [ ] 将 manifest `fixtures[]` 列表与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 表逐条对齐（名称、schema、hash、count）。
 - [ ] 确认 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 记录最新 Breaks/Diff/Search ledger；缺失时 rerun `python scripts/refresh_all_assets.py --only stage-d-fixtures`。
 - [ ] 检查 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`：吞吐必须 >200 MB/s、`Allocation statistics` <5 MB。如未包含 alloc 行，手动运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report ...`。

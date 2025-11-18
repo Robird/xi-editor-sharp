@@ -78,7 +78,14 @@ namespace Xi.Core.Tests.Tree
         var trace = TreeBuilderSliceTraceLoader.LoadFromManifest(FixtureDirectory).Single();
         var originalNode = JsonNode.Parse(File.ReadAllText(trace.SourceFile));
         Assert.NotNull(originalNode);
-        var regenerated = SerializeTrace(trace);
+
+        JsonNode regenerated = originalNode switch
+        {
+            JsonArray => SerializeTraceAsEventArray(trace),
+            JsonObject => SerializeTrace(trace),
+            _ => throw new InvalidOperationException("Unsupported tree builder trace shape.")
+        };
+
         Assert.True(JsonNode.DeepEquals(originalNode, regenerated));
     }
 
@@ -144,6 +151,69 @@ namespace Xi.Core.Tests.Tree
             ["metadata"] = metadata,
             ["events"] = events,
         };
+    }
+
+    private static JsonNode SerializeTraceAsEventArray(TreeBuilderSliceTrace trace)
+    {
+        var events = new JsonArray();
+        foreach (var evt in trace.Events)
+        {
+            var evtNode = new JsonObject
+            {
+                ["kind"] = SerializeKindPayload(evt),
+                ["depth"] = evt.Depth,
+                ["node_height"] = evt.NodeHeight,
+                ["node_len"] = evt.NodeLength,
+                ["node_id"] = evt.NodeId,
+                ["reuse"] = evt.Reuse,
+            };
+
+            events.Add(evtNode);
+        }
+
+        return events;
+    }
+
+    private static JsonObject SerializeKindPayload(TreeBuilderSliceTraceEvent evt)
+    {
+        var payload = new JsonObject
+        {
+            ["kind"] = evt.Kind.ToString(),
+        };
+
+        if (evt.Interval is not null)
+        {
+            payload["interval"] = new JsonObject
+            {
+                ["start"] = evt.Interval.Start,
+                ["end"] = evt.Interval.End,
+            };
+        }
+
+        if (evt.MergedChildren is int mergedChildren)
+        {
+            payload["merged_children"] = mergedChildren;
+        }
+
+        if (evt.Requested is not null)
+        {
+            payload["requested"] = new JsonObject
+            {
+                ["start"] = evt.Requested.Start,
+                ["end"] = evt.Requested.End,
+            };
+        }
+
+        if (evt.Translated is not null)
+        {
+            payload["translated"] = new JsonObject
+            {
+                ["start"] = evt.Translated.Start,
+                ["end"] = evt.Translated.End,
+            };
+        }
+
+        return payload;
     }
 
         private sealed class CapturingTreeBuilderTracer : ITreeBuilderTracer
