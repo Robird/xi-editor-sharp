@@ -28,8 +28,7 @@
 
 > **Manifest diff + loader + hydrator + inspector 证据链**：刷新或手动导出后，PowerShell 脚本会自动执行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 并把 “Manifest changes/no changes” 行写入日志，紧接着运行 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures` 输出 Breaks/Diff/Search typed 摘要，再执行 Release `RopeChunkEnumeratorBenchmarks --stage-d --include-alloc-stats` 与 `dotnet test Xi.Editor.sln --filter Category=StageDTelemetry`，最后把标准输出写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-<timestamp>.log`。任何 `-SkipManifestVerification`、`-SkipStageDInspector`、`-SkipStageDChunkBench` 或 `-SkipStageDTelemetry`（见下文新增参数）都必须在 QA 档案记录，并在同一任务内补跑以修复证据链。若预计存在 hash 漂移，需要单独运行 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（脚本默认只做只读验证），写回后再 rerun `scripts/refresh_serialization_fixtures.ps1`（勿携带跳过参数）以取得新的 manifest diff + loader + hydrator + inspector/bench/telemetry/log 日志。该日志需与 `StageDDescriptorLoaderTests`、`StageDDescriptorHydratorTests` 的通过记录一并归档，禁止拆分；若自动化无法补跑，参考 [`docs/operations/do-check-stage-d.md`](../operations/do-check-stage-d.md) 手工记录。
 
-> **最新 manifest（2025-11-18 16:13 UTC QA run）**：`python3 scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-161309.log` 在 rust submodule `3799d2be9db0ef040517ed69df1b717e96a8958e` 上重写 `fixtures.manifest.json`，`cli_rev=0.3.0`、`feature_gates=["cursor_state","serde"]`，descriptor 计数保持 `chunk/cursor/grapheme = 20/12/668` 与 `breaks/diff/search = 3/3/3`。流水线在 loader/hydrator smoke 后立即运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（输出 “All 10 fixtures match the manifest hashes.” 并附表）与 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，记录 Breaks/Diff/Search ledger（chunk `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a`, grapheme `eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c`, breaks `5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86`, diff `fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562`, search `7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57`）。同一 `stage-d-fixtures` 步骤以 Release + `--include-alloc-stats` 执行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -- --stage-d --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（chunk 回放 4.06 ms ⇒ 246.46 MB/s，line 回放 3.13 ms ⇒ 319.26 MB/s，线程分配 37,944 bytes，GC 0/0/0），以及 `dotnet test Xi.Editor.sln --filter Category=StageDTelemetry --logger "trx;LogFileName=tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx"`。所有 artefact（含 `stage-d-refresh-20251118-161309.log` 的 “Stage D steps completed.” 尾句）已落在 `tests/xi.Core.Tests/Fixtures/Reports/`，供 Goal Tree 与 `[QA-ChunkBench]` / `[QA-Telemetry]` 对账。
-
+> **最新 manifest（2025-11-19 19:11 UTC QA smoke）**：顺序执行 `python3 scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error`, `dotnet test Xi.Editor.sln --filter StageDDescriptor`, `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`, `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，把完整流水线写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-191129.log`。该日志记录 exporter -> StageDDescriptorLoaderTests/StageDDescriptorHydratorTests -> manifest verifier（“All 10 fixtures match the manifest hashes.”）-> inspector ledger，针对 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`, `cli_rev=0.3.0`, `feature_gates=["cursor_state","serde","tree_builder_slice_trace"]`，确认 chunk `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a`, grapheme `eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c`, breaks `5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86`, diff `fe76ed31cff4549ffd3f32bd3847dda15ced7538c4165b4566f782e715572562`, search `7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57`, tree trace `22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e`, cursor `9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38`, delta `59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f`, engine `8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2`, subset `28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f`。同批次 `stage-d-fixtures` 步骤在 Release + `--include-alloc-stats` 模式重放 chunk bench（Chunk 261.73 MB/s、Line 312.99 MB/s、Thread Alloc 37,944 bytes）并刷新 `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx`。鉴于 StageDDescriptorInspector 仍缺失 `--report` flag，QA 暂用 `tee` 将 stdout 写入 `stage-d-inspector-latest.txt`，并在 Sprint 1 Ready Queue #5/#7 跟踪该 CLI 缺口。
 > **Descriptor hydrator**：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 现是 Breaks/Diff/Search ingestion 的唯一入口。脚本需在 loader 校验通过后调用 `StageDDescriptorHydrator.LoadBreakPlans/LoadDiffRegions/LoadSearchSpans`，这些 API 会复用 `StageDDescriptorLoader.LoadFromFixtureDirectory` 与 manifest ledger，避免 QA/CLI 重复解析 JSON。任何对 `--breaks-descriptors`、`--diff-regions`、`--search-spans` flag 或 manifest 结构的调整，都要同步更新 `[StageD::FixtureFlow]`、`[StageD::ParityAssets]` 与 `AGENTS.md` 的 Stage D 记录。
 
 ### 1. 环境变量与分支
@@ -217,6 +216,88 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | `diff_regions`（计划） | ⛔ | 暴露 `LineHashDiff`/`DiffBuilder` 快照 | 现有导出由 `serde` 加 flag 覆盖，若未来要捕捉增量 diff 事件，可用该 gate 启用扩展。 |
 | `search_traces`（计划） | ⛔ | 捕获 `find.rs` 命中与 `Spans<T>` 状态 | 已能在 `serde` 运行中导出 3 条 search 样本；保留 gate 供 regex instrumentation 或扩展格式时使用。 |
 
+### CLI flag bundle（默认 wiring）
+
+| Flag | 默认状态 | Feature 依赖 | 说明 |
+| --- | --- | --- | --- |
+| `--dir <tests/xi.Core.Tests/Fixtures>` | ✅ `scripts/refresh_serialization_fixtures.ps1` 始终传入 | `serde` | Stage A~C baseline（`subset/delta/engine_regression.json`）与 manifest 根目录；路径可通过 `-ManifestPath` 或 `--dir` 覆盖，但必须回写到 `[StageD::FixtureFlow]` 日志。 |
+| `--cursor-descriptors <.../cursor_descriptors>` | ✅ | `serde` + `cursor_state` | 生成 `cursor_descriptors.json` 并把 `cursor_state.*` 字段写入样本；若禁用需同步 manifest `feature_gates[]` 与 `[Fixture-FeatureGates]`。 |
+| `--chunk-descriptors <.../chunk_descriptors>` | ✅ | `serde` | 同时导出 chunk 与 line window（`chunk_descriptors@1.0.0`），`metric_windows[]` 会登记 `chunk_windows` + `line_windows` 计数。 |
+| `--grapheme-descriptors <.../grapheme_descriptors>` | ✅ | `serde` | 导出 668 个 grapheme window，并在 manifest `metric_windows[]` 中追加 `grapheme_windows`。 |
+| `--breaks-descriptors <.../breaks_descriptors>` | ✅（可用 `-SkipBreaksDiffSearch` 暂停） | `serde`（未来扩展 `breaks_diagnostics`） | 软换行 BreakPlan（3 份）与其 `metric_windows`（`break_windows`）。 |
+| `--diff-regions <.../diff_regions>` | ✅（可用 `-SkipBreaksDiffSearch` 暂停） | `serde` | `diff_regions@1.0.0`（3 案例），写入 `diff_windows` 计数。 |
+| `--search-spans <.../search_spans>` | ✅（可用 `-SkipBreaksDiffSearch` 暂停） | `serde` | `search_spans@1.0.0`（3 案例），写入 `search_windows` 计数。 |
+| `--tree-builder-trace <.../tree_builder_slice>` | ✅（配合 `tree_builder_slice_trace` gate，可被 `-SkipTreeTrace` 关闭） | `serde` + `tree_builder_slice_trace` | 导出 `basic_slice_plan.json`；`metric_windows[]` 会记录 `tree_builder_trace_events`。 |
+| `--emit-manifest <.../fixtures.manifest.json>` | ✅ | `serde` | Canonical ledger + `metric_windows[]` 写入点；脚本默认传 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，可用 `-ManifestPath` 覆盖。 |
+
+> **如何定位输出**：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures`（或直接执行日志中打印的 `cargo run --manifest-path rope/Cargo.toml --features serde,cursor_state,tree_builder_slice_trace --bin export-serde-fixtures -- ...`）即可在 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 找到 `metric_windows[]`、在 `tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json` 找到 `cursor_state` 样本，并在 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` 查阅 TreeBuilder trace。脚本会将命令与输出文件写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-<timestamp>.log`，方便 `[QA-IngestionSmoke]` 链接。
+
+### `metric_windows[]` 结构
+
+`export-serde-fixtures` 现在会把每类 window 的计数注入 manifest `metric_windows[]`。`StageDDescriptorLoader`/`Hydrator` 直接消费该数组，无需重新扫描 JSON。
+
+```jsonc
+{
+  "fixture": "chunk_descriptors.json",
+  "schema_hash": "chunk_descriptors@1.0.0",
+  "schema_version": "1.0.0",
+  "window_schema": "metric_windows@1.0.0",
+  "windows": [
+    { "kind": "chunk_windows", "count": 9 },
+    { "kind": "line_windows", "count": 11 }
+  ]
+}
+```
+
+> 位置：`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json#metric_windows[]`（经 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 生成）。`grapheme_windows`、`break_windows`、`diff_windows`、`search_windows` 与 `tree_builder_trace_events` 采用相同 schema，唯一差异是 `windows[].kind` 与 `count`。
+
+### 关键 payload 片段
+
+- **`cursor_state`（`cursor_descriptors@1.2.0`）** – 在启用 `--features serde,cursor_state` 时，每个样本都会携带 `cursor_state` 对象：
+
+  ```jsonc
+  {
+    "name": "cursor_state_invalidated_after_edit",
+    "metric": "base",
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 4,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 10,
+      "path": [],
+      "metric": "base",
+      "edit_version": 40,
+      "edit_version_after_edit": 41,
+      "invalidated_after_edit": true
+    }
+  }
+  ```
+
+- **`tree_builder_slice_trace`（`basic_slice_plan.json`）** – `tree_builder_slice_trace@1.0.0` 以事件数组表示 Trace：
+
+  ```jsonc
+  [
+    { "kind": { "kind": "PushFrame" }, "depth": 1, "node_height": 0, "node_len": 3, "node_id": 1, "reuse": false },
+    { "kind": { "kind": "LeafSlice", "interval": { "start": 1, "end": 4 } }, "depth": 1, "node_id": 2, "reuse": false },
+    { "kind": { "kind": "MergePop", "merged_children": 1 }, "depth": 0, "node_id": 1, "reuse": false }
+  ]
+  ```
+
+- **`grapheme_windows`（`metric_windows[]` 子项）** – manifest 直接暴露 668 个窗口的统计：
+
+  ```jsonc
+  {
+    "fixture": "grapheme_descriptors.json",
+    "schema_hash": "grapheme_descriptors@1.0.0",
+    "schema_version": "1.0.0",
+    "window_schema": "metric_windows@1.0.0",
+    "windows": [ { "kind": "grapheme_windows", "count": 668 } ]
+  }
+  ```
+
+这些片段均来自 `export-serde-fixtures` 的最新 `/tmp/staged-stage-d` 运行（feature 组合：`serde,cursor_state,tree_builder_slice_trace`），可在任意 Stage D rerun 后复制回文档或 QA 记录。
+
 开启额外 gate 时，需：
 
 1. 在命令中追加对应 feature；
@@ -239,7 +320,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
 | 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`，在两份档案中记录跳过理由与补偿动作。 |
 
-> **Latest run — 2025-11-18 16:24 UTC（✅ Stage D orchestrator + Release bench + telemetry）**：`python3 scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118T162433Z.log` 重新导出 Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`（`feature_gates=["cursor_state","serde","tree_builder_slice_trace"]`），并在同一日志内记录 `dotnet test Xi.Editor.sln`（199/199 绿）、`StageDDescriptorLoaderTests`（5/5 绿）、`StageDDescriptorHydratorTests`（3/3 绿）以及两次 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（All 10 fixtures match，第二次通过 `tee -a` 追加到同一 log）。`dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures` 更新 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`，随后 `stage-d-chunk-bench` 和 `stage-d-telemetry` 子步骤分别刷新 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 与 `grapheme-telemetry.trx`。整条烟囱（含 Release chunk bench + telemetry）都由 `stage-d-refresh-20251118T162433Z.log` 捕获并以 “All steps completed.” 收尾。
+> **Latest run — 2025-11-19 19:11 UTC（Stage D ingestion smoke + ledger audit）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error`, `dotnet test Xi.Editor.sln --filter StageDDescriptor`, `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`, `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures | tee tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 这一序列写入 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-191129.log`。StageDDescriptorLoaderTests/StageDDescriptorHydratorTests 合计 11 个断言全部通过，manifest verifier 复诵 “All 10 fixtures match the manifest hashes.”，Inspector ledger 重述同一 SHA 集（chunk `69ba7f25...`, grapheme `eb0c7c66...`, breaks `5d37a731...`, diff `fe76ed31...`, search `7eac7ecf...`, tree trace `22724af7...`, cursor `9b46bd8e...`, delta `59c45336...`, engine `8707d5de...`, subset `28fa3c80...`）。`[StageD::FixtureFlow]` 与 `[QA-IngestionSmoke]` 已引用上述 log + inspector + TRX，供 Rust/C#/QA 在不重跑流水线的前提下交叉验证。
 
 ### Skeleton 备用路径
 
@@ -275,13 +356,13 @@ dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|S
 | 步骤 | 命令 | 记录点 |
 | --- | --- | --- |
 | 切换到仓库根 | `cd /repos/xi-editor-sharp` | 确保与 Stage D 流水线使用同一 commit，hash 记入 `AGENTS.md`。
-| 运行基准 | `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` | 命令同 `tests/xi.Core.Tests/Benchmarks/Diagnostics/README.md`，`--stage-d` 读取最新 manifest ledger；`refresh_all_assets.py --only stage-d-fixtures` 会自动运行此命令。
+| 运行基准 | `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` | 命令同 `tests/xi.Core.Tests/Benchmarks/Diagnostics/README.md`，`--stage-d` 读取最新 manifest ledger + alloc 统计；`refresh_all_assets.py --only stage-d-fixtures` 会自动运行此命令。
 | 抓取指标 | 输出会打印 Chunk/Line 计数、最大 chunk 长度、总复制字节及枚举时长；`--report` 会把同样的数据写入 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 供 QA 入档。 | Screenshot/log 附在 `m3-implementation-plan.md §5.3` 与 `agents/qa-engineer.md`“最近完成”。
 | 校验阈值 | - 载荷：必须是 README 构造的 1 MB synthetic rope。<br>- 内存：GC/Process Alloc < **5 MB**。<br>- 吞吐：`1MB / chunkEnumerationMs` 与 `1MB / lineEnumerationMs` 推算 > **200 MB/s**。 | 若任一阈值失败，将结果写入 `docs/architecture/design-divergence-log.md` 并引用 `[QA-ChunkBench]`，同时在 `AGENTS.md` 标记为 Pending fix。
 
-> **Latest run — 2025-11-18 16:25 UTC（Release chunk/line replay + alloc stats）**：`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（由 `stage-d-fixtures` 步骤触发）在 manifest ledger `69ba7f25` 上回放 9 个 chunk 样本 / 11 条 line：chunk 阶段 4.25 ms ⇒ 235.12 MB/s，line 阶段 3.25 ms ⇒ 307.97 MB/s。`Allocation statistics` 仍为线程分配 37,944 bytes、GC gen0/1/2 = 0，满足 <5 MB 目标；完整指标与样本摘要记录在 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 并引用 `stage-d-inspector-latest.txt` 的同 commit 描述。
+> **Latest run — 2025-11-19 03:18:52 +08:00（Release chunk/line replay + alloc stats）**：`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（sha256 `6e9a617c2a5dd755b5bb60d1e4be0938a47cd06369efce272c46f27ef17ad469`, `stat` mtime `2025-11-19 03:18:52 +08:00`）重放 manifest ledger `69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a`（Rust commit `3799d2be9db0ef040517ed69df1b717e96a8958e`, feature gates `cursor_state,serde,tree_builder_slice_trace`）：chunk 阶段 3.91 ms ⇒ **255.93 MB/s**，line 阶段 2.88 ms ⇒ **347.07 MB/s**，线程分配 37,944 bytes，GC gen0/1/2 = 0。报告写入 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`，同批的 `stage-d-inspector-latest.txt` 复述相同 ledger/metric_windows 证据，继续满足 `[MP-R10]` 的 <5 MB alloc 与 >200 MB/s 吞吐阈值。
 
-> **QA 附件提醒**：执行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 或任何 Stage D smoke 前后，请将生成的 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry.trx` 以及相应的 `stage-d-refresh-<timestamp>.log` 一并入档，便于复核 manifest 哈希、1 MB 枚举指标与 Grapheme telemetry 的同 commit 证据。
+> **QA 附件提醒**：执行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 或任何 Stage D smoke 前后，请将生成的 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry-<timestamp>.txt`（高容量 harness）/`grapheme-telemetry.trx`（legacy smoke）以及相应的 `stage-d-refresh-<timestamp>.log` 一并入档，便于复核 manifest 哈希、1 MB 枚举指标与 Grapheme telemetry 的同 commit 证据。
 
 - **后续动作**：
   - 在 `AGENTS.md`「下一步行动」写入下次 rerun 日期，与 `[QA-IngestionSmoke]` hash 审计保持同频。
@@ -294,20 +375,20 @@ dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|S
 <a id="QA-Telemetry"></a>
 
 - **Purpose**：追踪 Grapheme fallback 比例，满足 `[MP-T4]`、`[MP-R10]` 与 `docs/architecture/m3-architect-decision.md` 里的 telemetry 目标；违反 <=0.5% 阈值时需在 `docs/architecture/design-divergence-log.md` 登记临时缓解策略。
-- **Inputs**：`tests/xi.Core.Tests/GraphemeNavigatorSmokeTests.cs`、`tests/xi.Core.Tests/GraphemeNavigatorParityTests.cs`、`GraphemeNavigationMetrics` 产出的 counters，以及 `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json`（保持与 `[StageD::ParityAssets]` 同步）。
+- **Inputs**：Stage D manifest（`StageDDescriptorLoader`）、`tests/xi.Core.Tests/Benchmarks/GraphemeTelemetryHarness/GraphemeTelemetryHarness.csproj`（Release harness，驱动 `DegradedGraphemeNavigator` + `GraphemeNavigationMetrics`）、`tests/xi.Core.Tests/GraphemeNavigatorSmokeTests.cs`（legacy smoke）、以及 `tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json`（保持与 `[StageD::ParityAssets]` 同步）。
 
 | 步骤 | 命令 | 记录点 |
 | --- | --- | --- |
-| 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter GraphemeNavigator` | `--filter` 会覆盖 smoke + parity 测试，输出 `GraphemeNavigationMetrics` 日志。Bash/PowerShell 命令一致。 |
-| 捕获指标 | 从测试输出或 `TestResults/*.trx` 中提取：`fallbackCount`, `totalMoves`, `neighborLookups`, `fallbackRatio = fallbackCount / totalMoves`。 | 将原始数字贴到 `agents/qa-engineer.md`、`AGENTS.md`，并在 `m3-implementation-plan.md §5.3` 的 QA 表更新 `qaAnchors.qa-telemetry.note`。 |
-| 阈值判断 | `fallbackRatio <= 0.5%`（<=0.005），`neighborLookups` 相比前次 run 不得激增 >10%，`moveCalls` 数量应与 `tests/xi.Core.Tests/GraphemeNavigatorSmokeTests.cs` 预期范围匹配。 | 若超标：<br>1. 在 `docs/architecture/design-divergence-log.md` 新增记录，说明触发点与拟定缓解。<br>2. 在 `AGENTS.md` 风险表登记，引用 `[QA-Telemetry]`。<br>3. 通知 Architecture Mapper / C# Implementer。 |
+| 高容量遥测（首选） | `dotnet run --project tests/xi.Core.Tests/Benchmarks/GraphemeTelemetryHarness/GraphemeTelemetryHarness.csproj --configuration Release -- --fixture-dir tests/xi.Core.Tests/Fixtures --target-ops 12000 --report tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry-<timestamp>.txt` | `--fixture-dir` 让 harness 读取 manifest ledger（Rust commit、feature gates `cursor_state,serde,tree_builder_slice_trace`），`--target-ops` 至少 10k（可按需提高），`--report` 产出 `[QA-Telemetry]` artefact。日志需记录 `Actual operations`、`Scalar fallback count`、`Fallback ratio`（≤0.5%）、`Pass attempts` 与 `Ops/sec`，并引用 `stage-d-inspector-latest.txt`。 |
+| 烟雾/回归验证 | `dotnet test Xi.Editor.sln --filter Category=StageDTelemetry --logger "trx;LogFileName=tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx"` | 维持 3 个 `GraphemeNavigatorSmokeTests` 样本的 TRX 证据，供旧版脚本或 `[QA-IngestionSmoke]` 交叉引用；若 `dotnet test` 在 TestResults 下生成 TRX，需复制到 `tests/xi.Core.Tests/Fixtures/Reports/`。 |
+| 阈值判断 | 读取 harness 日志：`fallbackRatio <= 0.5%`，`Requires fallback` 样本与 manifest 记录一致（目前 18/668 ≈0.3%），`Forward/Backward neighbor` 不突增。 | 若超标：<br>1. 在 `docs/architecture/design-divergence-log.md` 新增记录，说明触发点与拟定缓解。<br>2. 在 `AGENTS.md` 风险表登记，引用 `[QA-Telemetry]`。<br>3. 通知 Architecture Mapper / C# Implementer。 |
 
-- **Latest run — 2025-11-18 16:25 UTC（Grapheme telemetry smoke）**：`dotnet test Xi.Editor.sln --filter Category=StageDTelemetry --logger "trx;LogFileName=tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx"`（由 Stage D pipeline 触发）生成 `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx`。TRX `ResultSummary.Counters` 报告 `total=3/executed=3/passed=3/failed=0`，对应 `GraphemeNavigatorSmokeTests` 中 MoveNext/MovePrevious/Neighbor telemetry 三个样本，并确认遥测请求次数保持在脚本阈值范围内；此次运行时间戳为 `2025-11-19T00:25:41+08:00`，与 `stage-d-refresh-20251118T162433Z.log`/`chunk-bench-latest.txt` 同批。
+- **Latest run — 2025-11-18 18:57 UTC（Release harness ≥12k operations）**：`dotnet run --project tests/xi.Core.Tests/Benchmarks/GraphemeTelemetryHarness/GraphemeTelemetryHarness.csproj --configuration Release -- --fixture-dir tests/xi.Core.Tests/Fixtures --target-ops 12000 --report tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry-20251118T185753Z.txt`（Stage D manifest `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`, feature gates `cursor_state,serde,tree_builder_slice_trace`）回放 6,000 descriptors（9 次 pass，实际 12,000 MoveNext/MovePrevious 操作），`Scalar fallback count=0` ⇒ fallback ratio **0.0000%**，`Requires fallback descriptors=18 (0.3000%)`，`Cross-leaf cases=9`，耗时 **381.81 ms**（≈31,429 ops/s）。同批次的 `stage-d-inspector-latest.txt`/`chunk-bench-latest.txt` 共享 manifest ledger；日志路径 `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry-20251118T185753Z.txt`。随后以 `dotnet test Xi.Editor.sln --filter Category=StageDTelemetry --logger "trx;LogFileName=tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx"` 刷新 TRX（total=3/executed=3/passed=3）。
 
 - **后续动作**：
-  - 将本次 run 的 `dotnet test` 命令与结果链接到 `[QA-IngestionSmoke]` 中的测试矩阵，以便 Stage D smoke 与 telemetry 数据共用。
-  - 若 fallback ratio 曾经触发 Divergence，恢复 ≤0.5% 后需在 `design-divergence-log.md` 更新 Exit 条件并引用 `[QA-Telemetry]`。
-  - 对应的 `QA` dossier与 `m3-implementation-plan.md` QA 表必须在 24 小时内刷新，确保 `qaAnchors` 不指向过期数据。
+  1. 将 harness + TRX artefact 链接到 `[QA-IngestionSmoke]`、`m3-implementation-plan.md` 与 `agents/qa-engineer.md`，保持 Goal Tree `qaAnchors` <7 天。
+  2. 若 fallback ratio、neighbor 请求或 `Requires fallback` 占比有异常波动，立即在 `docs/architecture/design-divergence-log.md#[QA-Telemetry]` 登记并通知 Architecture Mapper / QA。
+  3. 需要 Information Researcher 在证据索引中引用最新 `.txt` + `.trx` 文件，以便 Ready Queue #7 自动回收。 
 
 ---
 

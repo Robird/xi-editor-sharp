@@ -1,0 +1,1081 @@
+Detected WSL kernel; using CARGO_TARGET_DIR=/root/.cache/xi-editor-ph7/target for builds.
+clippy 0.1.93 (e65b983161 2025-11-15)
+rustfmt 1.8.0-nightly (e65b983161 2025-11-15)
+Running rustfmt:
+Rustfmt check passed.
+Running clippy:
+Clippy check passed.
+Checking compiler warnings:
+Check passed!
+Running "cargo test --all"
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 129 tests
+test annotations::tests::test_annotation_range_serialization ... ok
+test annotations::tests::test_annotation_slice_json ... ok
+test config::tests::test_diff ... ok
+test annotations::tests::test_annotation_range_deserialization ... ok
+test config::tests::test_config_domain_serde ... ok
+test annotations::tests::test_annotation_store_clear ... ok
+test annotations::tests::test_annotation_store_update ... ok
+test config::tests::test_updating_in_place ... ok
+test config::tests::test_overrides ... ok
+test config::tests::lang_overrides ... ok
+test editor::tests::plugin_edit ... ok
+test event_context::tests::delete_emoji_modifier_tests ... ok
+test event_context::tests::empty_transpose ... ok
+test event_context::tests::delete_variation_selector_tests ... ok
+test event_context::tests::delete_combining_enclosing_keycaps_tests ... ok
+test event_context::tests::delete_tests ... ok
+test event_context::tests::delete_emoji_zwj_sequence_tests ... ok
+test event_context::tests::delete_flags_tests ... ok
+test event_context::tests::delete_mixed_edge_cases_tests ... ok
+test event_context::tests::movement_recording ... ok
+test event_context::tests::multiline_indentation_test ... ok
+test event_context::tests::eol_multicursor_transpose ... ok
+test find::tests::find ... ok
+test find::tests::find_case_sensitive ... ok
+test find::tests::find_multiline ... ok
+test event_context::tests::smoke_test ... ok
+test find::tests::find_next_occurrence ... ok
+test find::tests::find_previous_occurrence ... ok
+test find::tests::find_multiline_regex ... ok
+test event_context::tests::simple_indentation_test ... ok
+test find::tests::find_slop ... ok
+test find::tests::find_regex_multiline ... ok
+test event_context::tests::number_change_tests ... ok
+test event_context::tests::test_exact_position ... ok
+test find::tests::update_find_edit ... ok
+test find::tests::find_whole_words ... ok
+test index_set::tests::apply_delta ... ok
+test index_set::tests::delete_range ... ok
+test index_set::tests::empty_behavior ... ok
+test find::tests::unset_find ... ok
+test find::tests::update_find_multiline_edit ... ok
+test index_set::tests::minus_one_range_double_ended_iter ... ok
+test index_set::tests::unions ... ok
+test index_set::tests::single_range_behavior ... ok
+test line_ending::tests::bad_space ... ok
+test line_ending::tests::crlf ... ok
+test index_set::tests::two_range_minus ... ok
+test line_ending::tests::legacy_mac_errors ... ok
+test line_ending::tests::lf ... ok
+test linewrap::tests::column_breaks_hard_soft ... ok
+test linewrap::tests::column_breaks_basic ... ok
+test linewrap::tests::dont_break_til_i_tell_you ... ok
+test linewrap::tests::column_breaks_trailing_newline ... ok
+test linewrap::tests::empty_file ... ok
+test linewrap::tests::expected_soft_breaks ... ok
+test linewrap::tests::expected_soft_with_hard ... ok
+test linewrap::tests::iter_lines ... ok
+test linewrap::tests::line_numbers ... ok
+test linewrap::tests::break_now_though ... ok
+test linewrap::tests::merge_cursor_breaks ... ok
+test linewrap::tests::merge_cursor_no_breaks ... ok
+test linewrap::tests::merged_offset ... ok
+test linewrap::tests::newline_eof ... ok
+test linewrap::tests::newlines ... ok
+test linewrap::tests::no_newline_eof ... ok
+test linewrap::tests::patchup_frontier ... ok
+test linewrap::tests::offset_to_line ... ok
+test linewrap::tests::patchup_for_edit_before_task ... ok
+test linewrap::tests::set_offset ... ok
+test linewrap::tests::update_frontier ... ok
+test linewrap::tests::soft_before_hard ... ok
+test plugins::manifest::tests::platform_exec_path ... ok
+test plugins::manifest::tests::test_serde_command ... ok
+test plugins::rpc::tests::test_de_plugin_rpc ... ok
+test linewrap::tests::test_break_at_linear_transition ... ok
+test event_context::tests::test_gestures ... ok
+test plugins::rpc::tests::test_plugin_update ... ok
+test recorder::tests::basic_undo_swapped ... ok
+test recorder::tests::basic_undo ... ok
+test recorder::tests::clear_recording ... ok
+test plugins::rpc::tests::test_deserde_init ... ok
+test recorder::tests::play_recording ... ok
+test recorder::tests::multiple_recordings ... ok
+test recorder::tests::play_only_after_saved ... ok
+test recorder::tests::prevent_same_playback ... ok
+test recorder::tests::text_playback ... ok
+test recorder::tests::undo_as_first_item ... ok
+test recorder::tests::redo_as_first_item ... ok
+test recorder::tests::redo_cancels_undo ... ok
+test rpc::tests::test_serialize_edit_command ... ok
+test recorder::tests::undo_cancels_redo ... ok
+test selection::tests::apply_delta_drift_ignored_for_carets ... ok
+test selection::tests::apply_delta_inside_drift ... ok
+test selection::tests::apply_delta_outside_drift ... ok
+test selection::tests::delete_range ... ok
+test selection::tests::display ... ok
+test selection::tests::caret_regions_in_range ... ok
+test selection::tests::empty ... ok
+test selection::tests::from_selregion ... ok
+test selection::tests::merge_carets ... ok
+test selection::tests::merge_region_caret ... ok
+test selection::tests::merge_regions ... ok
+test selection::tests::simple_regions_in_range ... ok
+test selection::tests::simple_region ... ok
+test selection::tests::merge_reverse ... ok
+test syntax::tests::language_for_path ... ok
+test find::tests::find_regex ... ok
+test tabs::tests::test_deserialize_view_id ... ok
+test view::tests::find_all ... ok
+test view::tests::find_next ... ok
+test view::tests::selection_for_find ... ok
+test view::tests::multi_queries_find_all ... ok
+test view::tests::multi_queries_find_next ... ok
+test watcher::tests::test_applies_to_path ... ok
+test event_context::tests::test_illegal_plugin_edit ... ok
+test whitespace::tests::gcd_calculates_correctly ... ok
+test whitespace::tests::line_errors_mixed_indent ... ok
+test whitespace::tests::line_gets_tabs ... ok
+test whitespace::tests::line_gets_two_spaces ... ok
+test whitespace::tests::rope_gets_four_spaces ... ok
+test whitespace::tests::rope_gets_two_spaces ... ok
+test whitespace::tests::rope_returns_none ... ok
+test event_context::tests::text_recording ... ok
+test watcher::tests::test_crash_repro ... ok
+test view::tests::incremental_find_update ... ok
+test view::tests::incremental_find_codepoint_boundary ... ok
+test linewrap::tests::bsearch_equivalence ... ok
+test watcher::tests::recurse_with_contained ... ok
+test watcher::tests::two_watchers_one_file ... ok
+
+test result: ok. 129 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.87s
+
+
+running 8 tests
+test test_malformed_json ... ok
+test test_settings_commands ... ok
+test test_state ... ok
+test test_other_edit_commands ... ok
+test test_text_commands ... ok
+test test_movement_cmds ... ok
+test test_startup ... ok
+test test_invalidate ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s
+
+
+running 16 tests
+test base_cache::tests::cache_offsets ... ok
+test base_cache::tests::clear_up_to ... ok
+test base_cache::tests::cached_offset_of_line ... ok
+test base_cache::tests::convert_lines_offsets ... ok
+test base_cache::tests::get_big_line ... ok
+test base_cache::tests::get_last_line ... ok
+test base_cache::tests::get_line_regression ... ok
+test base_cache::tests::get_lines ... ok
+test base_cache::tests::get_region ... ok
+test base_cache::tests::large_delete ... ok
+test base_cache::tests::reset_chunk ... ok
+test base_cache::tests::offset_of_line ... ok
+test base_cache::tests::simple_chunk ... ok
+test base_cache::tests::simple_delete ... ok
+test base_cache::tests::simple_edits_with_offset ... ok
+test base_cache::tests::simple_insert ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 171 tests
+test breaks::tests::helper_handles_empty_breaks ... ok
+test breaks::tests::fromleaf ... ok
+test breaks::tests::empty ... ok
+test compare::tests::avx_mask ... ok
+test breaks::tests::helper_matches_metric_parity ... ok
+test compare::tests::find_back_utf8 ... ok
+test compare::tests::find_diff_range ... ok
+test compare::tests::find_diff_range_ne_lens ... ok
+test breaks::tests::default_metric_test ... ok
+test compare::tests::find_forward_utf8 ... ok
+test compare::tests::ne_avx ... ok
+test compare::tests::ne_idx_rev_utf8 ... ok
+test compare::tests::ne_len_rev_sse ... ok
+test breaks::tests::one ... ok
+test compare::tests::ne_len ... ok
+test compare::tests::ne_len_rev ... ok
+test compare::tests::ne_len_simd ... ok
+test breaks::tests::concat ... ok
+test compare::tests::ne_rev_regression1 ... ok
+test compare::tests::scan_back_ne_lens ... ok
+test compare::tests::scanner_backward_simple ... ok
+test compare::tests::scanner_forward_simple ... ok
+test compare::tests::scanner_back ... ok
+test delta::tests::inserted_subset ... ok
+test delta::tests::factor ... ok
+test delta::tests::is_simple_delete ... ok
+test delta::tests::iter_deletions ... ok
+test delta::tests::simple ... ok
+test delta::tests::is_identity ... ok
+test delta::tests::fancy_bounds ... ok
+test delta::tests::iter_inserts ... ok
+test delta::tests::synthesize ... ok
+test breaks::tests::larger ... ok
+test delta::tests::transform_expand ... ok
+test delta::tests::transform_shrink ... ok
+test delta::tests::as_simple_insert ... ok
+test delta::serde_tests::delta_serde ... ok
+test engine::tests::compute_transforms_1 ... ok
+test diff::tests::simple_diff ... ok
+test delta::serde_tests::delta_serialization_regression ... ok
+test engine::tests::compute_deltas_1 ... ok
+test engine::tests::compute_transforms_2 ... ok
+test engine::tests::edit_rev_empty ... ok
+test engine::tests::edit_rev_concurrent ... ok
+test engine::tests::edit_rev_simple ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::edit_rev_undo ... ok
+test diff::tests::diff_smoke_test ... ok
+test engine::tests::engine_serialization_regression ... ok
+test engine::tests::edit_rev_undo_3 ... ok
+test engine::tests::find_base_1 ... ok
+test engine::tests::find_common_1 ... ok
+test diff::tests::test_larger_diff ... ok
+test engine::tests::gc_2 ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::undo_3 ... ok
+test engine::tests::undo_4 ... ok
+test engine::tests::undo_5 ... ok
+test engine::tests::undo ... ok
+test find::tests::compare_cursor_str_medium ... ok
+test engine::tests::edit_rev_bad_delta_len - should panic ... ok
+test find::tests::compare_cursor_str_small ... ok
+test find::tests::find_casei_ascii_nonalpha ... ok
+test find::tests::find_casei_small ... ok
+test find::tests::find_casei_0xc4 ... ok
+test find::tests::find_casei_special ... ok
+test find::tests::find_medium ... ok
+test find::tests::find_small ... ok
+test helpers::string_leaf::tests::bulk_split_respects_capacity_bounds ... ok
+test helpers::string_leaf::tests::count_utf16_code_units_handles_mixed_scalar_values ... ok
+test helpers::string_leaf::tests::split_avoids_surrogate_pair ... ok
+test helpers::string_leaf::tests::split_prefers_newline_within_window ... ok
+test interval::tests::after ... ok
+test interval::tests::before ... ok
+test interval::tests::contains ... ok
+test interval::tests::empty ... ok
+test interval::tests::intersect ... ok
+test interval::tests::prefix ... ok
+test find::tests::compare_cursor_regex_singleline ... ok
+test find::tests::compare_cursor_regex_multiline ... ok
+test interval::tests::suffix ... ok
+test metrics::break_indices::tests::handles_duplicates ... ok
+test interval::tests::translate ... ok
+test interval::tests::size ... ok
+test metrics::break_indices::tests::handles_empty_breaks ... ok
+test metrics::codepoint::tests::ascii_boundaries ... ok
+test metrics::break_indices::tests::navigates_breaks ... ok
+test metrics::codepoint::tests::continuation_scan_stops_at_start ... ok
+test metrics::codepoint::tests::counts_utf16_code_units ... ok
+test metrics::identity::tests::delegates_to_inner_metric ... ok
+test metrics::lines::tests::counts_ascii_newlines ... ok
+test metrics::lines::tests::finds_next_newline_boundaries ... ok
+test metrics::lines::tests::finds_prev_newline_boundaries ... ok
+test metrics::codepoint::tests::multibyte_boundaries ... ok
+test multiset::tests::test_apply ... ok
+test metrics::lines::tests::prev_handles_no_newline ... ok
+test multiset::tests::subset_serialization_regression ... ok
+test multiset::tests::test_complement ... ok
+test multiset::tests::test_find_deletions ... ok
+test multiset::tests::test_mapper ... ok
+test multiset::tests::union ... ok
+test multiset::tests::test_mapper_requires_non_decreasing - should panic ... ok
+test multiset::tests::trivial ... ok
+test rope::serde_tests::test_ser_de ... ok
+test find::tests::find_regex_small ... ok
+test multiset::tests::transform ... ok
+test rope::tests::default_metric_test ... ok
+test rope::serde_tests::serialize_and_deserialize ... ok
+test rope::tests::line_of_offset_small ... ok
+test rope::tests::eq_small ... ok
+test rope::tests::line_of_offset_panic - should panic ... ok
+test rope::tests::eq_med ... ok
+test rope::tests::line_offsets ... ok
+test rope::tests::lines_raw_small ... ok
+test rope::tests::lines_med ... ok
+test rope::tests::lines_small ... ok
+test rope::tests::next_codepoint_offset_small ... ok
+test rope::tests::next_grapheme_offset ... ok
+test rope::tests::offset_of_line_panic - should panic ... ok
+test rope::tests::offset_of_line_small ... ok
+test rope::tests::peek_next_codepoint ... ok
+test rope::tests::prev_codepoint_offset_small ... ok
+test rope::tests::prev_grapheme_offset ... ok
+test rope::tests::replace_small ... ok
+test rope::tests::slice_to_cow_long_string_short_slice ... ok
+test rope::tests::slice_to_cow_small_string ... ok
+test rope::tests::rope_metric_conversion_shims ... ok
+test rope::tests::slice_to_cow_long_string_long_slice ... ok
+test rope::tests::utf16_code_units_metric ... ok
+test spans::tests::delete_after_big_and_small ... ok
+test spans::tests::delete_after_big_at_start ... ok
+test spans::tests::delete_after_empty ... ok
+test spans::tests::test_delete_after ... ok
+test spans::tests::test_merge_2 ... ok
+test tree::test::at_or_next ... ok
+test spans::tests::test_merge ... ok
+test tree::test::cursor_iter ... ok
+test tree::test::cursor_next_empty ... ok
+test find::tests::find_regex_medium ... ok
+test tree::test::cursor_next_misc ... ok
+test find::tests::find_regex_small_casei ... ok
+test tree::test::next_zero_measure_large ... ok
+test tree::test::node_is_empty ... ok
+test tree::test::prev_line_small ... ok
+test tree::test::cursor_prev_misc ... ok
+test tree::test::balance_invariant ... ok
+test tree::test::prev_line_large ... ok
+test tree::test::cursor_next_triangle ... ok
+test rope::tests::append_large ... ok
+test tree::test::eq_rope_with_pieces ... ok
+test rope::tests::next_grapheme_offset_with_ris_of_leaf_boundaries ... ok
+
+test result: ok. 171 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /tmp/.tmpUv1QIy/breaks_fixtures/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_breaks_export::exporter_creates_breaks_descriptor_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.25s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /tmp/.tmpVb4eU3/chunk_fixtures/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_chunk_export::exporter_creates_chunk_and_line_descriptor_files ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+
+
+running 5 tests
+test cursor_descriptor_rejects_invalid_snapshot ... ok
+test cursor_descriptor_invalidates_after_rebuild ... ok
+test cursor_descriptor_round_trip_basic ... ok
+test cursor_descriptor_handles_deep_paths ... ok
+exported 12 cursor descriptor samples to /tmp/.tmpxjJfdE/cursor_fixtures/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test exporter_creates_cursor_descriptor_file ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.36s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/target/.tmpVSJGvz/diff_regions_export/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_diff_export::exporter_creates_diff_regions_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /tmp/.tmpF1yAU2/grapheme_fixtures/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_grapheme_export::exporter_creates_grapheme_descriptor_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /tmp/.tmpIVtSON/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_search_export::exporter_creates_search_spans_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.16s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 9 tests
+test parse::tests::request_failure ... ok
+test parse::tests::notif_with_id ... ok
+test parse::tests::request_success ... ok
+test parse::tests::test_resp_err ... ok
+test parse::tests::test_resp_result ... ok
+test tests::test_parse_bad_json ... ok
+test parse::tests::test_err ... ok
+test tests::test_parse_notif ... ok
+test tests::test_parse_req ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test test_bad_json_err ... ok
+test test_recv_error ... ok
+test test_recv_resp ... ok
+test test_recv_notif ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 12 tests
+test fixed_lifo_deque::tests::test_basic_insertions ... ok
+test tests::test_cross_process_samples ... ok
+test tests::test_disable_drops_all_samples ... ok
+test tests::test_get_samples_nested_trace ... ok
+test tests::test_get_samples ... ok
+test chrome_trace_dump::tests::test_chrome_trace_deserialization ... ok
+test chrome_trace_dump::tests::test_chrome_trace_serialization ... ok
+test tests::test_samples_block ... ok
+test tests::test_get_sorted_samples ... ok
+test tests::test_trace_disabled ... ok
+test tests::test_samples_closure ... ok
+test tests::test_samples_pulse ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test tests::lb_iter_eot ... ok
+test tests::lb_iter_simple ... ok
+test tests::linebreak_prop ... ok
+test tests::linebreak_prop_str ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test line_break_test ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+
+running 6 tests
+test core-lib/src/rpc.rs - rpc::CoreNotification (line 52) ... ok
+test core-lib/src/rpc.rs - rpc::CoreRequest (line 217) ... ok
+test core-lib/src/rpc.rs - rpc::CoreNotification::Edit (line 110) ... ok
+test core-lib/src/rpc.rs - rpc::CoreNotification::Plugin (line 149) ... ok
+test core-lib/src/rpc.rs - rpc::CoreNotification (line 71) ... ok
+test core-lib/src/rpc.rs - rpc::EditCommand (line 264) ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.54s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+
+
+running 2 tests
+test rpc/src/error.rs - error::RemoteError (line 65) ... ok
+test rpc/src/error.rs - error::RemoteError (line 85) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+
+running 6 tests
+test trace/src/lib.rs - trace_payload (line 937) ... ignored
+test trace/src/chrome_trace_dump.rs - chrome_trace_dump::serialize (line 82) - compile ... ok
+test trace/src/lib.rs - trace_block (line 972) ... ok
+test trace/src/lib.rs - trace (line 893) ... ok
+test trace/src/lib.rs - trace_payload (line 931) ... ok
+test trace/src/lib.rs - trace_closure (line 1029) ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Running "cargo test -p xi-rope --no-default-features"
+
+running 165 tests
+test breaks::tests::fromleaf ... ok
+test breaks::tests::empty ... ok
+test breaks::tests::helper_matches_metric_parity ... ok
+test breaks::tests::helper_handles_empty_breaks ... ok
+test compare::tests::avx_mask ... ok
+test breaks::tests::default_metric_test ... ok
+test compare::tests::ne_avx ... ok
+test breaks::tests::concat ... ok
+test breaks::tests::one ... ok
+test breaks::tests::larger ... ok
+test compare::tests::ne_len_rev_sse ... ok
+test compare::tests::ne_len_simd ... ok
+test compare::tests::ne_idx_rev_utf8 ... ok
+test compare::tests::ne_len ... ok
+test compare::tests::ne_len_rev ... ok
+test compare::tests::ne_rev_regression1 ... ok
+test compare::tests::find_forward_utf8 ... ok
+test compare::tests::find_diff_range ... ok
+test compare::tests::find_back_utf8 ... ok
+test compare::tests::scan_back_ne_lens ... ok
+test compare::tests::find_diff_range_ne_lens ... ok
+test compare::tests::scanner_backward_simple ... ok
+test compare::tests::scanner_back ... ok
+test compare::tests::scanner_forward_simple ... ok
+test delta::tests::inserted_subset ... ok
+test delta::tests::is_identity ... ok
+test delta::tests::fancy_bounds ... ok
+test delta::tests::is_simple_delete ... ok
+test delta::tests::iter_deletions ... ok
+test delta::tests::iter_inserts ... ok
+test delta::tests::simple ... ok
+test delta::tests::factor ... ok
+test delta::tests::synthesize ... ok
+test delta::tests::transform_expand ... ok
+test delta::tests::transform_shrink ... ok
+test delta::tests::as_simple_insert ... ok
+test engine::tests::compute_transforms_1 ... ok
+test diff::tests::simple_diff ... ok
+test engine::tests::compute_deltas_1 ... ok
+test engine::tests::compute_transforms_2 ... ok
+test engine::tests::edit_rev_empty ... ok
+test engine::tests::edit_rev_simple ... ok
+test engine::tests::edit_rev_concurrent ... ok
+test diff::tests::diff_smoke_test ... ok
+test engine::tests::find_base_1 ... ok
+test engine::tests::edit_rev_undo_3 ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::find_common_1 ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_2 ... ok
+test diff::tests::test_larger_diff ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::edit_rev_undo ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::edit_rev_bad_delta_len - should panic ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::undo ... ok
+test engine::tests::undo_3 ... ok
+test engine::tests::undo_4 ... ok
+test engine::tests::undo_5 ... ok
+test find::tests::find_casei_0xc4 ... ok
+test find::tests::compare_cursor_str_medium ... ok
+test find::tests::compare_cursor_str_small ... ok
+test find::tests::find_casei_special ... ok
+test find::tests::find_casei_ascii_nonalpha ... ok
+test find::tests::find_medium ... ok
+test find::tests::find_casei_small ... ok
+test helpers::string_leaf::tests::bulk_split_respects_capacity_bounds ... ok
+test helpers::string_leaf::tests::count_utf16_code_units_handles_mixed_scalar_values ... ok
+test helpers::string_leaf::tests::split_avoids_surrogate_pair ... ok
+test find::tests::find_small ... ok
+test helpers::string_leaf::tests::split_prefers_newline_within_window ... ok
+test interval::tests::after ... ok
+test interval::tests::before ... ok
+test interval::tests::contains ... ok
+test interval::tests::empty ... ok
+test interval::tests::intersect ... ok
+test interval::tests::prefix ... ok
+test interval::tests::size ... ok
+test interval::tests::translate ... ok
+test metrics::break_indices::tests::handles_duplicates ... ok
+test interval::tests::suffix ... ok
+test metrics::break_indices::tests::handles_empty_breaks ... ok
+test metrics::break_indices::tests::navigates_breaks ... ok
+test metrics::codepoint::tests::continuation_scan_stops_at_start ... ok
+test metrics::codepoint::tests::ascii_boundaries ... ok
+test metrics::codepoint::tests::counts_utf16_code_units ... ok
+test metrics::codepoint::tests::multibyte_boundaries ... ok
+test metrics::lines::tests::finds_next_newline_boundaries ... ok
+test metrics::identity::tests::delegates_to_inner_metric ... ok
+test metrics::lines::tests::counts_ascii_newlines ... ok
+test metrics::lines::tests::prev_handles_no_newline ... ok
+test find::tests::compare_cursor_regex_singleline ... ok
+test metrics::lines::tests::finds_prev_newline_boundaries ... ok
+test multiset::tests::test_apply ... ok
+test multiset::tests::test_complement ... ok
+test multiset::tests::test_mapper_requires_non_decreasing - should panic ... ok
+test multiset::tests::trivial ... ok
+test multiset::tests::test_find_deletions ... ok
+test multiset::tests::test_mapper ... ok
+test multiset::tests::transform ... ok
+test find::tests::compare_cursor_regex_multiline ... ok
+test multiset::tests::union ... ok
+test rope::tests::default_metric_test ... ok
+test rope::tests::line_of_offset_panic - should panic ... ok
+test rope::tests::eq_small ... ok
+test rope::tests::line_of_offset_small ... ok
+test rope::tests::eq_med ... ok
+test rope::tests::line_offsets ... ok
+test rope::tests::next_codepoint_offset_small ... ok
+test rope::tests::lines_raw_small ... ok
+test rope::tests::lines_med ... ok
+test rope::tests::lines_small ... ok
+test rope::tests::next_grapheme_offset ... ok
+test rope::tests::offset_of_line_small ... ok
+test rope::tests::peek_next_codepoint ... ok
+test rope::tests::prev_codepoint_offset_small ... ok
+test rope::tests::prev_grapheme_offset ... ok
+test find::tests::find_regex_small ... ok
+test rope::tests::rope_metric_conversion_shims ... ok
+test rope::tests::replace_small ... ok
+test rope::tests::slice_to_cow_long_string_long_slice ... ok
+test rope::tests::slice_to_cow_small_string ... ok
+test rope::tests::slice_to_cow_long_string_short_slice ... ok
+test rope::tests::utf16_code_units_metric ... ok
+test spans::tests::delete_after_big_and_small ... ok
+test spans::tests::delete_after_big_at_start ... ok
+test spans::tests::delete_after_empty ... ok
+test spans::tests::test_merge ... ok
+test spans::tests::test_delete_after ... ok
+test spans::tests::test_merge_2 ... ok
+test tree::test::at_or_next ... ok
+test tree::test::cursor_next_empty ... ok
+test tree::test::cursor_iter ... ok
+test rope::tests::offset_of_line_panic - should panic ... ok
+test tree::test::cursor_next_misc ... ok
+test tree::test::balance_invariant ... ok
+test find::tests::find_regex_small_casei ... ok
+test tree::test::node_is_empty ... ok
+test tree::test::next_zero_measure_large ... ok
+test tree::test::prev_line_small ... ok
+test find::tests::find_regex_medium ... ok
+test tree::test::cursor_prev_misc ... ok
+test tree::test::prev_line_large ... ok
+test tree::test::cursor_next_triangle ... ok
+test rope::tests::append_large ... ok
+test tree::test::eq_rope_with_pieces ... ok
+test rope::tests::next_grapheme_offset_with_ris_of_leaf_boundaries ... ok
+
+test result: ok. 165 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 4 tests
+test cursor_descriptor_invalidates_after_rebuild ... ok
+test cursor_descriptor_rejects_invalid_snapshot ... ok
+test cursor_descriptor_round_trip_basic ... ok
+test cursor_descriptor_handles_deep_paths ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+
+Running "cargo test -p xi-rope --features serde"
+
+running 171 tests
+test breaks::tests::empty ... ok
+test breaks::tests::concat ... ok
+test breaks::tests::default_metric_test ... ok
+test breaks::tests::fromleaf ... ok
+test breaks::tests::helper_handles_empty_breaks ... ok
+test breaks::tests::helper_matches_metric_parity ... ok
+test breaks::tests::one ... ok
+test breaks::tests::larger ... ok
+test compare::tests::avx_mask ... ok
+test compare::tests::ne_avx ... ok
+test compare::tests::find_back_utf8 ... ok
+test compare::tests::find_diff_range_ne_lens ... ok
+test compare::tests::find_diff_range ... ok
+test compare::tests::ne_idx_rev_utf8 ... ok
+test compare::tests::find_forward_utf8 ... ok
+test compare::tests::ne_len ... ok
+test compare::tests::ne_len_simd ... ok
+test compare::tests::ne_rev_regression1 ... ok
+test compare::tests::ne_len_rev ... ok
+test compare::tests::scan_back_ne_lens ... ok
+test compare::tests::scanner_backward_simple ... ok
+test compare::tests::scanner_back ... ok
+test compare::tests::ne_len_rev_sse ... ok
+test compare::tests::scanner_forward_simple ... ok
+test delta::serde_tests::delta_serialization_regression ... ok
+test delta::tests::as_simple_insert ... ok
+test delta::tests::factor ... ok
+test delta::tests::fancy_bounds ... ok
+test delta::tests::is_identity ... ok
+test delta::tests::inserted_subset ... ok
+test delta::serde_tests::delta_serde ... ok
+test delta::tests::is_simple_delete ... ok
+test delta::tests::simple ... ok
+test delta::tests::iter_deletions ... ok
+test delta::tests::synthesize ... ok
+test delta::tests::transform_expand ... ok
+test delta::tests::transform_shrink ... ok
+test delta::tests::iter_inserts ... ok
+test diff::tests::simple_diff ... ok
+test diff::tests::diff_smoke_test ... ok
+test engine::tests::compute_transforms_2 ... ok
+test engine::tests::compute_transforms_1 ... ok
+test engine::tests::compute_deltas_1 ... ok
+test engine::tests::edit_rev_concurrent ... ok
+test engine::tests::edit_rev_bad_delta_len - should panic ... ok
+test engine::tests::edit_rev_empty ... ok
+test engine::tests::edit_rev_simple ... ok
+test engine::tests::edit_rev_undo ... ok
+test engine::tests::edit_rev_undo_3 ... ok
+test engine::tests::find_base_1 ... ok
+test engine::tests::engine_serialization_regression ... ok
+test diff::tests::test_larger_diff ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::gc_2 ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::find_common_1 ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::undo ... ok
+test engine::tests::undo_5 ... ok
+test engine::tests::undo_3 ... ok
+test find::tests::compare_cursor_str_small ... ok
+test engine::tests::undo_4 ... ok
+test find::tests::compare_cursor_str_medium ... ok
+test find::tests::find_casei_special ... ok
+test find::tests::find_casei_0xc4 ... ok
+test find::tests::find_casei_ascii_nonalpha ... ok
+test find::tests::find_medium ... ok
+test find::tests::find_casei_small ... ok
+test helpers::string_leaf::tests::bulk_split_respects_capacity_bounds ... ok
+test helpers::string_leaf::tests::count_utf16_code_units_handles_mixed_scalar_values ... ok
+test helpers::string_leaf::tests::split_avoids_surrogate_pair ... ok
+test helpers::string_leaf::tests::split_prefers_newline_within_window ... ok
+test interval::tests::after ... ok
+test interval::tests::contains ... ok
+test interval::tests::before ... ok
+test interval::tests::intersect ... ok
+test interval::tests::empty ... ok
+test find::tests::find_small ... ok
+test interval::tests::prefix ... ok
+test find::tests::compare_cursor_regex_singleline ... ok
+test interval::tests::size ... ok
+test interval::tests::suffix ... ok
+test find::tests::compare_cursor_regex_multiline ... ok
+test interval::tests::translate ... ok
+test metrics::break_indices::tests::handles_empty_breaks ... ok
+test metrics::break_indices::tests::navigates_breaks ... ok
+test metrics::codepoint::tests::ascii_boundaries ... ok
+test metrics::codepoint::tests::continuation_scan_stops_at_start ... ok
+test metrics::identity::tests::delegates_to_inner_metric ... ok
+test metrics::codepoint::tests::multibyte_boundaries ... ok
+test metrics::lines::tests::counts_ascii_newlines ... ok
+test metrics::codepoint::tests::counts_utf16_code_units ... ok
+test metrics::lines::tests::finds_next_newline_boundaries ... ok
+test metrics::lines::tests::prev_handles_no_newline ... ok
+test metrics::break_indices::tests::handles_duplicates ... ok
+test metrics::lines::tests::finds_prev_newline_boundaries ... ok
+test multiset::tests::test_mapper ... ok
+test multiset::tests::subset_serialization_regression ... ok
+test multiset::tests::test_apply ... ok
+test multiset::tests::test_complement ... ok
+test multiset::tests::test_find_deletions ... ok
+test multiset::tests::test_mapper_requires_non_decreasing - should panic ... ok
+test multiset::tests::transform ... ok
+test multiset::tests::trivial ... ok
+test multiset::tests::union ... ok
+test rope::serde_tests::serialize_and_deserialize ... ok
+test rope::serde_tests::test_ser_de ... ok
+test rope::tests::eq_small ... ok
+test rope::tests::eq_med ... ok
+test rope::tests::line_of_offset_panic - should panic ... ok
+test find::tests::find_regex_small ... ok
+test rope::tests::default_metric_test ... ok
+test rope::tests::line_of_offset_small ... ok
+test rope::tests::lines_raw_small ... ok
+test rope::tests::line_offsets ... ok
+test rope::tests::next_grapheme_offset ... ok
+test rope::tests::lines_med ... ok
+test rope::tests::lines_small ... ok
+test rope::tests::next_codepoint_offset_small ... ok
+test rope::tests::offset_of_line_panic - should panic ... ok
+test rope::tests::offset_of_line_small ... ok
+test rope::tests::prev_codepoint_offset_small ... ok
+test rope::tests::rope_metric_conversion_shims ... ok
+test rope::tests::prev_grapheme_offset ... ok
+test rope::tests::replace_small ... ok
+test rope::tests::slice_to_cow_long_string_long_slice ... ok
+test rope::tests::peek_next_codepoint ... ok
+test rope::tests::slice_to_cow_long_string_short_slice ... ok
+test rope::tests::slice_to_cow_small_string ... ok
+test rope::tests::utf16_code_units_metric ... ok
+test spans::tests::delete_after_big_at_start ... ok
+test spans::tests::delete_after_empty ... ok
+test spans::tests::delete_after_big_and_small ... ok
+test spans::tests::test_merge ... ok
+test tree::test::at_or_next ... ok
+test spans::tests::test_delete_after ... ok
+test tree::test::cursor_next_empty ... ok
+test spans::tests::test_merge_2 ... ok
+test find::tests::find_regex_small_casei ... ok
+test tree::test::cursor_iter ... ok
+test find::tests::find_regex_medium ... ok
+test tree::test::next_zero_measure_large ... ok
+test tree::test::cursor_next_misc ... ok
+test tree::test::node_is_empty ... ok
+test tree::test::prev_line_small ... ok
+test tree::test::cursor_prev_misc ... ok
+test tree::test::balance_invariant ... ok
+test tree::test::prev_line_large ... ok
+test tree::test::cursor_next_triangle ... ok
+test rope::tests::append_large ... ok
+test tree::test::eq_rope_with_pieces ... ok
+test rope::tests::next_grapheme_offset_with_ris_of_leaf_boundaries ... ok
+
+test result: ok. 171 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /tmp/.tmp0iOzTH/breaks_fixtures/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_breaks_export::exporter_creates_breaks_descriptor_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.16s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /tmp/.tmpl1pnLJ/chunk_fixtures/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_chunk_export::exporter_creates_chunk_and_line_descriptor_files ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
+
+
+running 5 tests
+test cursor_descriptor_invalidates_after_rebuild ... ok
+test cursor_descriptor_rejects_invalid_snapshot ... ok
+test cursor_descriptor_round_trip_basic ... ok
+test cursor_descriptor_handles_deep_paths ... ok
+exported 12 cursor descriptor samples to /tmp/.tmp6t9asc/cursor_fixtures/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test exporter_creates_cursor_descriptor_file ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.33s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/target/.tmpgFldS1/diff_regions_export/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_diff_export::exporter_creates_diff_regions_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.17s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /tmp/.tmpFwe3LC/grapheme_fixtures/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_grapheme_export::exporter_creates_grapheme_descriptor_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+
+running 1 test
+exported 12 cursor descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/xi-editor-ph7/rust/rope/../../../tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /tmp/.tmp8Ujia9/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_search_export::exporter_creates_search_spans_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.28s
+
+Tests passed!
+Benchmarks are disabled in xi-editor-ph7; skipping cargo bench.
+Workspace limited to core crates (xi-core, xi-core-lib, xi-plugin-lib, xi-rope, xi-rpc, xi-trace, xi-unicode).
+All checks passed.

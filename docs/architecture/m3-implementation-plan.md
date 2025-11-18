@@ -12,7 +12,7 @@
 ## [MP-GoalTree] Goal Tree Snapshot
 <a id="MP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T17:00:42.967949+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
+<!-- goal-tree:meta generated-at="2025-11-18T19:36:07.360736+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Inspector log tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt (rust_commit=3799d2be)) · [StageD::ParityAssets] (fixtures.manifest.json#cursor payload hash 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38) |
@@ -145,6 +145,8 @@
 - **Rust CLI 触发方式**：运行 `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures -- --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 时，manifest 的 `feature_gates` 将记录 `"cursor_state"`，并在 `cursor_descriptors@1.x.y` payload 中产出 `cursor_state.edit_version`、`cursor_state.path[]` 等字段。
 - **C# 版本票据**：`Rope._editVersion` 在每次编辑/拼接时自增，`NodeCursor` 通过版本号 + `ReferenceEquals` 双检确保失效检测；`CursorDescriptorParityTests` 已消费 11/11 JSON，用 `_editVersion` 票据验证恢复路径。
 - **Stage D loader 对应关系**：`StageDDescriptorLoader`/`StageDDescriptorInspector`（及 QA 在 `[QA-IngestionSmoke]` 的脚本）会读取 manifest ledger，确认 `cursor_descriptors` 项声明 `cursor_state` gate，并把导出的 `cursor_state.edit_version` 映射到 `NodeCursorState.EditVersion` 以支撑 `[StageD::ParityAssets]`/`[TS-B1]`。当 Rust Porter 升级到 `cursor_descriptors@1.2.0` 时，无需改动 C# 代码即可通过 manifest + inspector 报告交叉验证 `_editVersion` 证据。
+- **2025-11-19 Stage D rerun**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` → `dotnet test Xi.Editor.sln --filter StageDDescriptor` → `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures` 全链路成功，日志 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-184351.log`/`tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 验证 manifest (`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`) 仍指向 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`feature_gates=["cursor_state","serde","tree_builder_slice_trace"]`，且 `cursor_descriptors@1.2.0` `payload_hash=9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38` 映射到 `NodeCursorState.EditVersion` 字段，无偏差。
+- **下一步**：`StageDDescriptorInspector` 目前不接受 `--report` 参数（运行时需用 `tee`/重定向生成报告），需与 Architecture Mapper / Rust Porter 协调是更新 CLI 还是在 `[StageD::FixtureFlow]` 指南中记录 workaround，并让 QA Engineer 把上述 log + hash 落入 `[QA-IngestionSmoke]`/`[StageD::ParityAssets]`，确保 `_editVersion ↔ NodeCursorState` 证据链不再缺列。
 
 ---
 
@@ -300,6 +302,13 @@
 ---
 
 ## 4. 风险评估与缓解策略
+
+### [MP-Risks] Sprint 1 协调输入
+<a id="MP-Risks"></a>
+| Sprint | 风险 ID | 描述 | Owner | 跟踪/缓解 |
+| --- | --- | --- | --- | --- |
+| Sprint 1 | S1-R1 | `StageDDescriptorManifest.MetricWindows` 仅存在于 Rust manifest，C# Hydrator、MetricAdapter 与 QA dashboards 尚未消费，导致 `[TS-B2]` 与 `[QA-IngestionSmoke]` 无法在 11/25 前验证窗口阈值。 | C# Implementer · Architecture Mapper | 来自 `docs/sprints/sptrint-1.md#risk--next-cycle`，对应 `[RPM-Actions]`#5；落地标准为 `StageDDescriptorHydrator`/`MetricAdapter` 读取 `metric_windows[]` 并在 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 断言计数。 |
+| Sprint 1 | S1-R2 | Stage D CLI/Inspector 仍需人工执行 `python scripts/refresh_all_assets.py --only stage-d-fixtures`，缺少 `--check` 守卫与 artefact 上传，使 Goal Tree/Stage D ledger 可能在 nightly 之间漂移。 | QA Engineer · Tooling | 同源 `docs/sprints/sptrint-1.md#risk--next-cycle`，对应 `[RPM-Actions]`#6；缓解为将 CLI flag 表 + Inspector 报告纳入 QA automation，并把结果写回 `[QA-IngestionSmoke]` / `[StageD::FixtureFlow]`。 |
 
 ### 4.1 技术风险
 

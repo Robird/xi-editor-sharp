@@ -75,6 +75,51 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 
 ---
 
+## [Fixture-MetricWindows] Metric Window Ledger
+<a id="Fixture-MetricWindows"></a>
+
+- **位置**：`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json.metric_windows[]`。
+- **来源**：`export-serde-fixtures` 在生成每个 descriptor payload 时，会调用 `record_metric_windows()` 将窗口级统计写入 manifest；`StageDDescriptorLoader`、Hydrator、Inspector 直接消费该数组，供 `MetricAdapter`/QA 参考。
+
+| 字段 | 说明 |
+| --- | --- |
+| `fixture` | 与 `fixtures[].name` 一致（例如 `chunk_descriptors.json`）。 |
+| `schema_hash` | 对应 payload 的 schema（`chunk_descriptors@1.0.0` 等）。 |
+| `schema_version` | 版本号（从 schema hash 提取，便于断言）。 |
+| `window_schema` | 目前恒为 `metric_windows@1.0.0`。 |
+| `windows[]` | `MetricWindow` 集合，记录每种窗口类型的计数。 |
+
+**MetricWindow**
+
+| 字段 | 说明 |
+| --- | --- |
+| `kind` | 逻辑窗口名称（`chunk_windows`、`line_windows`、`grapheme_windows`、`break_windows`、`diff_windows`、`search_windows`、`tree_builder_trace_events` 等）。 |
+| `count` | 与该窗口相关的样本数量。 |
+
+```jsonc
+{
+  "fixture": "chunk_descriptors.json",
+  "schema_hash": "chunk_descriptors@1.0.0",
+  "schema_version": "1.0.0",
+  "window_schema": "metric_windows@1.0.0",
+  "windows": [
+    { "kind": "chunk_windows", "count": 9 },
+    { "kind": "line_windows", "count": 11 }
+  ]
+},
+{
+  "fixture": "grapheme_descriptors.json",
+  "schema_hash": "grapheme_descriptors@1.0.0",
+  "schema_version": "1.0.0",
+  "window_schema": "metric_windows@1.0.0",
+  "windows": [ { "kind": "grapheme_windows", "count": 668 } ]
+}
+```
+
+> **引用**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FeatureGates]` 记录了所有默认 flag 与样例命令，`docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 则使用本节 schema 解释 `MetricAdapter`/QA 如何消费这些窗口计数。
+
+---
+
 ## [Fixture-CursorSchema] Cursor Descriptor Schema
 <a id="Fixture-CursorSchema"></a>
 

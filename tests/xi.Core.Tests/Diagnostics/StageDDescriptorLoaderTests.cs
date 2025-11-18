@@ -136,4 +136,25 @@ public sealed class StageDDescriptorLoaderTests
             "7eac7ecf3bb0bdbf5369b6b0dcb17bf5241d8c914af791440e2c5a4582ee7d57",
             searchLedger.PayloadHash);
     }
+
+    [Fact]
+    public void LoadFromFixtureDirectory_projects_metric_window_ledger()
+    {
+        var manifest = Manifest.Value;
+
+        var chunkWindows = Assert.Single(
+            manifest.MetricWindows,
+            entry => entry.Fixture == "chunk_descriptors.json");
+
+        Assert.Equal("metric_windows@1.0.0", chunkWindows.WindowSchema);
+        Assert.Contains(chunkWindows.Windows, window => window.Kind == "chunk_windows" && window.Count == 9);
+        Assert.Contains(chunkWindows.Windows, window => window.Kind == "line_windows" && window.Count == 11);
+
+        var graphemeWindows = Assert.Single(
+            manifest.MetricWindows,
+            entry => entry.Fixture == "grapheme_descriptors.json");
+        var graphemeMetrics = Assert.Single(graphemeWindows.Windows);
+        Assert.Equal("grapheme_windows", graphemeMetrics.Kind);
+        Assert.Equal(668, graphemeMetrics.Count);
+    }
 }

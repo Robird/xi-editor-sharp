@@ -141,6 +141,23 @@ public static class StageDDescriptorLoader
             })
             .ToList();
 
+        var metricWindows = manifest.MetricWindows
+            .Select(entry => new MetricWindowLedgerEntry
+            {
+                Fixture = entry.Fixture ?? string.Empty,
+                SchemaHash = entry.SchemaHash ?? string.Empty,
+                SchemaVersion = entry.SchemaVersion ?? string.Empty,
+                WindowSchema = entry.WindowSchema ?? string.Empty,
+                Windows = entry.Windows
+                    .Select(window => new MetricWindowLedgerKind
+                    {
+                        Kind = window.Kind ?? string.Empty,
+                        Count = window.Count
+                    })
+                    .ToList()
+            })
+            .ToList();
+
         ValidateCount(
             chunkDescriptors.Count,
             chunkPayload.Metadata.ChunkDescriptorCount,
@@ -196,7 +213,8 @@ public static class StageDDescriptorLoader
             BreaksDescriptors = breaksViews,
             DiffRegions = diffViews,
             SearchSpans = searchViews,
-            Fixtures = ledgerEntries
+            Fixtures = ledgerEntries,
+            MetricWindows = metricWindows
         };
     }
 
@@ -332,6 +350,9 @@ public static class StageDDescriptorLoader
 
         [JsonPropertyName("fixtures")]
         public IList<FixtureManifestEntry> Fixtures { get; set; } = new List<FixtureManifestEntry>();
+
+        [JsonPropertyName("metric_windows")]
+        public IList<MetricWindowEntry> MetricWindows { get; set; } = new List<MetricWindowEntry>();
     }
 
     private sealed class FixtureManifestEntry
@@ -350,6 +371,33 @@ public static class StageDDescriptorLoader
 
         [JsonPropertyName("payload_hash")]
         public string PayloadHash { get; set; } = string.Empty;
+    }
+
+    private sealed class MetricWindowEntry
+    {
+        [JsonPropertyName("fixture")]
+        public string? Fixture { get; set; }
+
+        [JsonPropertyName("schema_hash")]
+        public string? SchemaHash { get; set; }
+
+        [JsonPropertyName("schema_version")]
+        public string? SchemaVersion { get; set; }
+
+        [JsonPropertyName("window_schema")]
+        public string? WindowSchema { get; set; }
+
+        [JsonPropertyName("windows")]
+        public IList<MetricWindowKindEntry> Windows { get; set; } = new List<MetricWindowKindEntry>();
+    }
+
+    private sealed class MetricWindowKindEntry
+    {
+        [JsonPropertyName("kind")]
+        public string? Kind { get; set; }
+
+        [JsonPropertyName("count")]
+        public int Count { get; set; }
     }
 
     private sealed class ChunkDescriptorPayload

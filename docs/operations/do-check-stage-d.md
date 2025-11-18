@@ -5,11 +5,17 @@
 > **Update Frequency**: 每次 Stage D 刷新、Goal Tree 片段重建或 QA 烟雾执行之后立刻运行。
 > **Reviewers**: AI Architect · Rust Porter · C# Implementer
 > **Anchor Prefix**: DoCheck
-> **Last Synced Goal Tree**: 2025-11-21（Stage D 自动化巡检）
+> **Last Synced Goal Tree**: 2025-11-19（`goal_tree_sync.py --check` log `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118-192655.log`）
 
 ---
 
 执行步骤：若任一步失败或被跳过，需在 `AGENTS.md` 与相关 `agents/*.md` 档案登记阻塞、命令、日志路径，并在 PR 里引用此文档。
+
+## Latest Evidence（2025-11-19）
+- `tests/xi.Core.Tests/Fixtures/Reports/stage-d-refresh-20251118-191129.log`：完整记录 `python scripts/refresh_all_assets.py --only stage-d-fixtures` → Rust `run_all_checks --filter serde-fixtures` → exporter（启用 `--cursor/--chunk/--grapheme/--breaks/--diff/--search/--tree-builder-trace`）→ `dotnet test Xi.Editor.sln`（含 Loader/Hydrator 筛选）→ `python scripts/verify_fixture_manifest.py` → StageDDescriptorInspector；所有步骤 `Passed` 并复核 10 份 ledger hash。
+- `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`：manifest `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`feature_gates=[cursor_state, serde, tree_builder_slice_trace]`，chunk=20、line=11、grapheme=668、breaks/diff/search 各 3，tree trace `payload=22724af7…`。
+- `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`：Release bench 指向同一 manifest，chunk throughput 255.93 MB/s、line throughput 347.07 MB/s、线程分配 37,944 B，并交叉引用 Inspector 作为证据。
+- `tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry-20251118T191914Z.txt` + `grapheme-telemetry.trx`：12,000 ops / 6,000 descriptor重放、fallback 0.30%，TRX 3/3 通过（`Xi.Core.Tests.GraphemeNavigatorSmokeTests`），采集时间 `2025-11-19T03:13:13+08:00`。
 
 ## 1. Goal Tree / Blueprint
 - [ ] 运行 `python scripts/goal_tree_sync.py --check`（或当前等效脚本）；若提示过期，刷新并附上最新 `docs/architecture/goal-tree-sync-<timestamp>.log`。

@@ -1,0 +1,36 @@
+Stage D grapheme telemetry harness
+Timestamp      : 2025-11-18T18:57:54.7350376+00:00
+Fixture folder : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
+Manifest path  : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+Rust commit    : 3799d2be9db0ef040517ed69df1b717e96a8958e
+Schema version : 1.0.0
+CLI revision   : 0.3.0
+Feature gates  : cursor_state,serde,tree_builder_slice_trace
+Generated at   : 2025-11-17T22:52:57.0230000+00:00 (1763419977023)
+Grapheme ledger: count=668, schema_hash=grapheme_descriptors@1.0.0, payload_hash=eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c
+Metric windows : grapheme_windows=668
+Inspector note : tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
+
+Telemetry replay summary:
+  Target operations : 12,000
+  Actual operations : 12,000
+  Descriptor replays: 6,000
+  Pass attempts     : 9
+  Samples per pass  : 668 descriptors across 6 samples
+  Requires fallback : 18 descriptors (0.3000 %)
+  Cross-leaf cases  : 9
+  Duration          : 381.81 ms
+  Ops / second      : 31429.30
+
+Grapheme navigator metrics:
+  MoveNext calls          : 6,000
+  MovePrevious calls      : 6,000
+  Forward neighbor reqs   : 0
+  Backward neighbor reqs  : 0
+  Scalar fallback count   : 0
+  Fallback ratio          : 0.0000 %
+
+Validation gates:
+  Rope slices verified    : 6,000
+  Stage D samples visited : 6
+  Report path             : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry-20251118T185753Z.txt

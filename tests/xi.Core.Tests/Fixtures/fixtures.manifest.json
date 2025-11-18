@@ -77,5 +77,95 @@
       "schema_hash": "serde_fixtures::subset",
       "payload_hash": "28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f"
     }
+  ],
+  "metric_windows": [
+    {
+      "fixture": "basic_slice_plan.json",
+      "schema_hash": "tree_builder_slice_trace@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "tree_builder_trace_events",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "fixture": "cursor_descriptors.json",
+      "schema_hash": "cursor_descriptors@1.2.0",
+      "schema_version": "1.2.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "cursor_descriptors",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "fixture": "chunk_descriptors.json",
+      "schema_hash": "chunk_descriptors@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "chunk_windows",
+          "count": 9
+        },
+        {
+          "kind": "line_windows",
+          "count": 11
+        }
+      ]
+    },
+    {
+      "fixture": "grapheme_descriptors.json",
+      "schema_hash": "grapheme_descriptors@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "grapheme_windows",
+          "count": 668
+        }
+      ]
+    },
+    {
+      "fixture": "breaks_descriptors.json",
+      "schema_hash": "breaks_descriptors@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "break_windows",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "fixture": "diff_regions.json",
+      "schema_hash": "diff_regions@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "diff_windows",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "fixture": "search_spans.json",
+      "schema_hash": "search_spans@1.0.0",
+      "schema_version": "1.0.0",
+      "window_schema": "metric_windows@1.0.0",
+      "windows": [
+        {
+          "kind": "search_windows",
+          "count": 3
+        }
+      ]
+    }
   ]
 }

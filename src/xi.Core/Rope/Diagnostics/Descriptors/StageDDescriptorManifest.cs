@@ -56,6 +56,8 @@ public sealed class StageDDescriptorManifest
     public IList<SearchCaseDescriptorView> SearchSpans { get; set; } = new List<SearchCaseDescriptorView>();
 
     public IList<StageDFixtureLedgerEntry> Fixtures { get; set; } = new List<StageDFixtureLedgerEntry>();
+
+    public IList<MetricWindowLedgerEntry> MetricWindows { get; set; } = new List<MetricWindowLedgerEntry>();
 }
 
 /// <summary>
@@ -72,4 +74,30 @@ public sealed class StageDFixtureLedgerEntry
     public string SchemaHash { get; set; } = string.Empty;
 
     public string PayloadHash { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Captures per-fixture metric window counts emitted by the Stage D manifest.
+/// </summary>
+public sealed class MetricWindowLedgerEntry
+{
+    public string Fixture { get; set; } = string.Empty;
+
+    public string SchemaHash { get; set; } = string.Empty;
+
+    public string SchemaVersion { get; set; } = string.Empty;
+
+    public string WindowSchema { get; set; } = string.Empty;
+
+    public IList<MetricWindowLedgerKind> Windows { get; set; } = new List<MetricWindowLedgerKind>();
+}
+
+/// <summary>
+/// Describes a single metric window count (e.g., chunk, line, grapheme) surfaced by the manifest.
+/// </summary>
+public sealed class MetricWindowLedgerKind
+{
+    public string Kind { get; set; } = string.Empty;
+
+    public int Count { get; set; }
 }
