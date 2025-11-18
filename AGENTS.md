@@ -19,6 +19,7 @@
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.decompiled.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 ## 当前聚焦
+- Sprint 1 Ready Queue（`docs/sprints/sptrint-1.md`）：Ready Queue #1-#7 + Coordination Notes 现将 Rust Porter → C# Implementer → QA Engineer → Information Researcher 的 runSubAgent 任务串成单一执行链（Stage D exporter、Stage D rerun、Release chunk bench + ≥10k Grapheme telemetry、QA ingestion、证据索引），每个步骤都明确所需 anchors（`[MP-T1]`、`[RPM-Matrix]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`、`[SO-Map]`）。需按 Coordination Notes 的通知矩阵通报完成情况并实时更新 `AGENTS.md`/Goal Tree。
 - Stage D descriptor hydrator：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 已把 Breaks/Diff/Search manifest 样本转换为 typed 结构，`scripts/refresh_serialization_fixtures.ps1` 现默认串联 loader → hydrator → `python scripts/verify_fixture_manifest.py`，并在 `refresh_all_assets.py` 的 `stage-d-fixtures` 步骤中自动执行。下一步是让 QA CLI/Playbook 直接消费这些 typed payload（`StageDDescriptorLoader`/`StageDDescriptorHydrator`）并推动 Rust Porter 将 `--breaks-descriptors|--diff-regions|--search-spans` 设为默认导出项，确保 manifest entries 恒定可用。
 
 ## 工作节奏建议

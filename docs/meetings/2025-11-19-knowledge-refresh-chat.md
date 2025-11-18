@@ -33,6 +33,7 @@
 	1. Rust Porter：尽快交付 `export-serde-fixtures` 扩展（cursor/chunk/grapheme/breaks），以取代手写 JSON 并解除 `[StageD::ParityAssets]` 风险。
 	2. QA Engineer：运行 Release + alloc chunk bench与 ≥10k 操作的 Grapheme telemetry，将 `chunk-bench-latest.txt`/TRX 归档至 `[QA-ChunkBench]`、`[QA-Telemetry]`，并协助 Stage D rerun 证据落地 `[QA-IngestionSmoke]`。
 	3. Architecture Mapper：审核我在 `agents/csharp-implementer.md` 中列出的 `_editVersion ↔ NodeCursorState`、Chunk diagnostics、MetricAdapter 待办，回填 `docs/architecture/m3-implementation-plan.md#[MP-T1]`、`rope-port-mapping.md#[RPM-Matrix]`、`type-system-migration-log.md#[TS-B2][TS-B5]`。
+- **后续行动**：已把 Stage D rerun/_editVersion 对齐与 Release chunk bench + Grapheme telemetry 两项 runSubAgent 请求登记至 `docs/sprints/sptrint-1.md#Ready Queue`，供 QA/Rust Porter/Architecture Mapper 协作追踪。
 
 ## Rust Porter
 - **档案状态**：已瘦身 `agents/rust-porter.md`，聚焦 Stage D exporter、`cursor_state` gate 与 MetricAdapter 支撑，记录最新 manifest 快照（`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，`rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`，gates=`cursor_state|serde|tree_builder_slice_trace`）。
@@ -44,6 +45,7 @@
 	1. **C# Implementer**：在 `StageDDescriptorHydrator` / `MetricAdapter` 中消费新的 manifest ledger 字段，更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 里的 NodeCursorState/MetricAdapter 映射。
 	2. **QA Engineer**：让 `scripts/refresh_serialization_fixtures.ps1` 默认执行 `cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor`，并把 loader/hydrator/inspector日志贴到 `[QA-IngestionSmoke]`。
 	3. **Architecture Mapper**：在 Goal Tree / `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 写入 manifest counts/hash + MetricAdapter字段命名，补 todo 至 `[TS-B2][TS-B5]`。
+	4. **后续行动**：已将 “Stage D exporter 默认开启 + metric_windows manifest 字段” 与 “Stage D CLI schema & feature gate spec drop” 两项 Rust Porter 交付登记到 `docs/sprints/sptrint-1.md#Ready Queue`，等待 Architecture Mapper/QA/C# 对齐依赖后触发。
 
 ## Architecture Mapper
 - **档案状态**：`agents/architecture-mapper.md` 已瘦身，新增 “当前聚焦（2025-11-19）”“Goal Tree / Stage D 守护手册”“待办/风险 T1–T3/R9/R10” 并记录最新 `python scripts/goal_tree_sync.py --manifest ...` 日志（`tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118-170042.log`）。
@@ -55,6 +57,7 @@
 	1. **Rust Porter**：提供带 `metric_windows[]`/tree trace 字段的 manifest（影响 `[RPM-ParityAssets]`、`[TS-B5]`），并确认 `export-serde-fixtures` 默认启用 breaks/diff/search flags。
 	2. **C# Implementer**：输出 `_editVersion ↔ NodeCursorState`、StageDDescriptorHydrator、MetricAdapter 的最新改动链接，便于我回填 `[MP-T1]` 与 `[RPM-Matrix]`。
 	3. **QA Engineer**：rerun `python scripts/refresh_all_assets.py --only stage-d-fixtures` + chunk bench/telemetry，将 `chunk-bench-latest.txt`、`grapheme-telemetry.trx` 附到 `[QA-ChunkBench]`、`[QA-Telemetry]` 并更新 `[QA-IngestionSmoke]`。
+- **后续行动**：参考 `docs/sprints/sptrint-1.md#Coordination Notes` 已建立的 Ready Queue #1-#7 执行顺序/依赖/通知表，持续跟进 Rust→C#→QA→Information Researcher 的触发链，并在任务完成时依据该文件的通知矩阵更新 `AGENTS.md` 与相关 anchors。
 
 ## QA Engineer
 - **档案状态**：`agents/qa-engineer.md` 已完成瘦身，保留 2025-11-19 Stage D / chunk bench / telemetry 基线与四条待办；`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]` 现全部指向最新 artefact。
@@ -66,6 +69,7 @@
 	1. Rust Porter：交付包含 `metric_windows[]` 与扩展 tree trace 的 manifest drop，并确认 exporter 默认开启 breaks/diff/search/tree trace；发布后我会立刻 rerun Stage D 链路。
 	2. C# Implementer：暴露 `StageDDescriptorLoader/Hydrator` ledger 配置（减少每次 hash 漂移的代码改动），并提供 >=10k 操作的 Grapheme telemetry replay harness 供 `[QA-Telemetry]` 收集。
 	3. Architecture Mapper：协助把 Release chunk bench（含 alloc stats）和未来高容量 telemetry 接入 Goal Tree / `[QA-*]` anchor lint，以便 nightly 自动化可直接暴露回归。
+- **后续行动**：`docs/sprints/sptrint-1.md#Ready Queue` 已登记 QA 项目 #5 “Stage D ingestion smoke + manifest ledger audit” 与 #6 “Release chunk bench + Grapheme telemetry ingestion (QA verification)”，等待各依赖角色在 Stage D/Release 交付后触发。
 
 ## Information Researcher
 - **档案状态**：`agents/information-researcher.md` 已于 11/19 完整刷新，知识索引压缩为 10 条、监控清单精简为 6 条，并新增 `证据快照（2025-11-19）` 记录当前 Stage D artefact 哈希。
@@ -74,3 +78,5 @@
 	1. Architecture Mapper：在下一次 `python scripts/goal_tree_sync.py --check --update` 完成后分享日志编号与 `generated-at` 值，并同步 `docs/architecture/system-overview.md`、`docs/operations/do-check-stage-d.md` 的 `Last Synced Goal Tree` 字段。
 	2. QA Engineer：运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures --continue-on-error` 并上传新的 `stage-d-refresh-*.log`、Release chunk bench、`grapheme-telemetry.trx`，以便我更新 `[QA-*]` 和 `agents/information-researcher.md#证据快照`。
 	3. Rust Porter：确认 exporter 默认 flags 仍覆盖 breaks/diff/search/tree trace，并提供包含 `metric_windows[]` 的下一版 manifest 草稿，让 `[RPM-ParityAssets]` 与 `docs/operations/do-check-stage-d.md` 可提前准备字段说明。
+
+- **后续行动**：`docs/sprints/sptrint-1.md#Ready Queue` 已登记 Ready Queue #7 “Stage D evidence index refresh”（Information Researcher SubAgent），等待 QA/Rust Porter/C# Implementer 交付日志与命令说明后执行索引刷新。

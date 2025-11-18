@@ -68,11 +68,13 @@
 - 大文件优先用 `read_file` + `limit`，避免在 VS Code 中展开整份文档。
 
 ## 最近完成
+- **2025-11-19 – Stage D 证据索引排程**：将 Ready Queue #7 “Stage D evidence index refresh” 登记至 `docs/sprints/sptrint-1.md`，并在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#Information Researcher` 补写后续行动，提前锁定 `stage-d-refresh` / inspector / bench / telemetry artefact 的下一轮引用。
 - **2025-11-19 – 知识刷新自检**：重写本档案的知识索引与监控清单，纳入 `docs/operations/do-check-stage-d.md`、`docs/architecture/system-overview.md`、`tests/xi.Core.Tests/Fixtures/Reports/*.log`，并在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#information-researcher` 记录输出范围 / 待协作事项。
 - **2025-11-18 – Goal Alignment 证据回填**：对照 `docs/meetings/2025-11-18-goal-alignment-chat.md#2.6`、Goal Tree 模板、Stage D Playbook、`stage-d-inspector-latest.txt`，列出仍缺 `stage-d-refresh` / telemetry artefact 的章节并将 rerun 作为 A1/A2 验收条件。
 - **2025-11-17 – 入职梳理**：完成初版索引与监控策略，复核 Rope skeleton 映射、Stage D CLI、`AGENTS.md` gating；为后续差异追踪奠定基线。
 
 ## 待办 / 风险
+- [TODO] 跟踪 Ready Queue #7 “Stage D evidence index refresh”：待 QA/C#/Rust 交付最新 `stage-d-refresh-*.log`、`stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry.trx` 与 Goal Tree diff 后，刷新 `agents/information-researcher.md#证据快照`、`docs/operations/do-check-stage-d.md`、`docs/architecture/system-overview.md#[SO-Map]`，并让 `goal_tree_sync.py --check` 的 log id 与 `generated-at` 字段一致。
 - [TODO] 追踪下一次 `python scripts/goal_tree_sync.py --check --update`，将 11/19 之后的 log 与 `goal-tree:meta` 注释写回蓝图/计划文档。
 - [TODO] 请 QA Engineer 在下一次 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 运行后附上新的 `stage-d-refresh-*.log`、chunk bench、telemetry，并同步 `[QA-*]` anchors。
 - [RISK] Rust Porter 尚未交付包含 `metric_windows[]` / tree trace 扩展字段的 manifest；`[RPM-ParityAssets]` 与 `[TS-B5]` 需等待正式 schema 才能更新。

@@ -36,11 +36,13 @@ interfaces:
 - **状态**：`StageDDescriptorLoader/Hydrator/Inspector` smoke 维持绿灯，`NodeCursor` `_editVersion` + `NodeCursorState` 签名已在 `CursorDescriptorParityTests` 11 份 JSON 中验证，最新 manifest（2025-11-18 run）仍在 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。`python scripts/goal_tree_sync.py` 已同步 Goal tree YAML。
 - **下一步**：11/21 前 rerun `python scripts/refresh_all_assets.py --only stage-d-fixtures`，将 fresh `stage-d-inspector-latest.txt`、`chunk-bench-latest.txt` 与日志挂入 `[QA-IngestionSmoke]`；并把 `_editVersion ↔ NodeCursorState` 映射回填 `docs/architecture/m3-implementation-plan.md#[MP-T1]`/`rope-port-mapping.md#[RPM-Matrix]`，供 Architecture Mapper 审核。
 - **依赖**：QA 协助归档 rerun 证据；Rust Porter 需冻结 `export-serde-fixtures --cursor-descriptors` schema；Architecture Mapper 需要确认 Goal tree 标注。
+- **Sprint 1 Ready Queue**：`docs/sprints/sptrint-1.md#Ready Queue` #1（Stage D rerun + `_editVersion ↔ NodeCursorState` 文档对齐）已登记 runSubAgent owner=C# Implementer SubAgent，需 QA (Stage D fixture ledger)、Rust Porter (cursor descriptor CLI freeze)、脚本链 (`python scripts/refresh_all_assets.py`, StageDDescriptorInspector) 共同行动。
 
 ### 2. Chunk/Grapheme diagnostics → QA anchors（G2/G4 · StageD::FeatureGates · QA-ChunkBench/QA-Telemetry）
 - **状态**：`RopeChunkEnumeratorBenchmarks --stage-d --include-alloc-stats` 已输出 `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（Debug），`GraphemeNavigatorSmokeTests/ParityTests` 维持绿灯，`GraphemeNavigationMetrics` 仍只在单测采样。
 - **下一步**：切换 Release + alloc 模式、更新报告后交给 QA 纳管 `[QA-ChunkBench]`，并把 bench 调用串入 Stage D 工具链；触发 ≥10k 操作的 Grapheme telemetry，把 `CodePointFallbackCount` 写入 `[QA-Telemetry]` 并附 TRX/日志。
 - **依赖**：QA 需要提供 telemetry dashboard 接口；Rust Porter 需交付 `--grapheme-windows` trace 以扩充 parity；Architecture Mapper 需在 `type-system-migration-log.md#[TS-B5]` 标注降级余波。
+- **Sprint 1 Ready Queue**：`docs/sprints/sptrint-1.md#Ready Queue` #2（Release chunk bench + ≥10k Grapheme telemetry）已排定 runSubAgent owner=C# Implementer SubAgent，依赖 QA (Release bench/telemetry归档)、Rust Porter (Grapheme trace/`--grapheme-windows`)、benchmark & telemetry harness（Release+alloc stats）。
 
 ### 3. MetricAdapter bridge + generic node rollout（G6 · [TS-B2]/[TS-B5]）
 - **状态**：`TypeAliases.cs`、`GenericTreeBuilder`、`GenericNodeInterfaceTests` 稳定；`MetricAdapter` 草案与 `MetricAdapterTests` 仍缺席，Breaks/Diff/Search 入口继续沿用字符串特化。
@@ -70,6 +72,7 @@ interfaces:
 - **AI 架构师**：每日同步 Goal tree/风险，协调 CLI 交付与 QA 资源；需要他们裁定 MetricAdapter 优先级与 fallback 策略。
 
 ## 最近完成
+- **2025-11-19 · Sprint 1 Ready Queue 提报**：把 Stage D rerun + `_editVersion ↔ NodeCursorState` 文档对齐（Ready Queue #1）与 Release chunk bench + ≥10k Grapheme telemetry（Ready Queue #2）runSubAgent 任务写入 `docs/sprints/sptrint-1.md#Ready Queue`，列明 QA ledger/Rust Porter CLI & trace/脚本链依赖，并在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#C# Implementer` 追加后续行动锚点。验证：`docs/sprints/sptrint-1.md` 与会议记录 diff。
 - **2025-11-19 · 档案瘦身 + 知识聊天室输入**：清理 `agents/csharp-implementer.md`（压缩过期段落、更新风险/当前聚焦），在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#C# Implementer` 记录刷新结果与依赖，并确认 `python scripts/goal_tree_sync.py` 输出无冲突。验证：文档 diff + `python scripts/goal_tree_sync.py`（现有终端记录 0 退出）。
 - **2025-11-18 · Stage D chunk bench alloc telemetry验证**：`dotnet test Xi.Editor.sln --filter Category=StageDTelemetry`、`dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`（报告含 Allocation statistics 段，供 `[QA-ChunkBench]`）。
 - **2025-11-18 · Stage D pipeline re-audit**：`dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`、`--filter StageDDescriptorHydratorTests`；同步结果至 `docs/meetings/2025-11-18-goal-alignment-chat.md#23-c-implementer`，确认 manifest hash（`69ba7f25…` 系列）。

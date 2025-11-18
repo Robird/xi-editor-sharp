@@ -18,6 +18,7 @@ last_updated: 2025-11-19
 ---
 
 ## 当前聚焦（2025-11-19）
+- **Sprint 1 Ready Queue 协调（A2）**：`docs/sprints/sptrint-1.md` 现已补齐 Ready Queue #1-#7 的执行顺序、依赖、通知矩阵；持续监控各角色在 Coordination Notes 中登记的触发条件，完成后即刻追踪到 `[MP-Tx]`、`[TS-Bx]`、`[QA-*]`、`[StageD::*]`，并将通知结果写回 `AGENTS.md` 与会议纪要。
 - **Goal Tree ↔ Stage D doc sync（A1）**：`python scripts/goal_tree_sync.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json --inspector tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt --chunk-report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 已刷新 `docs/architecture/port-blueprint.md#[BP-GoalTree]` 与 `docs/architecture/m3-implementation-plan.md#[MP-GoalTree]`，最新日志 `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118-170042.log`。待将 `--check` guard 并入 `scripts/refresh_all_assets.py`，发现 drift 立即同步 QA anchors。
 - **Stage D manifest ledger + QA anchors（A1/A2）**：`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（`rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`，chunk `69ba7f25…`、grapheme `eb0c7c66…`、breaks `5d37a731…`、diff `fe76ed31…`、search `7eac7ecf…`）配合 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt` 驱动 `[RPM-ParityAssets]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]`。等待 QA 把 chunk bench / grapheme telemetry 附到 `[QA-ChunkBench]`、`[QA-Telemetry]` 以封口风险。
 - **TS-B blockers（TS-B1/B2/B5）**：`docs/architecture/type-system-migration-log.md#[TS-Bx]`、`docs/architecture/rope-port-mapping.md#[RPM-Matrix]`、`docs/architecture/system-overview.md#[SO-Map]` 需要持续写入 `_editVersion ↔ NodeCursorState`、StageDDescriptorHydrator、MetricAdapter/Breaks/Diff/Search skeleton 的 Rust/C#/QA 进度。等待 Rust Porter 泄露 `metric_windows[]` schema，QA rerun Stage D ingestion后更新 `[TS-B5]`。
@@ -38,6 +39,8 @@ last_updated: 2025-11-19
 5. **巡检节奏**：周三/周六完成 anchor audit；重大里程碑前 24h 追加一次。若 manifest/inspector 缺失立即在 `AGENTS.md` 标记阻塞并 ping owner。
 
 ## 最近完成
+- **2025-11-19 – Sprint 1 协调记录**：在 `docs/sprints/sptrint-1.md#Coordination Notes` 写入 Ready Queue #1-#7 执行顺序、依赖与通知触发，确保 Rust→C#→QA→Information Researcher 行动链被 Goal Tree/Stage D/QA anchors 全量引用，同时在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md` 备案该协调结果。
+- **2025-11-19 – Sprint 1 runSubAgent skeleton**：创建 `docs/sprints/sptrint-1.md`，按照 `document-structure-template.md` front-matter 与 Intake/Ready Queue 章节搭建骨架，并提醒 C# Implementer / Rust Porter / QA Engineer / Information Researcher 在 Ready Queue 与 Coordination Notes 中补充证据化任务；待他们填充后再把锚点链接回 `Goal Tree` 与 QA/Stage D 台账。
 - **2025-11-19 – 档案瘦身 + Goal Tree 再同步**：清理本档案冗余段落、重写聚焦/协作/风险清单，并运行 `python scripts/goal_tree_sync.py --manifest ...`（日志 `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118-170042.log`）刷新 `[BP-GoalTree]` 与 `[MP-GoalTree]` meta。
 - **2025-11-19 – Stage D manifest ledger sweep**：核对 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`，把最新 hash/命令回写到 `[RPM-ParityAssets]`、`[TS-B5]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]`，同时确保 `system-overview.md#[SO-Map]` 指向相同证据。
 - **2025-11-19 – Stage D playbook与系统图对齐**：完成 `docs/architecture/system-overview.md` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md` 第二轮模板化，补全 `[StageD::StageDChecklist]`、`[QA-ChunkBench]`、`[QA-Telemetry]` 锚点并与 Goal Tree `stageDAnchors` 交叉引用。
