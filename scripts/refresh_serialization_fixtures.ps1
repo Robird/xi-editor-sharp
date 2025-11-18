@@ -9,6 +9,8 @@ param(
     [switch]$SkipStageDHydratorTest,
     [Parameter(HelpMessage = "Skip manifest verification (python scripts/verify_fixture_manifest.py). Default: run verification.")]
     [switch]$SkipManifestVerification,
+    [Parameter(HelpMessage = "Skip the Stage D ingestion CLI summary (StageDDescriptorInspector).")]
+    [switch]$SkipStageDInspector,
     [switch]$DryRun,
     [switch]$ExportTreeTrace,
     [bool]$ExportParityFixtures = $true,
@@ -85,6 +87,7 @@ if (-not $ManifestPath) {
     $ManifestPath = Join-Path $csharpFixturesDir "fixtures.manifest.json"
 }
 $manifestVerifierScript = Join-Path $repoRoot "scripts/verify_fixture_manifest.py"
+$stageDInspectorProject = Join-Path $repoRoot "tools/StageDDescriptorInspector/StageDDescriptorInspector.csproj"
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -207,6 +210,19 @@ else {
     $pythonInterpreter = Get-PythonInterpreter
     $verifyArgs = @($manifestVerifierScript, "--manifest", $ManifestPath)
     Invoke-ExternalCommand "python: verify fixture manifest" $pythonInterpreter $verifyArgs
+}
+
+if ($SkipStageDInspector) {
+    Write-Host "Skipping Stage D ingestion CLI summary (StageDDescriptorInspector)."
+}
+else {
+    if (-not (Test-Path $stageDInspectorProject)) {
+        Write-Host "Stage D inspector project not found at $stageDInspectorProject; skipping CLI summary."
+    }
+    else {
+        $inspectorArgs = @("run", "--project", $stageDInspectorProject, "--", "--fixtures", $csharpFixturesDir)
+        Invoke-ExternalCommand "dotnet: Stage D descriptor inspector" "dotnet" $inspectorArgs
+    }
 }
 
 Write-Host "All steps completed."

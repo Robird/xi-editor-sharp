@@ -10,7 +10,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// fixtures.manifest.json ledger referenced by `[StageD::ParityAssets]`.
 /// TODO(TS-B3): hydrate this from the JSON payload instead of leaving it as a pure DTO.
 /// </summary>
-internal sealed class StageDDescriptorManifestMetadata
+public sealed class StageDDescriptorManifestMetadata
 {
     public string SchemaVersion { get; set; } = string.Empty;
 
@@ -39,7 +39,7 @@ internal sealed class StageDDescriptorManifestMetadata
 /// Aggregates descriptor collections so Stage D ingestion code can bind manifest metadata
 /// and JSON samples without scattering temporary structs across the Rope assembly.
 /// </summary>
-internal sealed class StageDDescriptorManifest
+public sealed class StageDDescriptorManifest
 {
     public StageDDescriptorManifestMetadata Metadata { get; set; } = new();
 
@@ -61,7 +61,7 @@ internal sealed class StageDDescriptorManifest
 /// <summary>
 /// Snapshot of a fixtures.manifest.json entry so QA tooling can cross-check payload counts & hashes.
 /// </summary>
-internal sealed class StageDFixtureLedgerEntry
+public sealed class StageDFixtureLedgerEntry
 {
     public string Name { get; set; } = string.Empty;
 

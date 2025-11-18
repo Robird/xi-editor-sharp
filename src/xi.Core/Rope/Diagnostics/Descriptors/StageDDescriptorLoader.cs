@@ -14,7 +14,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// Loads Stage D descriptor fixtures (manifest + chunk/line/grapheme payloads) from disk so
 /// QA tooling can reason about <c>tests/xi.Core.Tests/Fixtures</c> without duplicating JSON parsing logic.
 /// </summary>
-internal static class StageDDescriptorLoader
+public static class StageDDescriptorLoader
 {
     private const string ManifestFileName = "fixtures.manifest.json";
     private const string ChunkDirectoryName = "chunk_descriptors";
