@@ -166,6 +166,7 @@
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
 ## 最近完成的工作
+- **2025-11-19 – Stage D manifest + Inspector 文档闭环**：推动 QA Engineer 刷新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`（Checklist/FixtureFlow/ParityAssets/QA anchors）以记录 manifest verifier + StageDDescriptorInspector 组合证据链，并写入最新 Rust commit `bea8a3360131a0840d26aa75daba9184b70d50b7` 的 hash 表；同步更新 `agents/qa-engineer.md` 监控面板，明确 loader→hydrator→verifier→inspector 作为 `stage-d-fixtures` 流程的默认终点。
 - **2025-11-19 – Stage D Inspector 验收**：协调 C# Implementer 暴露 `StageDDescriptor` DTO/primitive 类型、刷新 `StageDDescriptorLoaderTests` 期待的 Rust commit 与 Breaks/Diff/Search payload hash，并跑通 `dotnet test Xi.Editor.sln --filter StageDDescriptor` + `python scripts/refresh_all_assets.py --only stage-d-fixtures`，确保 StageDDescriptorInspector CLI 输出 typed manifest 摘要供 `[QA-IngestionSmoke]` 复用。
 - **2025-11-18 – Manifest / Trace 链路封顶**：协调 QA Engineer 与 C# Implementer 完成 `scripts/verify_fixture_manifest.py --update`、`TreeBuilderSliceTraceLoader` 及其测试与夹具，对齐 `[TS-B2]`、`[RPM-ParityAssets]`、`[StageD::FixtureFlow]` 记录；验证命令：`python scripts/verify_fixture_manifest.py (--update)`、`dotnet test --filter TreeBuilderSliceTraceLoaderTests`。
 - **2025-11-17 – Stage D Loader & Tracer 自动化**：落地 `StageDDescriptorLoader`/tests、`TreeBuilderTracer` 注入与 `scripts/refresh_all_assets.py`；同步 Stage D Playbook、`[TS-B2]/[TS-B3]`、`[QA-IngestionSmoke]`，构建“导出→loader smoke”闭环；验证：`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests|TreeBuilderTracerTests`。
