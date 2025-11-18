@@ -12,7 +12,7 @@
 ## [BP-GoalTree] Goal Tree Snapshot
 <a id="BP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T19:36:07.360736+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
+<!-- goal-tree:meta generated-at="2025-11-18T20:05:56.431786+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Inspector log tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt (rust_commit=3799d2be)) · [StageD::ParityAssets] (fixtures.manifest.json#cursor payload hash 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38) |
@@ -22,7 +22,7 @@
 | G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | [QA-IngestionSmoke] (Single exporter command now emits manifest + chunk hash 69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a) · [StageD::FixtureFlow] (refresh_all_assets.py --only stage-d-fixtures stitches exporter + loader + inspector) |
 | G6 | Metric adapter bridge | ⚠️ Watch | 2025-11-24 | C# Implementer · Architecture Mapper | Land adapter tests + document [TS-B2] dependency | [QA-StageDManual] (QA to confirm adapter instrumentation via manual Stage D checklist) · [StageD::FeatureGates] (serde + cursor_state gates stay enabled while metric adapter wiring lands) |
 <!-- goal-tree:end -->
-> Snippet mirrors `m3-implementation-plan.md#[MP-GoalTree]`; update both blocks together until `goal_tree_sync.py` lands.
+> Snippet mirrors `m3-implementation-plan.md#[MP-GoalTree]`; update both blocks together until `goal_tree_sync.py` lands。Stage D 证据链默认由 `python scripts/refresh_all_assets.py`（无参数）生成：脚本会依次运行 `rust-skeletons → dotnet-build → stage-d-fixtures → verify-stage-d → goal-tree → ilspy → Skeletonizer`，并在 `tests/xi.Core.Tests/Fixtures/Reports/` 下覆盖 `stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry-*.txt/.trx`，这些 artefact 再被 `goal_tree_sync.py` 写入本表的 QA/Stage D 列。
 
 ## [BP-Milestones] Milestones & Dependencies
 <a id="BP-Milestones"></a>

@@ -39,6 +39,7 @@ last_updated: 2025-11-19
 5. **巡检节奏**：周三/周六完成 anchor audit；重大里程碑前 24h 追加一次。若 manifest/inspector 缺失立即在 `AGENTS.md` 标记阻塞并 ping owner。
 
 ## 最近完成
+- **2025-11-19 – refresh_all_assets.py Stage D 一键脚本落地 + 文档同步**：与 QA Engineer 对齐无参数 `python scripts/refresh_all_assets.py` 已串联 `rust-skeletons → dotnet-build → stage-d-fixtures → verify-stage-d → goal-tree → ilspy → Skeletonizer`，并在 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`（`[StageD::StageDChecklist]`/`[StageD::FixtureFlow]`/`[QA-IngestionSmoke]`/`[StageD::ParityAssets]`）、`docs/architecture/port-blueprint.md#[BP-GoalTree]`、`docs/architecture/system-overview.md#[SO-Map]/[SO-StageDQAEvidence]/[SO-Sprint1EvidenceLoop]`、`docs/sprints/sptrint-1.md` 更新脚本描述、Stage D 子步骤与固定日志路径（`tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry-*.txt/.trx`），确保 Goal Tree / QA / Stage D anchors 引用同一 artefact。
 - **2025-11-19 – Sprint 1 Summary + Stage D 链接刷新**：在 `docs/sprints/sptrint-1.md` 顶部写入围绕 `[StageD::ParityAssets]` / `[QA-*]` / `[SO-Map]` 的成果摘要，并将 Coordination Notes 的 #1-#7 行动改成 `Status: Completed` + anchor 引用，方便 Goal Tree / Stage D / QA 审核追踪；同时更新 `docs/architecture/system-overview.md#[SO-Map]` Stage D 列，串起 `metric_windows[]` ledger、Release chunk bench、Grapheme telemetry 与 `agents/information-researcher.md#证据快照` 的 evidence index，防止 Sprint 1 证据链断裂。
 - **2025-11-19 – Sprint 1 Evidence Loop 对齐 + Ready Queue 表格校准**：重写 `docs/sprints/sptrint-1.md#ready-queue` 表头，对齐列宽并新增统一的 “Evidence (Date + Artefacts)” 列，所有 #1-#7 项目按相同格式沉淀日志；同步在 `docs/architecture/system-overview.md` 创建 `[SO-Sprint1EvidenceLoop]` 小节，串联 `[StageD::FixtureFlow]`、`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]` 在 Stage D pipeline 中的职责，并补上缺失的 `[QA-ChunkBench]` / `[QA-Telemetry]` 引用防止 404。
 - **2025-11-19 – Sprint 1 风险对齐 + RPM 行动刷新**：在 `docs/sprints/sptrint-1.md#coordination-notes` 下新增 “Risk & Next Cycle” 小节，沉淀 Ready Queue 全绿后的两项风险（Metric Windows 消费、Stage D CLI 自动化），并把相同风险映射到 `docs/architecture/rope-port-mapping.md#[RPM-Actions]`（追加 #5/#6 行动）与 `docs/architecture/m3-implementation-plan.md#[MP-Risks]`（S1-R1/S1-R2）。同时更新本档案待办与 AI Architect/QA Engineer 通知链，以便 Sprint 2 Intake 直接复用这些锚点。
@@ -57,7 +58,8 @@ last_updated: 2025-11-19
 | --- | --- | --- | --- | --- |
 | T1 | 将 `python scripts/goal_tree_sync.py --check` 并入 `scripts/refresh_all_assets.py` nightly guard，并在 drift 时自动 tee `goal-tree-sync-*.log` | Architecture Mapper + Tooling | 2025-11-20 | 进行中（需脚本钩子） |
 | T2 | Rust Porter 输出 `metric_windows[]`/`tree_builder_slice_trace` schema 到 manifest，并在 `[RPM-ParityAssets]`/`[TS-B5]` 建立字段映射 | Rust Porter | 2025-11-21 | 阻塞（等待 CLI 更新） |
-| T3 | QA rerun `--only stage-d-fixtures` 并上传 `chunk-bench-latest.txt`、`grapheme-telemetry.trx` 至 `[QA-ChunkBench]`/`[QA-Telemetry]` | QA Engineer | 2025-11-20 | 待 QA 运行 |
+| T3 | QA rerun `python scripts/refresh_all_assets.py`（必要时 `--only stage-d-fixtures`）并上传 `chunk-bench-latest.txt`、`grapheme-telemetry.trx` 至 `[QA-ChunkBench]`/`[QA-Telemetry]` | QA Engineer | 2025-11-20 | 待 QA 运行 |
+| T4 | 监控 `python scripts/refresh_all_assets.py`（无参数）在 nightly/CI 的 adoption：确认 Stage D logs (inspector/chunk/telemetry) 与 Goal Tree anchors 自动画线，若缺失则回退并记录在 `[StageD::FixtureFlow]` | Architecture Mapper + QA Engineer + Tooling | 2025-11-21 | 新建（待 QA + Tooling 报告） |
 | R9 | 若 nightly goal tree guard未上线，`[BP-GoalTree]`/`[MP-GoalTree]` 可能脱离 YAML，影响 A1 验收 | Architecture Mapper | 2025-11-20 检查点 | 风险监控 |
 | R10 | Chunk/Grapheme/Breaks/Diff/Search 若无最新 manifest + QA 数据，`[TS-B5]` 难以关闭，Stage D 评审无法通过 | Architecture Mapper + Rust Porter + QA | 持续 | 风险监控 |
 
