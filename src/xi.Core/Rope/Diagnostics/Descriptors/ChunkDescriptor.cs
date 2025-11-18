@@ -8,7 +8,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// so Stage D ingestion code can validate `[StageD::ParityAssets]` samples on the C# side.
 /// TODO(TS-B3): Populate instances by reading the manifest-backed JSON payloads.
 /// </summary>
-internal sealed class ChunkDescriptor
+public sealed class ChunkDescriptor
 {
     public string Sample { get; set; } = string.Empty;
 

@@ -7,7 +7,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// Represents a byte/UTF-16/leaf range captured inside Stage D descriptor fixtures
 /// (see tests/xi.Core.Tests/Fixtures/fixtures.manifest.json and `[StageD::ParityAssets]`).
 /// </summary>
-internal sealed class DescriptorRange
+public sealed class DescriptorRange
 {
     /// <summary>Inclusive start offset within the descriptor's coordinate system.</summary>
     public int Start { get; set; }
@@ -20,7 +20,7 @@ internal sealed class DescriptorRange
 /// Stores the text immediately before or after a descriptor target so QA can
 /// diff rope slices when replaying `[StageD::ParityAssets]` fixtures.
 /// </summary>
-internal sealed class DescriptorContext
+public sealed class DescriptorContext
 {
     public string? Before { get; set; }
 
@@ -31,7 +31,7 @@ internal sealed class DescriptorContext
 /// Identifies a node on the TreeBuilder path that produced the descriptor sample.
 /// TODO(TS-B3): Align with Rust's path payload once JSON ingestion is implemented.
 /// </summary>
-internal sealed class DescriptorNodePathEntry
+public sealed class DescriptorNodePathEntry
 {
     [JsonPropertyName("node_height")]
     public int NodeHeight { get; set; }
@@ -49,7 +49,7 @@ internal sealed class DescriptorNodePathEntry
 /// <summary>
 /// Provides leaf-level metadata for grapheme descriptors, mirroring the Rust exporter schema.
 /// </summary>
-internal sealed class DescriptorLeafInfo
+public sealed class DescriptorLeafInfo
 {
     public DescriptorRange Range { get; set; } = new();
 

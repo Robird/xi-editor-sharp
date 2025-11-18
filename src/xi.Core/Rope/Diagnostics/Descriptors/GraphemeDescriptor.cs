@@ -7,7 +7,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// Captures fields emitted by export-serde-fixtures --grapheme-descriptors so
 /// `[StageD::ParityAssets]` can assert parity between Rust traces and the degraded navigator.
 /// </summary>
-internal sealed class GraphemeDescriptor
+public sealed class GraphemeDescriptor
 {
     public string Sample { get; set; } = string.Empty;
 

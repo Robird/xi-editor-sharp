@@ -1,5 +1,5 @@
 {
-  "rust_commit": "96ce8ddff31f368b52ca930b3930f1cf8ecd909a",
+  "rust_commit": "bea8a3360131a0840d26aa75daba9184b70d50b7",
   "cli_rev": "0.3.0",
   "feature_gates": [
     "serde"
@@ -10,14 +10,14 @@
       "path": "tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json",
       "count": 3,
       "schema_hash": "breaks_descriptors@1.0.0",
-      "payload_hash": "ab2f746e2bdd945e69b0acf9cd275c068a5ba6546f52a820144244f3b0e6e22e"
+      "payload_hash": "7b948fc6e433482cf531ec43dc74fb943612927d2fe89ba85b47658a21610dbe"
     },
     {
       "name": "chunk_descriptors.json",
       "path": "tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json",
       "count": 20,
       "schema_hash": "chunk_descriptors@1.0.0",
-      "payload_hash": "e62a4faa936a20b261b167ddbd2be3b4d3566f3099149b2be215fbfafeecd756"
+      "payload_hash": "f61d10167b65f159a44e88c56ee286db964108afd1496d5a942cc5ee8a48c385"
     },
     {
       "name": "cursor_descriptors.json",
@@ -38,7 +38,7 @@
       "path": "tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json",
       "count": 3,
       "schema_hash": "diff_regions@1.0.0",
-      "payload_hash": "8c400ea433b77d9aa4f7b0cb57cbbcd6d1b935d52ff7e61101ad7a8babac5076"
+      "payload_hash": "a309f2f1306b6a1892da40ef90fb21d44deabe5758297e2474f51d1a5c999cf9"
     },
     {
       "name": "engine_regression.json",
@@ -52,14 +52,14 @@
       "path": "tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json",
       "count": 668,
       "schema_hash": "grapheme_descriptors@1.0.0",
-      "payload_hash": "c6b1721d29286f01e67d2b7491361c2636a6a6affcc9e15206fb31c2fa5d1f0e"
+      "payload_hash": "aa5600996bcad5c37227d1731847b1c9404916c4cc6bca9ed4414c917d585667"
     },
     {
       "name": "search_spans.json",
       "path": "tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json",
       "count": 3,
       "schema_hash": "search_spans@1.0.0",
-      "payload_hash": "ce068c5217d2c45d213609d538e5a30280d10559894ef81bb9692d75d23c3502"
+      "payload_hash": "2fb14e0ca5c7b103a9ad050351547ccff3e1ba46095f9e111d66814c7415d9c5"
     },
     {
       "name": "subset_regression.json",

@@ -486,6 +486,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **测试覆盖**：新增 `StageDDescriptorLoader` ledger 单元测试，验证 chunk 与 grapheme 条目的 `count`、`schema_hash`、`payload_hash` 与 manifest 真值一致；`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`（4/4 ✅，15.8s）作为 smoke 记录。
 - **文档同步**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 说明 loader 现会返回 ledger，并强调 loader smoke 会校验 canonical hash + manifest 计数，供 QA/Stage D CLI 复用。
 
+### 2025-11-19 (Stage D inspector smoke + manifest刷新)
+- **实现**：为解锁 Stage D Inspector CLI，`ChunkDescriptor`/`LineDescriptor`/`GraphemeDescriptor` 及 `DescriptorRange`/`DescriptorContext`/`DescriptorNodePathEntry`/`DescriptorLeafInfo` 全部提升为 `public sealed`，确保 `StageDDescriptorManifest` 的公共属性不会触发 CS0053。
+- **测试**：刷新 `StageDDescriptorLoaderTests` 的 Rust commit 与 Breaks/Diff/Search/Chunk/Grapheme payload hash（对应 `fixtures.manifest.json` 现值），运行 `dotnet test Xi.Editor.sln --filter StageDDescriptor`、`dotnet test Xi.Editor.sln` 以及 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 均通过，脚本最终包含 manifest verifier + StageDDescriptorInspector 文本输出。
+- **结果**：`StageDDescriptorInspector` 现可在流水线中输出 typed 摘要（Rust commit `bea8a3360131a0840d26aa75daba9184b70d50b7`、Breaks/Diff/Search 各 3 条记录），QA 可直接复用 CLI 输出来填充 `[QA-IngestionSmoke]` 证据链。
+
 ### 2025-11-19 (Stage D manifest verifier自动化)
 - **脚本**：在 `scripts/refresh_serialization_fixtures.ps1` 新增 `-SkipManifestVerification`（默认运行）与 `Get-PythonInterpreter` 帮助器，loader/hydrator smoke 结束后若非 `-DryRun` 自动调用 `python scripts/verify_fixture_manifest.py --manifest <path>`；`scripts/refresh_all_assets.py --only stage-d-fixtures` 继承同样的流水线。
 - **文档**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::StageDChecklist]`、`[StageD::FixtureFlow]`、`[QA-IngestionSmoke]`、Manifest 校验章节更新“自动验证 + `-SkipManifestVerification` 记录要求”，`docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 将“Stage D scripts” 行标记为“Loader + Hydrator + Manifest verifier”。

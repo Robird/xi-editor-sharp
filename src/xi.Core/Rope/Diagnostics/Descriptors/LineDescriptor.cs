@@ -6,7 +6,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors;
 /// <summary>
 /// Represents entries under <c>line_descriptors</c> in the Stage D chunk descriptor payload.
 /// </summary>
-internal sealed class LineDescriptor
+public sealed class LineDescriptor
 {
     public string Sample { get; set; } = string.Empty;
 
