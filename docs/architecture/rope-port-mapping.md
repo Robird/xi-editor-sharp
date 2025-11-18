@@ -5,7 +5,7 @@
 > **Update Frequency**: Whenever a module state changes or a new Stage D asset lands.
 > **Reviewers**: AI Architect · C# Implementer · Rust Porter · QA Engineer
 > **Anchor Prefix**: RPM
-> **Last Synced Goal Tree**: 2025-11-20 (post `[Chat-2025-11-20]` sync with `[BP-GoalTree]`)
+> **Last Synced Goal Tree**: 2025-11-18 16:07 UTC (`goal_tree_sync.py` log `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118T160730Z.log`)
 
 ---
 

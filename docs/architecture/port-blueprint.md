@@ -5,18 +5,18 @@
 > **Update Frequency**: After each milestone kickoff or goal-tree edit.
 > **Reviewers**: AI Architect · C# Implementer · Rust Porter · QA Engineer
 > **Anchor Prefix**: BP
-> **Last Synced Goal Tree**: 2025-11-18 (manual sync with `m3-implementation-plan.md`)
+> **Last Synced Goal Tree**: 2025-11-18 16:07 UTC (`goal_tree_sync.py` · log `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118T160730Z.log`)
 
 ---
 
 ## [BP-GoalTree] Goal Tree Snapshot
 <a id="BP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T14:20:18.164186+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="090c78bd0248ff7c82b74b9c89e8803aff9d940f6a1ec3e0bcc8115cec5bfdce" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
+<!-- goal-tree:meta generated-at="2025-11-18T16:07:33.839971+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Inspector log tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt (rust_commit=3799d2be)) · [StageD::ParityAssets] (fixtures.manifest.json#cursor payload hash 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38) |
-| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record [MP-T3] baseline | [QA-ChunkBench] (Report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt (rust_commit=3799d2be, chunk hash 69ba7f25…)) · [QA-Telemetry] (Telemetry trx tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx references grapheme hash eb0c7c66…) · [StageD::ParityAssets] (fixtures.manifest.json#chunk + #grapheme entries share inspector log evidence) |
+| G2 | Chunk/Line diagnostics + fixtures | ⚠️ Watch | 2025-11-23 | C# Implementer · QA Engineer | Import chunk JSON + record [MP-T3] baseline | [QA-ChunkBench] (Report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt (2025-11-18 replay: 4.30 ms chunk / 3.33 ms line, hash 69ba7f25…, alloc 37,944 B)) · [QA-Telemetry] (Telemetry trx tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx references grapheme hash eb0c7c66…) · [StageD::ParityAssets] (fixtures.manifest.json#chunk + #grapheme entries share inspector log evidence) |
 | G3 | Breaks tree bridge | ⚠️ Watch | 2025-11-26 | C# Implementer · Rust Porter | Publish shim draft + refresh [TS-B5] card | [QA-IngestionSmoke] (Inspector log now records Breaks ledger + wrap span metrics) · [StageD::FeatureGates] (serde export emits breaks_descriptors with hash 5d37a7313730dd0ae9c292ca45daa442c11fe63d45f9ad21bad664f919c13f86) · [StageD::ParityAssets] (fixtures.manifest.json#breaks backs the hydrator smoke) |
 | G4 | Diff/Search plan handoff | ⏳ Pending | 2025-11-28 | AI Architect · C# Implementer | Ship doc skeleton + stub directories | [QA-StageDManual] (Manual validation must cite inspector log diff/search ledger) · [StageD::FixtureFlow] (export-serde-fixtures --diff-regions --search-spans --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json) |
 | G5 | Iterator façade + CLI alignment | ⏳ Pending | 2025-11-27 | Rust Porter · Architecture Mapper | Approve export matrix + update Stage D script | [QA-IngestionSmoke] (Single exporter command now emits manifest + chunk hash 69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a) · [StageD::FixtureFlow] (refresh_all_assets.py --only stage-d-fixtures stitches exporter + loader + inspector) |

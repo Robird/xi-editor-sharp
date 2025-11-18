@@ -5,7 +5,7 @@
 > **Update Frequency**: 每次里程碑
 > **Reviewers**: AI Architect · Rust Porter · C# Implementer · QA Engineer
 > **Anchor Prefix**: SO
-> **Last Synced Goal Tree**: 2025-11-19（mirrors [BP-GoalTree]）
+> **Last Synced Goal Tree**: 2025-11-18 16:07 UTC（`goal_tree_sync.py` log `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118T160730Z.log`）
 
 ---
 

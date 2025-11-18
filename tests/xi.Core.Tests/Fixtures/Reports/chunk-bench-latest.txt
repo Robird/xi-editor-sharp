@@ -1,5 +1,5 @@
 Stage D chunk benchmark (chunk/line replay)
-Timestamp      : 2025-11-18T15:19:56.9686847+00:00
+Timestamp      : 2025-11-18T16:25:34.0888848+00:00
 Fixture folder : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
 Manifest path  : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 Rust commit    : 3799d2be9db0ef040517ed69df1b717e96a8958e
@@ -16,14 +16,14 @@ Chunk enumeration diagnostics:
   Chunks       : 3
   Max length   : 753
   Total chars  : 1,808
-  Duration     : 4.30 ms
-  Throughput   : 232.41 MB/s
+  Duration     : 4.25 ms
+  Throughput   : 235.12 MB/s
 
 Line enumeration diagnostics:
   Manifest lines: 11
   Lines visited : 8
-  Duration      : 3.33 ms
-  Throughput    : 299.89 MB/s
+  Duration      : 3.25 ms
+  Throughput    : 307.97 MB/s
 
 Allocation statistics:
   Thread alloc : 37,944 bytes

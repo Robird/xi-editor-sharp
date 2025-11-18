@@ -76,10 +76,10 @@
       manifestHash: eb0c7c66069ca33a3626ed3909754da72223f6e0e283d6c7b2b3182a0a35182c
     - kind: report
       path: tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt
-      note: "Release benchmark · chunk replay 4.45 ms · report hash ties to manifest chunk payload"
+      note: "2025-11-18 chunk bench · chunk replay 4.30 ms (232.41 MB/s) · line replay 3.33 ms (299.89 MB/s) · thread alloc 37,944 B, GC 0/0/0"
     - kind: telemetry
       path: tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx
-      note: "Grapheme fallback ratio <=0.5% on 2025-11-21 run"
+      note: "Grapheme fallback ratio 0% on 2025-11-18 telemetry smoke"
   schemaVersion: chunk_descriptors@1.0.0
   evidence:
     - docs/architecture/port-blueprint.md#bp-goaltree
@@ -92,7 +92,7 @@
   riskFlag: "Watch -> [MP-R10]"
   qaAnchors:
     - anchor: "[QA-ChunkBench]"
-      note: "Report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt (rust_commit=3799d2be, chunk hash 69ba7f25…)"
+      note: "Report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt (2025-11-18 replay: 4.30 ms chunk / 3.33 ms line, hash 69ba7f25…, alloc 37,944 B)"
     - anchor: "[QA-Telemetry]"
       note: "Telemetry trx tests/xi.Core.Tests/Fixtures/Reports/grapheme-telemetry.trx references grapheme hash eb0c7c66…"
   stageDAnchors:

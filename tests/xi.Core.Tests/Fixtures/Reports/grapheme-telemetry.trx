@@ -1,32 +1,32 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<TestRun id="6adb3e88-e28e-4c68-8ba3-1d979174dc7f" name="@Tutu17 2025-11-18 23:20:03" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-  <Times creation="2025-11-18T23:20:03.3142100+08:00" queuing="2025-11-18T23:20:03.3142102+08:00" start="2025-11-18T23:20:01.4832518+08:00" finish="2025-11-18T23:20:03.3252830+08:00" />
-  <TestSettings name="default" id="653bbb50-b949-466c-a258-6ef59604dfc8">
-    <Deployment runDeploymentRoot="_Tutu17_2025-11-18_23_20_03" />
+<TestRun id="e95efd06-7083-4de7-8fbb-cc29b451571e" name="@Tutu17 2025-11-19 00:25:41" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2025-11-19T00:25:41.1247845+08:00" queuing="2025-11-19T00:25:41.1247847+08:00" start="2025-11-19T00:25:39.1286583+08:00" finish="2025-11-19T00:25:41.1355485+08:00" />
+  <TestSettings name="default" id="476f968f-b233-421e-abae-efc2b9711e07">
+    <Deployment runDeploymentRoot="_Tutu17_2025-11-19_00_25_41" />
   </TestSettings>
   <Results>
-    <UnitTestResult executionId="ff0df97c-a503-4835-9040-66d2b9e93ec1" testId="ac55c292-3380-5a06-e586-7d09d579f51a" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MovePreviousAcrossEmojiSequenceRewindsEntireCluster" computerName="Tutu17" duration="00:00:00.0005325" startTime="2025-11-18T23:20:03.0127879+08:00" endTime="2025-11-18T23:20:03.0127880+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ff0df97c-a503-4835-9040-66d2b9e93ec1" />
-    <UnitTestResult executionId="079fdd96-5dea-4fcf-b935-ba9c4e20faef" testId="3e7ed428-8507-028d-1b61-ca7dca7bd95c" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MoveNextAcrossSurrogatePairAdvancesTwoCodeUnits" computerName="Tutu17" duration="00:00:00.0303200" startTime="2025-11-18T23:20:03.0022056+08:00" endTime="2025-11-18T23:20:03.0023231+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="079fdd96-5dea-4fcf-b935-ba9c4e20faef" />
-    <UnitTestResult executionId="60bae2bd-4be8-4aa5-b843-fb1d1a6c1297" testId="dcf3ce9c-5b84-c610-66f7-79cd6dca5988" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.CrossLeafGraphemeRequestsNeighborTelemetry" computerName="Tutu17" duration="00:00:00.0069304" startTime="2025-11-18T23:20:03.0120312+08:00" endTime="2025-11-18T23:20:03.0120313+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="60bae2bd-4be8-4aa5-b843-fb1d1a6c1297" />
+    <UnitTestResult executionId="a08e35a1-949c-47fc-b33b-6a76d3771ba0" testId="ac55c292-3380-5a06-e586-7d09d579f51a" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MovePreviousAcrossEmojiSequenceRewindsEntireCluster" computerName="Tutu17" duration="00:00:00.0007240" startTime="2025-11-19T00:25:40.7489127+08:00" endTime="2025-11-19T00:25:40.7489129+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a08e35a1-949c-47fc-b33b-6a76d3771ba0" />
+    <UnitTestResult executionId="d5bf1b0d-9d0c-42cc-843f-b9d83e70a56e" testId="3e7ed428-8507-028d-1b61-ca7dca7bd95c" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MoveNextAcrossSurrogatePairAdvancesTwoCodeUnits" computerName="Tutu17" duration="00:00:00.0417838" startTime="2025-11-19T00:25:40.7340865+08:00" endTime="2025-11-19T00:25:40.7341972+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d5bf1b0d-9d0c-42cc-843f-b9d83e70a56e" />
+    <UnitTestResult executionId="b8ad6a05-7918-4dda-a361-142bfc045774" testId="dcf3ce9c-5b84-c610-66f7-79cd6dca5988" testName="Xi.Core.Tests.GraphemeNavigatorSmokeTests.CrossLeafGraphemeRequestsNeighborTelemetry" computerName="Tutu17" duration="00:00:00.0136864" startTime="2025-11-19T00:25:40.7475857+08:00" endTime="2025-11-19T00:25:40.7475863+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b8ad6a05-7918-4dda-a361-142bfc045774" />
   </Results>
   <TestDefinitions>
     <UnitTest name="Xi.Core.Tests.GraphemeNavigatorSmokeTests.CrossLeafGraphemeRequestsNeighborTelemetry" storage="/repos/xi-editor-sharp/tests/xi.core.tests/bin/debug/net9.0/xi.core.tests.dll" id="dcf3ce9c-5b84-c610-66f7-79cd6dca5988">
-      <Execution id="60bae2bd-4be8-4aa5-b843-fb1d1a6c1297" />
+      <Execution id="b8ad6a05-7918-4dda-a361-142bfc045774" />
       <TestMethod codeBase="/repos/xi-editor-sharp/tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Xi.Core.Tests.GraphemeNavigatorSmokeTests" name="CrossLeafGraphemeRequestsNeighborTelemetry" />
     </UnitTest>
     <UnitTest name="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MoveNextAcrossSurrogatePairAdvancesTwoCodeUnits" storage="/repos/xi-editor-sharp/tests/xi.core.tests/bin/debug/net9.0/xi.core.tests.dll" id="3e7ed428-8507-028d-1b61-ca7dca7bd95c">
-      <Execution id="079fdd96-5dea-4fcf-b935-ba9c4e20faef" />
+      <Execution id="d5bf1b0d-9d0c-42cc-843f-b9d83e70a56e" />
       <TestMethod codeBase="/repos/xi-editor-sharp/tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Xi.Core.Tests.GraphemeNavigatorSmokeTests" name="MoveNextAcrossSurrogatePairAdvancesTwoCodeUnits" />
     </UnitTest>
     <UnitTest name="Xi.Core.Tests.GraphemeNavigatorSmokeTests.MovePreviousAcrossEmojiSequenceRewindsEntireCluster" storage="/repos/xi-editor-sharp/tests/xi.core.tests/bin/debug/net9.0/xi.core.tests.dll" id="ac55c292-3380-5a06-e586-7d09d579f51a">
-      <Execution id="ff0df97c-a503-4835-9040-66d2b9e93ec1" />
+      <Execution id="a08e35a1-949c-47fc-b33b-6a76d3771ba0" />
       <TestMethod codeBase="/repos/xi-editor-sharp/tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Xi.Core.Tests.GraphemeNavigatorSmokeTests" name="MovePreviousAcrossEmojiSequenceRewindsEntireCluster" />
     </UnitTest>
   </TestDefinitions>
   <TestEntries>
-    <TestEntry testId="ac55c292-3380-5a06-e586-7d09d579f51a" executionId="ff0df97c-a503-4835-9040-66d2b9e93ec1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="3e7ed428-8507-028d-1b61-ca7dca7bd95c" executionId="079fdd96-5dea-4fcf-b935-ba9c4e20faef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
-    <TestEntry testId="dcf3ce9c-5b84-c610-66f7-79cd6dca5988" executionId="60bae2bd-4be8-4aa5-b843-fb1d1a6c1297" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ac55c292-3380-5a06-e586-7d09d579f51a" executionId="a08e35a1-949c-47fc-b33b-6a76d3771ba0" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3e7ed428-8507-028d-1b61-ca7dca7bd95c" executionId="d5bf1b0d-9d0c-42cc-843f-b9d83e70a56e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="dcf3ce9c-5b84-c610-66f7-79cd6dca5988" executionId="b8ad6a05-7918-4dda-a361-142bfc045774" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
   </TestEntries>
   <TestLists>
     <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
@@ -36,10 +36,10 @@
     <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
     <Output>
       <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.11)
-[xUnit.net 00:00:00.12]   Discovering: xi.Core.Tests
-[xUnit.net 00:00:00.51]   Discovered:  xi.Core.Tests
-[xUnit.net 00:00:00.52]   Starting:    xi.Core.Tests
-[xUnit.net 00:00:00.67]   Finished:    xi.Core.Tests
+[xUnit.net 00:00:00.15]   Discovering: xi.Core.Tests
+[xUnit.net 00:00:00.56]   Discovered:  xi.Core.Tests
+[xUnit.net 00:00:00.58]   Starting:    xi.Core.Tests
+[xUnit.net 00:00:00.74]   Finished:    xi.Core.Tests
 </StdOut>
     </Output>
   </ResultSummary>

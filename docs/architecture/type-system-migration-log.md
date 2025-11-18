@@ -5,7 +5,7 @@
 > **Update Frequency**: After any blocker opens/closes or a Stage D asset lands.
 > **Reviewers**: AI Architect · C# Implementer · Rust Porter · QA Engineer
 > **Anchor Prefix**: TS
-> **Last Synced Goal Tree**: 2025-11-18 (mirrors `[BP-GoalTree]`)
+> **Last Synced Goal Tree**: 2025-11-18 16:07 UTC (`goal_tree_sync.py` log `tests/xi.Core.Tests/Fixtures/Reports/goal-tree-sync-20251118T160730Z.log`)
 
 ---
 
