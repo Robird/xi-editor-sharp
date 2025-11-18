@@ -14,19 +14,15 @@
 
 ### [TS-B1] Cursor 生命周期与 Descriptor 管道
 <a id="TS-B1"></a>
-- **Problem**: C# `NodeCursor` 现已改为 `_editVersion` + `ReferenceEquals` 判定，但缺少可被 Stage D 工具消费的 `CursorDescriptor` schema与 `NodeCursorState` 文档，CLI 亦未产出 manifest。
-- **Rust Plan**: 继续以 `CursorDescriptor` 为跨语言基线，并在需要时启用 `cursor_state` feature；由 `export-serde-fixtures --cursor-descriptors` 导出 10+ JSON 资产（见 `xi-editor-ph7` `cursor_descriptor.rs`）。
-- **C# Plan**: 复用 `_editVersion` 票据 + `CursorDescriptorParityTests`，把结果写入 `[RPM-Matrix]` 并持续运行 `dotnet test Xi.Editor.sln -v m`（169/169）；同时将 schema/manifest 迁移到 `[StageD::ParityAssets]` 并以 `[Fixture-Manifest]` 作为唯一事实。
-- **Status**: ⚠️ Watch — NodeCursor 可以测试且 parity 绿，但 CLI manifest 与 Stage D 文档尚未锁定。
-- **Links**:
-	- `docs/rust-refactor/CursorCache.md`
-	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
-	- `tests/xi.Core.Tests/CursorDescriptorParityTests.cs`
-	- `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` (`[Fixture-Manifest]`)
-- **Next**:
-	1. 与 Rust Porter 在 2025-11-19 前冻结 CLI schema，随后更新 `[StageD::ParityAssets]`、`rope-port-mapping.md` 与 `m3-implementation-plan.md` 风险表，并 rerun `dotnet test -v m` 确认 11/11 parity 仍绿。
-	2. Document `NodeCursorState` 在 `[StageD::FixtureFlow]` 中的触发点，使 CLI -> manifest 路径可复制。
-	3. Script `scripts/refresh_serialization_fixtures.ps1` to always pass `--emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。
+- **Problem**: `_editVersion` parity + 11/11 `CursorDescriptorParityTests` pass, yet Stage D artifacts still describe the legacy `cursor_descriptors@1.1.0` schema and never document `NodeCursorState`, so `[RPM-Matrix]`/`[RPM-ParityAssets]` overstate readiness (`[Chat-2025-11-20]`).
+- **Rust Plan**: Ship `cursor_state`-aware exporters by 11/22 (Owner: Rust Porter) via `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures -- --cursor-descriptors --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`, bump the schema to `cursor_descriptors@1.2.0`, and attach Inspector digests for `[QA-IngestionSmoke]`.
+- **C# Plan**: Document `NodeCursorState` layout inside `[StageD::ParityAssets]`/`[StageD::FixtureFlow]`, keep `_editVersion` parity tests green, and teach `StageDDescriptorLoader` to tolerate the new gate so QA can replay manifests without patching code.
+- **QA/Doc dependencies**: `[QA-IngestionSmoke]` must embed the manifest + Inspector hashes, `[Fixture-Manifest]` must reflect the new `feature_gates=["serde","cursor_state"]`, and `docs/architecture/rope-port-mapping.md#[RPM-Matrix]` + `m3-implementation-plan.md#[MP-T1]` must cite the Stage D evidence once available.
+- **Status**: ⚠️ Watch — Schema text + doc hooks are still missing; the 2025-11-19 manifest is classified as skeleton even though the loader/hydrator tests pass.
+- **Next Steps**:
+  1. **11/22 – Rust Porter**: land the `cursor_state` exporter + manifest bump, share the CLI/Inspector logs, and note the change in `[StageD::ParityAssets]` (`[Chat-2025-11-20]`).
+  2. **11/22 – C# Implementer**: publish the `NodeCursorState` write-up + loader changes, then rerun `dotnet test Xi.Editor.sln -v m --filter CursorDescriptorParityTests` to prove nothing regressed.
+  3. **11/27 – Architecture Mapper**: once payload + docs exist, flip the `[RPM-ParityAssets]` cursor row back to ✅ and close the Goal Tree dependency.
 ### [TS-B2] Metric 互操作与泛型节点桥接
 <a id="TS-B2"></a>
 - **Problem**: C# 仍通过 `IMetric` 动态分派遍历整棵树，`Breaks`/`Diff` 依赖的 shim 缺席；泛型 `Node<TInfo, TLeaf, TLeafOps>` 尚未进入主实现。虽已拿到 `tree_builder_slice_trace@1.0.0` manifest 资产（`basic_slice_plan.json`），但 `TreeBuilderTracer` 仍未注入 `TreeBuilder`，Rust CLI 也尚未导出长 trace 供 replay。 
@@ -47,21 +43,15 @@
 	4. 在 Stage D 文档中补上 `_editVersion` → tracer → adapter 依赖图，避免 G6 merge 时追溯困难。
 ### [TS-B3] Chunk/Line 迭代器与 Telemetry
 <a id="TS-B3"></a>
-- **Problem**: `RopeChunkEnumerator`/`RopeLineEnumerator` 仍以复制方式提供数据；虽然 Rust `export-serde-fixtures` 已通过 `fixtures.manifest.json` 输出 chunk/line/grapheme 描述符，但 QA/Stage D 自动化尚未把这些资产回灌到 dotnet 流水线，1 MB `ChunkBench` 仍缺 baseline。 
-- **Rust Plan**: 继续依赖 manifest-backed exporter（见 `docs/rust-refactor/iterator-facade-export.md`）维持 chunk/line/grapheme 样本，并在 schema 变动时更新 `fixtures.manifest.json` 哈希供 C# loader 校验。
-- **C# Plan**: 新增 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`，使用 manifest (`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`) + `chunk_descriptors/grapheme_descriptors` JSON hydrate `StageDDescriptorManifest`，并由 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 覆盖 metadata/chunk/grapheme 映射；下一步是把 loader 输出暴露给 `[QA-ChunkBench]`、`[QA-IngestionSmoke]` 与 Stage D CLI 流程。
-- **Status**: 🟡 Implementation (awaiting QA wiring) — Loader + tests landed（chunk hash `52aa448cf565…`, grapheme hash `109d57d39b83…`, manifest `feature_gates=["serde","tree_builder_slice_trace"]`），但 QA smoke、Stage D CLI 仍未调用 loader，基准仍缺口。
-- **Links**:
-	- `docs/rust-refactor/iterator-facade-export.md`
-	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
-	- `tests/xi.Core.Tests/RopeChunkEnumeratorTests.cs`
-	- `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`
-	- `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`
-- **Next**:
-	1. 将 `StageDDescriptorLoader` 接入 `[QA-IngestionSmoke]`（可直接运行 `dotnet test --filter StageDDescriptorLoaderTests` 或通过 QA 工具调用），并把结果回写到 `agents/qa-engineer.md`。
-	2. 在 Stage D CLI 流程中引用 loader（或其 manifest DTO）验证 chunk/line/grapheme 计数及哈希，然后再运行 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj -c Release` 记录 1 MB baseline 至 `[QA-ChunkBench]`。
-	3. 挂钩 chunk/grapheme diagnostics，使 Stage D manifest ingestion 结果写入 `[RPM-ParityAssets]`、`[Div-Active]` 和 `design-divergence-log.md`，并在 CLI schema 变更时加 schema 版本守卫。
-	4. 将 loader 作为 Stage D CLI/Litmus 的输入源，确保 `scripts/refresh_all_assets.py --only stage-d-fixtures` 产物每次刷新后自动运行 canonical hash diff并提醒 QA。
+- **Problem**: Loader + DTOs exist, but QA still consumes copy-on-read enumerators; `[QA-ChunkBench]` lacks the 1 MB baseline + alloc stats and `[QA-IngestionSmoke]` never records Inspector output for chunk/grapheme assets, so documentation overstates Stage D coverage (`[Chat-2025-11-20]`).
+- **Rust Plan**: Keep exporting chunk/line/grapheme descriptors via `export-serde-fixtures` and update hashes whenever schema drifts, then share CLI logs so QA can diff manifest vs Inspector counts.
+- **C# Plan**: Run `StageDDescriptorLoader`/`Hydrator` inside refresh scripts, feed the materialized descriptors into `RopeChunkEnumeratorBenchmarks`, and publish the telemetry counters/alloc stats demanded by `[MP-R10]`.
+- **QA/Doc dependencies**: `[QA-IngestionSmoke]` must capture loader → hydrator → manifest verifier → Inspector output, `[QA-ChunkBench]` must store throughput + alloc, and `docs/architecture/rope-port-mapping.md#[RPM-Matrix]`/`[RPM-ParityAssets]` must highlight the QA evidence once present.
+- **Status**: 🟡 Implementation — code exists but Stage D + QA anchors still show skeleton due to missing ingestion evidence.
+- **Next Steps**:
+  1. **11/24 – C# Implementer**: update `python scripts/refresh_all_assets.py --only stage-d-fixtures` to always execute loader/hydrator + Inspector, dump the manifest summary, and surface failures in CI.
+  2. **11/24 – QA Engineer**: record the resulting hashes + `RopeChunkEnumeratorBenchmarks` telemetry in `[QA-IngestionSmoke]`/`[QA-ChunkBench]`, including alloc stats and CLI commands.
+  3. **11/27 – Architecture Mapper**: close the documentation gap by flipping the `[RPM-Matrix]` chunk row back to parity-ready only after QA artifacts are linked.
 
 ### [TS-B4] Grapheme 降级策略
 <a id="TS-B4"></a>
@@ -76,27 +66,15 @@
 
 ### [TS-B5] Breaks/Diff/Search 骨架缺口
 <a id="TS-B5"></a>
-- **Problem**: `rope/breaks.rs`, `rope/diff.rs`, `rope/find.rs`（含 `spans.rs`/`compare.rs`）在 Rust 侧已经提供 `BreaksLeaf/BreaksInfo/BreakBuilder`, `Diff` trait + `LineHashDiff/DiffBuilder`, `FindResult/CaseMatching/Spans<T>` 等类型，但 C# 没有对应目录、DTO、或测试，也没有任何 Stage D CLI flag/manifest entry 能导出 Breaks/Diff/Search 诊断数据。Goal Tree G3/G4/G5 依赖无法验证，Stage D/QA 亦缺乏证据链。
-- **Rust Plan**:
-	1. 用 `docs/rust-refactor/breaks-metrics-templating.md`, `docs/rust-refactor/iterator-facade-export.md`, `docs/rust-refactor/delta-subset-serialization.md` 中的类型清单，整理 `export-serde-fixtures` 拓展点，新增 `--breaks-descriptors`, `--diff-regions`, `--search-spans`（名称暂定）并写入 `fixtures.manifest.json`。
-	2. 为新资产定 schema（`breaks_descriptors@1.0.0`, `diff_regions@1.0.0`, `search_hits@1.0.0` 等），把字段定义同步到 `docs/architecture/fixtures/parity-fixture-schema.md`，并在 CLI 中沿用 chunk/grapheme 的 manifest 写入流程，保证 `[StageD::ParityAssets]` 能引用。
-	3. 更新 Stage D 文档脚本（`scripts/refresh_all_assets.py` + `scripts/refresh_serialization_fixtures.ps1`）以便一次性导出 Breaks/Diff/Search 资产，并在 `agents/rust-porter.md` 记录 refresh 步骤。
-- **C# Plan**:
-	1. 建立 `src/xi.Core/Rope/Breaks`, `src/xi.Core/Diff`, `src/xi.Core/Search` 目录，放置 `BreaksTree`, `BreakBuilder`, `LineHashDiff`, `DiffBuilder`, `Finder`, `SearchOptions`, `Spans<T>` 等骨架类型和对应 DTO，所有命名对齐 `[RPM-Matrix]`。
-	2. 扩展 `StageDDescriptorLoader` 或并列 loader，使其可读取新增的 manifest 节点（`breaks_descriptors`, `diff_regions`, `search_spans`）并暴露给 `tests/xi.Core.Tests` smoke；结果写回 `[QA-IngestionSmoke]`。
-	3. 为每个模块添加最小测试（Breaks 软换行、Diff fixture replay、Search regex smoke），并把 CLI 路径/Stage D 资产链接写进 `[StageD::FixtureFlow]`、`m3-implementation-plan.md` 的 QA 表。
-- **Status**: 🟠 Partial — CLI flag/schema/manifest 规范已更新且 C# skeleton/Stage D loader 已就绪（可 ingestion sample manifest），但 Rust exporter/真实 manifest 仍缺，Goal Tree G3/G4 依旧阻塞，QA 无法 claim coverage。
-- **Links**:
-	- `docs/rust-refactor/breaks-metrics-templating.md`
-	- `docs/rust-refactor/iterator-facade-export.md`
-	- `docs/rust-refactor/delta-subset-serialization.md`
-	- `docs/architecture/rope-port-mapping.md#rpm-matrix`
-	- `docs/architecture/design-divergence-log.md#div-active`
-- **Next**:
-	1. **2025-11-20 – CLI/manifest 草案**：✅ 文档版已交付——`[StageD::FixtureFlow]`、`[StageD::ParityAssets]`、`fixtures/parity-fixture-schema.md` 描述 `--breaks-descriptors` / `--diff-regions` / `--search-spans`，manifest 占位策略已记录；下一步是实现 exporter +脚本 wiring 并将状态迁移到 Implementation。（Owner: Rust Porter）
-	2. **2025-11-22 – C# skeleton drop**：✅ 完成——`Rope/Breaks|Diff|Search` DTO + Stage D loader/test sample 已落地；下一步是把这些 DTO 接到未来的 `BreaksTree/LineHashDiff/Finder` 实现，并在 exporter 上线后切换到真实 manifest。（Owner: C# Implementer）
-	3. **2025-11-24 – Stage D smoke 扩展**：QA Engineer 把新资产接入 `StageDDescriptorLoaderTests` 与 `[QA-IngestionSmoke]` 报告，确认 `scripts/verify_fixture_manifest.py --update` 会校验新 hash，并在 `agents/qa-engineer.md` 登记结果。（Owner: QA）
-	4. **Fallback if CLI slips**：若 Rust CLI 无法在 11/24 前交付，Architecture Mapper 将 `[MP-R9]` 升级为高风险并在 `design-divergence-log.md` 挂出“Rust-only”提醒。
+- **Problem**: `[RPM-Matrix]` shows Breaks/Diff/Search as “hydrator wired”, yet `[Chat-2025-11-20]` confirmed the Stage D ledger still carries placeholder JSON; QA cannot verify Goal Tree G3/G4 because no real payload or Inspector log exists.
+- **Rust Plan**: Between 11/22–11/24, implement `export-serde-fixtures --breaks-descriptors --diff-regions --search-spans` using the schemas in `docs/rust-refactor/breaks-metrics-templating.md` & `iterator-facade-export.md`, emit live payloads + hashes into `fixtures.manifest.json`, and update `[StageD::ParityAssets]`/`[Fixture-Manifest]` with the new feature gates.
+- **C# Plan**: Skeleton DTOs/tests are already in `Rope/Breaks|Diff|Search`; next is to run the hydrator against the real manifest, pipe outputs into QA scripts, and light up Breaks metrics + Finder parity smoke so `[QA-IngestionSmoke]` has typed evidence.
+- **QA/Doc dependencies**: `[QA-IngestionSmoke]` must store Inspector digests for the new payloads, `[QA-ChunkBench]`/`[QA-Telemetry]` track any perf regressions, and Architecture docs (`rope-port-mapping.md`, `design-divergence-log.md`, `system-overview.md`) need to flip the Breaks/Diff/Search rows back to parity only after evidence lands.
+- **Status**: 🟠 Partial — schemas + C# skeleton are done, exporter + QA evidence are not.
+- **Next Steps**:
+  1. **11/22 – Rust Porter**: cut the exporter branch, land CLI flags + schema text, and attach the cargo/Inspector logs referenced by `[RPM-Actions]`.
+  2. **11/24 – QA Engineer + C# Implementer**: rerun `python scripts/refresh_all_assets.py --only stage-d-fixtures` with the new assets, update `[QA-IngestionSmoke]` with hashes/counts, and add hydrator smoke filters for `BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests`.
+  3. **11/27 – Architecture Mapper**: if QA delivers evidence, update `[RPM-ParityAssets]` + `[Div-Active]` + `[SO-Map]` to remove the skeleton warnings; otherwise escalate via `[MP-R9]`/AI Architect.
 
 ## [TS-Retired] Retired Blockers
 <a id="TS-Retired"></a>
@@ -113,3 +91,5 @@
 [QA-Telemetry]: ../csharp-refactor/rope-serialization-fixture-playbook.md#QA-Telemetry
 [Fixture-Manifest]: fixtures/parity-fixture-schema.md#fixture-manifest
 [MP-R9]: m3-implementation-plan.md#r9
+[MP-R10]: m3-implementation-plan.md#r10
+[Chat-2025-11-20]: ../meetings/2025-11-20-type-mapping-sync-chat.md#architecture-mapper

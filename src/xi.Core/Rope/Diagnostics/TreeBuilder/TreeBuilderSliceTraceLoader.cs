@@ -11,6 +11,9 @@ namespace Xi.Core.Rope.Diagnostics.TreeBuilder;
 /// </summary>
 internal static class TreeBuilderSliceTraceLoader
 {
+    private const string ManifestFileName = "fixtures.manifest.json";
+    private const string FixtureDirectoryMarker = "tests/xi.Core.Tests/Fixtures";
+
     /// <summary>Reads every <c>.json</c> trace under <paramref name="traceDirectory"/>.</summary>
     /// <exception cref="ArgumentException">Thrown when <paramref name="traceDirectory"/> is null/empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the directory is missing.</exception>
@@ -46,6 +49,67 @@ internal static class TreeBuilderSliceTraceLoader
         }
 
         return traces;
+    }
+
+    /// <summary>
+    /// Reads trace entries listed inside <c>fixtures.manifest.json</c> so Stage&nbsp;D manifests can drive replay.
+    /// </summary>
+    /// <param name="fixtureDirectory">Path that contains the manifest (typically <c>tests/xi.Core.Tests/Fixtures</c>).</param>
+    /// <param name="fixtureName">Optional manifest <c>name</c> to filter on.</param>
+    public static IReadOnlyList<TreeBuilderSliceTrace> LoadFromManifest(string fixtureDirectory, string? fixtureName = null)
+    {
+        if (string.IsNullOrWhiteSpace(fixtureDirectory))
+        {
+            throw new ArgumentException("Fixture directory cannot be null or whitespace.", nameof(fixtureDirectory));
+        }
+
+        var root = Path.GetFullPath(fixtureDirectory);
+        var manifestPath = Path.Combine(root, ManifestFileName);
+        if (!File.Exists(manifestPath))
+        {
+            throw new FileNotFoundException(
+                $"Tree builder manifest '{manifestPath}' was not found. Run 'python scripts/refresh_all_assets.py --only stage-d-fixtures' so it stays in sync.",
+                manifestPath);
+        }
+
+        using var document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        if (!document.RootElement.TryGetProperty("fixtures", out var fixtures) || fixtures.ValueKind != JsonValueKind.Array)
+        {
+            return LoadFromDirectory(Path.Combine(root, "tree_builder_slice"));
+        }
+
+        var traces = new List<TreeBuilderSliceTrace>();
+        var resolvedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in fixtures.EnumerateArray())
+        {
+            var name = GetString(entry, "name");
+            var schemaHash = GetString(entry, "schema_hash");
+            var ledgerPath = GetString(entry, "path");
+
+            if (!MatchesTraceEntry(schemaHash, ledgerPath, fixtureName, name))
+            {
+                continue;
+            }
+
+            var resolved = ResolveManifestPath(root, ledgerPath, name);
+            if (!resolvedPaths.Add(resolved))
+            {
+                continue;
+            }
+
+            traces.Add(ParseTrace(resolved));
+        }
+
+        if (traces.Count > 0)
+        {
+            return traces;
+        }
+
+        var fallbackDirectory = Path.Combine(root, "tree_builder_slice");
+        return Directory.Exists(fallbackDirectory)
+            ? LoadFromDirectory(fallbackDirectory)
+            : Array.Empty<TreeBuilderSliceTrace>();
     }
 
     private static TreeBuilderSliceTrace ParseTrace(string filePath)
@@ -309,6 +373,74 @@ internal static class TreeBuilderSliceTraceLoader
         }
 
         return false;
+    }
+
+    private static string? GetString(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString();
+        }
+
+        return null;
+    }
+
+    private static bool MatchesTraceEntry(string? schemaHash, string? manifestPath, string? fixtureNameFilter, string? entryName)
+    {
+        if (!string.IsNullOrWhiteSpace(fixtureNameFilter) &&
+            !string.Equals(entryName, fixtureNameFilter, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(schemaHash) &&
+            schemaHash.Contains("tree_builder_slice_trace@", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(manifestPath) &&
+            manifestPath.IndexOf("tree_builder_slice", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ResolveManifestPath(string fixtureDirectory, string? manifestPath, string? entryName)
+    {
+        if (!string.IsNullOrWhiteSpace(manifestPath))
+        {
+            var trimmed = manifestPath.Trim();
+            if (Path.IsPathRooted(trimmed))
+            {
+                return trimmed;
+            }
+
+            var normalized = trimmed
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+            var marker = FixtureDirectoryMarker.Replace('/', Path.DirectorySeparatorChar)
+                .Replace('\\', Path.DirectorySeparatorChar);
+            var markerIndex = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex >= 0)
+            {
+                var relative = normalized
+                    .Substring(markerIndex + marker.Length)
+                    .TrimStart(Path.DirectorySeparatorChar);
+                return Path.Combine(fixtureDirectory, relative);
+            }
+
+            return Path.Combine(fixtureDirectory, normalized);
+        }
+
+        if (string.IsNullOrWhiteSpace(entryName))
+        {
+            throw new InvalidDataException("Manifest entry for tree builder trace is missing both path and name fields.");
+        }
+
+        return Path.Combine(fixtureDirectory, "tree_builder_slice", entryName);
     }
 }
 

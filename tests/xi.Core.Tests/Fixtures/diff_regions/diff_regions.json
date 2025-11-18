@@ -1,15 +1,15 @@
 {
   "metadata": {
     "schema_version": "1.0.0",
-    "rust_commit": "bea8a3360131a0840d26aa75daba9184b70d50b7",
+    "rust_commit": "bd28ebdf83d2dd2fa6d4bd7c857d2471a21b4999",
     "generated_at_unix_millis": 1763419977135,
     "case_count": 3
   },
   "diff_cases": [
     {
       "sample": "ascii_minimal_ops",
-      "base_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_base.txt",
-      "target_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_target.txt",
+      "base_path": "tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_base.txt",
+      "target_path": "tests/xi.Core.Tests/Fixtures/diff_regions/ascii_minimal_ops_target.txt",
       "line_count": 5,
       "ops": [
         {
@@ -103,8 +103,8 @@
     },
     {
       "sample": "crlf_normalization",
-      "base_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_base.txt",
-      "target_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_target.txt",
+      "base_path": "tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_base.txt",
+      "target_path": "tests/xi.Core.Tests/Fixtures/diff_regions/crlf_normalization_target.txt",
       "line_count": 5,
       "ops": [
         {
@@ -198,8 +198,8 @@
     },
     {
       "sample": "emoji_patch_block",
-      "base_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_base.txt",
-      "target_path": "/repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_target.txt",
+      "base_path": "tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_base.txt",
+      "target_path": "tests/xi.Core.Tests/Fixtures/diff_regions/emoji_patch_block_target.txt",
       "line_count": 3,
       "ops": [
         {

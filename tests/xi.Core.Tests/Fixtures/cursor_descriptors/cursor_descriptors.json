@@ -12,7 +12,17 @@
       "offset_in_leaf": 0,
       "leaf_len": 0
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 0,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 0,
+      "path": [],
+      "metric": "base",
+      "edit_version": 1
+    }
   },
   {
     "name": "single_leaf_midpoint_base",
@@ -27,7 +37,17 @@
       "offset_in_leaf": 7,
       "leaf_len": 44
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 7,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 44,
+      "path": [],
+      "metric": "base",
+      "edit_version": 2
+    }
   },
   {
     "name": "single_leaf_end_base",
@@ -42,7 +62,17 @@
       "offset_in_leaf": 26,
       "leaf_len": 26
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 26,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 26,
+      "path": [],
+      "metric": "base",
+      "edit_version": 3
+    }
   },
   {
     "name": "lines_metric_middle",
@@ -57,7 +87,17 @@
       "offset_in_leaf": 22,
       "leaf_len": 32
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 22,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 32,
+      "path": [],
+      "metric": "lines",
+      "edit_version": 10
+    }
   },
   {
     "name": "lines_metric_tail_boundary",
@@ -72,7 +112,17 @@
       "offset_in_leaf": 9,
       "leaf_len": 9
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 9,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 9,
+      "path": [],
+      "metric": "lines",
+      "edit_version": 11
+    }
   },
   {
     "name": "utf16_metric_surrogate_midpoint",
@@ -87,7 +137,17 @@
       "offset_in_leaf": 5,
       "leaf_len": 25
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 5,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 25,
+      "path": [],
+      "metric": "utf16",
+      "edit_version": 20
+    }
   },
   {
     "name": "utf16_metric_cluster_tail",
@@ -102,7 +162,42 @@
       "offset_in_leaf": 29,
       "leaf_len": 34
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 29,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 34,
+      "path": [],
+      "metric": "utf16",
+      "edit_version": 21
+    }
+  },
+  {
+    "name": "breaks_metric_soft_wrap",
+    "text": "Soft wrap ensures BreaksMetric parity across CRLF\r\nwindows and emoji 🚀 spans.",
+    "expect_apply": true,
+    "notes": "BreaksMetric-aligned cursor captured near soft wrap boundary.",
+    "metric": "base",
+    "position": 32,
+    "is_valid": true,
+    "offsets": {
+      "offset_of_leaf": 0,
+      "offset_in_leaf": 32,
+      "leaf_len": 80
+    },
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 32,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 80,
+      "path": [],
+      "metric": "breaks",
+      "edit_version": 25
+    }
   },
   {
     "name": "base_metric_split_leaf_boundary",
@@ -124,7 +219,24 @@
         "child_index": 1,
         "child_offset": 544
       }
-    ]
+    ],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 1030,
+      "offset_of_leaf": 544,
+      "is_valid": true,
+      "leaf_len": 511,
+      "path": [
+        {
+          "node_height": 1,
+          "node_len": 1055,
+          "child_index": 1,
+          "child_offset": 544
+        }
+      ],
+      "metric": "base",
+      "edit_version": 30
+    }
   },
   {
     "name": "deep_tree_midpoint",
@@ -170,10 +282,51 @@
         "child_index": 0,
         "child_offset": 0
       }
-    ]
+    ],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 8372224,
+      "offset_of_leaf": 8372224,
+      "is_valid": true,
+      "leaf_len": 511,
+      "path": [
+        {
+          "node_height": 5,
+          "node_len": 16744448,
+          "child_index": 4,
+          "child_offset": 8372224
+        },
+        {
+          "node_height": 4,
+          "node_len": 2093056,
+          "child_index": 0,
+          "child_offset": 0
+        },
+        {
+          "node_height": 3,
+          "node_len": 261632,
+          "child_index": 0,
+          "child_offset": 0
+        },
+        {
+          "node_height": 2,
+          "node_len": 32704,
+          "child_index": 0,
+          "child_offset": 0
+        },
+        {
+          "node_height": 1,
+          "node_len": 4088,
+          "child_index": 0,
+          "child_offset": 0
+        }
+      ],
+      "metric": "base",
+      "edit_version": 31
+    }
   },
   {
-    "name": "descriptor_invalid_after_edit",
+    "name": "cursor_state_invalidated_after_edit",
     "text": "abcdefghij",
     "edited_text": "abcXYZghij",
     "expect_apply": true,
@@ -187,7 +340,19 @@
       "offset_in_leaf": 4,
       "leaf_len": 10
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 4,
+      "offset_of_leaf": 0,
+      "is_valid": true,
+      "leaf_len": 10,
+      "path": [],
+      "metric": "base",
+      "edit_version": 40,
+      "edit_version_after_edit": 41,
+      "invalidated_after_edit": true
+    }
   },
   {
     "name": "already_invalid_descriptor",
@@ -201,6 +366,15 @@
       "offset_of_leaf": 0,
       "offset_in_leaf": 3
     },
-    "leaf_path": []
+    "leaf_path": [],
+    "cursor_state": {
+      "cursor_state_enabled": true,
+      "position": 3,
+      "offset_of_leaf": 0,
+      "is_valid": false,
+      "path": [],
+      "metric": "lines",
+      "edit_version": 50
+    }
   }
 ]

@@ -1,0 +1,797 @@
+(py313) root@Tutu17:/repos/xi-editor-sharp# 
+test engine::tests::gc_2 ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::find_common_1 ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::undo ... ok
+test engine::tests::undo_3 ... ok
+test engine::tests::undo_4 ... ok
+test engine::tests::undo_5 ... ok
+Stage D exporter refresh log (abbreviated)
+----------------------------------------
+- `cargo test -p xi-rope --features serde,cursor_state`: 171 Rust tests ✅ (see original shell log if deeper detail is required).
+- `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures -- …`: regenerated cursor/chunk/grapheme/breaks/diff/search fixtures and updated `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`.
+- `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`: manifest hashes verified with `0` drift.
+
+Use this file as a breadcrumb pointing to the latest exporter run; overwrite the contents with the newest command trio whenever Stage D assets refresh.
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests xi_rope
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+
+   Doc-tests xi_rpc
+
+running 2 tests
+test rpc/src/error.rs - error::RemoteError (line 85) ... ok
+test rpc/src/error.rs - error::RemoteError (line 65) ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+   Doc-tests xi_trace
+
+running 6 tests
+test trace/src/lib.rs - trace_payload (line 937) ... ignored
+test trace/src/chrome_trace_dump.rs - chrome_trace_dump::serialize (line 82) - compile ... ok
+test trace/src/lib.rs - trace_closure (line 1029) ... ok
+test trace/src/lib.rs - trace_payload (line 931) ... ok
+test trace/src/lib.rs - trace_block (line 972) ... ok
+test trace/src/lib.rs - trace (line 893) ... ok
+
+test result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+   Doc-tests xi_unicode
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Running "cargo test -p xi-rope --no-default-features"
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running unittests src/lib.rs (/root/.cache/xi-editor-ph7/target/debug/deps/xi_rope-f51e7af6998573f4)
+
+running 165 tests
+test breaks::tests::empty ... ok
+test breaks::tests::helper_handles_empty_breaks ... ok
+test breaks::tests::fromleaf ... ok
+test breaks::tests::helper_matches_metric_parity ... ok
+test breaks::tests::default_metric_test ... ok
+test breaks::tests::one ... ok
+test breaks::tests::concat ... ok
+test compare::tests::avx_mask ... ok
+test compare::tests::ne_avx ... ok
+test compare::tests::ne_idx_rev_utf8 ... ok
+test compare::tests::ne_len ... ok
+test compare::tests::ne_len_rev ... ok
+test compare::tests::ne_len_rev_sse ... ok
+test compare::tests::ne_len_simd ... ok
+test compare::tests::ne_rev_regression1 ... ok
+test breaks::tests::larger ... ok
+test compare::tests::find_back_utf8 ... ok
+test compare::tests::find_diff_range ... ok
+test compare::tests::find_diff_range_ne_lens ... ok
+test compare::tests::find_forward_utf8 ... ok
+test compare::tests::scan_back_ne_lens ... ok
+test compare::tests::scanner_forward_simple ... ok
+test compare::tests::scanner_back ... ok
+test compare::tests::scanner_backward_simple ... ok
+test delta::tests::factor ... ok
+test delta::tests::fancy_bounds ... ok
+test delta::tests::inserted_subset ... ok
+test delta::tests::is_identity ... ok
+test delta::tests::is_simple_delete ... ok
+test delta::tests::iter_deletions ... ok
+test delta::tests::iter_inserts ... ok
+test delta::tests::simple ... ok
+test delta::tests::synthesize ... ok
+test delta::tests::transform_expand ... ok
+test delta::tests::transform_shrink ... ok
+test delta::tests::as_simple_insert ... ok
+test diff::tests::simple_diff ... ok
+test engine::tests::compute_transforms_2 ... ok
+test engine::tests::compute_transforms_1 ... ok
+test engine::tests::compute_deltas_1 ... ok
+test engine::tests::edit_rev_empty ... ok
+test engine::tests::edit_rev_concurrent ... ok
+test engine::tests::edit_rev_simple ... ok
+test engine::tests::find_base_1 ... ok
+test diff::tests::diff_smoke_test ... ok
+test diff::tests::test_larger_diff ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::edit_rev_undo ... ok
+test engine::tests::edit_rev_undo_3 ... ok
+test engine::tests::find_common_1 ... ok
+test engine::tests::gc_2 ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::edit_rev_bad_delta_len - should panic ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::undo ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::undo_4 ... ok
+test engine::tests::undo_3 ... ok
+test engine::tests::undo_5 ... ok
+test find::tests::compare_cursor_str_small ... ok
+test find::tests::find_casei_ascii_nonalpha ... ok
+test find::tests::find_casei_0xc4 ... ok
+test find::tests::compare_cursor_str_medium ... ok
+test find::tests::find_casei_small ... ok
+test find::tests::find_casei_special ... ok
+test find::tests::find_medium ... ok
+test find::tests::find_small ... ok
+test helpers::string_leaf::tests::bulk_split_respects_capacity_bounds ... ok
+test helpers::string_leaf::tests::count_utf16_code_units_handles_mixed_scalar_values ... ok
+test helpers::string_leaf::tests::split_avoids_surrogate_pair ... ok
+test helpers::string_leaf::tests::split_prefers_newline_within_window ... ok
+test interval::tests::after ... ok
+test interval::tests::contains ... ok
+test interval::tests::before ... ok
+test interval::tests::intersect ... ok
+test interval::tests::prefix ... ok
+test interval::tests::size ... ok
+test interval::tests::empty ... ok
+test interval::tests::translate ... ok
+test find::tests::compare_cursor_regex_multiline ... ok
+test interval::tests::suffix ... ok
+test metrics::break_indices::tests::handles_duplicates ... ok
+test find::tests::compare_cursor_regex_singleline ... ok
+test metrics::break_indices::tests::handles_empty_breaks ... ok
+test metrics::break_indices::tests::navigates_breaks ... ok
+test metrics::codepoint::tests::ascii_boundaries ... ok
+test metrics::codepoint::tests::continuation_scan_stops_at_start ... ok
+test metrics::codepoint::tests::counts_utf16_code_units ... ok
+test metrics::codepoint::tests::multibyte_boundaries ... ok
+test metrics::identity::tests::delegates_to_inner_metric ... ok
+test metrics::lines::tests::counts_ascii_newlines ... ok
+test metrics::lines::tests::finds_next_newline_boundaries ... ok
+test metrics::lines::tests::finds_prev_newline_boundaries ... ok
+test metrics::lines::tests::prev_handles_no_newline ... ok
+test multiset::tests::test_apply ... ok
+test multiset::tests::test_complement ... ok
+test multiset::tests::test_find_deletions ... ok
+test multiset::tests::test_mapper ... ok
+test multiset::tests::test_mapper_requires_non_decreasing - should panic ... ok
+test multiset::tests::trivial ... ok
+test multiset::tests::transform ... ok
+test multiset::tests::union ... ok
+test rope::tests::default_metric_test ... ok
+test rope::tests::eq_small ... ok
+test rope::tests::line_of_offset_panic - should panic ... ok
+test rope::tests::line_of_offset_small ... ok
+test rope::tests::eq_med ... ok
+test rope::tests::line_offsets ... ok
+test rope::tests::lines_raw_small ... ok
+test rope::tests::lines_med ... ok
+test rope::tests::next_codepoint_offset_small ... ok
+test rope::tests::lines_small ... ok
+test rope::tests::next_grapheme_offset ... ok
+test rope::tests::offset_of_line_panic - should panic ... ok
+test rope::tests::offset_of_line_small ... ok
+test rope::tests::peek_next_codepoint ... ok
+test rope::tests::prev_codepoint_offset_small ... ok
+test rope::tests::prev_grapheme_offset ... ok
+test rope::tests::replace_small ... ok
+test rope::tests::rope_metric_conversion_shims ... ok
+test rope::tests::slice_to_cow_long_string_long_slice ... ok
+test find::tests::find_regex_small ... ok
+test rope::tests::slice_to_cow_long_string_short_slice ... ok
+test rope::tests::slice_to_cow_small_string ... ok
+test rope::tests::utf16_code_units_metric ... ok
+test spans::tests::delete_after_big_and_small ... ok
+test spans::tests::delete_after_empty ... ok
+test spans::tests::test_delete_after ... ok
+test spans::tests::delete_after_big_at_start ... ok
+test spans::tests::test_merge ... ok
+test spans::tests::test_merge_2 ... ok
+test tree::test::at_or_next ... ok
+test tree::test::cursor_iter ... ok
+test tree::test::cursor_next_empty ... ok
+test find::tests::find_regex_small_casei ... ok
+test find::tests::find_regex_medium ... ok
+test tree::test::cursor_next_misc ... ok
+test tree::test::next_zero_measure_large ... ok
+test tree::test::node_is_empty ... ok
+test tree::test::prev_line_small ... ok
+test tree::test::cursor_prev_misc ... ok
+test tree::test::balance_invariant ... ok
+test tree::test::prev_line_large ... ok
+test tree::test::cursor_next_triangle ... ok
+test rope::tests::append_large ... ok
+test tree::test::eq_rope_with_pieces ... ok
+test rope::tests::next_grapheme_offset_with_ris_of_leaf_boundaries ... ok
+
+test result: ok. 165 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
+     Running unittests src/bin/export-serde-fixtures.rs (/root/.cache/xi-editor-ph7/target/debug/deps/export_serde_fixtures-14a68a7c2cd0816e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chunk_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/chunk_descriptor-82124919c01cc676)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cursor_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/cursor_descriptor-9e5e21977daf88b5)
+
+running 4 tests
+test cursor_descriptor_round_trip_basic ... ok
+test cursor_descriptor_invalidates_after_rebuild ... ok
+test cursor_descriptor_rejects_invalid_snapshot ... ok
+test cursor_descriptor_handles_deep_paths ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/grapheme_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/grapheme_descriptor-23a88256ea477e0f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/tree_builder_slice_trace.rs (/root/.cache/xi-editor-ph7/target/debug/deps/tree_builder_slice_trace-4ab9cffbe3f9e0fa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests xi_rope
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+
+Running "cargo test -p xi-rope --features serde"
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (/root/.cache/xi-editor-ph7/target/debug/deps/xi_rope-e8c95f8cdd6ff1a9)
+
+running 171 tests
+test breaks::tests::concat ... ok
+test breaks::tests::default_metric_test ... ok
+test breaks::tests::empty ... ok
+test breaks::tests::helper_handles_empty_breaks ... ok
+test breaks::tests::fromleaf ... ok
+test breaks::tests::helper_matches_metric_parity ... ok
+test breaks::tests::one ... ok
+test compare::tests::avx_mask ... ok
+test breaks::tests::larger ... ok
+test compare::tests::find_back_utf8 ... ok
+test compare::tests::find_diff_range ... ok
+test compare::tests::find_diff_range_ne_lens ... ok
+test compare::tests::find_forward_utf8 ... ok
+test compare::tests::ne_avx ... ok
+test compare::tests::ne_idx_rev_utf8 ... ok
+test compare::tests::ne_len ... ok
+test compare::tests::ne_len_rev ... ok
+test compare::tests::ne_len_rev_sse ... ok
+test compare::tests::ne_len_simd ... ok
+test compare::tests::ne_rev_regression1 ... ok
+test compare::tests::scan_back_ne_lens ... ok
+test compare::tests::scanner_back ... ok
+test compare::tests::scanner_backward_simple ... ok
+test compare::tests::scanner_forward_simple ... ok
+test delta::serde_tests::delta_serde ... ok
+test delta::serde_tests::delta_serialization_regression ... ok
+test delta::tests::as_simple_insert ... ok
+test delta::tests::factor ... ok
+test delta::tests::fancy_bounds ... ok
+test delta::tests::inserted_subset ... ok
+test delta::tests::is_identity ... ok
+test delta::tests::is_simple_delete ... ok
+test delta::tests::iter_deletions ... ok
+test delta::tests::iter_inserts ... ok
+test delta::tests::simple ... ok
+test delta::tests::synthesize ... ok
+test delta::tests::transform_expand ... ok
+test delta::tests::transform_shrink ... ok
+test diff::tests::simple_diff ... ok
+test diff::tests::diff_smoke_test ... ok
+test engine::tests::compute_deltas_1 ... ok
+test engine::tests::compute_transforms_1 ... ok
+test engine::tests::compute_transforms_2 ... ok
+test engine::tests::edit_rev_empty ... ok
+test engine::tests::edit_rev_concurrent ... ok
+test engine::tests::edit_rev_bad_delta_len - should panic ... ok
+test engine::tests::edit_rev_undo ... ok
+test engine::tests::edit_rev_simple ... ok
+test diff::tests::test_larger_diff ... ok
+test engine::tests::edit_rev_undo_3 ... ok
+test engine::tests::edit_rev_undo_2 ... ok
+test engine::tests::engine_serialization_regression ... ok
+test engine::tests::find_base_1 ... ok
+test engine::tests::find_common_1 ... ok
+test engine::tests::gc ... ok
+test engine::tests::gc_2 ... ok
+test engine::tests::gc_4 ... ok
+test engine::tests::gc_5 ... ok
+test engine::tests::gc_6 ... ok
+test engine::tests::merge_idempotent ... ok
+test engine::tests::merge_insert_only_whiteboard ... ok
+test engine::tests::merge_max_undo_so_far ... ok
+test engine::tests::merge_session_priorities ... ok
+test engine::tests::merge_associative ... ok
+test engine::tests::merge_simple_delete_2 ... ok
+test engine::tests::rearrange_1 ... ok
+test engine::tests::gc_3 ... ok
+test engine::tests::merge_priorities ... ok
+test engine::tests::try_delta_rev_head ... ok
+test engine::tests::merge_simple_delete_1 ... ok
+test engine::tests::try_delta_rev_head_2 ... ok
+test engine::tests::try_delta_rev_head_3 ... ok
+test engine::tests::merge_whiteboard ... ok
+test engine::tests::rebase_1 ... ok
+test engine::tests::undo ... ok
+test engine::tests::undo_2 ... ok
+test engine::tests::try_delta_rev_head_missing_token ... ok
+test engine::tests::undo_3 ... ok
+test engine::tests::undo_4 ... ok
+test engine::tests::undo_5 ... ok
+test find::tests::compare_cursor_str_small ... ok
+test find::tests::compare_cursor_str_medium ... ok
+test find::tests::find_casei_0xc4 ... ok
+test find::tests::find_casei_ascii_nonalpha ... ok
+test find::tests::find_casei_small ... ok
+test find::tests::find_casei_special ... ok
+test find::tests::find_medium ... ok
+test find::tests::find_small ... ok
+test helpers::string_leaf::tests::bulk_split_respects_capacity_bounds ... ok
+test helpers::string_leaf::tests::count_utf16_code_units_handles_mixed_scalar_values ... ok
+test helpers::string_leaf::tests::split_prefers_newline_within_window ... ok
+test helpers::string_leaf::tests::split_avoids_surrogate_pair ... ok
+test interval::tests::before ... ok
+test interval::tests::after ... ok
+test interval::tests::empty ... ok
+test find::tests::compare_cursor_regex_singleline ... ok
+test interval::tests::contains ... ok
+test interval::tests::intersect ... ok
+test find::tests::compare_cursor_regex_multiline ... ok
+test interval::tests::prefix ... ok
+test interval::tests::size ... ok
+test interval::tests::suffix ... ok
+test metrics::break_indices::tests::handles_duplicates ... ok
+test interval::tests::translate ... ok
+test metrics::break_indices::tests::handles_empty_breaks ... ok
+test metrics::break_indices::tests::navigates_breaks ... ok
+test metrics::codepoint::tests::continuation_scan_stops_at_start ... ok
+test metrics::codepoint::tests::ascii_boundaries ... ok
+test metrics::codepoint::tests::counts_utf16_code_units ... ok
+test metrics::codepoint::tests::multibyte_boundaries ... ok
+test metrics::identity::tests::delegates_to_inner_metric ... ok
+test metrics::lines::tests::counts_ascii_newlines ... ok
+test metrics::lines::tests::finds_next_newline_boundaries ... ok
+test metrics::lines::tests::finds_prev_newline_boundaries ... ok
+test metrics::lines::tests::prev_handles_no_newline ... ok
+test multiset::tests::subset_serialization_regression ... ok
+test multiset::tests::test_apply ... ok
+test multiset::tests::test_complement ... ok
+test multiset::tests::test_find_deletions ... ok
+test multiset::tests::test_mapper ... ok
+test multiset::tests::test_mapper_requires_non_decreasing - should panic ... ok
+test multiset::tests::trivial ... ok
+test multiset::tests::transform ... ok
+test multiset::tests::union ... ok
+test rope::serde_tests::test_ser_de ... ok
+test rope::serde_tests::serialize_and_deserialize ... ok
+test rope::tests::default_metric_test ... ok
+test rope::tests::eq_small ... ok
+test rope::tests::eq_med ... ok
+test rope::tests::line_of_offset_panic - should panic ... ok
+test rope::tests::line_of_offset_small ... ok
+test rope::tests::line_offsets ... ok
+test rope::tests::lines_raw_small ... ok
+test rope::tests::lines_med ... ok
+test rope::tests::next_codepoint_offset_small ... ok
+test rope::tests::lines_small ... ok
+test rope::tests::next_grapheme_offset ... ok
+test rope::tests::offset_of_line_panic - should panic ... ok
+test rope::tests::offset_of_line_small ... ok
+test rope::tests::peek_next_codepoint ... ok
+test rope::tests::prev_codepoint_offset_small ... ok
+test rope::tests::prev_grapheme_offset ... ok
+test rope::tests::rope_metric_conversion_shims ... ok
+test rope::tests::slice_to_cow_long_string_long_slice ... ok
+test rope::tests::replace_small ... ok
+test rope::tests::slice_to_cow_long_string_short_slice ... ok
+test rope::tests::slice_to_cow_small_string ... ok
+test rope::tests::utf16_code_units_metric ... ok
+test spans::tests::delete_after_big_and_small ... ok
+test spans::tests::delete_after_big_at_start ... ok
+test spans::tests::delete_after_empty ... ok
+test spans::tests::test_delete_after ... ok
+test spans::tests::test_merge ... ok
+test spans::tests::test_merge_2 ... ok
+test tree::test::at_or_next ... ok
+test find::tests::find_regex_small ... ok
+test tree::test::cursor_next_empty ... ok
+test tree::test::cursor_iter ... ok
+test find::tests::find_regex_small_casei ... ok
+test find::tests::find_regex_medium ... ok
+test tree::test::cursor_next_misc ... ok
+test tree::test::next_zero_measure_large ... ok
+test tree::test::node_is_empty ... ok
+test tree::test::cursor_prev_misc ... ok
+test tree::test::prev_line_small ... ok
+test tree::test::balance_invariant ... ok
+test tree::test::prev_line_large ... ok
+test tree::test::cursor_next_triangle ... ok
+test rope::tests::append_large ... ok
+test tree::test::eq_rope_with_pieces ... ok
+test rope::tests::next_grapheme_offset_with_ris_of_leaf_boundaries ... ok
+
+test result: ok. 171 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+     Running unittests src/bin/export-serde-fixtures.rs (/root/.cache/xi-editor-ph7/target/debug/deps/export_serde_fixtures-91835a1eddf7988a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chunk_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/chunk_descriptor-5f0b88bb4d61d1c9)
+
+running 1 test
+exported 9 chunk descriptors and 11 line descriptors to /tmp/.tmpuzdJFv/chunk_fixtures/chunk_descriptors.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_chunk_export::exporter_creates_chunk_and_line_descriptor_files ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/cursor_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/cursor_descriptor-be8f42e7536818ba)
+
+running 5 tests
+test cursor_descriptor_invalidates_after_rebuild ... ok
+test cursor_descriptor_rejects_invalid_snapshot ... ok
+test cursor_descriptor_round_trip_basic ... ok
+test cursor_descriptor_handles_deep_paths ... ok
+exported 11 cursor descriptor samples to /tmp/.tmpEqd9eo/cursor_fixtures/cursor_descriptors.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test exporter_creates_cursor_descriptor_file ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.93s
+
+     Running tests/grapheme_descriptor.rs (/root/.cache/xi-editor-ph7/target/debug/deps/grapheme_descriptor-0d3dbd7ea838abfe)
+
+running 1 test
+exported 668 grapheme descriptors to /tmp/.tmpfxynro/grapheme_fixtures/grapheme_descriptors.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+test serde_grapheme_export::exporter_creates_grapheme_descriptor_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/tree_builder_slice_trace.rs (/root/.cache/xi-editor-ph7/target/debug/deps/tree_builder_slice_trace-34b33cd08909a236)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests xi_rope
+
+running 11 tests
+test rope/src/delta.rs - delta::Delta<N,L>::synthesize (line 247) - compile ... ok
+test rope/src/delta.rs - delta::Delta<N,L>::factor (line 196) - compile ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char_back (line 216) ... ok
+test rope/src/rope.rs - rope::Rope (line 63) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_ne_char (line 283) ... ok
+test rope/src/compare.rs - compare::RopeScanner<'a>::find_min_diff_range (line 344) ... ok
+test rope/src/rope.rs - rope::Rope (line 73) ... ok
+test rope/src/rope.rs - rope::Rope (line 84) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count (line 579) ... ok
+test rope/src/tree.rs - tree::Cursor<'a,N,L>::iter (line 1454) ... ok
+test rope/src/tree.rs - tree::Node<N,L>::count_base_units (line 596) ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+
+Tests passed!
+Benchmarks are disabled in xi-editor-ph7; skipping cargo bench.
+Workspace limited to core crates (xi-core, xi-core-lib, xi-plugin-lib, xi-rope, xi-rpc, xi-trace, xi-unicode).
+All checks passed.
+==> rust: cargo subset_serialization_regression
+    cargo test -p xi-rope --features serde subset_serialization_regression -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (target/debug/deps/xi_rope-e8c95f8cdd6ff1a9)
+
+running 1 test
+test multiset::tests::subset_serialization_regression ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 170 filtered out; finished in 0.00s
+
+     Running unittests src/bin/export-serde-fixtures.rs (target/debug/deps/export_serde_fixtures-91835a1eddf7988a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chunk_descriptor.rs (target/debug/deps/chunk_descriptor-5f0b88bb4d61d1c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/cursor_descriptor.rs (target/debug/deps/cursor_descriptor-be8f42e7536818ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/grapheme_descriptor.rs (target/debug/deps/grapheme_descriptor-0d3dbd7ea838abfe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/tree_builder_slice_trace.rs (target/debug/deps/tree_builder_slice_trace-34b33cd08909a236)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+==> rust: cargo delta_serialization_regression
+    cargo test -p xi-rope --features serde delta_serialization_regression -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (target/debug/deps/xi_rope-e8c95f8cdd6ff1a9)
+
+running 1 test
+test delta::serde_tests::delta_serialization_regression ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 170 filtered out; finished in 0.01s
+
+     Running unittests src/bin/export-serde-fixtures.rs (target/debug/deps/export_serde_fixtures-91835a1eddf7988a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chunk_descriptor.rs (target/debug/deps/chunk_descriptor-5f0b88bb4d61d1c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/cursor_descriptor.rs (target/debug/deps/cursor_descriptor-be8f42e7536818ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/grapheme_descriptor.rs (target/debug/deps/grapheme_descriptor-0d3dbd7ea838abfe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/tree_builder_slice_trace.rs (target/debug/deps/tree_builder_slice_trace-34b33cd08909a236)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+==> rust: cargo engine_serialization_regression
+    cargo test -p xi-rope --features serde engine_serialization_regression -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running unittests src/lib.rs (target/debug/deps/xi_rope-e8c95f8cdd6ff1a9)
+
+running 1 test
+test engine::tests::engine_serialization_regression ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 170 filtered out; finished in 0.04s
+
+     Running unittests src/bin/export-serde-fixtures.rs (target/debug/deps/export_serde_fixtures-91835a1eddf7988a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/chunk_descriptor.rs (target/debug/deps/chunk_descriptor-5f0b88bb4d61d1c9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/cursor_descriptor.rs (target/debug/deps/cursor_descriptor-be8f42e7536818ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/grapheme_descriptor.rs (target/debug/deps/grapheme_descriptor-0d3dbd7ea838abfe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/tree_builder_slice_trace.rs (target/debug/deps/tree_builder_slice_trace-34b33cd08909a236)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+==> rust: export-serde-fixtures (manifest -> /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json)
+    cargo run -p xi-rope --features serde --bin export-serde-fixtures -- --dir /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures --emit-manifest /repos/
+xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json --cursor-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/cursor_descriptors --chunk-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/chunk_descriptors --grapheme-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/grapheme_descriptors --breaks-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/breaks_descriptors --diff-regions /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions --search-spans /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/search_spans                       Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running `/repos/xi-editor-sharp/xi-editor-ph7/rust/target/debug/export-serde-fixtures --dir /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures --emi
+t-manifest /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json --cursor-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/cursor_descriptors --chunk-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/chunk_descriptors --grapheme-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/grapheme_descriptors --breaks-descriptors /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/breaks_descriptors --diff-regions /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions --search-spans /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/search_spans`exported 11 cursor descriptor samples to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/cursor_descriptors/cursor_descriptors.json
+exported 9 chunk descriptors and 11 line descriptors to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/chunk_descriptors/chunk_descriptors.json
+exported 668 grapheme descriptors to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/grapheme_descriptors/grapheme_descriptors.json
+exported 3 breaks descriptor samples to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/breaks_descriptors/breaks_descriptors.json
+exported 3 diff regions to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/diff_regions/diff_regions.json
+exported 3 search span cases to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/search_spans/search_spans.json
+exported manifest to tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
+==> dotnet: dotnet test Xi.Editor.sln
+    dotnet test Xi.Editor.sln
+Restore complete (1.2s)
+  xi.Core succeeded (0.4s) → src/xi.Core/bin/Debug/net9.0/xi.Core.dll
+  StageDDescriptorInspector succeeded (0.1s) → tools/StageDDescriptorInspector/bin/Debug/net9.0/StageDDescriptorInspector.dll
+  xi.Core.Tests succeeded (0.2s) → tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.11)
+[xUnit.net 00:00:00.11]   Discovering: xi.Core.Tests
+[xUnit.net 00:00:00.42]   Discovered:  xi.Core.Tests
+[xUnit.net 00:00:00.43]   Starting:    xi.Core.Tests
+[xUnit.net 00:00:03.48]   Finished:    xi.Core.Tests
+  xi.Core.Tests test succeeded (4.6s)
+
+Test summary: total: 197, failed: 0, succeeded: 197, skipped: 0, duration: 4.6s
+Build succeeded in 7.1s
+==> dotnet: Stage D loader smoke (StageDDescriptorLoaderTests)
+    dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests
+Restore complete (1.1s)
+  xi.Core succeeded (0.4s) → src/xi.Core/bin/Debug/net9.0/xi.Core.dll
+  StageDDescriptorInspector succeeded (0.1s) → tools/StageDDescriptorInspector/bin/Debug/net9.0/StageDDescriptorInspector.dll
+  xi.Core.Tests succeeded (0.1s) → tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.11)
+[xUnit.net 00:00:00.11]   Discovering: xi.Core.Tests
+[xUnit.net 00:00:00.41]   Discovered:  xi.Core.Tests
+[xUnit.net 00:00:00.42]   Starting:    xi.Core.Tests
+[xUnit.net 00:00:00.67]   Finished:    xi.Core.Tests
+  xi.Core.Tests test succeeded (1.8s)
+
+Test summary: total: 5, failed: 0, succeeded: 5, skipped: 0, duration: 5.4s
+Build succeeded in 7.7s
+==> dotnet: Stage D hydrator smoke (StageDDescriptorHydratorTests)
+    dotnet test Xi.Editor.sln --filter StageDDescriptorHydratorTests
+Restore complete (1.1s)
+  xi.Core succeeded (0.4s) → src/xi.Core/bin/Debug/net9.0/xi.Core.dll
+  StageDDescriptorInspector succeeded (0.1s) → tools/StageDDescriptorInspector/bin/Debug/net9.0/StageDDescriptorInspector.dll
+  xi.Core.Tests succeeded (0.1s) → tests/xi.Core.Tests/bin/Debug/net9.0/xi.Core.Tests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 9.0.11)
+[xUnit.net 00:00:00.11]   Discovering: xi.Core.Tests
+[xUnit.net 00:00:00.41]   Discovered:  xi.Core.Tests
+[xUnit.net 00:00:00.42]   Starting:    xi.Core.Tests
+[xUnit.net 00:00:00.76]   Finished:    xi.Core.Tests
+  xi.Core.Tests test succeeded (2.1s)
+
+Test summary: total: 3, failed: 0, succeeded: 3, skipped: 0, duration: 2.1s
+Build succeeded in 4.4s
+==> python: verify fixture manifest
+    /root/miniconda3/envs/py313/bin/python3 /repos/xi-editor-sharp/scripts/verify_fixture_manifest.py --manifest /repos/xi-editor-sharp/tests/xi.Core.Test
+s/Fixtures/fixtures.manifest.json                                                                                                                         Fixture                       Status    Expected Hash                                                   Actual Hash
+---------------------------- --------- --------------------------------------------------------------- ---------------------------------------------------
+------------                                                                                                                                              breaks_descriptors.json      match     7b948fc6e433482cf531ec43dc74fb943612927d2fe89ba85b47658a21610dbe 7b948fc6e433482cf531ec43dc74fb943612927d2fe89ba85b
+47658a21610dbe                                                                                                                                            chunk_descriptors.json       match     f61d10167b65f159a44e88c56ee286db964108afd1496d5a942cc5ee8a48c385 f61d10167b65f159a44e88c56ee286db964108afd1496d5a94
+2cc5ee8a48c385                                                                                                                                            cursor_descriptors.json      match     fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375 fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea
+15a574a1483375                                                                                                                                            delta_regression.json        match     59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f 59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6
+897ca71a20cf7f                                                                                                                                            diff_regions.json            match     a309f2f1306b6a1892da40ef90fb21d44deabe5758297e2474f51d1a5c999cf9 a309f2f1306b6a1892da40ef90fb21d44deabe5758297e2474
+f51d1a5c999cf9                                                                                                                                            engine_regression.json       match     8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2 8707d5de24e9369bf3a818a40030626118da2752ee1bdb5436
+3cfb3e1ffa1cc2                                                                                                                                            grapheme_descriptors.json    match     aa5600996bcad5c37227d1731847b1c9404916c4cc6bca9ed4414c917d585667 aa5600996bcad5c37227d1731847b1c9404916c4cc6bca9ed4
+414c917d585667                                                                                                                                            search_spans.json            match     2fb14e0ca5c7b103a9ad050351547ccff3e1ba46095f9e111d66814c7415d9c5 2fb14e0ca5c7b103a9ad050351547ccff3e1ba46095f9e111d
+66814c7415d9c5                                                                                                                                            subset_regression.json       match     28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f 28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae
+1234c85deb138f                                                                                                                                            
+All 9 fixtures match the manifest hashes.
+Skipping Stage D ingestion CLI summary (StageDDescriptorInspector).
+All steps completed.
+
+==> stage-d-inspector :: Capture Stage D descriptor inspector output
+    $ dotnet run --project tools/StageDDescriptorInspector/StageDDescriptorInspector.csproj -- --fixtures /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtu
+res                                                                                                                                                       Stage D ingestion summary
+Fixture directory : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
+Rust commit       : bea8a3360131a0840d26aa75daba9184b70d50b7
+CLI revision      : 0.3.0
+Schema version    : 1.0.0
+Generated (unix)  : 1763419977023
+Feature gates     : serde
+Chunk descriptors : 20
+Line descriptors  : 11
+Grapheme samples  : 668
+Breaks cases      : 3
+Diff cases        : 3
+Search cases      : 3
+
+Ledger entries:
+- breaks_descriptors.json: count=3, schema=breaks_descriptors@1.0.0, payload=7b948fc6e433482cf531ec43dc74fb943612927d2fe89ba85b47658a21610dbe
+- chunk_descriptors.json: count=20, schema=chunk_descriptors@1.0.0, payload=f61d10167b65f159a44e88c56ee286db964108afd1496d5a942cc5ee8a48c385
+- cursor_descriptors.json: count=11, schema=cursor_descriptors@1.1.0, payload=fe963d909d5c4e225bfd6e0c7085def006dccfadde7da8f5ea15a574a1483375
+- delta_regression.json: count=1, schema=serde_fixtures::delta, payload=59c45336bace174a9ab50cefdef05bdd2890d4d93a376df4e6897ca71a20cf7f
+- diff_regions.json: count=3, schema=diff_regions@1.0.0, payload=a309f2f1306b6a1892da40ef90fb21d44deabe5758297e2474f51d1a5c999cf9
+- engine_regression.json: count=1, schema=serde_fixtures::engine, payload=8707d5de24e9369bf3a818a40030626118da2752ee1bdb54363cfb3e1ffa1cc2
+- grapheme_descriptors.json: count=668, schema=grapheme_descriptors@1.0.0, payload=aa5600996bcad5c37227d1731847b1c9404916c4cc6bca9ed4414c917d585667
+- search_spans.json: count=3, schema=search_spans@1.0.0, payload=2fb14e0ca5c7b103a9ad050351547ccff3e1ba46095f9e111d66814c7415d9c5
+- subset_regression.json: count=1, schema=serde_fixtures::subset, payload=28fa3c807f83961f6cdf9695f3605bdf22972f734e2470adae1234c85deb138f
+
+Break plan samples
+  Manifest count  : 3
+  Descriptor load : 3
+  Hydrated count  : 3
+  Wrap width span : 24–38
+  Metrics         : BreaksMetric
+  Samples         : ascii_guidance, crlf_emoji_mix, delimited_tables
+
+Diff region samples
+  Manifest count  : 3
+  Descriptor load : 3
+  Hydrated count  : 3
+  Algorithms      : line-hash
+  Ops per case    : case1=4, case2=4, case3=4
+  Samples         : ascii_minimal_ops, crlf_normalization, emoji_patch_block
+
+Search span samples
+  Manifest count  : 3
+  Descriptor load : 3
+  Hydrated count  : 3
+  Regex samples   : 1
+  Case modes      : case_insensitive, exact
+  Queries         : ^WARN:.*$, stage, 🚀
+  Samples         : emoji_literal_hits, literal_case_insensitive, regex_multiline_warnings
+    wrote inspector log to /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt

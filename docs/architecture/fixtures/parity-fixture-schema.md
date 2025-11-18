@@ -23,7 +23,7 @@
 | Gate | Default | 作用 | 影响 |
 | --- | --- | --- | --- |
 | `serde` | ❌（必显式开启） | 启用 JSON 序列化 helper、导出二进制与所有 parity 结构 | **所有** schema 必需 |
-| `cursor_state` | ❌ | 在 `CursorDescriptor` 导出期间捕获更丰富的调试快照，字段保持兼容 | 仅在调试游标失效时开启 |
+| `cursor_state` | ✅ | 在 `CursorDescriptor` 导出期间捕获 `NodeCursorState` 快照（含 `edit_version`/`path`/`metric`） | Stage D parity 默认启用；若禁用需在 `[StageD::FixtureFlow]` 记录理由 |
 | `tree_builder_slice_trace` | ❌ | 启用 `--tree-builder-trace`（与 parity 资产共用 exporter，可并行生成 slice trace） | 输出写入 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/` 并在 manifest 中登记 `tree_builder_slice_trace@1.0.0` |
 
 **组合命令（刷新全部 parity 资产）**
@@ -36,7 +36,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
   --grapheme-descriptors tests/xi.Core.Tests/Fixtures/grapheme_descriptors
 ```
 
-> 调试场景：追加 `--features serde,cursor_state` 或 `--features serde,tree_builder_slice_trace --tree-builder-trace <dir>`，并在 `[StageD::FixtureFlow]` 记录用途。
+> 默认命令现包含 `--features serde,cursor_state`；若需 tree trace，可追加 `tree_builder_slice_trace --tree-builder-trace <dir>`。任何临时禁用/追加 feature 都要在 `[StageD::FixtureFlow]` 记录用途。
 
 ---
 
@@ -60,7 +60,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 | `subset_regression.json` | `serde_fixtures::subset` | Stage A baseline，计数恒为 1。 |
 | `delta_regression.json` | `serde_fixtures::delta` | Stage B baseline。 |
 | `engine_regression.json` | `serde_fixtures::engine` | Stage C baseline。 |
-| `cursor_descriptors.json` | `cursor_descriptors@1.1.0` | 同 `[StageD::ParityAssets]` 版本列。 |
+| `cursor_descriptors.json` | `cursor_descriptors@1.2.0` | 同 `[StageD::ParityAssets]` 版本列。 |
 | `chunk_descriptors.json` | `chunk_descriptors@1.0.0` | count = chunk + line。 |
 | `grapheme_descriptors.json` | `grapheme_descriptors@1.0.0` | count = descriptor 数。 |
 | `tree_builder_slice/*.json` | `tree_builder_slice_trace@1.0.0` | count = 事件条目，记录 `TreeBuilder` push/pop/merge trace。 |
@@ -97,6 +97,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 | `is_valid` | bool | ✅ | 与 `CursorDescriptor::is_valid()` 对齐 |
 | `offsets` | [`CursorDescriptorOffsets`](#fixture-cursor-offsets) | ✅ | 叶片位置摘要 |
 | `leaf_path` | [`CursorDescriptorFrame`](#fixture-cursor-frame)[] | ✅ | 自叶片向上的祖先帧，供缓存预热 |
+| `cursor_state` | [`CursorStateSnapshot`](#fixture-cursor-state) | ⛔ | 默认启用 `cursor_state` gate 后导出，提供 `_editVersion`/路径/Metric 等 parity 数据 |
 
 #### [`CursorDescriptorOffsets`](#) <a id="Fixture-Cursor-Offsets"></a>
 
@@ -115,7 +116,25 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 | `child_index` | integer | 当前路径所选子节点索引 |
 | `child_offset` | integer | 该子节点之前的 Base 偏移 |
 
-> Metadata：schema 调整需在 `m3-implementation-plan.md` §1.5 与 `[StageD::ParityAssets]` 同步；`cursor_state` gate 不改变字段，仅扩充调试 payload。
+#### [`CursorStateSnapshot`](#) <a id="fixture-cursor-state"></a>
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `cursor_state_enabled` | bool | 字段出现即表示启用了 `cursor_state` feature。 |
+| `position` | integer | Base Metric 下的绝对位置。 |
+| `offset_of_leaf` | integer | 当前叶片在整棵树中的偏移。 |
+| `is_valid` | bool | `CursorState::is_valid()` 结果。 |
+| `leaf_len` | integer | （可选）叶片长度；若缺失表示缓存中无叶信息。 |
+| `path` | [`PathFrameSnapshot`](#fixture-pathframe)[] | 与 chunk/breaks schema 共用的帧结构。 |
+| `metric` | enum(`base`
+`lines`
+`utf16`
+`breaks`) | 表示 `NodeCursorState` 捕获时使用的 Metric（`breaks` 用于软换行样本）。 |
+| `edit_version` | integer | 捕获 `_editVersion` 值，供 Stage D / QA 对齐。 |
+| `edit_version_after_edit` | integer | （可选）`edited_text` 应用后的预期 `_editVersion`。 |
+| `invalidated_after_edit` | bool | （可选）应用 `edited_text` 后 descriptor/state 是否应该失效。 |
+
+> Metadata：schema 调整需在 `m3-implementation-plan.md` §1.5 与 `[StageD::ParityAssets]` 同步；`cursor_descriptors@1.2.0` 起新增 `cursor_state` 字段，并要求 manifest 的 `feature_gates[]` 同步记录 `cursor_state`。
 
 ---
 
@@ -462,7 +481,7 @@ cargo run -p xi-rope --features serde --bin export-serde-fixtures -- `
 
 ## [Fixture-Validation] 验证流程
 <a id="Fixture-Validation"></a>
-1. 启用正确的 feature 组合（`serde` 必选；`cursor_state`、`tree_builder_slice_trace` 仅在诊断场景使用）。
+1. 启用正确的 feature 组合（`serde` + `cursor_state` 必选；`tree_builder_slice_trace` 仅在需要 slice trace 时追加）。
 2. 使用上方“一键命令”或 `scripts/refresh_serialization_fixtures.ps1` 执行全量导出；Stage D 手册在 `[StageD::FixtureFlow]` 记录了 Windows/Linux 两种脚本路径。
 3. 导出后运行 `./run_all_checks`（Rust）与 `dotnet test Xi.Editor.sln`（C#）确认回归状态，并把差异写入 `rope-serialization-fixture-playbook.md`。
 4. Schema 发生更改时，同步更新此文档、`rope-port-mapping.md`、`m3-implementation-plan.md`（T0 依赖）以及 QA 手册，确保 `[QA-IngestionSmoke]` 能阻止漂移。

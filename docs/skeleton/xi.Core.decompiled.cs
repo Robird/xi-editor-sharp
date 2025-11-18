@@ -28,7 +28,7 @@ using Xi.Core.Search;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+7b75a05b7c817480ad62b85eb5a8361f620cbc26")]
+[assembly: AssemblyInformationalVersion("1.0.0+420bd88179aebb9367b391a0fbd6133d8bc052fe")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -397,10 +397,10 @@ namespace Xi.Core.Rope {
 		public int? GetPreviousBoundary(string leaf, int offset) {/*...*/}
 		public int? GetNextBoundary(string leaf, int offset) {/*...*/}
 	}
-	public sealed class Utf16Metric : IMetric, ITreeMetric<string, RopeInfo> {
-		public static Utf16Metric Instance { get; } = new Utf16Metric();
+	public sealed class Utf16CodeUnitsMetric : IMetric, ITreeMetric<string, RopeInfo> {
+		public static Utf16CodeUnitsMetric Instance { get; } = new Utf16CodeUnitsMetric();
 		public bool CanFragment => false;
-		private Utf16Metric() {/*...*/}
+		private Utf16CodeUnitsMetric() {/*...*/}
 		public int Measure(RopeInfo info, int nodeLength) {/*...*/}
 		public int ToBaseUnits(string leaf, int measuredUnits) {/*...*/}
 		public int FromBaseUnits(string leaf, int baseUnits) {/*...*/}
@@ -581,6 +581,28 @@ namespace Xi.Core.Rope.Tree {
 		internal static readonly int NewlinePreferenceWindow = StringLeafOperations.MaxLeafSize - StringLeafOperations.MinLeafSize;
 		internal static IEnumerable<string> Split(string leaf) {/*...*/}
 	}
+	internal sealed class MetricAdapter {
+		internal enum MetricKind {
+			Base,
+			Lines,
+			Utf16CodeUnits,
+			Breaks
+		}
+		private const int BreakWrapWidth = 80;
+		internal static MetricAdapter Default { get; } = new MetricAdapter();
+		internal MetricSnapshot Measure(Node node, string? leafOverride = null) {/*...*/}
+		internal Interval ConvertInterval(Node node, Interval interval, MetricKind source, MetricKind target, string? leafOverride = null) {/*...*/}
+		internal static bool TryParse(string? metricName, out MetricKind kind) {/*...*/}
+		private static int ConvertCoordinate(Node node, int value, MetricKind source, MetricKind target, string? leafOverride) {/*...*/}
+		private static int ConvertToBase(Node node, int measuredUnits, MetricKind source, string? leafOverride) {/*...*/}
+		private static int ConvertFromBase(Node node, int baseUnits, MetricKind target, string? leafOverride) {/*...*/}
+		private static int ConvertBreaksToBase(Node node, int measuredUnits, string? leafOverride) {/*...*/}
+		private static int ConvertBaseToBreaks(Node node, int baseUnits, string? leafOverride) {/*...*/}
+		private static bool TryGetLeafText(Node node, string? overrideText, [NotNullWhen(true)] out string? leaf) {/*...*/}
+		private static int CountBreaks(Node node, string? leafOverride) {/*...*/}
+		private static int[] CollectBreakOffsets(string text) {/*...*/}
+	}
+	internal readonly record struct MetricSnapshot(int BaseLength, int Utf16Length, int LineCount, int BreakCount, ReadOnlyMemory<int> BreakOffsets);
 	public sealed class Node {
 		private sealed class NodeBody {
 			public int Height { get; }
@@ -801,6 +823,7 @@ namespace Xi.Core.Rope.Tree {
 		private const int LeafPreviewLimit = 32;
 		private static readonly UTF8Encoding Utf8NoBomEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 		internal ITreeBuilderTracer Tracer { get; set; } = NoOpTreeBuilderTracer.Instance;
+		internal MetricAdapter Metrics { get; set; } = MetricAdapter.Default;
 		public void PushString(string? text) {/*...*/}
 		public void PushSpan(ReadOnlySpan<char> span) {/*...*/}
 		public void PushNode(Node node) {/*...*/}
@@ -830,7 +853,12 @@ namespace Xi.Core.Rope.Tree {
 		BuildCompleted,
 		Reset
 	}
-	internal readonly record struct TreeBuilderEvent(TreeBuilderEventKind Kind, int StackDepth, int NodeHeight, int ByteLength, int Utf16Length, string? LeafPreview) {
+	internal readonly record struct TreeBuilderEvent(TreeBuilderEventKind Kind, int StackDepth, int NodeHeight, int ByteLength, MetricSnapshot Metrics, string? LeafPreview) {
+		public int BaseLength => Metrics.BaseLength;
+		public int Utf16Length => Metrics.Utf16Length;
+		public int LineCount => Metrics.LineCount;
+		public int BreakCount => Metrics.BreakCount;
+		public ReadOnlyMemory<int> BreakOffsets => Metrics.BreakOffsets;
 		internal static TreeBuilderEvent FromRanges(TreeBuilderEventKind kind, int stackDepth, int nodeHeight, Range byteRange, Range utf16Range, string? leafPreview = null) {/*...*/}
 	}
 	internal sealed class NoOpTreeBuilderTracer : ITreeBuilderTracer {
@@ -931,7 +959,10 @@ namespace Xi.Core.Rope.Navigation {
 }
 namespace Xi.Core.Rope.Diagnostics.TreeBuilder {
 	internal static class TreeBuilderSliceTraceLoader {
+		private const string ManifestFileName = "fixtures.manifest.json";
+		private const string FixtureDirectoryMarker = "tests/xi.Core.Tests/Fixtures";
 		public static IReadOnlyList<TreeBuilderSliceTrace> LoadFromDirectory(string traceDirectory) {/*...*/}
+		public static IReadOnlyList<TreeBuilderSliceTrace> LoadFromManifest(string fixtureDirectory, string? fixtureName = null) {/*...*/}
 		private static TreeBuilderSliceTrace ParseTrace(string filePath) {/*...*/}
 		private static TreeBuilderSliceTraceMetadata BuildMetadata(JsonElement? metadataElement, string fallbackSample) {/*...*/}
 		private static IReadOnlyList<TreeBuilderSliceTraceEvent> ParseEvents(JsonElement arrayElement) {/*...*/}
@@ -943,6 +974,9 @@ namespace Xi.Core.Rope.Diagnostics.TreeBuilder {
 		private static int? GetNullableInt32(JsonElement element, string propertyName) {/*...*/}
 		private static ulong GetUInt64(JsonElement element, string propertyName) {/*...*/}
 		private static bool GetBoolean(JsonElement element, string propertyName) {/*...*/}
+		private static string? GetString(JsonElement element, string propertyName) {/*...*/}
+		private static bool MatchesTraceEntry(string? schemaHash, string? manifestPath, string? fixtureNameFilter, string? entryName) {/*...*/}
+		private static string ResolveManifestPath(string fixtureDirectory, string? manifestPath, string? entryName) {/*...*/}
 	}
 	internal sealed record TreeBuilderSliceTrace {
 		public string SourceFile { get; init; } = string.Empty;

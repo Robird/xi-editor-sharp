@@ -458,6 +458,10 @@ AI 架构师（主 Agent，拥有 runSubagent）
 > 更多执行细节、命令与验证可在“## 工作日志”与所列真相源文档中查询；2025-11-16 之前的完整历史亦可透过这些文档或 Git 历史追溯。
 
 ## 工作日志
+### 2025-11-20 (Stage D refresh unblock via clippy fix)
+- **Rust 修复**：在 `xi-editor-ph7/rust/rope/src/serde_fixtures/cursor_descriptors.rs` 为 `CursorStateParams` 添加 `#[cfg_attr(not(feature="cursor_state"), allow(dead_code)]`，并将 `cursor_state_snapshot` 改为纯表达式返回，清除 `clippy::dead_code` 与 `clippy::needless_return` 告警，确保 `cursor_state` feature 关闭时亦可编译。
+- **验证**：`cd xi-editor-ph7/rust && ./run_all_checks --filter serde-fixtures`、`python scripts/refresh_all_assets.py --only stage-d-fixtures`、`dotnet test Xi.Editor.sln`、`dotnet test Xi.Editor.sln --filter StageDDescriptor(Loader|Hydrator)Tests` 全部通过；自动流水线再次跑通 loader → hydrator → manifest verifier → inspector，并在 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 落下最新摘要。
+- **影响**：Stage D 刷新脚本不再被 clippy 拦截，manifest/夹具哈希维持 `rust_commit=bd28ebdf…`、`feature_gates=["cursor_state","serde"]`，QA 可继续沿用 `[StageD::ParityAssets]`/`[QA-IngestionSmoke]` 证据链。
 ### 2025-11-18 (Stage D descriptor hydrator doc sync)
 - **文档**：Architecture Mapper 回写 `docs/architecture/rope-port-mapping.md`（Matrix/ParityAssets/ACTIONS）、`docs/architecture/system-overview.md#[SO-Map]` 以及 Stage D Playbook `[StageD::FixtureFlow]`，把 `StageDDescriptorHydrator` 记录为 Breaks/Diff/Search 的 C# 入口，并在 `[RPM-Actions]` 明确下一步是将其接到 QA CLI 与 Stage D Playbook。
 - **记录**：`AGENTS.md#当前聚焦` 与 `agents/architecture-mapper.md` “最近完成”同步说明 hydrator 交付，强调 manifest ledger + Rust CLI flag（`--breaks-descriptors|--diff-regions|--search-spans`）必须上线后再推动 QA ingestion。文档工作为纯同步，**文档更新无需命令**。

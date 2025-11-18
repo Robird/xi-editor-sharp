@@ -59,7 +59,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures -> Stage D loader -> hydrator -> manifest verifier -> Inspector summary",
+                description="Export Rust fixtures -> Stage D loader -> hydrator -> manifest verifier",
                 command=[
                     powershell_exe,
                     "-NoProfile",
@@ -71,7 +71,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
                     "-SkipStageDLoaderTest:$false",
                     "-SkipStageDHydratorTest:$false",
                     "-SkipManifestVerification:$false",
-                    "-SkipStageDInspector:$false",
+                    "-SkipStageDInspector:$true",
                 ],
             )
         )
@@ -148,6 +148,48 @@ def _run_step(step: Step, repo_root: Path, dry_run: bool) -> None:
     subprocess.run(step.command, cwd=repo_root, check=True)
 
 
+def _capture_stage_d_inspector(repo_root: Path) -> None:
+    fixtures_dir = repo_root / "tests/xi.Core.Tests/Fixtures"
+    if not fixtures_dir.exists():
+        raise FileNotFoundError(
+            f"Cannot capture Stage D inspector output because fixture directory '{fixtures_dir}' is missing."
+        )
+
+    output_dir = fixtures_dir / "Reports"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / "stage-d-inspector-latest.txt"
+
+    command = [
+        "dotnet",
+        "run",
+        "--project",
+        "tools/StageDDescriptorInspector/StageDDescriptorInspector.csproj",
+        "--",
+        "--fixtures",
+        str(fixtures_dir),
+    ]
+
+    print("\n==> stage-d-inspector :: Capture Stage D descriptor inspector output")
+    pretty_cmd = " ".join(shlex.quote(part) for part in command)
+    print(f"    $ {pretty_cmd}")
+    result = subprocess.run(
+        command,
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.stdout:
+        print(result.stdout, end="")
+
+    if result.stderr:
+        print(result.stderr, file=sys.stderr, end="")
+
+    output_file.write_text(result.stdout, encoding="utf-8")
+    print(f"    wrote inspector log to {output_file}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="One-click refresh helper for goal tree, skeleton docs, and xi.Core artifacts.",
@@ -205,6 +247,8 @@ def main() -> int:
     for step in selected:
         try:
             _run_step(step, repo_root=repo_root, dry_run=args.dry_run)
+            if step.name == "stage-d-fixtures" and not args.dry_run:
+                _capture_stage_d_inspector(repo_root)
         except subprocess.CalledProcessError as exc:
             overall_rc = exc.returncode or 1
             print(f"Step '{step.name}' failed with exit code {overall_rc}.")

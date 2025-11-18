@@ -14,7 +14,7 @@ timezone: UTC+8
 cadence:
   doc_sync: 每日晚 22:00 前
   anchor_audit: 每周三、周六
-last_updated: 2025-11-19
+last_updated: 2025-11-20
 ---
 
 ## 当前聚焦
@@ -68,6 +68,7 @@ last_updated: 2025-11-19
 - **节奏**：功能合入当日同步 `rope-port-mapping.md` 状态列，若影响 QA/Stage D 需与 QA 联合回填证据。
 
 ## 最近完成
+- **2025-11-20 – RPM/TS Stage D reality check**：根据 `docs/meetings/2025-11-20-type-mapping-sync-chat.md##Architecture Mapper` 的承诺，重写 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-ParityAssets]/[RPM-Actions]`、`docs/architecture/type-system-migration-log.md#[TS-B1][TS-B3][TS-B5]` 与 `docs/architecture/system-overview.md#[SO-Map]`，明确 Breaks/Diff/Search/NodeCursorState 仍是 skeleton、QA 证据缺失，并把 11/22/11/24/11/27 责任人写进行动表。待办：等 Rust Porter/QA 提供真实 manifest + Inspector 日志后，再次刷新 RPM/TS/Div/System 以及 `design-divergence-log.md#[Div-Active]`。声明：文档更新使用 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 现有输出，未新增脚本命令。
 - **2025-11-20 – Type mapping sync doc reconciliation**：在 `docs/meetings/2025-11-20-type-mapping-sync-chat.md##Architecture Mapper` 记录 Stage D 文档覆盖差距、未来两周的三项文档维护（`rope-port-mapping.md`/`type-system-migration-log.md`/`design-divergence-log.md`）与跨角色依赖，并将触发条件/验收标准对齐 Stage D anchors，作为后续巡检的基准。
 - **2025-11-18 – Stage D descriptor hydrator doc sync**：在 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]/[RPM-Actions]/[RPM-ParityAssets]`、`docs/architecture/system-overview.md#[SO-Map]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]` 记录 `StageDDescriptorHydrator` 作为 Breaks/Diff/Search 的 C# 入口，并要求 Stage D Playbook 执行 “Loader → Hydrator” 双阶段流程；关联 `AGENTS.md` “当前聚焦/工作日志” 以保持 anchor 可追踪。命令：文档更新无需命令。
 - **2025-11-19 – Breaks/Diff/Search skeleton uplift**：根据 C# Implementer 新增的 `Rope/Breaks/BreaksTree.cs`（`BreakPlan`/`BreakBuilder`）、`Diff/DiffBuilder.cs`/`LineHashDiff.cs`、`Search/Finder.cs`/`SearchOptions.cs`，将 `docs/architecture/rope-port-mapping.md#[RPM-Matrix]`/`[RPM-Actions]`、`docs/architecture/system-overview.md#[SO-Map]` 与 `AGENTS.md##工作日志` 同步到 “Skeleton ready” 状态，记录 smoke 命令 `dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests"`，并把下一步焦点切换到算法实现 + Stage D wiring（`[TS-B5]`）。

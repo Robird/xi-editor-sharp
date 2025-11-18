@@ -126,10 +126,11 @@ if (-not $SkipRust) {
 if (-not $SkipCopy) {
     Push-Location $ropeCrateRoot
     try {
-        $featureList = "serde"
+        $featureListComponents = @("serde", "cursor_state")
         if ($ExportTreeTrace) {
-            $featureList = "serde,tree_builder_slice_trace"
+            $featureListComponents += "tree_builder_slice_trace"
         }
+        $featureList = [string]::Join(",", $featureListComponents)
 
         $arguments = @(
             "run",

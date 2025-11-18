@@ -17,6 +17,8 @@ public sealed class TreeBuilder
     /// </summary>
     internal ITreeBuilderTracer Tracer { get; set; } = NoOpTreeBuilderTracer.Instance;
 
+    internal MetricAdapter Metrics { get; set; } = MetricAdapter.Default;
+
     public void PushString(string? text)
     {
         if (string.IsNullOrEmpty(text))
@@ -289,8 +291,9 @@ public sealed class TreeBuilder
         }
 
         var stackDepth = stackDepthOverride ?? _stack.Count;
-        var utf16Length = node.Info.Utf16Length;
-        var byteLength = utf16Length;
+        var adapter = Metrics ?? MetricAdapter.Default;
+        var snapshot = adapter.Measure(node, leafTextOverride);
+        var byteLength = snapshot.BaseLength;
         string? preview = null;
 
         if (node.IsLeaf)
@@ -300,7 +303,7 @@ public sealed class TreeBuilder
             preview = CreateLeafPreview(text);
         }
 
-        var traceEvent = new TreeBuilderEvent(kind, stackDepth, node.Height, byteLength, utf16Length, preview);
+        var traceEvent = new TreeBuilderEvent(kind, stackDepth, node.Height, byteLength, snapshot, preview);
         Tracer.Trace(traceEvent);
     }
 

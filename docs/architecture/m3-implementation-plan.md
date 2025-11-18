@@ -12,7 +12,7 @@
 ## [MP-GoalTree] Goal Tree Snapshot
 <a id="MP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T02:42:30.830288+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
+<!-- goal-tree:meta generated-at="2025-11-18T04:49:56.786455+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="054fa092b7533028d0a255c653a0ad585fb9a9b35a76d2fee81c604b6a55afd6" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Stage D smoke must ingest cursor_descriptors manifest once CLI export lands) · [StageD::ParityAssets] |
@@ -140,6 +140,11 @@
 - **Metric 对拍**：Base/Lines/Utf16 三类 Metric 的 `Next`/`Prev` 行为对齐 Rust
 - **失效测试**：编辑后游标自动失效（抛出异常或返回 `false`）
 - **深层路径**：100 层深度树导航性能测试
+
+#### 2.1.4 `_editVersion` → `NodeCursorState` 映射
+- **Rust CLI 触发方式**：运行 `cargo run -p xi-rope --features serde,cursor_state --bin export-serde-fixtures -- --cursor-descriptors tests/xi.Core.Tests/Fixtures/cursor_descriptors --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 时，manifest 的 `feature_gates` 将记录 `"cursor_state"`，并在 `cursor_descriptors@1.x.y` payload 中产出 `cursor_state.edit_version`、`cursor_state.path[]` 等字段。
+- **C# 版本票据**：`Rope._editVersion` 在每次编辑/拼接时自增，`NodeCursor` 通过版本号 + `ReferenceEquals` 双检确保失效检测；`CursorDescriptorParityTests` 已消费 11/11 JSON，用 `_editVersion` 票据验证恢复路径。
+- **Stage D loader 对应关系**：`StageDDescriptorLoader`/`StageDDescriptorInspector`（及 QA 在 `[QA-IngestionSmoke]` 的脚本）会读取 manifest ledger，确认 `cursor_descriptors` 项声明 `cursor_state` gate，并把导出的 `cursor_state.edit_version` 映射到 `NodeCursorState.EditVersion` 以支撑 `[StageD::ParityAssets]`/`[TS-B1]`。当 Rust Porter 升级到 `cursor_descriptors@1.2.0` 时，无需改动 C# 代码即可通过 manifest + inspector 报告交叉验证 `_editVersion` 证据。
 
 ---
 

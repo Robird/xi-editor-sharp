@@ -113,14 +113,14 @@ public sealed class Rope : ITextBuffer
     public int ConvertUtf16FromBytes(int offset)
     {
         ValidateOffset(offset, Length, nameof(offset));
-        return _root.ConvertFromDefaultMetric(Utf16Metric.Instance, offset);
+        return _root.ConvertFromDefaultMetric(Utf16CodeUnitsMetric.Instance, offset);
     }
 
     public int ConvertBytesFromUtf16(int units)
     {
         var maxUnits = _root.Info.Utf16Length;
         ValidateMetricCoordinate(units, maxUnits, nameof(units));
-        return _root.ConvertToDefaultMetric(Utf16Metric.Instance, units);
+        return _root.ConvertToDefaultMetric(Utf16CodeUnitsMetric.Instance, units);
     }
 
     private static void ValidateRange(int start, int length, int totalLength)

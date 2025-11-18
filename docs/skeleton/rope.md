@@ -49,7 +49,7 @@ const DELTA_SCHEMA_HASH: &str = "serde_fixtures::delta";
 #[cfg(feature = "serde")]
 const ENGINE_SCHEMA_HASH: &str = "serde_fixtures::engine";
 #[cfg(feature = "serde")]
-const CURSOR_SCHEMA_HASH: &str = "cursor_descriptors@1.1.0";
+const CURSOR_SCHEMA_HASH: &str = "cursor_descriptors@1.2.0";
 #[cfg(feature = "serde")]
 const CHUNK_SCHEMA_HASH: &str = "chunk_descriptors@1.0.0";
 #[cfg(feature = "serde")]
@@ -3182,6 +3182,11 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "cursor_state")]
+use super::snapshots::frames_from_state;
+use super::snapshots::PathFrameSnapshot;
+#[cfg(feature = "cursor_state")]
+use crate::tree::CursorState;
 use crate::{
     helpers::string_leaf::{MAX_LEAF, MIN_LEAF},
     rope::{LinesMetric, Rope, RopeInfo, Utf16CodeUnitsMetric},
@@ -3198,6 +3203,7 @@ pub enum DescriptorMetric {
     Base,
     Lines,
     Utf16,
+    Breaks,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -3217,6 +3223,23 @@ pub struct CursorDescriptorFrame {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CursorStateSnapshot {
+    pub cursor_state_enabled: bool,
+    pub position: usize,
+    pub offset_of_leaf: usize,
+    pub is_valid: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub leaf_len: Option<usize>,
+    pub path: Vec<PathFrameSnapshot>,
+    pub metric: DescriptorMetric,
+    pub edit_version: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edit_version_after_edit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invalidated_after_edit: Option<bool>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CursorDescriptorFixture {
     pub name: String,
     pub text: String,
@@ -3233,6 +3256,8 @@ pub struct CursorDescriptorFixture {
     pub is_valid: bool,
     pub offsets: CursorDescriptorOffsets,
     pub leaf_path: Vec<CursorDescriptorFrame>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor_state: Option<CursorStateSnapshot>,
 }
 
 fn default_true() -> bool {...}
@@ -3241,6 +3266,23 @@ fn default_true() -> bool {...}
 pub struct CursorDescriptorExportReport {
     pub file_path: PathBuf,
     pub sample_count: usize,
+}
+
+#[cfg_attr(not(feature = "cursor_state"), allow(dead_code))]
+#[derive(Clone, Copy, Debug)]
+struct CursorStateParams {
+    edit_version: u64,
+    edit_version_after_edit: Option<u64>,
+    invalidated_after_edit: Option<bool>,
+    metric_override: Option<DescriptorMetric>,
+}
+
+impl CursorStateParams {
+    const fn new(edit_version: u64) -> Self {...}
+
+    fn with_after_edit(mut self, edit_version_after_edit: u64, invalidated: bool) -> Self {...}
+
+    fn with_metric(mut self, metric: DescriptorMetric) -> Self {...}
 }
 
 pub fn export_cursor_descriptor_fixtures(
@@ -3263,6 +3305,8 @@ fn sample_utf16_surrogate_midpoint() -> CursorDescriptorFixture {...}
 
 fn sample_utf16_cluster_tail() -> CursorDescriptorFixture {...}
 
+fn sample_breaks_metric_soft_wrap() -> CursorDescriptorFixture {...}
+
 fn sample_split_leaf_boundary() -> CursorDescriptorFixture {...}
 
 fn sample_deep_tree_midpoint() -> CursorDescriptorFixture {...}
@@ -3281,11 +3325,18 @@ fn fixture_from_descriptor(
     expect_apply: bool,
     edited_text: Option<String>,
     expect_apply_after_edit: Option<bool>,
+    cursor_state_params: Option<CursorStateParams>,
 ) -> CursorDescriptorFixture {...}
 
 fn build_deep_rope() -> Rope {...}
 
 fn generate_leaf_payload() -> String {...}
+
+fn cursor_state_snapshot(
+    descriptor: &CursorDescriptor<RopeInfo, String>,
+    fixture_metric: DescriptorMetric,
+    params: Option<CursorStateParams>,
+) -> Option<CursorStateSnapshot> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_fixtures/diff_regions.rs
@@ -3699,6 +3750,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::rope::RopeInfo;
 use crate::tree::CursorDescriptor;
+#[cfg(feature = "cursor_state")]
+use crate::tree::CursorState;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RangeSnapshot {
@@ -3717,6 +3770,9 @@ pub struct PathFrameSnapshot {
 pub fn frames_from_descriptor(
     descriptor: &CursorDescriptor<RopeInfo, String>,
 ) -> Vec<PathFrameSnapshot> {...}
+
+#[cfg(feature = "cursor_state")]
+pub fn frames_from_state(state: &CursorState<RopeInfo, String>) -> Vec<PathFrameSnapshot> {...}
 ```
 
 ## xi-editor-ph7/rust/rope/src/serde_impls.rs
@@ -4823,6 +4879,22 @@ fn build_descriptor_components<N: NodeInfo<L>, L: Leaf>(
 fn clone_node_arc<N: NodeInfo<L>, L: Leaf>(node: &Node<N, L>) -> Arc<NodeBody<N, L>> {...}
 ```
 
+## xi-editor-ph7/rust/rope/tests/breaks_descriptors.rs
+
+```rust
+#[cfg(feature = "serde")]
+mod serde_breaks_export {
+    use std::fs;
+    use std::process::Command;
+
+    use tempfile::tempdir;
+    use xi_rope::serde_fixtures::breaks_descriptors::{
+        BreakMetricKind, BreaksDescriptorFile, BREAKS_DESCRIPTOR_FILENAME,
+    };
+
+    }
+```
+
 ## xi-editor-ph7/rust/rope/tests/chunk_descriptor.rs
 
 ```rust
@@ -4875,6 +4947,27 @@ mod cursor_state_tests {
     }
 ```
 
+## xi-editor-ph7/rust/rope/tests/diff_regions.rs
+
+```rust
+#[cfg(feature = "serde")]
+mod serde_diff_export {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    use tempfile::{tempdir_in, TempDir};
+    use xi_rope::serde_fixtures::diff_regions::{
+        DiffOpKind, DiffRegionsFile, DIFF_REGIONS_FILENAME,
+    };
+
+    fn workspace_root() -> PathBuf {...}
+
+    fn temp_output_dir() -> (TempDir, PathBuf) {...}
+
+    }
+```
+
 ## xi-editor-ph7/rust/rope/tests/grapheme_descriptor.rs
 
 ```rust
@@ -4887,6 +4980,20 @@ mod serde_grapheme_export {
     use xi_rope::serde_fixtures::grapheme_descriptors::{
         GraphemeDescriptorFile, GRAPHEME_DESCRIPTOR_FILENAME,
     };
+
+    }
+```
+
+## xi-editor-ph7/rust/rope/tests/search_spans.rs
+
+```rust
+#[cfg(feature = "serde")]
+mod serde_search_export {
+    use std::fs;
+    use std::process::Command;
+
+    use tempfile::tempdir;
+    use xi_rope::serde_fixtures::search_spans::{SearchSpansFile, SEARCH_SPANS_FILENAME};
 
     }
 ```

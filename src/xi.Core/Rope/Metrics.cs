@@ -163,12 +163,13 @@ public sealed class LinesMetric : IMetric
 
 /// <summary>
 /// Metric counting UTF-16 code units; primarily used for aligning with front-end APIs.
+/// Mirrors xi-editor's <c>Utf16CodeUnitsMetric</c> so Stage D assets can reference the same name.
 /// </summary>
-public sealed class Utf16Metric : IMetric
+public sealed class Utf16CodeUnitsMetric : IMetric
 {
-    public static Utf16Metric Instance { get; } = new();
+    public static Utf16CodeUnitsMetric Instance { get; } = new();
 
-    private Utf16Metric()
+    private Utf16CodeUnitsMetric()
     {
     }
 

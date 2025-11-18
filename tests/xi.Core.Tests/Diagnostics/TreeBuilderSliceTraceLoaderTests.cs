@@ -8,8 +8,10 @@ namespace Xi.Core.Tests.Diagnostics;
 
 public sealed class TreeBuilderSliceTraceLoaderTests
 {
-    private static readonly string TraceDirectory = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Fixtures", "ParityFixtures", "tree_builder_trace"));
+    private static readonly string FixtureDirectory = Path.GetFullPath(
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Fixtures"));
+
+    private static readonly string TraceDirectory = Path.Combine(FixtureDirectory, "tree_builder_slice");
 
     [Fact]
     public void LoadFromDirectory_discovers_and_hydrates_every_trace()
@@ -65,5 +67,25 @@ public sealed class TreeBuilderSliceTraceLoaderTests
             () => TreeBuilderSliceTraceLoader.LoadFromDirectory(missingPath));
 
         Assert.Contains("tree builder slice trace directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LoadFromManifest_discovers_tree_builder_entries()
+    {
+        var traces = TreeBuilderSliceTraceLoader.LoadFromManifest(FixtureDirectory);
+        var trace = Assert.Single(traces);
+        Assert.EndsWith(
+            Path.Combine("tree_builder_slice", "basic_slice_plan.json"),
+            trace.SourceFile,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LoadFromManifest_missing_manifest_throws()
+    {
+        var missingRoot = Path.Combine(FixtureDirectory, Guid.NewGuid().ToString("N"));
+        var exception = Assert.Throws<FileNotFoundException>(
+            () => TreeBuilderSliceTraceLoader.LoadFromManifest(missingRoot));
+        Assert.Contains("manifest", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

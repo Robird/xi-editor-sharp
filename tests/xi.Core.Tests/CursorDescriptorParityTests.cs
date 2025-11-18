@@ -10,6 +10,7 @@ using Xi.Core.Rope;
 using Xi.Core.Rope.Tree;
 using RopeBuffer = Xi.Core.Rope.Rope;
 using Xunit.Abstractions;
+using Utf16Metric = Xi.Core.Rope.Utf16CodeUnitsMetric;
 
 namespace Xi.Core.Tests;
 
