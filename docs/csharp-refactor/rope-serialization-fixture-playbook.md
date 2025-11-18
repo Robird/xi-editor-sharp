@@ -24,9 +24,9 @@
 ## [StageD::FixtureFlow] Fixture 刷新流程
 <a id="StageD::FixtureFlow"></a>
 
-> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动触发 `StageDDescriptorLoaderTests`（Stage D loader smoke），即使指定 `-SkipDotnet` 也会运行，只有在显式传入 `-SkipStageDLoaderTest` 时才会跳过。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader smoke”）自动串入。
+> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动串联 `StageDDescriptorLoaderTests -> StageDDescriptorHydratorTests`（Stage D loader + hydrator smoke），即使指定 `-SkipDotnet` 也会运行，除非显式传入 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`。如因调试需要跳过任一 smoke，必须在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录原因。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader + hydrator smoke”）自动串入。
 
-> **Manifest diff + loader smoke 证据链**：刷新或手动导出后必须运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。若预计存在 hash 漂移（Rust exporter 更新或 JSON 被覆写），追加 `--update` 让脚本重写 `payload_hash` 并打印 `Manifest changes` 摘要；无漂移时脚本会输出 “no changes” 提示。该日志与 `StageDDescriptorLoaderTests` 的通过记录一起，构成 `[QA-IngestionSmoke]` 所需的 “manifest diff + loader smoke” 证据，禁止跳过。
+> **Manifest diff + loader + hydrator smoke 证据链**：刷新或手动导出后必须运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。若预计存在 hash 漂移（Rust exporter 更新或 JSON 被覆写），追加 `--update` 让脚本重写 `payload_hash` 并打印 `Manifest changes` 摘要；无漂移时脚本会输出 “no changes” 提示。该日志需与 `StageDDescriptorLoaderTests`、`StageDDescriptorHydratorTests` 的通过记录一并归档，方可满足 `[QA-IngestionSmoke]` 的证明链，禁止跳过。
 
 > **最新 manifest（2025-11-18 稳定刷新）**：QA 运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 后生成 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`feature_gates=["serde"]`、descriptor 计数 `chunk/cursor/grapheme = 20/11/668`，并新增 `breaks/diff/search = 3/3/3` 可选资产。导出脚本会复用既有 `generated_at_unix_millis` 字段，因此重复运行不会触发 hash 漂移。所有哈希均由 `scripts/verify_fixture_manifest.py` 回写，可在 `[StageD::ParityAssets]` 查阅细节。
 
@@ -133,17 +133,21 @@ cd "$XI_EDITOR_SHARP_ROOT"
 1. **默认校验**：刷新脚本或手工 exporter 结束后立即运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，保留摘要表格输出。
 2. **更新模式**：若 canonical JSON drift 属于预期，增加 `--update` 参数；脚本会重写相应 `payload_hash` 值、打印逐条 `old -> new` 摘要，并在写入后自动再跑一次校验。
 3. **记录要求**：将 `Manifest changes` 或 `--update: manifest already in sync; no changes written.` 行复制到 `agents/qa-engineer.md`、`AGENTS.md`、PR 描述，作为哈希证据。禁止绕过脚本手工修改 manifest。
-4. **与 loader smoke 绑定**：`--update` 完成后必须再次运行（或确认脚本自动触发的）`StageDDescriptorLoaderTests`，输出 + manifest diff 才能满足 `[QA-IngestionSmoke]` 的证明链。
+4. **与 loader/hydrator smoke 绑定**：`--update` 完成后必须再次运行（或确认脚本自动触发的）`StageDDescriptorLoaderTests` 与 `StageDDescriptorHydratorTests`，输出 + manifest diff 才能满足 `[QA-IngestionSmoke]` 的证明链。
 
 ### 4. 使用 StageDDescriptorLoader 校验 manifest
 
-`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`（含 manifest ledger：每个 `fixtures[].name` 的 `count/schema_hash/payload_hash`）。`scripts/refresh_serialization_fixtures.ps1` 会在流程末尾自动执行 `StageDDescriptorLoaderTests`；仅在需要隔离 exporter 问题或调试 dotnet 环境时，才使用 `-SkipStageDLoaderTest`。手动复核命令如下：
+`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 是唯一的 ingestion 入口：它会读取 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、`chunk_descriptors/chunk_descriptors.json`、`grapheme_descriptors/grapheme_descriptors.json` 并返回 `StageDDescriptorManifest`（含 manifest ledger：每个 `fixtures[].name` 的 `count/schema_hash/payload_hash`）。`scripts/refresh_serialization_fixtures.ps1` 会在流程末尾自动执行 `StageDDescriptorLoaderTests`；仅在需要隔离 exporter 问题或调试 dotnet 环境时，才使用 `-SkipStageDLoaderTest`。`StageDDescriptorHydratorTests` 则负责验证 Breaks/Diff/Search 描述符能通过 hydrator API 正确比对 manifest ledger，默认同一脚本中与 loader smoke 串联运行，仅在传入 `-SkipStageDHydratorTest` 时才会跳过。手动复核命令如下：
 
 ```bash
 dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests
 ```
 
-> 结果会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]`、payload 计数，以及 `fixtures[].count/schema_hash/payload_hash` 是否与 JSON 内容一致（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 供 `[QA-IngestionSmoke]`、`[QA-ChunkBench]` 或 Stage D CLI 脚本复用。若出于调试目的跳过 smoke，QA 需在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录 `-SkipStageDLoaderTest` 的使用原因。
+```bash
+dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorHydratorTests
+```
+
+> Loader smoke 会验证 manifest 中的 `rust_commit`, `cli_rev`, `feature_gates[]`、payload 计数，以及 `fixtures[].count/schema_hash/payload_hash` 是否与 JSON 内容一致（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs`）。Hydrator smoke 覆盖 `StageDDescriptorHydrator.LoadBreakPlans/LoadDiffRegions/LoadSearchSpans` 的 ingest 链路，确保 Breaks/Diff/Search skeleton 与 manifest ledger 同步（参考 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorHydratorTests.cs`）。如需在 QA 工具或 CLI 中手动调用，可执行 `StageDDescriptorLoader.LoadFromFixtureDirectory("tests/xi.Core.Tests/Fixtures")` 并缓存返回的 `StageDDescriptorManifest` 注入 hydrator。若出于调试目的跳过任一 smoke，QA 需在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest` 的使用原因。
 
 ### 5. 差异审计与格式化
 
@@ -184,7 +188,7 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 | Leaf Split Parity | `tests/xi.Core.Tests/Fixtures/leaf_split_parity_samples.json` | （共享 `--dir` 输出） | `leaf_split_parity@0.2.0` | `e15b2528c7f6…` | 追踪 Rust/C# 叶片拆分差异；刷新时与 Stage D 一并校验。 |
 | TreeBuilder Slice Trace | `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json` | `--tree-builder-trace`（需 `-ExportTreeTrace`） | `tree_builder_slice_trace@1.0.0` | `22724af7fe8b…` | `[TS-B2]` TreeBuilder tracer parity 样本，供 C# loader/诊断消费。 |
 
-> **Manifest（2025-11-18 刷新）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 写入 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，descriptor 计数为 `chunk=20` / `cursor=11` / `grapheme=668`，新导出的 `breaks/diff/search` 均为 3 条样本（可选资产 3/3/3）。所有 hash 以 manifest 为准，Stage D Loader smoke 会在 `[QA-IngestionSmoke]` 中登记。
+> **Manifest（2025-11-18 刷新）**：`python scripts/refresh_all_assets.py --only stage-d-fixtures` 写入 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`cli_rev=0.3.0`、`feature_gates=["serde"]`，descriptor 计数为 `chunk=20` / `cursor=11` / `grapheme=668`，新导出的 `breaks/diff/search` 均为 3 条样本（可选资产 3/3/3）。所有 hash 以 manifest 为准，Stage D loader + hydrator smoke 会在 `[QA-IngestionSmoke]` 中登记。
 
 > `StageDDescriptorLoader` 现已成为 ingestion 的默认实现（参见 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs`）；QA/Stage D 工具在引用 `[StageD::ParityAssets]` 时，应先通过 loader 或 `dotnet test --filter StageDDescriptorLoaderTests` 读取 manifest，再将返回的 `StageDDescriptorManifest` 注入 ChunkBench、CLI parity 或 Telemetry 脚本。
 
@@ -221,21 +225,22 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 
 | 步骤 | 命令 | 期望 |
 | --- | --- | --- |
-| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后会运行 `StageDDescriptorLoaderTests` 作为 loader smoke，除非显式传入 `-SkipStageDLoaderTest`。 |
-| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；若刷新预期会修改 hash，追加 `--update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 让脚本写回 `payload_hash` 并自动二次校验；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出表格必须贴入 QA 档案；若使用 `--update`，务必记录 `Manifest changes` 或 “no changes” 行并与 loader smoke 一同上传，禁止跳过此步骤或手动编辑 manifest。 |
+| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后会串联 `StageDDescriptorLoaderTests` 与 `StageDDescriptorHydratorTests`，除非显式传入 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`。任何跳过都要在 QA 档案/AGENTS 中记录原因。 |
+| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；若刷新预期会修改 hash，追加 `--update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 让脚本写回 `payload_hash` 并自动二次校验；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出表格必须贴入 QA 档案；若使用 `--update`，务必记录 `Manifest changes` 或 “no changes” 行并与 loader + hydrator smoke 一同上传，禁止跳过此步骤或手动编辑 manifest。 |
 | Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；脚本默认为 QA 运行该 smoke，如因调试跳过需补跑并在 `agents/qa-engineer.md` 说明。 |
+| Hydrator 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorHydratorTests` | `StageDDescriptorHydrator` 能从 loader 产出的 manifest ledger 中加载 Breaks/Diff/Search 描述符，并验证 skeleton/hash 与实际 JSON 匹配；用于确认 ingestion 链路完整。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |
-| 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest`，在两份档案中记录跳过理由与补偿动作。 |
+| 记录结果 | 更新 `agents/qa-engineer.md`（“最近完成”）并在 `AGENTS.md` 工作日志写入 hash、命令与测试状态 | 提供 CI 链接或本地日志路径。若本次刷新使用 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`，在两份档案中记录跳过理由与补偿动作。 |
 
 ### Skeleton 备用路径
 
 当 Rust CLI 尚未导出 Breaks/Diff/Search JSON 时，可运行：
 
 ```bash
-dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests"
+dotnet test Xi.Editor.sln -v m --filter "BreaksSkeletonTests|DiffSkeletonTests|SearchSkeletonTests|StageDDescriptorLoaderTests|StageDDescriptorHydratorTests"
 ```
 
-该命令串联 loader smoke 与 C# skeleton 用例，确保 QA 仍能监控 Stage D Breaks/Diff/Search 链路。Rust exporter 一旦能写回 manifest，即用默认的 manifest diff + loader smoke 流程替换此备用方案。
+该命令串联 loader + hydrator smoke 与 C# skeleton 用例，确保 QA 仍能监控 Stage D Breaks/Diff/Search 链路。Rust exporter 一旦能写回 manifest，即用默认的 manifest diff + loader + hydrator smoke 流程替换此备用方案。
 
 ---
 

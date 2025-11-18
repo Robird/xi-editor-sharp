@@ -59,7 +59,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures + run Stage D loader smoke",
+                description="Export Rust fixtures + run Stage D loader + hydrator smoke",
                 command=[
                     powershell_exe,
                     "-NoProfile",
@@ -69,6 +69,7 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
                     str(repo_root / "scripts/refresh_serialization_fixtures.ps1"),
                     "-Verbose",
                     "-SkipStageDLoaderTest:$false",
+                    "-SkipStageDHydratorTest:$false",
                 ],
             )
         )

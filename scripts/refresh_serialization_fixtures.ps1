@@ -5,6 +5,8 @@ param(
     [switch]$SkipDotnet,
     [Parameter(HelpMessage = "Skip the Stage D loader smoke (StageDDescriptorLoaderTests) step.")]
     [switch]$SkipStageDLoaderTest,
+    [Parameter(HelpMessage = "Skip the Stage D hydrator smoke (StageDDescriptorHydratorTests) step.")]
+    [switch]$SkipStageDHydratorTest,
     [switch]$DryRun,
     [switch]$ExportTreeTrace,
     [bool]$ExportParityFixtures = $true,
@@ -159,6 +161,13 @@ if ($SkipStageDLoaderTest) {
 }
 else {
     Invoke-ExternalCommand "dotnet: Stage D loader smoke (StageDDescriptorLoaderTests)" "dotnet" @("test", "Xi.Editor.sln", "--filter", "StageDDescriptorLoaderTests")
+}
+
+if ($SkipStageDHydratorTest) {
+    Write-Host "Skipping Stage D hydrator smoke (StageDDescriptorHydratorTests)."
+}
+else {
+    Invoke-ExternalCommand "dotnet: Stage D hydrator smoke (StageDDescriptorHydratorTests)" "dotnet" @("test", "Xi.Editor.sln", "--filter", "StageDDescriptorHydratorTests")
 }
 
 Write-Host "All steps completed."
