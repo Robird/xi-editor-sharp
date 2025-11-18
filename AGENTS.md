@@ -602,6 +602,14 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **更新文档**：`scripts/user-root-prompt.md`（v2.0）、`AGENTS.md` § 摘要 + 工作日志、`agents/architect.md` § 当前聚焦
 - **验证计划**：下次用户使用新提示词时，观察是否能在 1-5 分钟内（视场景）恢复上下文并灵活应变
 
+### 2025-11-19 (AI Team knowledge refresh sync)
+- **会议**：搭建 `docs/meetings/2025-11-19-knowledge-refresh-chat.md` 聊天室并召回 C# Implementer、Rust Porter、Architecture Mapper、QA Engineer、Information Researcher，要求各自瘦身 `agents/*.md`、在聊天室记录档案状态/依赖，并于“最近完成”登记本次维护。
+- **产物**：五份认知档案全部更新 Stage D/Goal Tree/QA 事实表，聊天室章节列出 Rust manifest/MetricAdapter/Chunk bench/Grapheme telemetry 的执行依赖；`agents/architect.md` 同步新增该行动条目。
+- **后续**：
+  1. Rust Porter + Architecture Mapper：下一次 `goal_tree_sync`/manifest 刷新后回写 `generated-at` 与 `metric_windows[]` 字段，保持 `[BP-GoalTree]`、`[RPM-ParityAssets]` 一致。
+  2. C# Implementer + QA Engineer：11/23–11/24 期间 rerun Stage D orchestrator（含 Release chunk bench + ≥10k Grapheme telemetry），让 `[QA-*]` 证据在 11/27 readiness 前保持 <7 天。
+  3. Information Researcher：持续监控 `stage-d-refresh-*.log`、`goal-tree-sync-*.log`，若脚本输出漂移立即回报以触发下一轮 PDCA。
+
 ### 2025-11-19 (System Overview Map Launch)
 - **交付**：创建 `docs/architecture/system-overview.md`，补齐 front-matter + `[SO-*]` anchors，并以表格形式串联 Rope Core/Delta-Subset/Engine/Stage D/AI Team/Testing&QA 子系统，提供 `[BP-GoalTree]`、`[RPM-Matrix]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]` 等跨文档入口。
 - **引用关系**：`[SO-Map]` 将 Goal Tree 与 `[TS-Bx]`、`[MP-Tx]`、Stage D/QA 锚点对齐，`[SO-Responsibilities]` 指向 `agents/*.md` 档案，`[SO-Dependencies]` 阐明 Goal Tree→Stage D→QA 闭环，方便 runSubAgent 读取后直接定位事实来源。

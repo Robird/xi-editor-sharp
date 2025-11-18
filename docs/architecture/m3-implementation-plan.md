@@ -12,7 +12,7 @@
 ## [MP-GoalTree] Goal Tree Snapshot
 <a id="MP-GoalTree"></a>
 <!-- goal-tree:start -->
-<!-- goal-tree:meta generated-at="2025-11-18T16:07:33.839971+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
+<!-- goal-tree:meta generated-at="2025-11-18T17:00:42.967949+00:00" source="docs/architecture/templates/goal-tree.yaml" checksum="7a47156ffd7e47c1f5e0a2a6f2b489b40ed9f687200e1479aab8194dde1b7df4" payload-hash="69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a" inspector-report="tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt" chunk-report="tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt" -->
 | ID | Title | Status | Due | Owner | Next | QA / Stage D |
 | --- | --- | --- | --- | --- | --- | --- |
 | G1 | Cursor descriptors + version tickets | ⚠️ Watch | 2025-11-22 | C# Implementer | Freeze CLI schema + rerun [MP-T1] parity ingestion | [QA-IngestionSmoke] (Inspector log tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt (rust_commit=3799d2be)) · [StageD::ParityAssets] (fixtures.manifest.json#cursor payload hash 9b46bd8e29042e38c36556afc4054a5a2c4a6cfa405b5bbd738ca1909f8a4d38) |

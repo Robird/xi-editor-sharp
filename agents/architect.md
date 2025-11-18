@@ -172,8 +172,8 @@
    - 在重写完成后更新 `AGENTS.md` “当前聚焦”与相关员工档案“最近完成”。
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
-## 最近完成的工作
 - **2025-11-20 – Type Mapping Sync Chat + 员工档案更新**：主持 `docs/meetings/2025-11-20-type-mapping-sync-chat.md`（含议程/行动清单/主持总结），逐一召回 C# Implementer、Rust Porter、Architecture Mapper、QA Engineer 共享现状与两周行动，要求他们同步更新 `agents/*.md` 的“最近完成/当前聚焦”。输出四条 deadline（11/22 文档映射、11/24 Rust payload、11/27 QA wiring）、三条风险提示（Rust exporter滑窗、Stage D loader未接 QA、RPM 未更新）并在主持总结中记录可能的用户升级点。
+- **2025-11-19 – AI Team 知识更新聊天室**：建立 `docs/meetings/2025-11-19-knowledge-refresh-chat.md` 作为共享记录，依次调度 C# Implementer/Rust Porter/Architecture Mapper/QA Engineer/Information Researcher 进行档案瘦身、填充聊天室章节、列出跨角色依赖，并在各自 `agents/*.md` 的“最近完成”登记本次维护；会后把新增依赖归档至 `AGENTS.md` 与本档案，确保 Stage D/QA/Goal Tree 事实表一致。
 - **2025-11-19 – Stage D manifest + Inspector 文档闭环**：推动 QA Engineer 刷新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md`（Checklist/FixtureFlow/ParityAssets/QA anchors）以记录 manifest verifier + StageDDescriptorInspector 组合证据链，并写入最新 Rust commit `bea8a3360131a0840d26aa75daba9184b70d50b7` 的 hash 表；同步更新 `agents/qa-engineer.md` 监控面板，明确 loader→hydrator→verifier→inspector 作为 `stage-d-fixtures` 流程的默认终点。
 - **2025-11-19 – Stage D Inspector 验收**：协调 C# Implementer 暴露 `StageDDescriptor` DTO/primitive 类型、刷新 `StageDDescriptorLoaderTests` 期待的 Rust commit 与 Breaks/Diff/Search payload hash，并跑通 `dotnet test Xi.Editor.sln --filter StageDDescriptor` + `python scripts/refresh_all_assets.py --only stage-d-fixtures`，确保 StageDDescriptorInspector CLI 输出 typed manifest 摘要供 `[QA-IngestionSmoke]` 复用。
 - **2025-11-18 – Manifest / Trace 链路封顶**：协调 QA Engineer 与 C# Implementer 完成 `scripts/verify_fixture_manifest.py --update`、`TreeBuilderSliceTraceLoader` 及其测试与夹具，对齐 `[TS-B2]`、`[RPM-ParityAssets]`、`[StageD::FixtureFlow]` 记录；验证命令：`python scripts/verify_fixture_manifest.py (--update)`、`dotnet test --filter TreeBuilderSliceTraceLoaderTests`。
