@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -92,6 +93,12 @@ static void RunStageDMode(ChunkBenchOptions options)
     reportWriter.WriteLine("Inspector note : tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt");
     reportWriter.WriteLine();
 
+    AllocationSnapshot? startSnapshot = null;
+    if (options.IncludeAllocationStats)
+    {
+        startSnapshot = AllocationSnapshot.Capture();
+    }
+
     var rope = BuildRopeFromStageD(manifest.ChunkDescriptors);
     var chunkDiagnostics = new RopeChunkEnumeratorDiagnostics();
     var chunkResult = Measure(() => EnumerateChunks(rope, chunkDiagnostics));
@@ -110,6 +117,17 @@ static void RunStageDMode(ChunkBenchOptions options)
     reportWriter.WriteLine($"  Lines visited : {lineResult.Result:N0}");
     reportWriter.WriteLine($"  Duration      : {lineResult.Elapsed.TotalMilliseconds:F2} ms");
     reportWriter.WriteLine();
+
+    if (options.IncludeAllocationStats && startSnapshot is AllocationSnapshot baseline)
+    {
+        var delta = AllocationSnapshot.Capture().DeltaFrom(baseline);
+        reportWriter.WriteLine("Allocation statistics:");
+        reportWriter.WriteLine($"  Thread alloc : {delta.AllocatedBytes:N0} bytes");
+        reportWriter.WriteLine($"  GC gen0      : {delta.Gen0Collections}");
+        reportWriter.WriteLine($"  GC gen1      : {delta.Gen1Collections}");
+        reportWriter.WriteLine($"  GC gen2      : {delta.Gen2Collections}");
+        reportWriter.WriteLine();
+    }
 
     WriteTopSamples(reportWriter, manifest.ChunkDescriptors);
     reportWriter.WriteLine();
@@ -261,6 +279,8 @@ internal sealed class ChunkBenchOptions
 
     public string ReportPath { get; private set; } = ChunkBenchDefaults.ReportPath;
 
+    public bool IncludeAllocationStats { get; private set; }
+
     public static ChunkBenchOptions Parse(string[] args)
     {
         var options = new ChunkBenchOptions();
@@ -295,6 +315,25 @@ internal sealed class ChunkBenchOptions
             if (MatchesFlag(argument, "--report", out var reportValue))
             {
                 options.ReportPath = reportValue ?? ReadRequiredValue("--report", ref i, args);
+                continue;
+            }
+
+            if (MatchesFlag(argument, "--include-alloc-stats", out var allocValue))
+            {
+                if (allocValue is not null)
+                {
+                    options.IncludeAllocationStats = ParseBoolean(allocValue);
+                }
+                else if (TryReadValue(i, args, out var nextValue) && IsBooleanLiteral(nextValue))
+                {
+                    options.IncludeAllocationStats = ParseBoolean(nextValue);
+                    i++;
+                }
+                else
+                {
+                    options.IncludeAllocationStats = true;
+                }
+
                 continue;
             }
         }
@@ -387,5 +426,26 @@ internal sealed class ReportWriter
         }
 
         File.WriteAllText(_path, _buffer.ToString(), new UTF8Encoding(false));
+    }
+}
+
+internal readonly record struct AllocationSnapshot(long AllocatedBytes, int Gen0Collections, int Gen1Collections, int Gen2Collections)
+{
+    public static AllocationSnapshot Capture()
+    {
+        return new AllocationSnapshot(
+            GC.GetAllocatedBytesForCurrentThread(),
+            GC.CollectionCount(0),
+            GC.CollectionCount(1),
+            GC.CollectionCount(2));
+    }
+
+    public AllocationSnapshot DeltaFrom(AllocationSnapshot baseline)
+    {
+        return new AllocationSnapshot(
+            AllocatedBytes - baseline.AllocatedBytes,
+            Gen0Collections - baseline.Gen0Collections,
+            Gen1Collections - baseline.Gen1Collections,
+            Gen2Collections - baseline.Gen2Collections);
     }
 }

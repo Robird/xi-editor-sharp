@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import shlex
 import shutil
 import subprocess
@@ -10,6 +11,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Sequence
+
+REPORTS_DIR = Path("tests/xi.Core.Tests/Fixtures/Reports")
 
 
 @dataclass
@@ -55,11 +58,16 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
     ]
 
     powershell_exe = _powershell_command()
-    if powershell_exe:
+    if not powershell_exe:
+        if warn_if_missing_powershell:
+            raise SystemExit(
+                "PowerShell (pwsh/powershell) is required for the 'stage-d-fixtures' step. Install pwsh and ensure it is on PATH."
+            )
+    else:
         steps.append(
             Step(
                 name="stage-d-fixtures",
-                description="Export Rust fixtures -> Stage D loader/hydrator -> manifest verifier -> inspector/chunk bench",
+                description="Export Rust fixtures -> Stage D loader/hydrator -> manifest verifier -> inspector + Release chunk bench (alloc stats) + telemetry",
                 command=[
                     powershell_exe,
                     "-NoProfile",
@@ -74,11 +82,6 @@ def _default_steps(repo_root: Path, warn_if_missing_powershell: bool = True) -> 
                     "-SkipStageDInspector:$true",
                 ],
             )
-        )
-    elif warn_if_missing_powershell:
-        print(
-            "Skipping 'stage-d-fixtures' step because PowerShell (pwsh/powershell) is not available on PATH.",
-            file=sys.stderr,
         )
 
     steps.append(
@@ -148,6 +151,43 @@ def _run_step(step: Step, repo_root: Path, dry_run: bool) -> None:
     subprocess.run(step.command, cwd=repo_root, check=True)
 
 
+def _run_stage_d_step(step: Step, repo_root: Path, dry_run: bool) -> Path | None:
+    print(f"\n==> {step.name} :: {step.description}")
+    pretty_cmd = " ".join(shlex.quote(part) for part in step.command)
+    print(f"    $ {pretty_cmd}")
+    _ensure_command_available(step.command)
+
+    reports_dir = repo_root / REPORTS_DIR
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    log_path = reports_dir / f"stage-d-refresh-{timestamp}.log"
+
+    if dry_run:
+        print("    (dry run) stage-d-fixtures step skipped; no log written.")
+        return None
+
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        process = subprocess.Popen(
+            step.command,
+            cwd=repo_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                print(line, end="")
+                log_file.write(line)
+            process.wait()
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, step.command)
+        finally:
+            print(f"    wrote Stage D refresh log to {log_path}")
+    return log_path
+
+
 def _capture_stage_d_inspector(repo_root: Path) -> None:
     fixtures_dir = repo_root / "tests/xi.Core.Tests/Fixtures"
     if not fixtures_dir.exists():
@@ -155,9 +195,9 @@ def _capture_stage_d_inspector(repo_root: Path) -> None:
             f"Cannot capture Stage D inspector output because fixture directory '{fixtures_dir}' is missing."
         )
 
-    output_dir = fixtures_dir / "Reports"
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / "stage-d-inspector-latest.txt"
+    reports_dir = repo_root / REPORTS_DIR
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    output_file = reports_dir / "stage-d-inspector-latest.txt"
 
     command = [
         "dotnet",
@@ -191,9 +231,9 @@ def _capture_stage_d_inspector(repo_root: Path) -> None:
 
 
 def _run_stage_d_chunk_bench(repo_root: Path) -> None:
-    fixtures_dir = repo_root / "tests/xi.Core.Tests/Fixtures"
-    report_path = fixtures_dir / "Reports" / "chunk-bench-latest.txt"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
+    reports_dir = repo_root / REPORTS_DIR
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    report_path = reports_dir / "chunk-bench-latest.txt"
 
     command = [
         "dotnet",
@@ -204,6 +244,7 @@ def _run_stage_d_chunk_bench(repo_root: Path) -> None:
         "Release",
         "--",
         "--stage-d",
+        "--include-alloc-stats",
         "--report",
         str(report_path),
     ]
@@ -213,6 +254,28 @@ def _run_stage_d_chunk_bench(repo_root: Path) -> None:
     print(f"    $ {pretty_cmd}")
     subprocess.run(command, cwd=repo_root, check=True)
     print(f"    wrote chunk benchmark log to {report_path}")
+
+
+def _run_stage_d_telemetry(repo_root: Path) -> None:
+    reports_dir = repo_root / REPORTS_DIR
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    trx_path = reports_dir / "grapheme-telemetry.trx"
+
+    command = [
+        "dotnet",
+        "test",
+        "Xi.Editor.sln",
+        "--filter",
+        "Category=StageDTelemetry",
+        "--logger",
+        f"trx;LogFileName={trx_path}",
+    ]
+
+    print("\n==> stage-d-telemetry :: Grapheme fallback / telemetry smoke")
+    pretty_cmd = " ".join(shlex.quote(part) for part in command)
+    print(f"    $ {pretty_cmd}")
+    subprocess.run(command, cwd=repo_root, check=True)
+    print(f"    wrote telemetry TRX to {trx_path}")
 
 
 def main() -> int:
@@ -271,10 +334,14 @@ def main() -> int:
     overall_rc = 0
     for step in selected:
         try:
-            _run_step(step, repo_root=repo_root, dry_run=args.dry_run)
-            if step.name == "stage-d-fixtures" and not args.dry_run:
-                _capture_stage_d_inspector(repo_root)
-                _run_stage_d_chunk_bench(repo_root)
+            if step.name == "stage-d-fixtures":
+                _run_stage_d_step(step, repo_root=repo_root, dry_run=args.dry_run)
+                if not args.dry_run:
+                    _capture_stage_d_inspector(repo_root)
+                    _run_stage_d_chunk_bench(repo_root)
+                    _run_stage_d_telemetry(repo_root)
+            else:
+                _run_step(step, repo_root=repo_root, dry_run=args.dry_run)
         except subprocess.CalledProcessError as exc:
             overall_rc = exc.returncode or 1
             print(f"Step '{step.name}' failed with exit code {overall_rc}.")

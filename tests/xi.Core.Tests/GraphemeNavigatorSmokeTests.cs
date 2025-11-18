@@ -7,6 +7,7 @@ namespace Xi.Core.Tests;
 public sealed class GraphemeNavigatorSmokeTests
 {
     [Fact]
+    [Trait("Category", "StageDTelemetry")]
     public void MoveNextAcrossSurrogatePairAdvancesTwoCodeUnits()
     {
         var metrics = new GraphemeNavigationMetrics();
@@ -26,6 +27,7 @@ public sealed class GraphemeNavigatorSmokeTests
     }
 
     [Fact]
+    [Trait("Category", "StageDTelemetry")]
     public void MovePreviousAcrossEmojiSequenceRewindsEntireCluster()
     {
         var metrics = new GraphemeNavigationMetrics();
@@ -43,6 +45,7 @@ public sealed class GraphemeNavigatorSmokeTests
     }
 
     [Fact]
+    [Trait("Category", "StageDTelemetry")]
     public void CrossLeafGraphemeRequestsNeighborTelemetry()
     {
         var metrics = new GraphemeNavigationMetrics();

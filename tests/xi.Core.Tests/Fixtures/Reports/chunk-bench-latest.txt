@@ -1,5 +1,5 @@
 Stage D chunk benchmark (chunk/line replay)
-Timestamp      : 2025-11-18T10:29:10.0764431+00:00
+Timestamp      : 2025-11-18T14:02:51.7631401+00:00
 Fixture folder : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
 Manifest path  : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
 Rust commit    : 3799d2be9db0ef040517ed69df1b717e96a8958e
@@ -16,12 +16,18 @@ Chunk enumeration diagnostics:
   Chunks       : 3
   Max length   : 753
   Total chars  : 1,808
-  Duration     : 3.67 ms
+  Duration     : 4.45 ms
 
 Line enumeration diagnostics:
   Manifest lines: 11
   Lines visited : 8
-  Duration      : 2.86 ms
+  Duration      : 3.27 ms
+
+Allocation statistics:
+  Thread alloc : 37,784 bytes
+  GC gen0      : 0
+  GC gen1      : 0
+  GC gen2      : 0
 
 Top 3 chunk samples by UTF-16 length:
   1. deep_tree_payload#chunk_0 len=544 utf16=[0, 544) crlf=N tags=builder,chunk,deep_tree

@@ -111,6 +111,8 @@ interfaces:
 
 ## 最近完成
 
+- **2025-11-18** · Stage D chunk bench alloc telemetry验证：审阅 `tests/xi.Core.Tests/Benchmarks/Diagnostics/Program.cs` 新增的 `ChunkBenchOptions`/`AllocationSnapshot` 参数解析与 GC 统计写入，确认 Release `--include-alloc-stats` 工作流保持 Stage D 报告格式；执行 `dotnet test Xi.Editor.sln --filter Category=StageDTelemetry` 与 `dotnet run --project tests/xi.Core.Tests/Benchmarks/Diagnostics/RopeChunkEnumeratorBenchmarks.csproj --configuration Release -- --stage-d --include-alloc-stats --report tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`，`tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt` 报告出现 “Allocation statistics” 段并显示 37,784 B/0 GC，供 `[QA-ChunkBench]`/Stage D pipeline 归档。
+
 - **2025-11-18** · Stage D pipeline re-audit：重跑 `dotnet test Xi.Editor.sln --filter StageDDescriptorLoaderTests`、`--filter StageDDescriptorHydratorTests`，确认 `fixtures.manifest.json`（hash `69ba7f25…/eb0c7c66…/5d37a731…/fe76ed31…/7eac7ecf…`）与测试断言一致，并在 `docs/meetings/2025-11-18-goal-alignment-chat.md#23-c-implementer`/A2 更新当前现状、风险与下一步（Stage D rerun + Release chunk bench + Grapheme telemetry）。
 - **2025-11-18** · Goal Alignment Chat（`docs/meetings/2025-11-18-goal-alignment-chat.md#23-c-implementer`）：向 Architect/Rust Porter/QA 汇报 NodeCursor `_editVersion`、Stage D loader→hydrator→inspector 流程、Chunk/Grapheme diagnostics 与 `TreeBuilderTracer` 状态，记录 `dotnet test Xi.Editor.sln --filter StageDDescriptor` + `python scripts/refresh_all_assets.py --only stage-d-fixtures` 的验证步骤，并确认 11/27 前的文档与 QA 交付项。
 

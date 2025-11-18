@@ -22,6 +22,7 @@ Optional arguments:
 
 - `--manifest <path>` – override the fixtures manifest path; defaults to `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`.
 - `--report <path>` – override the report destination; defaults to `tests/xi.Core.Tests/Fixtures/Reports/chunk-bench-latest.txt`.
+- `--include-alloc-stats[=true|false]` – capture the per-thread allocation delta and GC counts alongside the throughput metrics (preferred for `[QA-ChunkBench]` to prove the <5 MB target). This is automatically enabled by `scripts/refresh_all_assets.py`.
 - `-c/--configuration` – pass `Release` to get throughput numbers that match `[QA-ChunkBench]` expectations (the automation in `scripts/refresh_all_assets.py` already does this).
 
 ## Output expectations
