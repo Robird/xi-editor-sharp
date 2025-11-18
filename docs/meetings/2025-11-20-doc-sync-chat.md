@@ -1,8 +1,8 @@
 # 2025-11-20 AI Team 文档同步聊天室
 
 ## 简介
-- **目的**：全体 AI Team 成员共同检查、修剪并更新各自的认知档案，确保信息与项目现状保持一致。
-- **产出**：每位成员更新后的认知档案、补充后的工作日志，以及本聊天室文档中的同步纪要。
+- **目的**：全体 AI Team 成员共同检查、修剪并更新各自的认知档案，确保信息与项目现状保持一致；并继续迭代，协作产出 `docs/sprints/sptrint-2.md` 的 Sprint 2 计划。
+- **产出**：每位成员更新后的认知档案、补充后的工作日志、Sprint 2 任务草案，以及本聊天室文档中的同步纪要。
 
 ## 议程
 1. 各成员阅读 `AGENTS.md` 与自己的认知档案。
@@ -31,6 +31,7 @@
 - **下一步**：
 	1. 输出 CursorState v1.3 迁移说明 + CLI/hash 变动清单，待字段敲定后提交。
 	2. 协同 C#/QA 将 `metric_windows` 注入 `StageDDescriptorHydrator` 与 `[QA-ChunkBench]` 记录，形成 Breaks/Diff/Search 证据链。
+- **Sprint 2 贡献**：已在 `docs/sprints/sptrint-2.md` 添加 Backlog 项 `RP1`（`cursor_descriptors@1.3.0` schema drop），用于追踪 CLI/hash bump 所需的 runSubAgent 任务。
 
 ### C# Implementer
 - **摘要**：回顾 `StageDDescriptorLoader/Hydrator/Inspector` + manifest verifier 流程，并在档案中写明 Ready Queue #1/#2 如何把 `stage-d-refresh-*.log`、`chunk-bench-latest.txt`、`grapheme-telemetry-*.txt` 接入 `[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`。
@@ -41,6 +42,7 @@
 	1. 重新运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` + `dotnet test Xi.Editor.sln --filter StageDDescriptor`，把新的 loader/hydrator/inspector log 附到 `[QA-IngestionSmoke]` 并更新 `rope-port-mapping.md`。
 	2. 用 Release 配置生成 `chunk-bench-latest.txt` 与 `grapheme-telemetry-*.txt/.trx`，交给 QA 建立 `[QA-ChunkBench]`、`[QA-Telemetry]` 基线，并同步 Stage D Ready Queue #2。
 	3. 输出 `MetricAdapter` 设计稿 + smoke tests，敲定 NodeCursor 泛型过渡点，为 Ready Queue #3 做准备。
+- **Sprint 2 贡献**：在 `docs/sprints/sptrint-2.md` 写入 Ready Queue `#1 Stage D rerun unblock` 与 `#2 metric_windows[] hydrator wiring`，并登记 Backlog `CI1`（MetricAdapter 方案），为后续 runSubAgent 派工提供模板。
 
 ### Architecture Mapper
 - **更新摘要**：走查 Ready Queue #1-#7（`docs/sprints/sptrint-1.md#ready-queue`）与 `[StageD::ParityAssets]`、`[StageD::FixtureFlow]`、`[QA-IngestionSmoke]`、`[QA-ChunkBench]`、`[QA-Telemetry]`，确认 `stage-d-refresh-20251118-184351.log`、`stage-d-refresh-20251118-230526-porter.log`、`chunk-bench-latest.txt`、`grapheme-telemetry*.txt/.trx` 均已落位并同步回 `[RPM-Matrix]` / `[TS-B5]`；同时将 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（`rust_commit=b6fb5999…` + `metric_windows[]`）与 `stage-d-inspector-latest.txt` 重新标注到 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 及 `docs/architecture/type-system-migration-log.md#[TS-Bx]`，记录 `metric_windows` 消费缺口。
@@ -49,6 +51,7 @@
 	1. 11/21 前把 `python scripts/goal_tree_sync.py --check` 挂到 `scripts/refresh_all_assets.py` nightly，使 `[BP-GoalTree]` / `[MP-GoalTree]` 的 drift 自动告警。（Owner：Architecture Mapper + Tooling）
 	2. 协助 C# Implementer/QA 在 11/25 前提交 `metric_windows[]` 消费补丁，并将验证日志写回 `[StageD::FeatureGates]`、`[QA-IngestionSmoke]`。（Owner：C# Implementer + QA Engineer）
 	3. `[RPM-Matrix]` 与 `[TS-Bx]` 下一次正式刷新定在 2025-11-27（或 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 哈希更新时即时触发），由 Architecture Mapper 发起 sweep 并抄送 AI Architect。
+- **Sprint 2 贡献**：在 `docs/sprints/sptrint-2.md` 写入 Ready Queue `#4 Goal Tree & Stage D anchor guard`，以 runSubAgent 任务形式绑定 nightly `goal_tree_sync.py` 集成与告警记录。
 
 ### QA Engineer
 - **档案更新**：瘦身 `agents/qa-engineer.md`，将 `[QA-IngestionSmoke]` / `[QA-ChunkBench]` / `[QA-Telemetry]` 全部指向 2025-11-18 20:30Z Stage D orchestrator（`stage-d-refresh-20251118-203039.log` + rerun `203341`）及配套 `stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry-latest.txt`、`grapheme-telemetry.trx`；同步在档案内记录证据窗口与下一次刷新死线（11/25 前）。
@@ -57,6 +60,7 @@
     1. 11/23-11/24 期间重新执行 orchestrator（QA Owner），并将新日志推送到 `[QA-*]` anchors 与 Goal Tree。
     2. 与 C# Implementer & Architecture Mapper 对齐 metric windows ingestion 方案，确认 Hydrator/DTO 交付时间并更新 `[RPM-ParityAssets]` / `[StageD::ParityAssets]`。
     3. 和 Architecture Mapper 评估是否把 chunk bench + telemetry harness 纳入 `scripts/refresh_all_assets.py` nightly，以减少人为漏跑风险。
+- **Sprint 2 贡献**：在 `docs/sprints/sptrint-2.md` 登记 Ready Queue `#3 Stage D ingestion refresh (QA)`，明确 runSubAgent 输出（最新 artefact bundle + `[QA-*]` anchors）。
 
 ### Information Researcher
 - **更新摘要**：瘦身 `agents/information-researcher.md` 索引/监控表，统一指向 Ready Queue #1-#7 所需 artefact，并把 `stage-d-refresh-20251118-203039.log`、`stage-d-refresh-20251118-203341.log`、`stage-d-inspector-latest.txt`、`chunk-bench-latest.txt`、`grapheme-telemetry-latest.txt`/`.trx`、`goal-tree-sync-20251118-203537.log` 写入证据快照与知识索引；同步记录 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 2025-11-20 失败待 rerun。
@@ -65,3 +69,4 @@
 	1. 重新运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures`（含 loader/hydrator/manifest/bench/telemetry）以产出 2025-11-20+ 的 `stage-d-refresh-*.log`，并将新日志注入 `[StageD::*]`、`[QA-*]` anchors。
 	2. 在 rerun 成功后执行 `python scripts/goal_tree_sync.py --update`，刷新 Blueprint/M3 `goal-tree:meta` 注释并回写最新 `goal-tree-sync-20251120-*.log`。
 	3. 协同 C# Implementer 与 QA Engineer 将 manifest `metric_windows[]` 映射写入 `StageDDescriptorHydrator`/`[QA-ChunkBench]`/`[QA-Telemetry]`，让 Stage D artefact 追踪能覆盖新的窗口数据。
+- **Sprint 2 贡献**：记录 Ready Queue `#5 Evidence index refresh & distribution`，确保 runSubAgent 产物覆盖 `agents/information-researcher.md#证据快照`、`docs/operations/do-check-stage-d.md` 与 `[SO-Map]`。

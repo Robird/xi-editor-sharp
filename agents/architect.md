@@ -84,6 +84,10 @@
 4. 向用户汇报进度与下一步计划
 
 ## 当前聚焦（下一会话）
+- [新] 🗂️ **Sprint 2 Ready Queue 协调**
+  - **依据**：`docs/meetings/2025-11-20-doc-sync-chat.md`（Sprint 2 add-on）与 `docs/sprints/sptrint-2.md`。
+  - **重点**：将 Stage D rerun unblock、`metric_windows[]` hydrator、QA ingestion refresh、Goal Tree guard、Evidence index refresh 转化为 runSubAgent-ready 任务；维护 Backlog（RP1/CI1）与 Ready Queue #1-#5 的依赖顺序。
+  - **任务**：驱动各角色在 meeting 文档登记贡献，允许他们直接编辑 `sptrint-2.md`，并在 Architecture Mapper 汇总前保持协调；若脚本 rerun 48h 内未修复或 `metric_windows[]` 再次漂移，立即触发替补 runSubAgent。
 - [新] 🗂️ **Sprint 1 Ready Queue 协调**
   - **依据**：`docs/sprints/sptrint-1.md`（Ready Queue #1-#7 + Coordination Notes）与 `docs/meetings/2025-11-19-knowledge-refresh-chat.md`。
   - **重点**：确保执行顺序遵循 Rust (#3/#4) → C# (#1/#2) → QA (#5/#6) → Information Researcher (#7)，并在每个任务完成后按 Coordination Notes 中的通知矩阵更新 `AGENTS.md`、Goal Tree anchors、`[StageD::]`/`[QA-*]` 段落。
