@@ -62,6 +62,8 @@ const DIFF_REGIONS_SCHEMA_HASH: &str = "diff_regions@1.0.0";
 const SEARCH_SPANS_SCHEMA_HASH: &str = "search_spans@1.0.0";
 #[cfg(feature = "serde")]
 const TREE_BUILDER_TRACE_SCHEMA_HASH: &str = "tree_builder_slice_trace@1.0.0";
+#[cfg(feature = "serde")]
+const METRIC_WINDOWS_SCHEMA_HASH: &str = "metric_windows@1.0.0";
 
 #[cfg(feature = "serde")]
 #[derive(Serialize)]
@@ -70,6 +72,8 @@ struct FixtureManifest {
     cli_rev: String,
     feature_gates: Vec<String>,
     fixtures: Vec<ManifestFixture>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    metric_windows: Vec<MetricWindowsEntry>,
 }
 
 #[cfg(feature = "serde")]
@@ -80,6 +84,23 @@ struct ManifestFixture {
     count: usize,
     schema_hash: String,
     payload_hash: String,
+}
+
+#[cfg(feature = "serde")]
+#[derive(Serialize)]
+struct MetricWindowsEntry {
+    fixture: String,
+    schema_hash: String,
+    schema_version: String,
+    window_schema: String,
+    windows: Vec<MetricWindow>,
+}
+
+#[cfg(feature = "serde")]
+#[derive(Serialize)]
+struct MetricWindow {
+    kind: String,
+    count: usize,
 }
 
 #[cfg(feature = "serde")]
@@ -151,6 +172,7 @@ fn report_tree_builder_trace_export(report: &TreeBuilderTraceExportReport) {...}
 fn write_manifest(
     path: &std::path::Path,
     fixtures: Vec<ManifestFixture>,
+    metric_windows: Vec<MetricWindowsEntry>,
 ) -> Result<(), Box<dyn std::error::Error>> {...}
 
 #[cfg(feature = "serde")]
@@ -182,6 +204,20 @@ fn workspace_root() -> PathBuf {...}
 
 #[cfg(feature = "serde")]
 fn default_manifest_path() -> PathBuf {...}
+
+#[cfg(feature = "serde")]
+fn default_fixture_root() -> PathBuf {...}
+
+#[cfg(feature = "serde")]
+fn record_metric_windows(
+    ledger: &mut Vec<MetricWindowsEntry>,
+    fixture: &str,
+    schema_hash: &str,
+    windows: Vec<MetricWindow>,
+) {...}
+
+#[cfg(feature = "serde")]
+fn schema_version_from_hash(schema_hash: &str) -> String {...}
 
 #[cfg(all(feature = "serde", feature = "tree_builder_slice_trace"))]
 fn export_tree_builder_trace(

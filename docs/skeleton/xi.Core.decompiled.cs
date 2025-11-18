@@ -28,7 +28,7 @@ using Xi.Core.Search;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+fbccbfe1f706850d954fa2123c345a15b92a1c14")]
+[assembly: AssemblyInformationalVersion("1.0.0+5f001eebd3850f245b50f528d62579f06478ca1c")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -967,6 +967,9 @@ namespace Xi.Core.Rope.Diagnostics.TreeBuilder {
 		private static TreeBuilderSliceTraceMetadata BuildMetadata(JsonElement? metadataElement, string fallbackSample) {/*...*/}
 		private static IReadOnlyList<TreeBuilderSliceTraceEvent> ParseEvents(JsonElement arrayElement) {/*...*/}
 		private static TreeBuilderSliceTraceEvent ParseEvent(JsonElement element) {/*...*/}
+		private static (TreeBuilderSliceTraceEventKind kind, JsonElement? payload) ResolveEventKind(JsonElement element) {/*...*/}
+		private static int? GetNullableInt32WithFallback(JsonElement element, JsonElement? payload, string propertyName) {/*...*/}
+		private static TreeBuilderSliceTraceInterval? ReadIntervalWithFallback(JsonElement element, JsonElement? payload, string propertyName) {/*...*/}
 		private static TreeBuilderSliceTraceInterval? ReadInterval(JsonElement element, string propertyName) {/*...*/}
 		private static string FirstNonEmptyString(JsonElement element, string fallback, params string[] propertyNames) {/*...*/}
 		private static long FirstInteger(JsonElement element, params string[] propertyNames) {/*...*/}
@@ -1108,6 +1111,8 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 			public IList<string> FeatureGates { get; set; } = new List<string>();
 			[JsonPropertyName("fixtures")]
 			public IList<FixtureManifestEntry> Fixtures { get; set; } = new List<FixtureManifestEntry>();
+			[JsonPropertyName("metric_windows")]
+			public IList<MetricWindowEntry> MetricWindows { get; set; } = new List<MetricWindowEntry>();
 		}
 		private sealed class FixtureManifestEntry {
 			[JsonPropertyName("name")]
@@ -1120,6 +1125,24 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 			public string SchemaHash { get; set; } = string.Empty;
 			[JsonPropertyName("payload_hash")]
 			public string PayloadHash { get; set; } = string.Empty;
+		}
+		private sealed class MetricWindowEntry {
+			[JsonPropertyName("fixture")]
+			public string? Fixture { get; set; }
+			[JsonPropertyName("schema_hash")]
+			public string? SchemaHash { get; set; }
+			[JsonPropertyName("schema_version")]
+			public string? SchemaVersion { get; set; }
+			[JsonPropertyName("window_schema")]
+			public string? WindowSchema { get; set; }
+			[JsonPropertyName("windows")]
+			public IList<MetricWindowKindEntry> Windows { get; set; } = new List<MetricWindowKindEntry>();
+		}
+		private sealed class MetricWindowKindEntry {
+			[JsonPropertyName("kind")]
+			public string? Kind { get; set; }
+			[JsonPropertyName("count")]
+			public int Count { get; set; }
 		}
 		private sealed class ChunkDescriptorPayload {
 			[JsonPropertyName("metadata")]
@@ -1205,6 +1228,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public IList<DiffCaseDescriptorView> DiffRegions { get; set; } = new List<DiffCaseDescriptorView>();
 		public IList<SearchCaseDescriptorView> SearchSpans { get; set; } = new List<SearchCaseDescriptorView>();
 		public IList<StageDFixtureLedgerEntry> Fixtures { get; set; } = new List<StageDFixtureLedgerEntry>();
+		public IList<MetricWindowLedgerEntry> MetricWindows { get; set; } = new List<MetricWindowLedgerEntry>();
 	}
 	public sealed class StageDFixtureLedgerEntry {
 		public string Name { get; set; } = string.Empty;
@@ -1212,6 +1236,17 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public int Count { get; set; }
 		public string SchemaHash { get; set; } = string.Empty;
 		public string PayloadHash { get; set; } = string.Empty;
+	}
+	public sealed class MetricWindowLedgerEntry {
+		public string Fixture { get; set; } = string.Empty;
+		public string SchemaHash { get; set; } = string.Empty;
+		public string SchemaVersion { get; set; } = string.Empty;
+		public string WindowSchema { get; set; } = string.Empty;
+		public IList<MetricWindowLedgerKind> Windows { get; set; } = new List<MetricWindowLedgerKind>();
+	}
+	public sealed class MetricWindowLedgerKind {
+		public string Kind { get; set; } = string.Empty;
+		public int Count { get; set; }
 	}
 }
 namespace Xi.Core.Rope.Breaks {

@@ -1,13 +1,13 @@
 Stage D chunk benchmark (chunk/line replay)
-Timestamp      : 2025-11-18T19:18:52.6957929+00:00
+Timestamp      : 2025-11-18T20:35:14.6885065+00:00
 Fixture folder : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures
 Manifest path  : /repos/xi-editor-sharp/tests/xi.Core.Tests/Fixtures/fixtures.manifest.json
-Rust commit    : 3799d2be9db0ef040517ed69df1b717e96a8958e
+Rust commit    : b6fb5999288946daeeadc4b7f9f9756f6dda1f50
 Schema version : 1.0.0
 CLI revision   : 0.3.0
 Feature gates  : cursor_state,serde,tree_builder_slice_trace
 Generated at   : 2025-11-17T22:52:57.0230000+00:00 (1763419977023)
-Chunk ledger   : count=20, schema_hash=chunk_descriptors@1.0.0, payload_hash=69ba7f2536876ad3a76296a215ac163fa82629934a97a82e49faa25423f9415a
+Chunk ledger   : count=20, schema_hash=chunk_descriptors@1.0.0, payload_hash=9c7163ebd6ceb7f9e7e4ec566682470e96e27424499c4a6f5804898eca48f1f0
 Inspector note : tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt
 
 Chunk enumeration diagnostics:
@@ -16,14 +16,14 @@ Chunk enumeration diagnostics:
   Chunks       : 3
   Max length   : 753
   Total chars  : 1,808
-  Duration     : 3.91 ms
-  Throughput   : 255.93 MB/s
+  Duration     : 5.51 ms
+  Throughput   : 181.45 MB/s
 
 Line enumeration diagnostics:
   Manifest lines: 11
   Lines visited : 8
-  Duration      : 2.88 ms
-  Throughput    : 347.07 MB/s
+  Duration      : 4.21 ms
+  Throughput    : 237.40 MB/s
 
 Allocation statistics:
   Thread alloc : 37,944 bytes
