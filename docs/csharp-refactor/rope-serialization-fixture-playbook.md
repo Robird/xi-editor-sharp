@@ -16,7 +16,7 @@
 2. **验证 Rust 基线**：在 `xi-editor-ph7/rust` 运行 `./run_all_checks`（Bash）或 `./run_all_checks.ps1 -Filter serde-fixtures`（PowerShell），随后执行三个 `cargo test -p xi-rope --features serde <regression>` 用例，确保 `serde_fixtures` 常量与测试同步。
 3. **刷新夹具**：优先使用 `scripts/refresh_serialization_fixtures.ps1` 触发 exporter（默认启用 `-ExportParityFixtures`），如需调试可改用手动命令（见 `[StageD::FixtureFlow]`）。若希望与 goal tree / skeleton 流水线一键执行，可运行 `python scripts/refresh_all_assets.py`（默认包含 `stage-d-fixtures` 步骤），或使用 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 单独执行 Stage D。
 4. **快速 diff**：运行 `git status --short tests/xi.Core.Tests/Fixtures` 与定向 `git diff`，确认变化仅限目标 JSON；若结构调整，需先在 Rust helper/文档更新 schema。
-5. **校验 manifest + 测试矩阵**：先运行 `python scripts/verify_fixture_manifest.py`（基于 canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）核对 `fixtures.manifest.json`，如遇异常可 fallback 到 `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` 手工逐条比对；随后执行 `dotnet test Xi.Editor.sln` 并重跑 `cargo test -p xi-rope --no-default-features`，结果链接到 `[QA-IngestionSmoke]` 报告。
+5. **校验 manifest + 测试矩阵**：`scripts/refresh_serialization_fixtures.ps1` 现在会在 loader/hydrator smoke 结束后自动运行 `python scripts/verify_fixture_manifest.py --manifest <path>` 并在 hash 不匹配时直接终止；只有在 `-DryRun` 或显式传入 `-SkipManifestVerification`（务必在 `agents/qa-engineer.md` / `AGENTS.md` 记录原因）时才会跳过。若需要写回 `payload_hash`，手动执行 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，完成后再次运行脚本（保持默认验证）以获取新的 canonical log；故障排查仍可 fallback 到 `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json`。流程通过后执行 `dotnet test Xi.Editor.sln` 与 `cargo test -p xi-rope --no-default-features` 并将结果链接至 `[QA-IngestionSmoke]`。
 6. **文档与日志**：在 `AGENTS.md`、`agents/rust-porter.md`、`agents/qa-engineer.md`、`docs/architecture/rope-cs-mirror-plan.md` 等文件记录操作；若 CLI/流程有变化，更新 `[Fixture-*]` 文档与本手册对应章节。
 
 ---
@@ -24,9 +24,9 @@
 ## [StageD::FixtureFlow] Fixture 刷新流程
 <a id="StageD::FixtureFlow"></a>
 
-> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动串联 `StageDDescriptorLoaderTests -> StageDDescriptorHydratorTests`（Stage D loader + hydrator smoke），即使指定 `-SkipDotnet` 也会运行，除非显式传入 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`。如因调试需要跳过任一 smoke，必须在 `agents/qa-engineer.md` 与 `AGENTS.md` 记录原因。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader + hydrator smoke”）自动串入。
+> 推荐脚本：`scripts/refresh_serialization_fixtures.ps1 -Verbose`。此脚本会顺序执行 Rust 校验（可用 `-SkipRust` 跳过）、调用 exporter、重跑 `dotnet test`（可用 `-SkipDotnet` 跳过），并在日志中写入实际命令。刷新结束后它会自动串联 `StageDDescriptorLoaderTests -> StageDDescriptorHydratorTests`（Stage D loader + hydrator smoke），即使指定 `-SkipDotnet` 也会运行，除非显式传入 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`。同一脚本现在还会在 smoke 完成后查找 `python3/python/py` 并调用 `scripts/verify_fixture_manifest.py --manifest <path>` 来生成 canonical hash 证明；只有在传入 `-SkipManifestVerification` 时才会跳过，并需在 QA 档案记录原因。Linux/WSL 可直接调用 Bash 版本流程；若需要与 goal tree / skeleton 流程串行执行，可使用 `python scripts/refresh_all_assets.py` 让 `stage-d-fixtures`（description: “Export Rust fixtures + run Stage D loader + hydrator smoke + verify manifest”）自动串入。
 
-> **Manifest diff + loader + hydrator smoke 证据链**：刷新或手动导出后必须运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。若预计存在 hash 漂移（Rust exporter 更新或 JSON 被覆写），追加 `--update` 让脚本重写 `payload_hash` 并打印 `Manifest changes` 摘要；无漂移时脚本会输出 “no changes” 提示。该日志需与 `StageDDescriptorLoaderTests`、`StageDDescriptorHydratorTests` 的通过记录一并归档，方可满足 `[QA-IngestionSmoke]` 的证明链，禁止跳过。
+> **Manifest diff + loader + hydrator smoke 证据链**：刷新或手动导出后，PowerShell 脚本会自动执行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 并把 “Manifest changes/no changes” 行与 loader/hydrator smoke 一起写入日志；任何 `-SkipManifestVerification` 都必须在 QA 档案记录，并在同一任务内补跑 verifier。若预计存在 hash 漂移，需要单独运行 `python scripts/verify_fixture_manifest.py --update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（脚本默认只做只读验证），写回后再 rerun `scripts/refresh_serialization_fixtures.ps1`（勿携带 `-SkipManifestVerification`）以取得新的自动校验 + smoke 证据链。该日志需与 `StageDDescriptorLoaderTests`、`StageDDescriptorHydratorTests` 的通过记录一并归档，禁止跳过。
 
 > **最新 manifest（2025-11-18 稳定刷新）**：QA 运行 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 后生成 `fixtures.manifest.json`，记录 `rust_commit=96ce8ddff31f368b52ca930b3930f1cf8ecd909a`、`feature_gates=["serde"]`、descriptor 计数 `chunk/cursor/grapheme = 20/11/668`，并新增 `breaks/diff/search = 3/3/3` 可选资产。导出脚本会复用既有 `generated_at_unix_millis` 字段，因此重复运行不会触发 hash 漂移。所有哈希均由 `scripts/verify_fixture_manifest.py` 回写，可在 `[StageD::ParityAssets]` 查阅细节。
 
@@ -130,7 +130,7 @@ cd "$XI_EDITOR_SHARP_ROOT"
 
 ### 3.1 Manifest 校验与写回
 
-1. **默认校验**：刷新脚本或手工 exporter 结束后立即运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`，保留摘要表格输出。
+1. **默认校验**：刷新脚本现已自动运行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 并打印摘要表格；若需单独调试，可直接调用同一命令，输出仍需保存。
 2. **更新模式**：若 canonical JSON drift 属于预期，增加 `--update` 参数；脚本会重写相应 `payload_hash` 值、打印逐条 `old -> new` 摘要，并在写入后自动再跑一次校验。
 3. **记录要求**：将 `Manifest changes` 或 `--update: manifest already in sync; no changes written.` 行复制到 `agents/qa-engineer.md`、`AGENTS.md`、PR 描述，作为哈希证据。禁止绕过脚本手工修改 manifest。
 4. **与 loader/hydrator smoke 绑定**：`--update` 完成后必须再次运行（或确认脚本自动触发的）`StageDDescriptorLoaderTests` 与 `StageDDescriptorHydratorTests`，输出 + manifest diff 才能满足 `[QA-IngestionSmoke]` 的证明链。
@@ -225,8 +225,8 @@ git diff tests/xi.Core.Tests/Fixtures/*.json
 
 | 步骤 | 命令 | 期望 |
 | --- | --- | --- |
-| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后会串联 `StageDDescriptorLoaderTests` 与 `StageDDescriptorHydratorTests`，除非显式传入 `-SkipStageDLoaderTest` 或 `-SkipStageDHydratorTest`。任何跳过都要在 QA 档案/AGENTS 中记录原因。 |
-| 校验哈希 | `python scripts/verify_fixture_manifest.py`（canonical JSON：`sort_keys=True`, `ensure_ascii=False`, `separators=(",", ":")`）；若刷新预期会修改 hash，追加 `--update --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 让脚本写回 `payload_hash` 并自动二次校验；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json` | 输出表格必须贴入 QA 档案；若使用 `--update`，务必记录 `Manifest changes` 或 “no changes” 行并与 loader + hydrator smoke 一同上传，禁止跳过此步骤或手动编辑 manifest。 |
+| 运行脚本 | `./scripts/refresh_serialization_fixtures.ps1 -Verbose -SkipRust -SkipDotnet`（如仅验证导入） | exporter 成功覆写所有 JSON，日志包含 CLI 标识符与 feature 列表；脚本随后默认串联 `StageDDescriptorLoaderTests`、`StageDDescriptorHydratorTests` 与 `python scripts/verify_fixture_manifest.py --manifest <path>`，除非显式传入 `-SkipStageDLoaderTest`、`-SkipStageDHydratorTest` 或 `-SkipManifestVerification`。任何跳过都要在 QA 档案/AGENTS 中记录原因。 |
+| 校验哈希 | `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（脚本已自动执行此命令；此处主要用于隔离问题或 `--update` 模式） | 自动验证输出必须贴入 QA 档案。若预期 hash 漂移，需要手动运行 `--update`，记录 `Manifest changes` 行后再次执行 `scripts/refresh_serialization_fixtures.ps1`（勿携带 `-SkipManifestVerification`）以生成新的只读校验日志；必要时 fallback `sha256sum tests/xi.Core.Tests/Fixtures/**/*.json`。 |
 | Loader 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorLoaderTests` | `StageDDescriptorLoader` 读取 `fixtures.manifest.json` + descriptor JSON 时不抛异常，metadata（`rust_commit`, `cli_rev`, `feature_gates`, descriptor count）与 manifest/表格一致；脚本默认为 QA 运行该 smoke，如因调试跳过需补跑并在 `agents/qa-engineer.md` 说明。 |
 | Hydrator 校验 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter StageDDescriptorHydratorTests` | `StageDDescriptorHydrator` 能从 loader 产出的 manifest ledger 中加载 Breaks/Diff/Search 描述符，并验证 skeleton/hash 与实际 JSON 匹配；用于确认 ingestion 链路完整。 |
 | 运行测试 | `dotnet test tests/xi.Core.Tests/xi.Core.Tests.csproj --filter Serialization` | 所有 Stage D 测试通过；失败则回滚夹具并打开 `[MP-R9]` 风险。 |

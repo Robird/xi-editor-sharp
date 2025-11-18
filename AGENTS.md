@@ -19,7 +19,7 @@
 - 通过 ILSpy 导出 + 摘要化处理生成 `docs/skeleton/xi.Core.decompiled.cs`，现可与 `docs/skeleton/rope.md` 对照查看 Rust/C# 两侧的类型骨架，用于统一接口设计与差异审视。
 
 ## 当前聚焦
-- Stage D descriptor hydrator：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 已把 Breaks/Diff/Search manifest 样本转换为 typed 结构；下一步要在 `python scripts/refresh_all_assets.py --only stage-d-fixtures` / Stage D CLI / QA 文档中同步“StageDDescriptorLoader（ledger 校验）→ StageDDescriptorHydrator（ingestion）”流程，并要求 Rust Porter 把 `--breaks-descriptors|--diff-regions|--search-spans` 输出写入 manifest 以便 QA CLI 直接重用。
+- Stage D descriptor hydrator：`src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorHydrator.cs` 已把 Breaks/Diff/Search manifest 样本转换为 typed 结构，`scripts/refresh_serialization_fixtures.ps1` 现默认串联 loader → hydrator → `python scripts/verify_fixture_manifest.py`，并在 `refresh_all_assets.py` 的 `stage-d-fixtures` 步骤中自动执行。下一步是让 QA CLI/Playbook 直接消费这些 typed payload（`StageDDescriptorLoader`/`StageDDescriptorHydrator`）并推动 Rust Porter 将 `--breaks-descriptors|--diff-regions|--search-spans` 设为默认导出项，确保 manifest entries 恒定可用。
 
 ## 工作节奏建议
 当前仅由人类开发者与 AI Coder 协作，执行节奏按单次 AI 会话推进；每次会话收尾前需同步更新本文件与相关计划文档。
@@ -485,6 +485,11 @@ AI 架构师（主 Agent，拥有 runSubagent）
 - **Loader 强化**：`StageDDescriptorLoader` 现会把 `fixtures.manifest.json` 的 ledger 条目（name/path/count/schema_hash/payload_hash）hydrate 成 `StageDFixtureLedgerEntry`，并在加载 chunk/grapheme JSON 时检验 manifest 计数与 schema version 是否匹配，避免 hash/计数漂移未被察觉。
 - **测试覆盖**：新增 `StageDDescriptorLoader` ledger 单元测试，验证 chunk 与 grapheme 条目的 `count`、`schema_hash`、`payload_hash` 与 manifest 真值一致；`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests`（4/4 ✅，15.8s）作为 smoke 记录。
 - **文档同步**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 说明 loader 现会返回 ledger，并强调 loader smoke 会校验 canonical hash + manifest 计数，供 QA/Stage D CLI 复用。
+
+### 2025-11-19 (Stage D manifest verifier自动化)
+- **脚本**：在 `scripts/refresh_serialization_fixtures.ps1` 新增 `-SkipManifestVerification`（默认运行）与 `Get-PythonInterpreter` 帮助器，loader/hydrator smoke 结束后若非 `-DryRun` 自动调用 `python scripts/verify_fixture_manifest.py --manifest <path>`；`scripts/refresh_all_assets.py --only stage-d-fixtures` 继承同样的流水线。
+- **文档**：`docs/csharp-refactor/rope-serialization-fixture-playbook.md` 的 `[StageD::StageDChecklist]`、`[StageD::FixtureFlow]`、`[QA-IngestionSmoke]`、Manifest 校验章节更新“自动验证 + `-SkipManifestVerification` 记录要求”，`docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 将“Stage D scripts” 行标记为“Loader + Hydrator + Manifest verifier”。
+- **验证**：`pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/refresh_serialization_fixtures.ps1 -SkipRust -SkipDotnet -SkipCopy -SkipStageDLoaderTest -SkipStageDHydratorTest` 输出 `==> python: verify fixture manifest` 与 `All 9 fixtures match the manifest hashes.`，证明自动校验可独立运行。
 
 ### 2025-11-17 (Stage D descriptor loader + 文档联动)
 - **实现落地**：委派 C# Implementer 在 `src/xi.Core/Rope/Diagnostics/Descriptors/StageDDescriptorLoader.cs` 建立 manifest/chunk/grapheme loader，并新增 `tests/xi.Core.Tests/Diagnostics/StageDDescriptorLoaderTests.cs` 读取真实夹具校验 metadata、`emoji_cluster_block` chunk 与 `zwj_family` grapheme；为 DTO 添增 `JsonPropertyName` 注解。`dotnet test Xi.Editor.sln -v m --filter StageDDescriptorLoaderTests` 及全量 `dotnet test Xi.Editor.sln -v m`（176/176 ✅）皆通过。

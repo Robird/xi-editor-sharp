@@ -7,6 +7,8 @@ param(
     [switch]$SkipStageDLoaderTest,
     [Parameter(HelpMessage = "Skip the Stage D hydrator smoke (StageDDescriptorHydratorTests) step.")]
     [switch]$SkipStageDHydratorTest,
+    [Parameter(HelpMessage = "Skip manifest verification (python scripts/verify_fixture_manifest.py). Default: run verification.")]
+    [switch]$SkipManifestVerification,
     [switch]$DryRun,
     [switch]$ExportTreeTrace,
     [bool]$ExportParityFixtures = $true,
@@ -40,6 +42,26 @@ function Invoke-ExternalCommand {
     }
 }
 
+function Get-PythonInterpreter {
+    $candidates = @("python3", "python", "py")
+    foreach ($candidate in $candidates) {
+        $commandInfo = Get-Command $candidate -ErrorAction SilentlyContinue
+        if ($null -ne $commandInfo) {
+            if ($commandInfo.Source) {
+                return $commandInfo.Source
+            }
+
+            if ($commandInfo.Definition) {
+                return $commandInfo.Definition
+            }
+
+            return $candidate
+        }
+    }
+
+    throw "Unable to locate a Python interpreter (checked python3, python, py). Install Python 3 and re-run the fixture refresh script."
+}
+
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $rustRoot = Join-Path $repoRoot "xi-editor-ph7/rust"
 $ropeCrateRoot = Join-Path $rustRoot "rope"
@@ -62,6 +84,7 @@ $searchFixturesDir = Join-Path $csharpFixturesDir "search_spans"
 if (-not $ManifestPath) {
     $ManifestPath = Join-Path $csharpFixturesDir "fixtures.manifest.json"
 }
+$manifestVerifierScript = Join-Path $repoRoot "scripts/verify_fixture_manifest.py"
 
 if (-not (Test-Path $rustRoot)) {
     throw "Missing Rust workspace: $rustRoot"
@@ -168,6 +191,22 @@ if ($SkipStageDHydratorTest) {
 }
 else {
     Invoke-ExternalCommand "dotnet: Stage D hydrator smoke (StageDDescriptorHydratorTests)" "dotnet" @("test", "Xi.Editor.sln", "--filter", "StageDDescriptorHydratorTests")
+}
+
+if ($SkipManifestVerification) {
+    Write-Host "Skipping manifest verification (verify_fixture_manifest.py)."
+}
+elseif ($DryRun) {
+    Write-Host "Skipping manifest verification because -DryRun was supplied."
+}
+else {
+    if (-not (Test-Path $manifestVerifierScript)) {
+        throw "Missing manifest verifier: $manifestVerifierScript"
+    }
+
+    $pythonInterpreter = Get-PythonInterpreter
+    $verifyArgs = @($manifestVerifierScript, "--manifest", $ManifestPath)
+    Invoke-ExternalCommand "python: verify fixture manifest" $pythonInterpreter $verifyArgs
 }
 
 Write-Host "All steps completed."
