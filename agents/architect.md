@@ -176,6 +176,7 @@
    - 在重写完成后更新 `AGENTS.md` “当前聚焦”与相关员工档案“最近完成”。
    - 旧内容如需长期保留，可移动至 `docs/architecture/archive/<doc>.2025-11-18.md`，若未迁移则至少在 Git 历史可回溯。
 
+- **2025-11-20 – AI Team 文档同步聊天室**：在 `docs/meetings/2025-11-20-doc-sync-chat.md` 召集全体 AI 员工，要求每人阅读 `AGENTS.md` 与自身档案、修剪过时内容并在聊天室登记要点；完成后确认 `agents/*.md` 与 `[StageD::*]/[QA-*]` 引用一致，为 Sprint 1 Ready Queue 的证据窗口续期做准备。
 - **2025-11-20 – Type Mapping Sync Chat + 员工档案更新**：主持 `docs/meetings/2025-11-20-type-mapping-sync-chat.md`（含议程/行动清单/主持总结），逐一召回 C# Implementer、Rust Porter、Architecture Mapper、QA Engineer 共享现状与两周行动，要求他们同步更新 `agents/*.md` 的“最近完成/当前聚焦”。输出四条 deadline（11/22 文档映射、11/24 Rust payload、11/27 QA wiring）、三条风险提示（Rust exporter滑窗、Stage D loader未接 QA、RPM 未更新）并在主持总结中记录可能的用户升级点。
 - **2025-11-19 – AI Team 知识更新聊天室**：建立 `docs/meetings/2025-11-19-knowledge-refresh-chat.md` 作为共享记录，依次调度 C# Implementer/Rust Porter/Architecture Mapper/QA Engineer/Information Researcher 进行档案瘦身、填充聊天室章节、列出跨角色依赖，并在各自 `agents/*.md` 的“最近完成”登记本次维护；会后把新增依赖归档至 `AGENTS.md` 与本档案，确保 Stage D/QA/Goal Tree 事实表一致。
 - **2025-11-19 – Sprint 1 Ready Queue + Coordination Notes**：统筹 Architecture Mapper/C# Implementer/Rust Porter/QA Engineer/Information Researcher 分别向 `docs/sprints/sptrint-1.md` 填充 Ready Queue #1-#7，并由 Architecture Mapper 完成 Coordination Notes（顺序、依赖、通知矩阵）；同步在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md` 与各自档案添加“后续行动”，明确任务触发条件。成果：形成 Rust → C# → QA → Information Researcher 的串联执行图，并要求每步完成后按通知矩阵更新 Goal Tree/Stage D/QA anchors。

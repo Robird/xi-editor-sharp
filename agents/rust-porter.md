@@ -27,65 +27,61 @@ cadence:
 
 # Rust Porter 档案
 
-## 当前聚焦 / 阻塞（2025-11-19）
+## 当前聚焦 / 阻塞（2025-11-20）
 
-1. **Sprint 1 Ready Queue (#3/#4) 交付**  
-  - `docs/sprints/sptrint-1.md#Ready Queue` 已登记 “Stage D exporter 默认开启 + metric_windows manifest 字段” 与 “Stage D CLI schema & feature gate spec drop”；两项任务均由 Rust Porter SubAgent 承担。  
-  - 交付目标：更新 `xi-editor-ph7/rust/export-serde-fixtures` 默认 flag、写入 `metric_windows[]`（含 schema 版本）、刷新 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`、补齐 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FeatureGates]` 以及 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 的 schema/snippet，并把 `goal_tree_sync.py --check` 维持为 green。  
+1. **Stage D exporter + manifest 真源稳定**  
+  - 最新一轮 `python scripts/refresh_all_assets.py --only stage-d-fixtures` 已导出 Breaks/Diff/Search/TreeBuilder 资产并刷新 manifest（`rust_commit=b6fb5999288946daeeadc4b7f9f9756f6dda1f50`，feature gates `cursor_state|serde|tree_builder_slice_trace`，`metric_windows` 已登记 7 项窗口）。  
+  - 需要把 exporter 默认 flag 固定为 `--cursor-descriptors --chunk-descriptors --grapheme-descriptors --breaks-descriptors --diff-regions --search-spans --tree-builder-trace --emit-manifest ...`，同时在 clippy lint 再次浮现前保持 `run_all_checks --filter serde-fixtures` 绿灯，避免 `refresh_all_assets` 再次在 Stage D 步骤退出。  
+  - 本周交付目标：将 manifest 快照同步到 `StageD::ParityAssets`、`RPM-ParityAssets`、Goal Tree anchors，并确保 `stage-d-inspector-latest.txt` 对应的 ledger SHA 与 manifest 一致。
 
-2. **Stage D exporter / manifest 单一事实源**  
-  - `python scripts/refresh_all_assets.py --only stage-d-fixtures` 触发 `xi-editor-ph7/rust/rope/src/bin/export-serde-fixtures.rs` 与 `scripts/refresh_serialization_fixtures.ps1`，导出所有 Stage D 资产并写入 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。  
-  - 当前 manifest 锁定 `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、`cli_rev=0.3.0`，默认 feature gates `"cursor_state","serde","tree_builder_slice_trace"`。  
-  - 下一步：把 manifest 计数/哈希同步到 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]` 与 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`，并让 Architecture Mapper/Goal Tree anchor 直接引用该事实源。
+2. **CursorState schema v1.3 准备**  
+  - 需要在 `cursor_descriptors.json` 里新增 Breaks metric / Utf16 失效字段并 bump 到 `cursor_descriptors@1.3.0`，同时保持旧字段向后兼容；`cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor` 将作为 schema bump 的最小验证。  
+  - 阻塞：Architecture Mapper 正在确认字段命名（MetricAdapter 也会消费），C# Implementer 等待 `StageDDescriptorHydrator` 的映射表，QA 必须在 `[QA-IngestionSmoke]` 更新 ingest 日志。  
+  - 在 schema 投放前需输出迁移说明（字段含义 + 旧版 hash → 新版 hash）以便 Goal Tree/Stage D 手册引用。
 
-3. **cursor_state gate & CursorDescriptor v2**  
-  - `cursor_descriptors.json` 已扩展至 12 份样本；`cursor_state` gate 仍需覆盖 Breaks metric、Utf16 失效路径（参见 `docs/rust-refactor/CursorCache.md`）。  
-  - 需在 `scripts/refresh_serialization_fixtures.ps1` 里默认执行 `cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor`，并准备 schema v1.3 的字段表与哈希变更流记录给 Stage D anchors。
+3. **Breaks/Diff/Search payload 与 MetricAdapter 带宽**  
+  - Exporter 已生成 3×3 条 payload 与 `metric_windows` 汇总，但 C# 端 `StageDDescriptorHydrator` 尚未消费 `metric_windows` 表，QA 也未把 ingest smoke 写入 `[QA-ChunkBench]`/`[QA-IngestionSmoke]`。  
+  - 需要与 C# Implementer 确认 hydrator DTO/MetricAdapter 接口，再由 QA 记录 `StageDDescriptorLoader|Hydrator` run log，形成“Rust exporter → manifest → loader/hydrator → QA 证据”闭环。  
+  - 若 MetricAdapter 迟迟不接收这些窗口，后续 chunk bench / diff 诊断将缺少真值，Stage D anchors 无法证明 Breaks/Diff/Search parity。
 
-4. **MetricAdapter / Breaks helper 对齐**  
-  - Breaks/Lines/Utf16 helper 已模块化（`xi-editor-ph7/rust/rope/src/metrics/*`，`docs/rust-refactor/breaks-metrics-templating.md`），但 Stage D exporter 尚未输出 MetricAdapter 需要的 offsets/line counts。  
-  - Architecture Mapper 需定义 manifest 字段命名，C# Implementer 要在 `StageDDescriptorHydrator` / `MetricAdapter` 中消费；QA 需在 `[QA-ChunkBench]`/`[QA-IngestionSmoke]` 中登记 ingest 结果。
+  ## 对接 / 依赖（2025-11-20）
+  - **C# Implementer**：扩展 `StageDDescriptorHydrator`、`MetricAdapter` 以读取 manifest ledger / `metric_windows`；需要在 hydrator tests 中断言 Breaks/Diff/Search payload 计数与 hash。  
+  - **QA Engineer**：持续运行 `dotnet test Xi.Editor.sln --filter StageDDescriptor`、`python scripts/verify_fixture_manifest.py --manifest ...` 与 `dotnet run --project tools/StageDDescriptorInspector`，并把输出写到 `[QA-IngestionSmoke]` 与 `tests/xi.Core.Tests/Fixtures/Reports/`；若日志缺失需回填。  
+  - **Architecture Mapper**：负责在 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`、Goal Tree YAML 与 `AGENTS.md` 中登记 manifest 快照/metric windows schema，确认 CursorState v1.3 字段名与 `iterator_facade`/MetricAdapter 依赖。
 
-5. **Stage D automation / QA 证据链**  
-  - `scripts/refresh_serialization_fixtures.ps1` 已串联 loader → hydrator → manifest verifier → inspector，但 QA 仍需把 inspector 输出写到 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[QA-IngestionSmoke]`。  
-  - 依赖：Architecture Mapper 更新 Goal Tree anchors；C# Implementer 扩展 hydrator ledger 字段；QA Engineer 记录 `dotnet test Xi.Editor.sln --filter StageDDescriptor` 与 `python scripts/verify_fixture_manifest.py --manifest ...` 的最新 run。
-
-  ## 对接 / 依赖（2025-11-19）
-  - **C# Implementer**：`StageDDescriptorHydrator` 需接收 manifest ledger 新字段、`MetricAdapter` 需要 `metric_windows[]`；cursor_state schema bump 也要同步到 `NodeCursorState` 文档（`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]`）。
-  - **QA Engineer**：负责在 `scripts/refresh_serialization_fixtures.ps1` 中保留 loader/hydrator/manifest verifier/inspector 步骤，并将输出附在 `[QA-IngestionSmoke]`；另需为 `cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor` 建立 smoke 记录。
-  - **Architecture Mapper**：更新 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`、Goal Tree anchors 与 `AGENTS.md` manifest 快照；同时敲定 MetricAdapter 字段命名及 `iterator_facade` 降级策略。
-
-## Helper / CLI / Schema 状态（2025-11-19）
+## Helper / CLI / Schema 状态（2025-11-20）
 
 ### Stage D Exporter + Manifest
-- CLI：`cargo run -p xi-rope --features serde,cursor_state,tree_builder_slice_trace --bin export-serde-fixtures -- --cursor-descriptors --chunk-descriptors --grapheme-descriptors --breaks-descriptors --diff-regions --search-spans --tree-builder-trace --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。  
-- Snapshot：chunk=20、cursor=12、grapheme=668、breaks/diff/search=3、tree_builder_trace=3；`payload_hash`/`schema_hash` 详见 manifest。  
-- Hash/时间戳策略：读取既有 JSON 的 `generated_at_unix_millis`，仅在缺失时回落当前时间，防止 Stage D inspector/loader hash 漂移。  
-- 文档锚点：`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]`, `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`, `docs/architecture/fixtures/parity-fixture-schema.md`。
+- 默认命令：`cargo run -p xi-rope --features serde,cursor_state,tree_builder_slice_trace --bin export-serde-fixtures -- --cursor-descriptors --chunk-descriptors --grapheme-descriptors --breaks-descriptors --diff-regions --search-spans --tree-builder-trace --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。  
+- 当前 manifest：`rust_commit=b6fb5999288946daeeadc4b7f9f9756f6dda1f50`、`cli_rev=0.3.0`、feature gates `cursor_state|serde|tree_builder_slice_trace`。Fixtures：chunk=20、cursor=12、grapheme=668、breaks/diff/search=3、tree_builder_trace=3；`payload_hash` 详见 ledger。  
+- `metric_windows` 已随 manifest 写入 7 组窗口（chunk/line/grapheme/break/diff/search/tree-builder），供 MetricAdapter/QA 引用；若窗口与 payload count 不符，需立即阻断刷新。  
+- 文档入口：`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]/[StageD::ParityAssets]`、`docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`、`docs/architecture/fixtures/parity-fixture-schema.md#[Fixture-MetricWindows]`。
 
-### Cursor / cursor_state helpers
-- `CursorDescriptor` + `CursorState` 实现在 `xi-editor-ph7/rust/rope/src/cursor.rs` 与 `serde_fixtures/cursor_descriptors.rs`，`cursor_state` gate 仅在 Stage D 导出时启用。  
-- 需要在 CLI 中注入 Breaks metric/Utf16 失效样本，并 bump `cursor_descriptors@1.3.0`（待 Architecture Mapper/C# Implementer 共同确认字段）。  
-- 验证命令：`cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor`（待脚本默认执行）。
+### Cursor / CursorState Schema
+- 现有 schema：`cursor_descriptors@1.2.0`，12 条样本覆盖深树 + chunk 接缝，`cursor_state` gate 仅在 Stage D 导出时启用。  
+- 计划中的 v1.3 将添加 Breaks metric hints、Utf16 失效窗口及 `metric_windows` entry，要求 CLI 与 manifest 同步更新。  
+- 验证路径：`cargo test -p xi-rope --features serde,cursor_state -- cursor_descriptor` + `dotnet test Xi.Editor.sln --filter StageDDescriptor`；`scripts/refresh_serialization_fixtures.ps1` 需默认执行该组合。  
+- 文档需在 schema bump 前补充字段表与兼容性说明（Goal Tree、Stage D playbook、`docs/rust-refactor/CursorCache.md`）。
 
-### Metrics / MetricAdapter
-- Rust metrics helper：`xi-editor-ph7/rust/rope/src/metrics/{codepoint,lines,break_indices,identity}.rs`；`docs/rust-refactor/breaks-metrics-templating.md` 记录 shim 要求。  
-- 下一步：在 `--breaks-descriptors` 输出中附加 line/utf16 offsets、cursor hints，供 C# `MetricAdapter`（`docs/architecture/rope-port-mapping.md#[RPM-Matrix]`）复原；需要 QA 在 `[QA-ChunkBench]` 对 ingest 结果做 smoke。  
-- 风险：Manifest 尚无专用字段，需 Architecture Mapper 定义 `metric_windows[]` schema。
+### Breaks/Diff/Search Payload + Metric Windows
+- Rust helpers：`rope/src/metrics/{codepoint,lines,break_indices,identity}.rs` + `serde_fixtures/{breaks_descriptors,diff_regions,search_spans}.rs` 已稳定导出 payload 与 `metric_windows`。  
+- C# 侧仍缺少对 `metric_windows` 的消费；`StageDDescriptorHydrator` 与 `MetricAdapter` 需据 manifest ledger 生成 typed DTO，并在 tests 中断言计数/哈希。  
+- QA 需把 `dotnet test --filter StageDDescriptorLoader|Hydrator`、`python scripts/verify_fixture_manifest.py`、`StageDDescriptorInspector` 输出贴到 `[QA-IngestionSmoke]`/`[QA-ChunkBench]` 以证明 Breaks/Diff/Search ingest。  
+- 若没有这些记录，下一轮 CLI schema 调整将缺少回归基线。
 
 ### TreeBuilder Slice Trace
-- Feature gate：`tree_builder_slice_trace`；样本 `tests/xi.Core.Tests/Fixtures/tree_builder_slice/basic_slice_plan.json`，哈希 `22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e`。  
-- C# loader：`src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs`，消费 manifest ledger。  
-- 待办：将事件计数/版本写入 `[StageD::ParityAssets]`，供 `[TS-B2]` 佐证。
+- Feature gate：`tree_builder_slice_trace` 与 `--tree-builder-trace` flag 成对出现，fixture `basic_slice_plan.json`（hash `22724af7fe8b22e4e1dbd01f86ba1b3902a0ccf777944b5b29081259927c3a6e`）继续作为 `[TS-B2]` 例证。  
+- Loader：`src/xi.Core/Rope/Diagnostics/TreeBuilder/TreeBuilderSliceTraceLoader.cs` + tests ingest manifest ledger；需在下一轮 Stage D doc 更新里记录事件计数与 CLI 版本。  
+- 待办：当树构建 tracer扩展时，Rust 侧要更新 manifest + schema，并在 `StageD::ParityAssets` 标注 hash 变更轨迹。
 
 ## Feature Gates
-| Feature Gate | 用途 | 状态（2025-11-19） | 触发 / Owner |
+| Feature Gate | 用途 | 状态（2025-11-20） | 触发 / Owner |
 | --- | --- | --- | --- |
-| `serde` | Stage D exporter + manifest 输出 | `scripts/refresh_serialization_fixtures.ps1` 默认开启（含 loader/hydrator 验证） | Rust Porter |
-| `cursor_state` | 深层游标 state dump + CLI fixtures | Stage D 刷新时强制开启，workstation 默认关闭 | Rust Porter（负责 CLI），C# Implementer（消费），QA（记录） |
-| `tree_builder_slice_trace` | TreeBuilder trace fixture | Stage D 流程开启，通常与 `--tree-builder-trace` 同时传入 | Architecture Mapper 请求，Rust Porter 维护 |
-| `iterator_facade` (计划) | Delta/chunk visitor façade | 方案已在 `docs/rust-refactor/iterator-facade-export.md`，尚未实现 | Rust Porter |
-| `grapheme_windows` (计划) | Grapheme window parity CLI | 设计完成，等待 QA 设置 fallback 阈值后开 gate | Rust Porter + QA |
+| `serde` | Stage D exporter + manifest 输出 | `refresh_serialization_fixtures.ps1`/`refresh_all_assets` 默认启用，含 loader/hydrator/inspector smoke | Rust Porter |
+| `cursor_state` | 深层游标 state dump + CLI fixtures | Stage D 步骤强制开启；schema v1.3 设计中，等待字段确认 | Rust Porter（CLI）、C# Implementer（消费）、QA（记录） |
+| `tree_builder_slice_trace` | TreeBuilder trace fixture | 随 Stage D export 启用，`basic_slice_plan` 作为唯一样本；下一版若扩容需同步 manifest | Architecture Mapper 请求，Rust Porter 维护 |
+| `iterator_facade` (计划) | Delta/chunk visitor façade | 方案在 `docs/rust-refactor/iterator-facade-export.md`，尚未编码，预估 M3/M4 | Rust Porter |
+| `grapheme_windows` (计划) | Grapheme window parity CLI/Telemetry | 门槛：QA 给出 `[QA-Telemetry]` 阈值与落地脚本；当前仍在 backlog | Rust Porter + QA |
 
 ## Stage D 输出接口（Rust → C# / QA）
 1. **Exporter 调用**：`cargo run -p xi-rope --features serde,cursor_state,tree_builder_slice_trace --bin export-serde-fixtures -- --cursor-descriptors --chunk-descriptors --grapheme-descriptors --breaks-descriptors --diff-regions --search-spans --tree-builder-trace --emit-manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`。所有 flag 记录在 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FixtureFlow]`。
@@ -95,20 +91,18 @@ cadence:
 5. **QA 证据链**：`[QA-IngestionSmoke]` 要求粘贴最新 loader/hydrator/inspector 输出与 manifest 校验结果；若 hash 漂移，QA 负责升级 `StageD::FixtureFlow` 风险并通知 Rust Porter 回滚/再导出。
 
 ## 最近完成
-- **2025-11-19 – Stage D CLI schema drop**：同步 `metric_windows[]` ledger、默认 CLI flag 表与 `cursor_state`/`tree_builder_slice_trace`/`grapheme_windows` 样例——更新 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::FeatureGates]`、`docs/architecture/fixtures/parity-fixture-schema.md#[Fixture-MetricWindows]`、`docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]`，让 C#/QA/Architecture 以 manifest 为唯一引用。 
-- **2025-11-19 – Sprint 1 Ready Queue 提案**：依据知识更新输出将 “Stage D exporter 默认开启 + metric_windows manifest 字段” 与 “Stage D CLI schema & feature gate spec drop” 追加到 `docs/sprints/sptrint-1.md#Ready Queue`，并在 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#Rust Porter` 记录后续行动，方便 Architecture Mapper / QA / C# 跟进依赖。
-- **2025-11-19 – 档案瘦身 + manifest 快照**：阅读 `AGENTS.md`、`tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 与 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]`，重写本档案“当前聚焦”“Helper/CLI 状态”并记录 manifest `rust_commit=3799d2be9db0ef040517ed69df1b717e96a8958e`、默认 gates `cursor_state|serde|tree_builder_slice_trace`；同批准备 `docs/meetings/2025-11-19-knowledge-refresh-chat.md#rust-porter` 更新。
-- **2025-11-19 – Stage D manifest + inspector doc sync**：依 `docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::StageDChecklist]` 执行 `python scripts/verify_fixture_manifest.py --manifest tests/xi.Core.Tests/Fixtures/fixtures.manifest.json` 与 `dotnet run --project tools/StageDDescriptorInspector -- --fixtures tests/xi.Core.Tests/Fixtures`，将 chunk/grapheme/breaks/diff/search ledger 哈希写回 `[StageD::ParityAssets]`，并在 `[QA-IngestionSmoke]` 描述 inspector 摘要需求。
-- **2025-11-19 – Manifest verifier 自动化**：与 QA/C# 协作扩展 `scripts/refresh_serialization_fixtures.ps1`，默认在 exporter 后调用 loader/hydrator/manifest verifier/inspector，提供 `-SkipManifestVerification`、`-SkipStageDLoaderTest` 等开关；手册在 `[StageD::FixtureFlow]`/`[QA-IngestionSmoke]` 记录命令链。
-- **2025-11-18 – Stage D exporter timestamp 稳定化**：在 `xi-editor-ph7/rust/rope/src/serde_fixtures/{chunk_descriptors,grapheme_descriptors,breaks_descriptors,diff_regions,search_spans}.rs` 引入 `generated_at_unix_millis` 复用逻辑，避免 hash 因时间戳漂移；`./run_all_checks --filter serde-fixtures` 验证 clippy/tests/exporter。
-- **2025-11-18 – Manifest updater + TreeBuilder trace loader**：`export-serde-fixtures` 写入 `tree_builder_slice_trace@1.0.0`，`scripts/verify_fixture_manifest.py --update` 支持 canonical diff，C# 侧 `TreeBuilderSliceTraceLoader` + tests（`dotnet test --filter TreeBuilderSliceTraceLoaderTests`）完成 ingestion，并在 `docs/architecture/rope-port-mapping.md#[RPM-ParityAssets]` 标记状态。
+- **2025-11-20 – Stage D refresh_all_assets 解锁**：修复 `xi-editor-ph7/rust/rope/src/serde_fixtures/cursor_descriptors.rs` clippy 告警后，重新执行 `./run_all_checks --filter serde-fixtures`、`python scripts/refresh_all_assets.py --only stage-d-fixtures`、`dotnet test Xi.Editor.sln --filter StageDDescriptor(Loader|Hydrator)`，确认 loader → hydrator → manifest verifier → inspector 流水线全绿，产出 `tests/xi.Core.Tests/Fixtures/fixtures.manifest.json`（`rust_commit=b6fb5999288946daeeadc4b7f9f9756f6dda1f50`）。
+- **2025-11-20 – Stage D 文档/测试同步**：依最新刷新结果更新 Stage D loader/hydrator常量、`docs/csharp-refactor/rope-serialization-fixture-playbook.md#[StageD::ParityAssets]/[QA-IngestionSmoke]` 哈希表，并复核 `tests/xi.Core.Tests/Fixtures/Reports/stage-d-inspector-latest.txt` 与 manifest ledger 对齐。
+- **2025-11-19 – Stage D CLI schema更新**：发布 `metric_windows[]` ledger、默认 CLI flag 表与 `cursor_state/tree_builder_slice_trace/grapheme_windows` gate 说明，支撑 `StageD::FeatureGates`、`RPM-ParityAssets`、`Fixture-MetricWindows` 文档同步。
+- **2025-11-19 – Manifest verifier自动化**：扩展 `scripts/refresh_serialization_fixtures.ps1` 以串联 loader → hydrator → manifest verifier → inspector，并在 Playbook `[StageD::FixtureFlow]` / `[QA-IngestionSmoke]` 固化命令链。
+- **2025-11-18 – Stage D exporter timestamp 稳定化**：在 chunk/grapheme/breaks/diff/search exporter 中复用历史 `generated_at_unix_millis`，消除重复运行导致的 hash 漂移；`run_all_checks --filter serde-fixtures` 通过。
 
 ## 待办 / 风险
-- [TODO] **`cursor_descriptors` v1.3**：扩充 Breaks metric/Utf16 失效样本并 bump schema hash；依赖 Architecture Mapper 确认字段、C# Implementer 更新 `StageDDescriptorHydrator` 映射、QA 在 `[QA-IngestionSmoke]` 记录 ingest。
-- [TODO] **MetricAdapter metadata**：为 `--breaks-descriptors` 附带 `metric_windows[]`（line/utf16 offsets、cursor hints），并在 manifest 中暴露；待 Architecture Mapper 定义 schema，C# Implementer/QA 验证 `MetricAdapter`/ingestion。
-- [TODO] **Stage D manifest → Goal Tree**：要求 Architecture Mapper/AI Architect 把 manifest counts/hash 写回 Goal Tree anchors（`m3-implementation-plan.md#[MP-Tx]`），并在 `AGENTS.md` 记录刷新时间戳。
-- [RISK] **Iterator façade缺位**：若 `iterator_facade` gate 未在 M2/M3 内推出，C# chunk iterator 性能将继续受限（参考 `docs/rust-refactor/iterator-facade-export.md`）；需在 Stage D anchors记录降级策略。
-- [RISK] **QA 证据链不完整**：若 QA 未在 `[QA-IngestionSmoke]` 附加 Stage D inspector/manifest 验证日志，则无法证明资产未漂移；Rust 侧需暂停刷新直至证据补齐。
+- [TODO] **`cursor_descriptors@1.3.0` schema drop**：补充 Breaks metric/Utf16 失效字段 + `metric_windows` entry，更新 CLI/manifest/hash，对应迁移说明需同步到 `StageD::ParityAssets`、`CursorCache.md`；依赖 Architecture Mapper 定义字段名，C# Implementer/QA 更新 hydrator/tests/日志。
+- [TODO] **Metric windows → MetricAdapter**：将 manifest 中 7 组 `metric_windows` 注入 `StageDDescriptorHydrator` 与 QA smoke（`[QA-ChunkBench]`、`[QA-IngestionSmoke]`），形成“export → manifest → hydrator → MetricAdapter”闭环；完成前不要再扩充 Breaks payload，避免重复返工。
+- [TODO] **Goal Tree / Stage D anchors同步**：把 `rust_commit=b6fb5999288946daeeadc4b7f9f9756f6dda1f50`、feature gates、`metric_windows` 摘要写回 Goal Tree YAML 与 `AGENTS.md`，同时在 `stage-d-inspector-latest.txt` 记录时间戳，供后续 refresh 对比。
+- [RISK] **Clippy regression 会阻断 Stage D 流水线**：`refresh_all_assets` 依赖 `run_all_checks --filter serde-fixtures`；若新 lint 进入 `xi-editor-ph7/rust/rope/src/serde_fixtures/*`，Stage D export 再次中断。需在合并前先本地跑 clippy。
+- [RISK] **QA 证据链仍未收敛**：目前日志仅覆盖 chunk/grapheme；若 Breaks/Diff/Search ingest/inspector 输出未写入 `[QA-IngestionSmoke]` 与 `tests/xi.Core.Tests/Fixtures/Reports/`，无法证明新的 payload hash。必要时暂停 exporter 刷新，等待 QA 补档。
 
 ## 关键文档索引
 - `docs/csharp-refactor/rope-serialization-fixture-playbook.md`：`[StageD::FixtureFlow]`、`[StageD::ParityAssets]`、`[QA-IngestionSmoke]` 记录 exporter/脚本/QA 证据。
