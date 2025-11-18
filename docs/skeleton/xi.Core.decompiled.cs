@@ -28,7 +28,7 @@ using Xi.Core.Search;
 [assembly: AssemblyCompany("xi.Core")]
 [assembly: AssemblyConfiguration("Debug")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: AssemblyInformationalVersion("1.0.0+0309be7fa54ac2dbc94c28fec0a740682ade5e7c")]
+[assembly: AssemblyInformationalVersion("1.0.0+ebbbd460e4633f55b643d1fbd7d5b1840ea24807")]
 [assembly: AssemblyProduct("xi.Core")]
 [assembly: AssemblyTitle("xi.Core")]
 [assembly: AssemblyVersion("1.0.0.0")]
@@ -57,6 +57,10 @@ namespace Xi.Core {
 	}
 }
 namespace Xi.Core.Search {
+	public sealed class Finder {
+		public SearchResult Find(ReadOnlySpan<char> text, SearchOptions options) {/*...*/}
+		public SearchResult FromDescriptor(SearchCaseDescriptorView descriptor) {/*...*/}
+	}
 	public sealed class SearchSpansDocument {
 		[JsonPropertyName("metadata")]
 		public SearchSpansMetadata Metadata { get; set; } = new SearchSpansMetadata();
@@ -123,6 +127,24 @@ namespace Xi.Core.Search {
 	}
 	public readonly record struct SearchSpanSegmentView(RangeSnapshot Range, int StyleId, string StyleTag, int Priority) {
 		public static SearchSpanSegmentView FromDescriptor(SearchSpanSegment segment) {/*...*/}
+	}
+	public readonly record struct SearchHit(int Index, RangeSnapshot Range, int Line, string? ContextBefore, string? ContextAfter) {
+		public static SearchHit FromDescriptor(SearchHitView view) {/*...*/}
+	}
+	public readonly record struct SearchOptions(string Query, bool IsRegex, string CaseMatching, string? RegexOptions);
+	public sealed class SearchResult {
+		public string Sample { get; }
+		public string Query { get; }
+		public bool IsRegex { get; }
+		public string CaseMatching { get; }
+		public IReadOnlyList<SearchHit> Hits { get; }
+		public IReadOnlyList<SearchSpanWindow> SpanWindows { get; }
+		public string? Notes { get; }
+		public SearchResult(string sample, string query, bool isRegex, string caseMatching, IReadOnlyList<SearchHit> hits, IReadOnlyList<SearchSpanWindow> spanWindows, string? notes) {/*...*/}
+		public static SearchResult FromDescriptor(SearchCaseDescriptorView descriptor) {/*...*/}
+	}
+	public readonly record struct SearchSpanWindow(RangeSnapshot Range, int StyleId, string StyleTag, int Priority) {
+		public static SearchSpanWindow FromDescriptor(SearchSpanSegmentView view) {/*...*/}
 	}
 }
 namespace Xi.Core.Rope {
@@ -957,7 +979,7 @@ namespace Xi.Core.Rope.Diagnostics.TreeBuilder {
 	}
 }
 namespace Xi.Core.Rope.Diagnostics.Descriptors {
-	internal sealed class ChunkDescriptor {
+	public sealed class ChunkDescriptor {
 		public string Sample { get; set; } = string.Empty;
 		[JsonPropertyName("chunk_index")]
 		public int ChunkIndex { get; set; }
@@ -976,15 +998,15 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public IList<DescriptorNodePathEntry> Path { get; set; } = new List<DescriptorNodePathEntry>();
 		public DescriptorContext Context { get; set; } = new DescriptorContext();
 	}
-	internal sealed class DescriptorRange {
+	public sealed class DescriptorRange {
 		public int Start { get; set; }
 		public int End { get; set; }
 	}
-	internal sealed class DescriptorContext {
+	public sealed class DescriptorContext {
 		public string? Before { get; set; }
 		public string? After { get; set; }
 	}
-	internal sealed class DescriptorNodePathEntry {
+	public sealed class DescriptorNodePathEntry {
 		[JsonPropertyName("node_height")]
 		public int NodeHeight { get; set; }
 		[JsonPropertyName("node_len")]
@@ -994,11 +1016,11 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		[JsonPropertyName("child_offset")]
 		public int ChildOffset { get; set; }
 	}
-	internal sealed class DescriptorLeafInfo {
+	public sealed class DescriptorLeafInfo {
 		public DescriptorRange Range { get; set; } = new DescriptorRange();
 		public IList<DescriptorNodePathEntry> Path { get; set; } = new List<DescriptorNodePathEntry>();
 	}
-	internal sealed class GraphemeDescriptor {
+	public sealed class GraphemeDescriptor {
 		public string Sample { get; set; } = string.Empty;
 		[JsonPropertyName("cluster_index")]
 		public int ClusterIndex { get; set; }
@@ -1021,7 +1043,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public DescriptorContext Context { get; set; } = new DescriptorContext();
 		public DescriptorLeafInfo Leaf { get; set; } = new DescriptorLeafInfo();
 	}
-	internal sealed class LineDescriptor {
+	public sealed class LineDescriptor {
 		public string Sample { get; set; } = string.Empty;
 		[JsonPropertyName("line_index")]
 		public int LineIndex { get; set; }
@@ -1035,7 +1057,14 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public string? NewlineKind { get; set; }
 		public IList<string> Tags { get; set; } = new List<string>();
 	}
-	internal static class StageDDescriptorLoader {
+	public static class StageDDescriptorHydrator {
+		public static IReadOnlyList<BreakPlan> LoadBreakPlans(string fixtureDirectory) {/*...*/}
+		public static IReadOnlyList<LineHashDiff> LoadDiffRegions(string fixtureDirectory) {/*...*/}
+		public static IReadOnlyList<SearchResult> LoadSearchSpans(string fixtureDirectory) {/*...*/}
+		private static StageDDescriptorManifest LoadManifest(string fixtureDirectory) {/*...*/}
+		private static string ResolveFixtureDirectory(string fixtureDirectory) {/*...*/}
+	}
+	public static class StageDDescriptorLoader {
 		private sealed class FixtureManifest {
 			[JsonPropertyName("rust_commit")]
 			public string? RustCommit { get; set; }
@@ -1120,7 +1149,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		private static string? NullIfEmpty(string? value) {/*...*/}
 		private static string? FirstValue(params string?[] candidates) {/*...*/}
 	}
-	internal sealed class StageDDescriptorManifestMetadata {
+	public sealed class StageDDescriptorManifestMetadata {
 		public string SchemaVersion { get; set; } = string.Empty;
 		public string RustCommit { get; set; } = string.Empty;
 		public string? CliRevision { get; set; }
@@ -1133,7 +1162,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public int? SearchCaseCount { get; set; }
 		public IList<string> FeatureGates { get; set; } = new List<string>();
 	}
-	internal sealed class StageDDescriptorManifest {
+	public sealed class StageDDescriptorManifest {
 		public StageDDescriptorManifestMetadata Metadata { get; set; } = new StageDDescriptorManifestMetadata();
 		public IList<ChunkDescriptor> ChunkDescriptors { get; set; } = new List<ChunkDescriptor>();
 		public IList<LineDescriptor> LineDescriptors { get; set; } = new List<LineDescriptor>();
@@ -1143,7 +1172,7 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 		public IList<SearchCaseDescriptorView> SearchSpans { get; set; } = new List<SearchCaseDescriptorView>();
 		public IList<StageDFixtureLedgerEntry> Fixtures { get; set; } = new List<StageDFixtureLedgerEntry>();
 	}
-	internal sealed class StageDFixtureLedgerEntry {
+	public sealed class StageDFixtureLedgerEntry {
 		public string Name { get; set; } = string.Empty;
 		public string Path { get; set; } = string.Empty;
 		public int Count { get; set; }
@@ -1152,6 +1181,12 @@ namespace Xi.Core.Rope.Diagnostics.Descriptors {
 	}
 }
 namespace Xi.Core.Rope.Breaks {
+	public sealed class BreakBuilder {
+		public BreakPlan CreatePlan(BreakSetDescriptorView descriptor) {/*...*/}
+		public BreakResult Compute(ReadOnlySpan<char> text, BreakComputationOptions options) {/*...*/}
+	}
+	public readonly record struct BreakComputationOptions(int WrapWidthUnits, string Metric, bool IncludeLeafRuns);
+	public readonly record struct BreakResult(BreakPlan Plan, BreaksTree? Tree);
 	public sealed class BreaksDescriptorDocument {
 		[JsonPropertyName("metadata")]
 		public BreaksDescriptorMetadata Metadata { get; set; } = new BreaksDescriptorMetadata();
@@ -1203,8 +1238,44 @@ namespace Xi.Core.Rope.Breaks {
 	public readonly record struct LeafRunSnapshotView(RangeSnapshot Range, int BreakCount, IReadOnlyList<PathFrameSnapshot> Path) {
 		public static LeafRunSnapshotView FromSnapshot(LeafRunSnapshot snapshot) {/*...*/}
 	}
+	public sealed class BreaksTree {
+		public BreakPlan Plan { get; }
+		public BreakNode Root { get; }
+		public BreaksTree(BreakPlan plan, BreakNode root) {/*...*/}
+		public static BreaksTree FromPlan(BreakPlan plan) {/*...*/}
+	}
+	public sealed class BreakNode {
+		public IReadOnlyList<BreakNode> Children { get; }
+		public BreakLeaf? Leaf { get; }
+		public bool IsLeaf => Leaf != null;
+		public BreakNode(IReadOnlyList<BreakNode> children, BreakLeaf? leaf) {/*...*/}
+		public BreakNode Rebalance() {/*...*/}
+	}
+	public sealed class BreakLeaf {
+		public BreaksLeaf Snapshot { get; }
+		public BreakLeaf(BreaksLeaf snapshot) {/*...*/}
+		public BreakNode Promote() {/*...*/}
+	}
+	public readonly record struct BreaksLeaf(RangeSnapshot Range, int BreakCount, IReadOnlyList<PathFrameSnapshot> Path) {
+		public static BreaksLeaf FromSnapshot(LeafRunSnapshotView view) {/*...*/}
+	}
+	public readonly record struct BreakInfo(int Offset, int Index, string Metric);
+	public sealed class BreakPlan {
+		public string SampleName { get; }
+		public string Metric { get; }
+		public int WrapWidthUnits { get; }
+		public IReadOnlyList<BreakInfo> Breaks { get; }
+		public IReadOnlyList<BreaksLeaf> Leaves { get; }
+		public BreakPlan(string sampleName, string metric, int wrapWidthUnits, IReadOnlyList<BreakInfo> breaks, IReadOnlyList<BreaksLeaf> leaves) {/*...*/}
+		public static BreakPlan FromDescriptor(BreakSetDescriptorView descriptor) {/*...*/}
+		public BreaksTree MaterializeTree() {/*...*/}
+	}
 }
 namespace Xi.Core.Diff {
+	public sealed class DiffBuilder {
+		public LineHashDiff ComputeDiff(ReadOnlySpan<char> left, ReadOnlySpan<char> right, DiffOptions options) {/*...*/}
+	}
+	public readonly record struct DiffOptions(bool IgnoreWhitespace, bool PreferLineHashes);
 	public sealed class DiffRegionsDocument {
 		[JsonPropertyName("metadata")]
 		public DiffRegionsMetadata Metadata { get; set; } = new DiffRegionsMetadata();
@@ -1274,6 +1345,33 @@ namespace Xi.Core.Diff {
 	}
 	public readonly record struct DiffOpSnapshotView(string Kind, RangeSnapshot? BaseRange, RangeSnapshot? TargetRange, int ByteLength, DiffLineSpan? LineSpan, string? InsertPreview) {
 		public static DiffOpSnapshotView FromSnapshot(DiffOpSnapshot snapshot) {/*...*/}
+	}
+	public sealed class DiffOperation {
+		public string Kind { get; }
+		public RangeSnapshot? BaseRange { get; }
+		public RangeSnapshot? TargetRange { get; }
+		public int ByteLength { get; }
+		public DiffLineSpan? LineSpan { get; }
+		public string? InsertPreview { get; }
+		public DiffOperation(string kind, RangeSnapshot? baseRange, RangeSnapshot? targetRange, int byteLength, DiffLineSpan? lineSpan, string? insertPreview) {/*...*/}
+		public static DiffOperation FromDescriptor(DiffOpSnapshotView descriptor) {/*...*/}
+	}
+	public sealed class DiffRegion {
+		public string Sample { get; }
+		public string BasePath { get; }
+		public string TargetPath { get; }
+		public IReadOnlyList<DiffOperation> Operations { get; }
+		public DiffCaseStats? Stats { get; }
+		public string? Notes { get; }
+		public DiffRegion(string sample, string basePath, string targetPath, IReadOnlyList<DiffOperation> operations, DiffCaseStats? stats, string? notes) {/*...*/}
+		public static DiffRegion FromDescriptor(DiffCaseDescriptorView descriptor) {/*...*/}
+	}
+	public sealed class LineHashDiff {
+		public string Algorithm { get; }
+		public IReadOnlyList<DiffRegion> Regions { get; }
+		public LineHashDiff(string algorithm, IReadOnlyList<DiffRegion> regions) {/*...*/}
+		public static LineHashDiff FromDescriptor(DiffCaseDescriptorView descriptor) {/*...*/}
+		public DiffRegion MergeRegions() {/*...*/}
 	}
 }
 namespace xi.Core {
